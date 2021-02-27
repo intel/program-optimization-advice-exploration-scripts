@@ -16,7 +16,6 @@ Installation (Ubuntu 18+)
 
 Building Tools
 --------------
-GCC/G++ version-4.9, 5.4 or above
 
 Recommended ROSE building method: GNU autotools.
 
@@ -29,3 +28,30 @@ add-apt-repository -y ppa:rosecompiler/rose-stable # Replace rose-development wi
 apt-get install -y rose
 apt-get install -y rose-tools # Optional: Installs ROSE tools in addition to ROSE Core
 ```
+
+Building the Loop Extractor
+-----------------------
+
+GCC/G++ version-4.9, 5.4 or above
+
+Use `make` to generate the executable.
+
+
+Using the Loop Extractor
+------------------------
+
+Run the executable without any arguments to see all available options.
+
+Example:
+```
+./bin/LoopExtractor tests/testing.c
+```
+
+This should create a folder in the current directory called `LoopExtractor_data`.
+
+Inside there should be a `base` file (i.e. similar to original file but without loop nests) 
+and multiple `loop nest` files (i.e. files containing extracted loop nests that are called from the `base` file).
+
+All required header files are copied to the data folder and pre-processing of the source files is done while loop extraction.
+
+Multiple source files can be provided in the command line to the Loop Extractor. Just like you would do for compiling a C/C++ project.
