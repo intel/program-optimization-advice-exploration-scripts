@@ -19,3 +19,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+===========
+
+Loop Extractor uses various tools/libraries that may have their own licenses.
+Please refer to the LICENSE file in each directory or to the header of each source file.
+
+The Lean Mean C++ Option Parser
+ROSE Compiler: Revised BSD License
