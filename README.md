@@ -44,7 +44,12 @@ Run the executable without any arguments to see all available options.
 
 Example:
 ```
+# Extract loop nests (with OpenMP pragmas) into separate files
 ./bin/LoopExtractor tests/testing.c
+# Compile C code
+gcc LoopExtractor_data/testing_base_tests.c \
+    LoopExtractor_data/testing_main_line17_tests.c \
+    LoopExtractor_data/testing_main_line27_tests.c -lm -fopenmp
 ```
 
 This should create a folder in the current directory called `LoopExtractor_data`.
@@ -55,3 +60,5 @@ and multiple `loop nest` files (i.e. files containing extracted loop nests that 
 All required header files are copied to the data folder and pre-processing of the source files is done while loop extraction.
 
 Multiple source files can be provided in the command line to the Loop Extractor. Just like you would do for compiling a C/C++ project.
+
+To tell the Loop Extractor to skip extracting a loop nest, use `#pragma LE skiploop` over the loop nest in the source file.

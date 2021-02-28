@@ -622,14 +622,14 @@ void LoopInfo::printLoopFunc(ofstream &loop_file_buf) {
   if (extr.getSrcType() == src_lang_C)
     pushPointersToLocalVars(loop_file_buf);
 
-  if (LoopExtractor_enabled_options[PARALLEL] && extr.getOMPpragma() != "")
+  if (extr.getOMPpragma() != "")
     loop_file_buf << printOMPprivateArrays() << endl;
 
   // TODO: Add SCoP pragma based on tool option
   loop_file_buf << "#pragma scop" << endl;
 
   // Get OMP pragma for this loop
-  if (LoopExtractor_enabled_options[PARALLEL] && extr.getOMPpragma() != "")
+  if (extr.getOMPpragma() != "")
     loop_file_buf << endl << sanitizeOMPpragma(extr.getOMPpragma()) << endl;
 
   // Print all the loops
@@ -651,7 +651,11 @@ void LoopInfo::printLoopFunc(ofstream &loop_file_buf) {
   }
   loop       = *(extr.consecutiveLoops.begin());
   loop_scope = (loop->get_loop_body())->get_scope();
-
+ 
+  stringReplaceAll(kernel_body_str,"{","\n{\n"); 
+  stringReplaceAll(kernel_body_str,"}","\n}\n"); 
+  stringReplaceAll(kernel_body_str,";",";\n"); 
+  
   loop_file_buf << kernel_body_str << endl;
 
   loop_file_buf << "#pragma endscop" << endl;

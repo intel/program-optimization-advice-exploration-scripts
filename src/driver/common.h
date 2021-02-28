@@ -84,5 +84,6 @@ double getVectorMean(vector<double> *dataVec);
 double getVectorStdev(vector<double> *dataVec);
 double getVectorMedian(vector<double> *dataVec);
 void genRandomStr(string &str, const int len);
+void stringReplaceAll(string& str, const string& from, const string& to);
 string getAbsolutePath(string const &fullString);
 #endif
