@@ -1,0 +1,146 @@
+#include <assert.h>
+#include <malloc.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#include "util.h"
+#include "defs.h"
+
+/*
+ * write heap/stack/global data to disk in binary format
+ */
+void writeDataToFile(char *addressDataFile, unsigned char *dumpArray, int size,
+                     int memoryLocation) {
+
+  size_t len = strlen(addressDataFile);
+  char *heapDataFile = malloc(len + 4);
+  strcpy(heapDataFile, addressDataFile);
+  heapDataFile[len] = '.';
+  if (memoryLocation == heapPointerData) {
+    heapDataFile[len + 1] = 'h';
+    heapDataFile[len + 2] = 'd';
+  } else if (memoryLocation == stackPointerData) {
+    heapDataFile[len + 1] = 's';
+    heapDataFile[len + 2] = 't';
+  } else if (memoryLocation == globalPointerData) {
+    heapDataFile[len + 1] = 'g';
+    heapDataFile[len + 2] = 'l';
+  } else {
+    printf("undefined memory location!");
+    exit(1);
+  }
+  heapDataFile[len + 3] = '\0';
+
+  FILE *pFile = fopen(heapDataFile, "w");
+
+  fwrite(dumpArray, sizeof(unsigned char), size, pFile);
+  fclose(pFile);
+
+  struct stat sbuf;
+  if (stat(heapDataFile, &sbuf) == -1) {
+    perror("stat");
+    exit(1);
+  }
+
+  free(heapDataFile);
+}
+
+void readDataFromFile(char *addressDataFile, unsigned char *dumpArray, int size) {
+  FILE *pFile = fopen(addressDataFile, "r");
+  int sz = fread(dumpArray, sizeof(unsigned char), size, pFile);
+  printf("sz=%d, size=%d\n", sz, size);
+  assert(sz==size);
+  fclose(pFile);
+}
+
+void *my_mallocMemoryChunk(char *fileName, void *startAddr, void *endAddr,
+                        unsigned long long size) {
+
+        void * volatile p = malloc(1);
+        free(p);
+  // Note: must set brk to the maxLoc of heap before any malloc/callloc/realloc
+  // otherwise, the data between the minLoc and maxLoc of the original heap
+  // would be overwritten. It will result in segmentation fault.
+  void *oldBrk = sbrk(0);
+
+  unsigned long long unsingedExtendEndAddr =
+      (unsigned long long)startAddr + size * 2;
+  void *extendEndAddr = (void *)unsingedExtendEndAddr;
+  void *alignedEndAddr = alignAddress(extendEndAddr, ALIGNEDTO);
+
+  if (brk(alignedEndAddr) == -1) {
+    perror("brk failed in mallocMemoryChunk: ");
+  }
+
+  char *buffer = (void *)(endAddr + HEAPOFFSET);
+  buffer = (char *) alignAddress(buffer, ALIGNEDTO);
+
+  // cannot use fopen here because fopen calls malloc internally. We are unable
+  // to control the brk inside of fopen. For example, malloc might find an
+  // address which is not on the top of the heap we intentionally extended.
+  // Instead, it allocates the file pointer to an address which first fits the
+  // size of the pointer. There would be a problem when we call fclose because
+  // it is going to free the allocated space. To solve the problem, we could
+  // just use open and read.
+  int input_fd = open(fileName, O_RDONLY);
+  if (input_fd == -1) {
+    perror("open heap file failed");
+    exit(2);
+  }
+
+  unsigned long long result;
+    //printf("Has11 %llu, address of buffer: %p, %c\n", size, buffer, buffer[0]);
+  result = read(input_fd, buffer, size);
+  if (result != size) {
+    printf("Has %llu, read %llu, address of buffer: %p\n", size, result, buffer);
+    perror("Reading file error");
+    exit(3);
+  }
+
+  memcpy(startAddr, buffer, size);
+
+        close(input_fd);
+
+  return oldBrk;
+}
+
+void *my_mallocMemoryChunkInclusive(char *fileName, void *startAddr, void *endAddr) {
+    unsigned char* endAddrPlusOne = endAddr + 1;
+    unsigned long long size = endAddrPlusOne - (unsigned char*)startAddr;
+
+ return my_mallocMemoryChunk(fileName, startAddr, endAddrPlusOne, size) ;
+}
+
+
+void writeDataRangeToFile(char *addressDataFile, unsigned char *dumpArrayMin, unsigned char *dumpArrayMax, int memoryLocation) {
+    int size = dumpArrayMax - dumpArrayMin + 1;
+    printf("%p, %p, %d\n", dumpArrayMin, dumpArrayMax, size);
+    writeDataToFile(addressDataFile, dumpArrayMin, size, memoryLocation);
+}
+void readDataRangeFromFile (char *addressDataFile, unsigned char *dumpArrayMin, unsigned char *dumpArrayMax) {
+    int size = dumpArrayMax - dumpArrayMin + 1;
+    //printf("%p, %p, %d\n", dumpArrayMin, dumpArrayMax, size);
+    readDataFromFile(addressDataFile, dumpArrayMin, size);
+}
+
+static void *alignAddress(void *addr, int align) {
+  uintptr_t mask = align - 1;
+  void *alignedAddr = (void *)(((uintptr_t)addr + mask) & ~mask);
+
+  return alignedAddr;
+}
+/*
+static inline __attribute__((always_inline)) void asm_basepointer(void *basepointer) {
+  __asm__ __volatile__("movq %%rbp, %0" : "=m"(basepointer));
+}
+
+static inline __attribute__((always_inline)) void asm_stackpointer(void *stackpointer) {
+  __asm__ __volatile__("movq %%rsp, %0" : "=m"(stackpointer));
+}
+*/

@@ -809,8 +809,38 @@ void LoopInfo::addLoopFuncCall() {
     }
   }
   /* Replace for loop with function call - Keep preprocessing info */
+  SgExprStatement* call_expr_stmt = SageBuilder::buildExprStatement(call_expr);
   SageInterface::replaceStatement(
-      loop, SageBuilder::buildExprStatement(call_expr), true);
+      loop, call_expr_stmt, true);
+
+  loop_func_call = call_expr_stmt;
+}
+
+/**
+ * @brief For each local variable in the loop scope, get the corresponding type
+ * @return vector of types of variables in the loop scope
+ */
+vector<string> LoopInfo::getLoopFuncArgsType(){
+    vector<string> args_type;
+    vector<SgVariableSymbol *>::iterator iter;
+    for (iter = scope_vars_symbol_vec.begin(); iter != scope_vars_symbol_vec.end(); iter++) {
+        args_type.push_back((*iter)->get_type()->unparseToString());
+    }
+    return args_type;
+}
+
+/**
+ * @brief For each local variable in the loop scope, get its name
+ * @return vector of variable names in the loop scope
+ */
+vector<string> LoopInfo::getLoopFuncArgsName(){
+    vector<string> args_name;
+    vector<SgVariableSymbol *>::iterator iter;
+    for (iter = scope_vars_symbol_vec.begin(); iter != scope_vars_symbol_vec.end(); iter++) {
+        cout << "Loop func arg: " << (*iter)->get_name().str() << endl;
+        args_name.push_back((*iter)->get_name().str());
+    }
+    return args_name;
 }
 
 /* Intended to get rid of variable mentioned in OpenMP clauses that are not
@@ -911,7 +941,7 @@ bool Extractor::skipLoop(SgNode *astNode) {
   return false;
 }
 
-void Extractor::extractLoops(SgNode *astNode) {
+void Extractor::extractLoops(SgNode *astNode){
   SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
   updateUniqueCounter(astNode);
   string loop_file_name = getExtractionFileName(astNode);
@@ -947,6 +977,37 @@ void Extractor::extractLoops(SgNode *astNode) {
   }
 
   loop_file_buf.close();
+
+    /*
+     * Add loop file name to the Tracer
+     * Check that Tracer is not NULL
+     */
+    
+    if(tr != NULL){
+        int found = loop_file_name.find_last_of("/");
+        string loop_file_name_only = loop_file_name.substr(found+1);
+        short_loop_names.push_back(loop_file_name_only);
+        tr->setLoopScope(curr_loop.getLoopScope());
+        tr->setLoopNode(curr_loop.getLoopNode());
+        tr->setGlobalVars(curr_loop.getGlobalVars());
+
+        tr->setInsertStatement(curr_loop.getLoopFuncCall());
+        tr->setLoopFuncScope(curr_loop.getLoopFuncCall()->get_scope());
+
+        string func_name = curr_loop.getFuncName();
+        vector<string> loop_func_args = curr_loop.getLoopFuncArgsName(); 
+        vector<string> loop_func_args_type = curr_loop.getLoopFuncArgsType(); 
+
+        LoopFuncInfo* lfi = new LoopFuncInfo(func_name, loop_func_args, loop_func_args_type, global_var_names);
+        
+        SgStatement* callStmt = curr_loop.getLoopFuncCall();
+        SgExpression* callExpr = isSgExprStatement(callStmt)->get_expression();
+        SgFunctionCallExp* funcCallExp = isSgFunctionCallExp(callExpr);
+        SgFunctionDeclaration* funcDecl = funcCallExp->getAssociatedFunctionDeclaration();
+        lfi->setFuncDecl(funcDecl);
+        
+        tr->addLoopFuncInfo(lfi);
+    }
 
   /* Remove preprocessor text, since ROSE preprocessor has already worked */
   /*	string sed_command;
@@ -1082,6 +1143,7 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
         if (pragmaString.find("parallel") == string::npos &&
             pragmaString.find("threadprivate") != string::npos) {
           global_vars.push_back("#pragma " + pragmaString);
+                global_var_names.push_back(pragmaString);
           //          } else if( pragmaString.find("parallel") != string::npos
           //          &&
           //                     pragmaString.find("for") == string::npos ){
@@ -1241,6 +1303,7 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
                 global_vars.push_back(
                     var_type_str.substr(0, first_square_brac) + var_str +
                     var_type_str.substr(first_square_brac));
+                global_var_names.push_back(initializedName->get_name().getString());
             } else {
               /* Bcoz Rose add wierd stuff like __PRETTY_FUNCTION__ on assert()
                * calls */
@@ -1248,6 +1311,7 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
                   var_str.find(ignorePrettyFunctionCall2) == string::npos &&
                   var_str.find(ignorePrettyFunctionCall3) == string::npos)
                 global_vars.push_back(var_type_str + " " + var_str);
+                global_var_names.push_back(initializedName->get_name().getString());
             }
             // lastIncludeStmt = dynamic_cast<SgStatement *>(astNode);
           }
@@ -1258,8 +1322,9 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
                     .isStatic() == true) {
               // cerr << "Found a static global var: " << var_type_str + " " +
               // initializedName->get_name().getString() << endl;
-              global_vars.push_back(var_type_str + " " +
+                global_vars.push_back(var_type_str + " " +
                                     initializedName->get_name().getString());
+                global_var_names.push_back(initializedName->get_name().getString());
               // lastIncludeStmt = dynamic_cast<SgStatement *>(astNode);
             }
           }
@@ -1410,58 +1475,83 @@ void Extractor::inlineFunctions(const vector<string> &argv) {
 }
 
 /* Extractor constructor, for initiating via driver */
-Extractor::Extractor(const vector<string> &argv) {
-  /* Get relative path unique code */
-  if (LoopExtractor_input_file_relpathcode.find(argv.back()) !=
-          LoopExtractor_input_file_relpathcode.end() &&
-      !(LoopExtractor_input_file_relpathcode.find(argv.back())->second).empty())
-    relpathcode =
-        LoopExtractor_input_file_relpathcode.find(argv.back())->second;
+Extractor::Extractor(const vector<string> &argv, Tracer* tr) {
+    /* Get relative path unique code */
+    if (LoopExtractor_input_file_relpathcode.find(argv.back()) !=
+            LoopExtractor_input_file_relpathcode.end() &&
+        !(LoopExtractor_input_file_relpathcode.find(argv.back())->second).empty())
+        relpathcode =
+            LoopExtractor_input_file_relpathcode.find(argv.back())->second;
 
-  if (LoopExtractor_enabled_options[STATICANALYSIS]) {
+    if (LoopExtractor_enabled_options[STATICANALYSIS]) {
     // inlineFunctions(argv); // Has bugs bcoz of rose implementation
-  }
+    }
 
-  SgProject *ast = NULL;
-  /* Create AST and pass to the extraction functions */
-  ast = frontend(argv);
-  ROSE_ASSERT(ast != NULL);
-  InheritedAttribute inhr_attr;
-  /* Traverse all files and their ASTs in Top Down fashion (Inherited Attr) and
-   * extract loops */
-  this->traverseInputFiles(ast, inhr_attr);
-  // this->generateHeaderFile();
-  this->addPostTraversalDefs();
-  AstTests::runAllTests(ast);
-  /* Generate rose_<orig file name> file for the transformed AST */
-  ast->unparse();
-  delete ast;
+    this->tr = tr;
 
-  /* If file doesn't have any loop, then LoopExtractor_file_name,_file_extn
-   * would be empty at this point */
-  if (LoopExtractor_file_name.empty()) {
-    LoopExtractor_file_path          = getFilePath(argv.back());
-    LoopExtractor_original_file_name = getOrigFileName(argv.back());
-    LoopExtractor_file_extn          = getFileExtn(argv.back());
-  }
-  string base_file = getDataFolderPath() + getOrigFileName() + base_str + "_" +
-                     relpathcode + "." + getFileExtn();
+    SgProject *ast = NULL;
+    /* Create AST and pass to the extraction functions */
+    ast = frontend(argv);
+    ROSE_ASSERT(ast != NULL);
+    InheritedAttribute inhr_attr;
+    /* Traverse all files and their ASTs in Top Down fashion (Inherited Attr) and
+     * extract loops */
+    this->traverseInputFiles(ast, inhr_attr);
+    // this->generateHeaderFile();
+    this->addPostTraversalDefs();
+    AstTests::runAllTests(ast);
+    /* Generate rose_<orig file name> file for the transformed AST */
+    ast->unparse();
+    delete ast;
 
-  if (LoopExtractor_file_name.empty() && !mainFuncPresent) {
-    /* Copy original file to the LoopExtractor data folder:
-     * cp filename.x LoopExtractor_data/filename_base.x
-     * rm rose_filename.x
+    /* If file doesn't have any loop, then LoopExtractor_file_name,_file_extn
+     * would be empty at this point */
+    if (LoopExtractor_file_name.empty()) {
+        LoopExtractor_file_path          = getFilePath(argv.back());
+        LoopExtractor_original_file_name = getOrigFileName(argv.back());
+        LoopExtractor_file_extn          = getFileExtn(argv.back());
+    }
+    string base_file = getDataFolderPath() + getOrigFileName() + base_str + "_" +
+                        relpathcode + "." + getFileExtn();
+
+    if (LoopExtractor_file_name.empty() && !mainFuncPresent) {
+        /* Copy original file to the LoopExtractor data folder:
+        * cp filename.x LoopExtractor_data/filename_base.x
+        * rm rose_filename.x
+        */
+        executeCommand("cp " + argv.back() + space_str + base_file);
+        executeCommand("rm rose_" + getOrigFileName() + "." + getFileExtn());
+    } else {
+        /* Move base file to the LoopExtractor data folder:
+         * mv rose_filename.x LoopExtractor_data/filename_base.x
+         */
+        executeCommand("mv rose_" + getOrigFileName() + "." + getFileExtn() +
+                        space_str + base_file);
+    }
+    // modifyExtractedFileText(base_file);
+
+    files_to_compile.insert(base_file);
+
+    /*
+     * Set base file name to Tracer 
+     * Check that Tracer is not NULL
      */
-    executeCommand("cp " + argv.back() + space_str + base_file);
-    executeCommand("rm rose_" + getOrigFileName() + "." + getFileExtn());
-  } else {
-    /* Move base file to the LoopExtractor data folder:
-     * mv rose_filename.x LoopExtractor_data/filename_base.x
-     */
-    executeCommand("mv rose_" + getOrigFileName() + "." + getFileExtn() +
-                   space_str + base_file);
-  }
-  // modifyExtractedFileText(base_file);
 
-  files_to_compile.insert(base_file);
+    std::string loopExtrIncludeFlag = "-I";
+    loopExtrIncludeFlag += LoopExtractor_curr_dir_path;
+    //loopExtrIncludeFlag += forward_slash_str;
+    loopExtrIncludeFlag += LoopExtractor_data_folder;
+    tr->setLoopExtrIncludeFlag(loopExtrIncludeFlag);
+
+    string baseFileName = LoopExtractor_curr_dir_path + LoopExtractor_data_folder + forward_slash_str + getOrigFileName() + base_str + "_" + relpathcode + "." + getFileExtn();
+    tr->setBaseFileName(baseFileName);
+    for (int i = 0; i < short_loop_names.size(); i++) {
+        string shortFileName = short_loop_names[i];
+        string loopFileName = LoopExtractor_curr_dir_path + LoopExtractor_data_folder + forward_slash_str + shortFileName;
+        //loopFileNames[i] =
+        tr->addLoopFileName(loopFileName);
+    }
+
+    //tr->initTracing(argv);
+    
 }

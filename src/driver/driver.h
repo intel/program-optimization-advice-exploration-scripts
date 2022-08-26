@@ -4,6 +4,7 @@
 #include "common.h"
 #include "extractor/extractor.h"
 #include "options.h"
+#include "tracer/tracer.h"
 
 using namespace std;
 
@@ -14,11 +15,15 @@ class Driver {
   ofstream header_code_file_buf;
   src_lang src_type;
 
+  //vector<string> filename_vec;
   Extractor *extr;
+  Tracer* tr;
 
 public:
   bool mainFuncPresent = false;
   bool isLastSrcFile   = false;
+
+  vector <LoopInfo> loop_info_vec;
 
 public:
   Driver(){};
@@ -29,6 +34,8 @@ public:
   void moveLoopExtractorDataFolder();
   void copyInFolderHeaders(string folder_path, bool copysourcefiles);
   void initiateExtractor(string file_name);
+  void generateCodelets();
+  //void dumpExtrLoopInfo();
 };
 
 #endif

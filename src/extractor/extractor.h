@@ -5,6 +5,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
+#include <iostream>
+#include <cstdio>
+#include "tracer/tracer.h"
 
 using namespace std;
 
@@ -51,6 +54,10 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
   vector<int> typedef_struct_lineno_vec;
   src_lang src_type;
 
+  Tracer* tr;
+  vector<string> global_var_names;
+  vector<string> short_loop_names;
+
 public:
   string ignorePrettyFunctionCall1 = "__PRETTY_FUNCTION__";
   string ignorePrettyFunctionCall2 = "__func__";
@@ -70,7 +77,7 @@ public:
 
 public:
   Extractor(){};
-  Extractor(const vector<string> &argv);
+  Extractor(const vector<string> &argv, Tracer* tr);
 
   src_lang getSrcType() { return src_type; }
   SgGlobal *getGlobalNode() { return global_node; }
@@ -114,6 +121,7 @@ class LoopInfo {
   Extractor &extr;
   SgNode *astNode;
   SgForStatement *loop;
+  SgStatement* loop_func_call;
   string func_name;
   SgScopeStatement *loop_scope;
   vector<string> scope_vars_str_vec;
@@ -131,7 +139,7 @@ public:
 public:
   LoopInfo(SgNode *astNode, SgForStatement *loop, string func_name,
            Extractor &e)
-      : extr(e), astNode(astNode), loop(loop), func_name(func_name) {}
+      : extr(e), astNode(astNode), loop(loop), func_name(func_name){}
   string getFuncName() { return func_name; }
   bool isDeclaredInInnerScope(SgScopeStatement *var_scope);
   void getVarsInScope();
@@ -147,6 +155,14 @@ public:
   string sanitizeOMPpragma(const string &pragmaStr);
   void addLoopFuncAsExtern(); // In Base file
   void addLoopFuncCall();     // In Base file
+
+  SgScopeStatement* getLoopScope(){ return loop_scope; }
+  SgNode* getLoopNode(){ std::cout << "funcName:" << func_name << std::endl; return astNode; }
+  vector<string> getLoopFuncArgsName();//{ return scope_vars_str_vec; }
+  vector<string> getLoopFuncArgsType();
+  vector<string> getGlobalVars(){ return scope_globals_vec; }
+  SgForStatement* getLoopStatement(){ return loop; }
+  SgStatement* getLoopFuncCall(){ return loop_func_call; }
 };
 
 #endif

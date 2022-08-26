@@ -81,7 +81,9 @@ void Driver::initiateExtractor(string file_name) {
 
   filename_vec.push_back(file_name);
 
-  extr = new Extractor(filename_vec);
+    tr = new Tracer();
+  extr = new Extractor(filename_vec, tr);
+  tr->setFilenameVec(filename_vec);
 
   mainFuncPresent = extr->mainFuncPresent;
   src_type        = extr->getSrcType();
@@ -94,6 +96,12 @@ void Driver::initiateExtractor(string file_name) {
   /* Copy headers that are in same folder as Source to LE data folder */
   copyInFolderHeaders(extr->getFilePath(), extr->copysourcefiles);
 }
+
+
+void Driver::generateCodelets() {
+    tr->initTracing();
+}
+
 
 int main(int argc, char *argv[]) {
   Driver *driver = new Driver();
@@ -114,10 +122,21 @@ int main(int argc, char *argv[]) {
         driver->isLastSrcFile = true;
       }
       driver->initiateExtractor(*iter);
+
+      //driver->generateCodelet();
+
     }
   }
 
   driver->moveLoopExtractorDataFolder();
+
+    cout << "In-Situ extraction completed" << endl;
+
+    driver->generateCodelets();
+  //tr->"initTracing();
+
+
+    cout << "In-Vitro extraction completed" << endl;
 
   delete driver;
   return 0;
