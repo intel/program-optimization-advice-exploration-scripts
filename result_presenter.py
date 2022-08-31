@@ -1,3 +1,4 @@
+# Contributors: Cedirc/Mathieu/Farnaz/Yue/William/Dave
 from logger import log, QaasComponents
 
 def show_results(db_address, timestamp):

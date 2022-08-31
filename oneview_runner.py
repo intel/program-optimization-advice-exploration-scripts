@@ -1,3 +1,4 @@
+# Contributors: Cedric/Emmanuel
 import datetime
 import os
 from logger import log, QaasComponents

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# Contributors: Yue, Cedric, Emmanuel
 import os
 import datetime
 from logger import log, QaasComponents
