@@ -7,7 +7,7 @@ import service_submitter
 import job
 import os
 
-def run(qaas_root, qaas_db_address):
+def run(qaas_root, qaas_db_address, qaas_compiler_dir, qaas_ov_dir):
   service_dir, src_url, data_url, docker_file, oneview_config, timestamp = service_submitter.get_input(qaas_root)
 
   src_dir, data_dir, ov_run_dir, docker_image = env_provisioner.setup_environ(service_dir, src_url, data_url, docker_file)
@@ -16,7 +16,7 @@ def run(qaas_root, qaas_db_address):
   # then for each machine, run experiment in container
   for machine in machines:
     mach_ov_run_dir = os.path.join(ov_run_dir, machine)
-    job.launch(machine, src_dir, data_dir, oneview_config, mach_ov_run_dir, docker_image)
+    job.launch(machine, src_dir, data_dir, oneview_config, mach_ov_run_dir, docker_image, qaas_compiler_dir, qaas_ov_dir)
 
   # Populate results to database
   for machine in machines:
