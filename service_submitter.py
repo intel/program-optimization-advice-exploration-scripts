@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import datetime
+from logger import log, QaasComponents
 
 # Demo with preset values
 

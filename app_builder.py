@@ -1,7 +1,9 @@
 import os
+from logger import log, QaasComponents
+
 
 def exec(src_dir, compiler_dir, relative_binary_path):
-    print(f'MOCKUP: building binary to be compiled by {compiler_dir}')
+    log(QaasComponents.APP_BUILDER, f'Building binary to be compiled by {compiler_dir}', mockup=True)
     orig_binary = os.path.join(src_dir, relative_binary_path)
-    print(f'MOCKUP OUTPUT: orig binary {orig_binary}')
+    log(QaasComponents.APP_BUILDER, f'Output to binary {orig_binary}', mockup=True)
     return orig_binary
