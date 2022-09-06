@@ -68,8 +68,6 @@ tracer: $(OBJ_TRACER) $(OBJ_COMMON)
 $(OBJ_TRACER): $(SRC_TRACER)
 	$(CC) $(FLAGS) $(TRACER_COMPILE_FLAGS) $(SRC_TRACER) -c -o $@
 
-$(OBJ_COMMON): src/driver/common.cpp
-	$(CC) $(FLAGS) src/driver/common.cpp $(ROSE_INCLUDE) -c -o $@
 
 ##### DRIVER #####
 

@@ -147,3 +147,20 @@ string getAbsolutePath(string const &fullString) {
     exit(EXIT_FAILURE);
   }
 }
+
+std::string parseFileName (std::string* fullName)
+{
+   if (fullName != nullptr)
+   {
+      std::string::size_type prev_pos = 0, pos = 0;
+      std::string separator = "/";
+      while((pos = (*fullName).find(separator, pos)) != std::string::npos)
+      {
+         std::string substring( (*fullName).substr(prev_pos, pos-prev_pos) );
+         prev_pos = ++pos;
+      }
+      std::string substring ( (*fullName).substr(prev_pos, pos-prev_pos) );
+      return substring;
+   }
+   return "";
+}

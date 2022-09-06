@@ -49,6 +49,9 @@ typedef enum {
   UNKNOWN
 } LoopExtractor_options;
 
+/* For the tracer */
+std::string parseFileName (std::string* fullName);
+
 extern string space_str;
 extern string forward_slash_str;
 extern string minus_c_str;

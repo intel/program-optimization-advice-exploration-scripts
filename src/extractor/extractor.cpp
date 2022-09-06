@@ -652,6 +652,7 @@ void LoopInfo::printLoopFunc(ofstream &loop_file_buf) {
   loop       = *(extr.consecutiveLoops.begin());
   loop_scope = (loop->get_loop_body())->get_scope();
  
+  stringReplaceAll(kernel_body_str,"#pragma ivdep","\n#pragma ivdep \n"); 
   stringReplaceAll(kernel_body_str,"{","\n{\n"); 
   stringReplaceAll(kernel_body_str,"}","\n}\n"); 
   stringReplaceAll(kernel_body_str,";",";\n"); 
@@ -941,74 +942,91 @@ bool Extractor::skipLoop(SgNode *astNode) {
   return false;
 }
 
-void Extractor::extractLoops(SgNode *astNode){
-  SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
-  updateUniqueCounter(astNode);
-  string loop_file_name = getExtractionFileName(astNode);
+void Extractor::extractLoops(SgNode *astNode) {
+    int lineNum = astNode->get_file_info()->get_line();
+    cout << "line number of ast node: " << astNode->unparseToString() << endl;
+    cout << "is " << lineNum << endl;
+    if (lineNum >= tr->lineNumbers.first && lineNum <= tr->lineNumbers.second) {
+        cout << "PASSED the lineNum check" << endl;
+      SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
+      updateUniqueCounter(astNode);
+      string loop_file_name = getExtractionFileName(astNode);
 
-  ofstream loop_file_buf;
-  loop_file_buf.open(loop_file_name.c_str(), ofstream::out);
+      ofstream loop_file_buf;
+      loop_file_buf.open(loop_file_name.c_str(), ofstream::out);
 
-  files_to_compile.insert(loop_file_name);
+      files_to_compile.insert(loop_file_name);
 
-  // Create loop object
-  LoopInfo curr_loop(astNode, loop, getLoopName(astNode), *this);
+      //parse loop_file_name and do fprintf to tmp/loopFileNames.txt
+      cout << "LOOP_FILE_NAME: " << loop_file_name << endl;
+      cout << "PARSED loop_file_name: " << parseFileName(&loop_file_name) << endl;
+      string base_file_name = getDataFolderPath() + getOrigFileName() + base_str + "_" +
+                        relpathcode + "." + getFileExtn();
+      cout << "BASE_FILE_NAME: " << base_file_name << endl;
+      cout << "PARSED base_file_name: " << parseFileName(&base_file_name) << endl;
+      FILE* tmp_fp = fopen("/tmp/loopFileNames.txt", "w"); //"./loopFileNames.txt", "w");
+      fprintf (tmp_fp, "%s\n%s\n", parseFileName(&base_file_name).c_str(), parseFileName(&loop_file_name).c_str());
+      fclose (tmp_fp);
 
-  printHeaders(loop_file_buf);
-  printGlobalsAsExtern(loop_file_buf);
+      // Create loop object
+      LoopInfo curr_loop(astNode, loop, getLoopName(astNode), *this);
 
-  // cerr << "Adding loop to file: " << curr_loop.getFuncName() << endl;
-  /*
-   * Take cares of print complete loop function and adding func calls
-   * and extern loop func to the base file.
-   */
-  curr_loop.printLoopFunc(loop_file_buf);
-  curr_loop.addLoopFuncCall();
-  curr_loop.addLoopFuncAsExtern();
+      printHeaders(loop_file_buf);
+      printGlobalsAsExtern(loop_file_buf);
 
-  // to replace remaining consecutive loops with null statements */
-  if (consecutiveLoops.size() > 1) {
-    vector<SgForStatement *>::iterator iter = consecutiveLoops.begin();
-    iter++; // First loop is already removed by addLoopFuncCall()
-    for (; iter != consecutiveLoops.end(); iter++) {
-      SageInterface::replaceStatement((*iter),
-                                      SageBuilder::buildNullStatement(), false);
-    }
+      // cerr << "Adding loop to file: " << curr_loop.getFuncName() << endl;
+      /*
+      * Take cares of print complete loop function and adding func calls
+      * and extern loop func to the base file.
+      */
+      curr_loop.printLoopFunc(loop_file_buf);
+      curr_loop.addLoopFuncCall();
+      curr_loop.addLoopFuncAsExtern();
+
+      // to replace remaining consecutive loops with null statements */
+      if (consecutiveLoops.size() > 1) {
+        vector<SgForStatement *>::iterator iter = consecutiveLoops.begin();
+        iter++; // First loop is already removed by addLoopFuncCall()
+        for (; iter != consecutiveLoops.end(); iter++) {
+          SageInterface::replaceStatement((*iter),
+                                          SageBuilder::buildNullStatement(), false);
+        }
+      }
+
+      loop_file_buf.close();
+
+        /*
+        * Add loop file name to the Tracer
+        * Check that Tracer is not NULL
+        */
+      
+      if(tr != NULL){
+          int found = loop_file_name.find_last_of("/");
+          string loop_file_name_only = loop_file_name.substr(found+1);
+          short_loop_names.push_back(loop_file_name_only);
+          tr->setLoopScope(curr_loop.getLoopScope());
+          tr->setLoopNode(curr_loop.getLoopNode());
+          tr->setGlobalVars(curr_loop.getGlobalVars());
+
+          tr->setInsertStatement(curr_loop.getLoopFuncCall());
+          tr->setLoopFuncScope(curr_loop.getLoopFuncCall()->get_scope());
+
+          string func_name = curr_loop.getFuncName();
+          vector<string> loop_func_args = curr_loop.getLoopFuncArgsName(); 
+          vector<string> loop_func_args_type = curr_loop.getLoopFuncArgsType(); 
+
+          LoopFuncInfo* lfi = new LoopFuncInfo(func_name, loop_func_args, loop_func_args_type, global_var_names);
+          
+          SgStatement* callStmt = curr_loop.getLoopFuncCall();
+          SgExpression* callExpr = isSgExprStatement(callStmt)->get_expression();
+          SgFunctionCallExp* funcCallExp = isSgFunctionCallExp(callExpr);
+          SgFunctionDeclaration* funcDecl = funcCallExp->getAssociatedFunctionDeclaration();
+          lfi->setFuncDecl(funcDecl);
+          
+          tr->addLoopFuncInfo(lfi);
+      }
   }
-
-  loop_file_buf.close();
-
-    /*
-     * Add loop file name to the Tracer
-     * Check that Tracer is not NULL
-     */
-    
-    if(tr != NULL){
-        int found = loop_file_name.find_last_of("/");
-        string loop_file_name_only = loop_file_name.substr(found+1);
-        short_loop_names.push_back(loop_file_name_only);
-        tr->setLoopScope(curr_loop.getLoopScope());
-        tr->setLoopNode(curr_loop.getLoopNode());
-        tr->setGlobalVars(curr_loop.getGlobalVars());
-
-        tr->setInsertStatement(curr_loop.getLoopFuncCall());
-        tr->setLoopFuncScope(curr_loop.getLoopFuncCall()->get_scope());
-
-        string func_name = curr_loop.getFuncName();
-        vector<string> loop_func_args = curr_loop.getLoopFuncArgsName(); 
-        vector<string> loop_func_args_type = curr_loop.getLoopFuncArgsType(); 
-
-        LoopFuncInfo* lfi = new LoopFuncInfo(func_name, loop_func_args, loop_func_args_type, global_var_names);
-        
-        SgStatement* callStmt = curr_loop.getLoopFuncCall();
-        SgExpression* callExpr = isSgExprStatement(callStmt)->get_expression();
-        SgFunctionCallExp* funcCallExp = isSgFunctionCallExp(callExpr);
-        SgFunctionDeclaration* funcDecl = funcCallExp->getAssociatedFunctionDeclaration();
-        lfi->setFuncDecl(funcDecl);
-        
-        tr->addLoopFuncInfo(lfi);
-    }
-
+  
   /* Remove preprocessor text, since ROSE preprocessor has already worked */
   /*	string sed_command;
     sed_command = "sed -i '/^#if/ d' " + loop_file_name;

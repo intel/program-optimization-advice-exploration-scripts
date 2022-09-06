@@ -36,6 +36,7 @@ public:
   void initiateExtractor(string file_name);
   void generateCodelets();
   //void dumpExtrLoopInfo();
+  void scanLineNumbers(string loopFileName);
 };
 
 #endif

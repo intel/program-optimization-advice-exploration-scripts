@@ -111,6 +111,10 @@ void *my_mallocMemoryChunk(char *fileName, void *startAddr, void *endAddr,
 }
 
 void *my_mallocMemoryChunkInclusive(char *fileName, void *startAddr, void *endAddr) {
+    if (startAddr == endAddr) {
+      //printf("NOTHING TO ALLOCATE\n");
+      return;
+    }
     unsigned char* endAddrPlusOne = endAddr + 1;
     unsigned long long size = endAddrPlusOne - (unsigned char*)startAddr;
 
@@ -119,11 +123,19 @@ void *my_mallocMemoryChunkInclusive(char *fileName, void *startAddr, void *endAd
 
 
 void writeDataRangeToFile(char *addressDataFile, unsigned char *dumpArrayMin, unsigned char *dumpArrayMax, int memoryLocation) {
+    if (dumpArrayMax == dumpArrayMin && dumpArrayMin == 0) {
+      //printf("NOTHING TO WRITE!!!\n");
+      return;
+    }
     int size = dumpArrayMax - dumpArrayMin + 1;
     printf("%p, %p, %d\n", dumpArrayMin, dumpArrayMax, size);
     writeDataToFile(addressDataFile, dumpArrayMin, size, memoryLocation);
 }
 void readDataRangeFromFile (char *addressDataFile, unsigned char *dumpArrayMin, unsigned char *dumpArrayMax) {
+    if (dumpArrayMax == dumpArrayMin && dumpArrayMin == 0) {
+      //printf("NOTHING TO READ!!!\n");
+      return;
+    }
     int size = dumpArrayMax - dumpArrayMin + 1;
     //printf("%p, %p, %d\n", dumpArrayMin, dumpArrayMax, size);
     readDataFromFile(addressDataFile, dumpArrayMin, size);

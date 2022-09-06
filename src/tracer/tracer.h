@@ -154,6 +154,8 @@ public:
     void moveDriverFile(string prefixStr, string funcName, string baseFileName);
     void moveFile(string fileName, string dirName);
 
+
+    std::pair<unsigned, unsigned> lineNumbers;
 };
 
 class ParseLoopFiles : public AstSimpleProcessing {

@@ -2,17 +2,17 @@
 
 /* Create data folder in /tmp */
 void Driver::createLoopExtractorDataFolder() {
-  LoopExtractor_data_folder_path =
-      "/tmp/" + LoopExtractor_data_folder + forward_slash_str;
-  if (!isDirExist(LoopExtractor_data_folder_path)) {
-    const int dir_err = mkdir(LoopExtractor_data_folder_path.c_str(),
-                              S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if (dir_err == -1) {
-      cout << "Error creating LoopExtractor data directory:"
-           << LoopExtractor_data_folder_path << endl;
-      exit(EXIT_FAILURE);
+    LoopExtractor_data_folder_path =
+        "/tmp/" + LoopExtractor_data_folder + forward_slash_str;
+    if (!isDirExist(LoopExtractor_data_folder_path)) {
+        const int dir_err = mkdir(LoopExtractor_data_folder_path.c_str(),
+                                S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        if (dir_err == -1) {
+            cout << "Error creating LoopExtractor data directory:"
+                << LoopExtractor_data_folder_path << endl;
+            exit(EXIT_FAILURE);
+        }
     }
-  }
 }
 
 void Driver::removeLoopExtractorDataFolder() {
@@ -82,6 +82,7 @@ void Driver::initiateExtractor(string file_name) {
   filename_vec.push_back(file_name);
 
     tr = new Tracer();
+    scanLineNumbers(file_name);
   extr = new Extractor(filename_vec, tr);
   tr->setFilenameVec(filename_vec);
 
@@ -95,6 +96,13 @@ void Driver::initiateExtractor(string file_name) {
 
   /* Copy headers that are in same folder as Source to LE data folder */
   copyInFolderHeaders(extr->getFilePath(), extr->copysourcefiles);
+
+  set<string>::iterator itr;
+   
+  // Displaying set elements
+  for (itr = files_to_compile.begin(); itr != files_to_compile.end(); itr++) {
+    cout << "FILES_TO_COMPILE: " << *itr << endl;
+  }
 }
 
 
@@ -102,6 +110,41 @@ void Driver::generateCodelets() {
     tr->initTracing();
 }
 
+void Driver::scanLineNumbers(string loopFileName) {
+    cout << "Opening a csv file!" << endl;
+    //cout << "Is should be located in " << LoopExtractor_data_folder_path << "/LoopExtractor_data/ directory" << endl;
+    ifstream csvfile ("./LoopExtractor_data/tmpLoop.csv");
+    string line;
+    int firstLineNum = 0, lastLineNum = 0;
+    //string checkFileName = "";
+    if (csvfile.is_open()) {
+      cout << "csv file is open!" << endl;
+      getline(csvfile, line);
+      cout << line << endl;
+      string::size_type prev_pos = 0, pos = 0;
+      string separator = ",";
+      pos = line.find(separator, pos);
+      string checkFileName( line.substr(prev_pos, pos-prev_pos) );
+      prev_pos = ++pos;
+      pos = line.find(separator, pos);
+      string firstLineNumStr( line.substr(prev_pos, pos-prev_pos) );
+      prev_pos = ++pos;
+      pos = line.find(separator, pos);
+      string lastLineNumStr( line.substr(prev_pos, pos-prev_pos) );
+      prev_pos = ++pos;
+      firstLineNum = (unsigned)stoi(firstLineNumStr);
+      lastLineNum = (unsigned)stoi(lastLineNumStr);
+      cout << "RESULT of parsing: " << checkFileName << ";" << firstLineNum << "-" << lastLineNum << endl;
+      tr->lineNumbers = std::pair<unsigned,unsigned> (firstLineNum,lastLineNum);
+      cout << loopFileName << " should be the same as " << checkFileName << endl;
+      if (loopFileName != checkFileName) {
+        cout << "We're working with WRONG filename!!!!" << endl;
+      }
+      csvfile.close();
+    } else cout << "CSV FILE WASN'T OPENED!!!";
+
+    cout << "Exiting scanLineNumbers" << endl;
+}
 
 int main(int argc, char *argv[]) {
   Driver *driver = new Driver();
@@ -122,19 +165,16 @@ int main(int argc, char *argv[]) {
         driver->isLastSrcFile = true;
       }
       driver->initiateExtractor(*iter);
-
-      //driver->generateCodelet();
-
     }
   }
 
-  driver->moveLoopExtractorDataFolder();
+    /* Moving LoopExtractor_data folder from /tmp to current working directory */
+    driver->moveLoopExtractorDataFolder();
 
     cout << "In-Situ extraction completed" << endl;
 
+    /* Generating TRACE, SAVE, RESTORE source files for tracing, saving, and restoring data */
     driver->generateCodelets();
-  //tr->"initTracing();
-
 
     cout << "In-Vitro extraction completed" << endl;
 
