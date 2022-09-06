@@ -22,8 +22,8 @@
 #define STACK_BOTTOM_ADDRESS 0x7fffffffefff
 
 #define RESERVEDSTACKSPACE                                                     \
-  0x400 // reserve 1K for the local variable in the main function of the
-        // isolated loop
+    0x400 // reserve 1K for the local variable in the main function of the
+          // isolated loop
 
 #define RESERVEDDATASEGSPACE 0x100000 // reserve 1M for data segment
 

@@ -29,28 +29,28 @@
 using namespace std;
 
 typedef enum {
-  src_lang_C       = 0,
-  src_lang_CPP     = 1,
-  src_lang_FORTRAN = 2,
+    src_lang_C = 0,
+    src_lang_CPP = 1,
+    src_lang_FORTRAN = 2,
 } src_lang;
 
 typedef enum {
-  EXTRACT,
-  PARALLEL,
-  EXTRACTKERNEL,
-  RESTRICT,
-  STATICANALYSIS,
-  OUTPUT_OBJECT,
-  C99,
-  INCLUDE_PATH,
-  MACRO_DEFS,
-  INFO,
-  HELP,
-  UNKNOWN
+    EXTRACT,
+    PARALLEL,
+    EXTRACTKERNEL,
+    RESTRICT,
+    STATICANALYSIS,
+    OUTPUT_OBJECT,
+    C99,
+    INCLUDE_PATH,
+    MACRO_DEFS,
+    INFO,
+    HELP,
+    UNKNOWN
 } LoopExtractor_options;
 
 /* For the tracer */
-std::string parseFileName (std::string* fullName);
+std::string parseFileName(std::string *fullName);
 
 extern string space_str;
 extern string forward_slash_str;
@@ -87,6 +87,6 @@ double getVectorMean(vector<double> *dataVec);
 double getVectorStdev(vector<double> *dataVec);
 double getVectorMedian(vector<double> *dataVec);
 void genRandomStr(string &str, const int len);
-void stringReplaceAll(string& str, const string& from, const string& to);
+void stringReplaceAll(string &str, const string &from, const string &to);
 string getAbsolutePath(string const &fullString);
 #endif
