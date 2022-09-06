@@ -988,10 +988,16 @@ bool Extractor::skipLoop(SgNode *astNode) {
     return false;
 }
 
+/**
+ * @brief Most important function in the extractor, it will extract the loop
+ *        body and create a new function
+ * @param astNode The loop to be extracted
+ */
 void Extractor::extractLoops(SgNode *astNode) {
     int lineNum = astNode->get_file_info()->get_line();
     cout << "line number of ast node: " << astNode->unparseToString() << endl;
     cout << "is " << lineNum << endl;
+    /* Here we check if loop file number is the one we need */
     if (lineNum >= tr->lineNumbers.first && lineNum <= tr->lineNumbers.second) {
         cout << "PASSED the lineNum check" << endl;
         SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
@@ -1046,11 +1052,7 @@ void Extractor::extractLoops(SgNode *astNode) {
 
         loop_file_buf.close();
 
-        /*
-         * Add loop file name to the Tracer
-         * Check that Tracer is not NULL
-         */
-
+        /* Add all necessary loop info to the Tracer */
         if (tr != NULL) {
             int found = loop_file_name.find_last_of("/");
             string loop_file_name_only = loop_file_name.substr(found + 1);
@@ -1058,15 +1060,12 @@ void Extractor::extractLoops(SgNode *astNode) {
             tr->setLoopScope(curr_loop.getLoopScope());
             tr->setLoopNode(curr_loop.getLoopNode());
             tr->setGlobalVars(curr_loop.getGlobalVars());
-
             tr->setInsertStatement(curr_loop.getLoopFuncCall());
             tr->setLoopFuncScope(curr_loop.getLoopFuncCall()->get_scope());
-
             string func_name = curr_loop.getFuncName();
             vector<string> loop_func_args = curr_loop.getLoopFuncArgsName();
             vector<string> loop_func_args_type =
                 curr_loop.getLoopFuncArgsType();
-
             LoopFuncInfo *lfi =
                 new LoopFuncInfo(func_name, loop_func_args, loop_func_args_type,
                                  global_var_names);
@@ -1078,7 +1077,6 @@ void Extractor::extractLoops(SgNode *astNode) {
             SgFunctionDeclaration *funcDecl =
                 funcCallExp->getAssociatedFunctionDeclaration();
             lfi->setFuncDecl(funcDecl);
-
             tr->addLoopFuncInfo(lfi);
         }
     }
@@ -1130,7 +1128,10 @@ void Extractor::collectAdjoiningLoops(SgStatement *loop) {
 
 void Extractor::extractFunctions(SgNode *astNode) {}
 
-/* Required for Top Down parsing */
+/* Required for Top Down parsing
+ *  This function is called for each node in the AST inside of
+ * traverseInputFiles function.
+ */
 InheritedAttribute
 Extractor::evaluateInheritedAttribute(SgNode *astNode,
                                       InheritedAttribute inh_attr) {
@@ -1634,12 +1635,14 @@ Extractor::Extractor(const vector<string> &argv, Tracer *tr) {
     // modifyExtractedFileText(base_file);
 
     files_to_compile.insert(base_file);
-
-    /*
-     * Set base file name to Tracer
-     * Check that Tracer is not NULL
+    /* After in-situ extraction is finished, all files are in the
+     * LoopExtractor_data folder. Now, we need to compile them and link them
+     * with the original file to generate the final executable.
      */
 
+    /* All generated during the in-situ extraction process file names should
+     *  be transferred to the Tracer
+     */
     std::string loopExtrIncludeFlag = "-I";
     loopExtrIncludeFlag += LoopExtractor_curr_dir_path;
     // loopExtrIncludeFlag += forward_slash_str;
@@ -1659,6 +1662,4 @@ Extractor::Extractor(const vector<string> &argv, Tracer *tr) {
         // loopFileNames[i] =
         tr->addLoopFileName(loopFileName);
     }
-
-    // tr->initTracing(argv);
 }
