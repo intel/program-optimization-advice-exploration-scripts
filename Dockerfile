@@ -6,6 +6,8 @@ LABEL description="Container for use with Codelet Extractor"
 #ENV http_proxy http://proxy-chain.intel.com:911
 #ENV https_proxy http://proxy-chain.intel.com:912
 
+RUN pwd
+
 # install build dependencies 
 
 RUN apt-get update && apt-get install --no-install-recommends -y make \
@@ -30,15 +32,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y make \
 # for temporary workaround for Rose
    gcc-7 g++-7 
 
-RUN chmod u+s /usr/bin/cpufreq-set
  
 # Temporary workaround for Rose
-RUN cd /usr/include/c++ \ 
+RUN (cd /usr/include/c++ \ 
   && sudo mv 9 bckp_9 \
-  && sudo ln -s 7 9
-
-# Used in const.sh
-RUN locale-gen en_US.utf8 && update-locale
+  && sudo ln -s 7 9)
 
 RUN python3 -m pip install sympy \
   && python3 -m pip install csvkit \
@@ -59,41 +57,31 @@ RUN echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config && \
 EXPOSE 22
 
 # Build cmake
-RUN cd /root \
-  && wget https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
-  && tar xvf cmake-3.21.1.tar.gz \
-  && cd cmake-3.21.1 \
-  && ./bootstrap \
-  && make \
-  && make install
+#RUN cd /root \
+#  && wget https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
+#  && tar xvf cmake-3.21.1.tar.gz \
+#  && cd cmake-3.21.1 \
+#  && ./bootstrap \
+#  && make \
+#  && make install
 
 
 ENV ROSE_HOME=/usr/rose
-# ?? install pin?
-# ?? add pin home directory?
 
 # ????????????????????
-RUN groupadd -g 8088 builder && \
-   useradd -m -d /home/builder -s /bin/bash -u 8088 -g builder -G sudo builder
+#RUN groupadd -g 8088 builder && \
+#   useradd -m -d /home/builder -s /bin/bash -u 8088 -g builder -G sudo builder
 
-RUN echo "builder:builder" | chpasswd
+#RUN echo "builder:builder" | chpasswd
 
-RUN mkdir /share && chmod a+rwx /share && chmod +t /share
 
-# ???????????????????
-COPY sep_eng/ /opt/intel/sep_eng
-USER builder
-ENV USER=builder
-COPY --chown=builder rose-utils/ /share/rose-utils
-COPY --chown=builder ice-locus-dev/ /share/ice-locus-dev
-COPY --chown=builder pocc-1.1/ /share/pocc-1.1
-RUN mkdir /share/uiuc-compiler-opts
-COPY --chown=builder uiuc-compiler-opts/ /share/uiuc-compiler-opts/src-git
+#USER builder
+#ENV USER=builder
 
-#WORKDIR /share/rose-utils
-#RUN ./build.sh
-# ?? script to install pintool and codelet-extractor ?
+# install oneview
+### git clone maqao 
+# install codelet-extractor
+### git clone repo
+### run make
 
-#USER root
-#WORKDIR /share/ice-locus-dev
-#RUN python3 setup.py install
+RUN make
