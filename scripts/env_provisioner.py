@@ -5,8 +5,8 @@ import tarfile
 import util
 from logger import log, QaasComponents
 
-MOCKUP_SRC_TARBALL=os.path.join('mockups', 'env_provisioner', 'src_tarball', 'conv-codelets-master.tar.gz')
-MOCKUP_DATA_TARBALL=os.path.join('mockups', 'env_provisioner', 'data_tarball', 'data.tar.gz')
+MOCKUP_SRC_TARBALL=os.path.join('..', 'mockups', 'env_provisioner', 'src_tarball', 'conv-codelets-master.tar.gz')
+MOCKUP_DATA_TARBALL=os.path.join('..', 'mockups', 'env_provisioner', 'data_tarball', 'data.tar.gz')
 
 def setup_environ(service_dir, src_url, data_url, docker_file):
     download_dir=os.path.join(service_dir, 'download')
