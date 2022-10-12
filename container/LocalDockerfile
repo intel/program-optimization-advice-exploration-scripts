@@ -1,0 +1,50 @@
+ARG IMG_NAME
+FROM ${IMG_NAME}
+
+LABEL description="Local CapeScripts" 
+
+ARG LOCAL_UID
+ARG LOCAL_GID
+ARG LOCAL_GIDS
+ARG LOCAL_GNAMES
+ARG SEP_DIR
+
+# Use bash for more scripting features
+SHELL ["/bin/bash", "-c"]
+
+USER root
+# Install more packages for experiments/local needs
+# Uncomment follow line and add more packages
+#RUN apt-get install -y libssl-dev
+
+RUN groupadd -g $LOCAL_GID runner 
+# Create /tmp/groups to store the group names to add to runner
+RUN echo -n "" > /tmp/groups
+RUN LOCAL_GNAME_ARRAY=($LOCAL_GNAMES) \
+    && LOCAL_GID_ARRAY=($LOCAL_GIDS) \
+    && for index in ${!LOCAL_GID_ARRAY[@]}; do \
+        if [[ ${LOCAL_GID_ARRAY[$index]} != $LOCAL_GID ]]; then \
+          echo groupadd -g ${LOCAL_GID_ARRAY[$index]} ${LOCAL_GNAME_ARRAY[$index]}; \
+          groupadd -g ${LOCAL_GID_ARRAY[$index]} ${LOCAL_GNAME_ARRAY[$index]}; \
+          echo ${LOCAL_GNAME_ARRAY[$index]} >> /tmp/groups; \
+        else \
+          echo Skip ${LOCAL_GID_ARRAY[$index]}; \
+        fi \
+    done
+
+#RUN getent group
+#RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g $LOCAL_GID -G sudo $LOCAL_GNAMES
+# The tr command will output a trailing ',' being used to be a delimiter just before sudo
+RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g runner -G $(tr '\n' ',' < /tmp/groups)sudo runner 
+
+RUN echo "runner:runner" | chpasswd
+
+RUN chown -R runner /share/* && chgrp -R runner /share/*
+
+USER runner
+WORKDIR /home/runner
+ENV USER=runner
+ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install
+#USER root
+#ENTRYPOINT /opt/intel/sep/sepdk/src/insmod-sep -g docker && su runner && /opt/intel/sep/sepdk/src/rmmod-sep
+
