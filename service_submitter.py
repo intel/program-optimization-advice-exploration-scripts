@@ -1,5 +1,6 @@
 # Contributors: Yue, Cedric, Emmanuel
 import os
+import getpass
 import datetime
 from logger import log, QaasComponents
 
@@ -16,7 +17,8 @@ test
 """
 
 def get_input(qaas_root):
-    qaas_user = os.getlogin()
+    #qaas_user = os.getlogin()
+    qaas_user = getpass.getuser()
     qaas_timestamp = int(round(datetime.datetime.now().timestamp()))
     service_dir = os.path.join(qaas_root, qaas_user, str(qaas_timestamp))
     os.makedirs(service_dir)

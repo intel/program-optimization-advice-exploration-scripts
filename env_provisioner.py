@@ -2,6 +2,7 @@
 import os
 import shutil
 import tarfile
+import util
 from logger import log, QaasComponents
 
 MOCKUP_SRC_TARBALL=os.path.join('mockups', 'env_provisioner', 'src_tarball', 'conv-codelets-master.tar.gz')
@@ -32,11 +33,11 @@ def setup_environ(service_dir, src_url, data_url, docker_file):
 
     full_src_dir=extract_tarball(service_dir, download_dir, src_tarball_name, src_tarball_file, 'code')
     full_data_dir=extract_tarball(service_dir, download_dir, data_tarball_name, data_tarball_file, 'data')
-    ov_run_dir = os.path.join(service_dir, 'ov_runs')
-    os.makedirs(ov_run_dir)
+    ov_run_dir = util.make_dir(os.path.join(service_dir, 'ov_runs'))
+    locus_run_dir = util.make_dir(os.path.join(service_dir, 'locus_runs'))
     generated_image = 'MOCKUP_IMG'
     log(QaasComponents.ENV_PROVISIONER, f'Building image using {docker_file} to generate image {generated_image}', mockup=True)
-    return full_src_dir, full_data_dir, ov_run_dir, generated_image
+    return full_src_dir, full_data_dir, ov_run_dir, locus_run_dir, generated_image
 
 def extract_tarball(service_dir, download_dir, src_tarball_name, src_tarball_file, dest_dir):
     with tarfile.open(src_tarball_file) as zip_ref:
