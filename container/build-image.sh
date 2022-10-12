@@ -32,6 +32,7 @@ if [ ! -d pocc-1.1 ]; then
   tar xvf pocc-1.1-full.tar.gz
   cd pocc-1.1
   curl -O https://bitbucket.org/thiagotei/uiuc-compiler-opts/raw/39556c88b86e6a7e727117183c93906ab89ffeb1/pocc-1.1-candl-0.6.2.patch
+  cd ..
 fi
 
 if [ ! -d uiuc-compiler-opts ]; then
@@ -47,7 +48,9 @@ docker login registry.gitlab.com
 # Also build the image to Gitlab
 [[ $http_proxy != http://* ]] && http_proxy=http://$http_proxy
 [[ $https_proxy != http://* ]] && https_proxy=http://$https_proxy
+pwd
 docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy --pull --rm -f "./Dockerfile" -t registry.gitlab.com/davidwong/qaas:development  "."
+exit 0
 
 # TODO: delete this with other scripts being used to push and tag images
 if [[ $push_image = true ]]; then
