@@ -82,7 +82,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y make \
    # for LORE mutator in UIUC Compiler Optimizations
    gcc-8 g++-8 \
    # for PROMPT
-   binutils-dev libiberty-dev
+   binutils-dev libiberty-dev \
+   # For fast app build
+   ninja-build
 
  #tex4ht
  #texlive-latex-base texlive-latex-extra 
@@ -96,6 +98,7 @@ RUN python3 -m pip install sympy \
   && python3 -m pip install et_xmlfile \
   && python3 -m pip install Cheetah3 \
   && python3 -m pip install parse \
+  && python3 -m pip install pytrie \
   && python3 -m pip install pandas
 
 
