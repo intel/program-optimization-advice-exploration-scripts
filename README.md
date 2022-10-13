@@ -27,10 +27,10 @@ i. Build updated image (as `qaas:development`)
    2. `./build-image.sh`
    3. new image created locally but not pushed to Git Lab yet
 ii. Push development image to Git Lab
-   1. `./push-image.sh` _meaningful tag name_
-   2. Git Lab will receive the qaas:development image and also tagged it as qaas:_meaningful tag name_
+    1. `./push-image.sh` _meaningful tag name_
+    2. Git Lab will receive the qaas:development image and also tagged it as qaas:_meaningful tag name_
 iii. Tag an image as production image (`qaas:production`)
-   1. `./tag-production-image.sh` [ _tag-name_ ]
-   2. _tag-name_ is optional.
-     - if provided, tag that as `qaas:production` image
-     - if not provided, tag `qaas:development` as `qaas:production`
+     1. `./tag-production-image.sh` [ _tag-name_ ]
+     2. _tag-name_ is optional.
+        - if provided, tag that as `qaas:production` image
+        - if not provided, tag `qaas:development` as `qaas:production`
