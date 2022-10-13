@@ -13,21 +13,21 @@ Scripts for QaaS infrastructure
 - Run Demo script
   - `cd ../scripts`
   - `python demo.py`
-## Container maintance (under container directory)
+## Container maintance (under `container` directory)
 Generally, there are two major image tags
 - `qaas:development` : Most recent image under development
 - `qaas:production` : Stable production image to be used by general users
 - `qaas:`_other-tag_ : Other versions of image previously created
 
 Following are some regular steps in container image development
-# Build updated image (as qaas:development)
+1.  Build updated image (as `qaas:development`)
   - Update `Dockerfile`
   - `./build-image.sh`
   - new image created locally but not pushed to Git Lab yet
-# Push development image to Git Lab
+1. Push development image to Git Lab
   - `./push-image.sh` _meaningful tag name_
   - Git Lab will receive the qaas:development image and also tagged it as qaas:_meaningful tag name_
-# Tag an image as production image (`qaas:production`)
+1. Tag an image as production image (`qaas:production`)
   - `./tag-production-image.sh` [ _tag-name_ ]
     - _tag-name_ is optional.
     - if provided, tag that as `qaas:production` image
