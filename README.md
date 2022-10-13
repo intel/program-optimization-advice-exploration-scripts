@@ -17,6 +17,7 @@ Scripts for QaaS infrastructure
 Generally, there are two special image tags (`qaas:development` and `qaas:production`).
 - `qaas:development` : Most recent image under development
 - `qaas:production` : Stable production image to be used by general users
+
 We also require all images to be tagged with some name meaningful to QaaS image development.
 - `qaas:`_other-tag_ : _other-tag_ should provide some idea what the image is about.
 
