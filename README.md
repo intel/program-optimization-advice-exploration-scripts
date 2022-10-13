@@ -27,8 +27,8 @@ Following are some regular steps in container image development
    2. `./build-image.sh`
    3. new image created locally but not pushed to Git Lab yet
 2. Push development image to Git Lab
-   1. `./push-image.sh` _meaningful tag name_
-   2. Git Lab will receive the `qaas:development` image and also tagged it as `qaas:`_meaningful tag name_
+   1. `./push-image.sh` _tag-name_
+   2. Git Lab will receive the `qaas:development` image and also tagged it as `qaas:`_tag-name_
 3. Tag an image as production image (`qaas:production`)
    1. `./tag-production-image.sh` [ _tag-name_ ]
    2. _tag-name_ is optional.
