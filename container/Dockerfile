@@ -38,6 +38,11 @@ RUN  wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PR
 #     apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-mpi intel-oneapi-mpi-devel ; \
 #     mv /etc/apt/sources.list.d/oneAPI.list /etc/apt/sources.list.d/oneAPI.list.bak
 
+#     Need to add key for new version of Ubuntu
+#     See: https://chrisjean.com/fix-apt-get-update-the-following-signatures-couldnt-be-verified-because-the-public-key-is-not-available/
+#     Commented for now using old version of Ubuntu (uncomment to add key for 22.04)
+#RUN if [ ${http_proxy} != "http://" ]; then pcmd="--keyserver-options http-proxy=$http_proxy"; else pcmd=''; fi; apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 $pcmd --recv-keys 3B4FE6ACC0B21F32; apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 $pcmd --recv-keys 40976EAF437D05B5
+
 # Need to install gcc-4.9 
 # See https://askubuntu.com/questions/1235819/ubuntu-20-04-gcc-version-lower-than-gcc-7
 RUN echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe" >> /etc/apt/sources.list
