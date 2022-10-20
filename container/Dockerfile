@@ -139,7 +139,7 @@ RUN mkdir /share && chmod a+rwx /share && chmod +t /share
 
 USER builder
 ENV USER=builder
-COPY --chown=builder rose-utils/ /share/rose-utils
+COPY --chown=builder rose-utils-for-qaas/ /share/rose-utils
 COPY --chown=builder ice-locus-dev/ /share/ice-locus-dev
 COPY --chown=builder pocc-1.1/ /share/pocc-1.1
 RUN mkdir /share/uiuc-compiler-opts

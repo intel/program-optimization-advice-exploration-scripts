@@ -18,8 +18,8 @@ done
 #mkdir -p rose-utils
 #pushd rose-utils
 # User the image builder's .ssh
-if [ ! -d rose-utils ]; then
-  git clone https://gitlab.com/Wingpad/rose-utils.git --config core.autocrlf=input
+if [ ! -d rose-utils-for-qaas ]; then
+  git clone https://gitlab.com/davidwong/rose-utils-for-qaas.git --config core.autocrlf=input
 #popd
 fi
 
