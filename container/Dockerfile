@@ -51,7 +51,8 @@ RUN echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main" >> /etc/apt/sour
 RUN apt-get update && apt-get install --no-install-recommends -y make \
  software-properties-common && \
  add-apt-repository ppa:rosecompiler/rose-development && \
- apt-get update && apt-get install --no-install-recommends -y g++ rsync zip openssh-server \
+ apt-get update && apt-get install --no-install-recommends -y g++ rsync zip \
+# openssh-server \
 # Following steps from ROSE website: https://github.com/rose-compiler/rose/wiki/Install-Using-apt-get
    rose \
  # Optional: Installs ROSE tools in addition to ROSE Core
