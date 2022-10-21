@@ -42,11 +42,12 @@ def launch(machine, src_dir, data_dir, ov_config, ov_run_dir, locus_run_dir, doc
            orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
            user_link_flags, user_target):
     log(QaasComponents.BUSINESS_LOGICS, f'MOCKUP: replace with real job submission to machine {machine} using docker image {docker_image}', mockup=True)
-    result = subprocess.check_output(f'ssh {machine} python3 {this_script} --src-dir {src_dir} '\
+    #result = subprocess.check_output(f'ssh {machine} python3 {this_script} --src-dir {src_dir} '\
+    result = subprocess.check_output(f'python3 {this_script} --src-dir {src_dir} '\
         f'--data_dir {data_dir} --ov_config {ov_config} --ov_run_dir {ov_run_dir} '\
         f'--locus_run_dir {locus_run_dir} --compiler-dir {compiler_dir} --ov_dir {ov_dir} '\
-        f'--orig-user-CC {orig_user_CC} --target-CC {target_CC} --user-c-flags \\"{user_c_flags}\\" --user-cxx-flags \\"{user_cxx_flags}\\" --user-fc-flags \\"{user_fc_flags}\\" '\
-        f'--user-link-flags \\"{user_link_flags}\\" --user-target {user_target}', 
+        f'--orig-user-CC {orig_user_CC} --target-CC {target_CC} --user-c-flags "{user_c_flags}" --user-cxx-flags "{user_cxx_flags}" --user-fc-flags "{user_fc_flags}" '\
+        f'--user-link-flags "{user_link_flags}" --user-target {user_target}', 
         shell=True).decode('utf-8')
     print(result)
 

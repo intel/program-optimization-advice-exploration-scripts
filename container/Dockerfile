@@ -5,34 +5,54 @@ ARG BASE_IMAGE_TAG=20.04
 FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG}
 
 LABEL maintainer "Abdelhafid Mazouz abdelhafid.mazouz@intel.com>"
-LABEL description="Base Image for running QaaS conatiners"
+LABEL description="Base Image for running QaaS containers"
 
 # # Setup container environment work
-# RUN echo "alias ls='ls --color=auto'" >> /root/.bashrc && \
+#RUN echo "alias ls='ls --color=auto'" >> /root/.bashrc && \
 #     echo "alias ll='ls -l'" >> /root/.bashrc; \
-#     apt-get update  && apt-get upgrade ; \
-#     apt-get install -y procps psmisc ; \
-#     apt-get install -y iputils-ping iproute2 wget ; \
-#     apt-get install -y git vim  ; \
-#     apt-get install -y pkg-config build-essential ; \
-#     apt-get install -y make gcc g++ gfortran cmake 
+RUN apt-get update && apt-get install --no-install-recommends -y procps psmisc \
+     iputils-ping \
+      iproute2 \
+      wget \
+      make gcc g++ gfortran \
+      # For installing Intel OneAPI package
+      ca-certificates gnupg
+# installed below
+#    apt-get install -y git vim  ; \
+#     pkg-config build-essential \
+# cmake built below - TODO: check which way better
+#     apt-get install -y cmake 
 
 # # Setup intel compiler
 # RUN export https_proxy=http://proxy-chain.intel.com:912 ; \
-#     wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /etc/apt/trusted.gpg.d/oneapi-archive-keyring.gpg > /dev/null ; \
-#     echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list ; \
+RUN  wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /etc/apt/trusted.gpg.d/oneapi-archive-keyring.gpg > /dev/null ; \
+     echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list ; \
+     apt-get update ; \
+     apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-mpi intel-oneapi-mpi-devel ; \
+     mv /etc/apt/sources.list.d/oneAPI.list /etc/apt/sources.list.d/oneAPI.list.bak
+#RUN  wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB ; \
+#         apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB ; \
+#         rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB; \
+#         echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list ; \
 #     apt-get update ; \
 #     apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-mpi intel-oneapi-mpi-devel ; \
 #     mv /etc/apt/sources.list.d/oneAPI.list /etc/apt/sources.list.d/oneAPI.list.bak
 
+#     Need to add key for new version of Ubuntu
+#     See: https://chrisjean.com/fix-apt-get-update-the-following-signatures-couldnt-be-verified-because-the-public-key-is-not-available/
+#     Commented for now using old version of Ubuntu (uncomment to add key for 22.04)
+#RUN if [ ${http_proxy} != "http://" ]; then pcmd="--keyserver-options http-proxy=$http_proxy"; else pcmd=''; fi; apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 $pcmd --recv-keys 3B4FE6ACC0B21F32; apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 $pcmd --recv-keys 40976EAF437D05B5
+
 # Need to install gcc-4.9 
 # See https://askubuntu.com/questions/1235819/ubuntu-20-04-gcc-version-lower-than-gcc-7
 RUN echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe" >> /etc/apt/sources.list
+#RUN echo "deb http://archive.ubuntu.com/ubuntu focal main" >> /etc/apt/sources.list && echo "deb http://archive.ubuntu.com/ubuntu/ focal universe" >> /etc/apt/sources.list
 
 RUN apt-get update && apt-get install --no-install-recommends -y make \
  software-properties-common && \
  add-apt-repository ppa:rosecompiler/rose-development && \
- apt-get update && apt-get install --no-install-recommends -y g++ rsync zip openssh-server \
+ apt-get update && apt-get install --no-install-recommends -y g++ rsync zip \
+# openssh-server \
 # Following steps from ROSE website: https://github.com/rose-compiler/rose/wiki/Install-Using-apt-get
    rose \
  # Optional: Installs ROSE tools in addition to ROSE Core
@@ -68,7 +88,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y make \
    # for LORE mutator in UIUC Compiler Optimizations
    gcc-8 g++-8 \
    # for PROMPT
-   binutils-dev libiberty-dev
+   binutils-dev libiberty-dev \
+   # For fast app build
+   ninja-build
 
  #tex4ht
  #texlive-latex-base texlive-latex-extra 
@@ -82,6 +104,7 @@ RUN python3 -m pip install sympy \
   && python3 -m pip install et_xmlfile \
   && python3 -m pip install Cheetah3 \
   && python3 -m pip install parse \
+  && python3 -m pip install pytrie \
   && python3 -m pip install pandas
 
 
@@ -117,7 +140,7 @@ RUN mkdir /share && chmod a+rwx /share && chmod +t /share
 
 USER builder
 ENV USER=builder
-COPY --chown=builder rose-utils/ /share/rose-utils
+COPY --chown=builder rose-utils-for-qaas/ /share/rose-utils
 COPY --chown=builder ice-locus-dev/ /share/ice-locus-dev
 COPY --chown=builder pocc-1.1/ /share/pocc-1.1
 RUN mkdir /share/uiuc-compiler-opts

@@ -6,7 +6,7 @@ tag_img=production
 if [[ $# == 1 ]]; then
 	tag_img="${1}"
 fi
-img_name=registry.gitlab.com/davidwong/cape-experiment-scripts:${tag_img}
+img_name=registry.gitlab.com/davidwong/qaas:${tag_img}
 echo Base image name is: ${img_name}
 
 # Ensure user logged in
@@ -30,4 +30,4 @@ else
   https_proxy_arg=${https_proxy}
 fi
 
-docker build --build-arg IMG_NAME=${img_name} --build-arg http_proxy=$http_proxy_arg --build-arg https_proxy=$https_proxy_arg --build-arg LOCAL_UID=$(id -u ${USER}) --build-arg LOCAL_GID=$(id -g ${USER}) --build-arg LOCAL_GIDS="$local_gids" --build-arg LOCAL_GNAMES="$local_gnames" --pull --rm -f ./LocalDockerfile -t local_image .
+docker build --build-arg IMG_NAME=${img_name} --build-arg http_proxy=$http_proxy_arg --build-arg https_proxy=$https_proxy_arg --build-arg LOCAL_UID=$(id -u ${USER}) --build-arg LOCAL_GID=$(id -g ${USER}) --build-arg LOCAL_GIDS="$local_gids" --build-arg LOCAL_GNAMES="$local_gnames" --pull --rm -f ./LocalDockerfile -t local_image_qaas .
