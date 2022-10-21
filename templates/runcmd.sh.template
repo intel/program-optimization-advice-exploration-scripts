@@ -1,0 +1,5 @@
+\#!/bin/bash
+rm -f $locus_run_dir/time.out
+$run_cmd
+# copy timing output to locus run directory
+cp $locus_bin_run_dir/time.out $locus_run_dir/

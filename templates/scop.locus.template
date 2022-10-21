@@ -1,0 +1,67 @@
+\# Getting some environmental variables to be saved to database
+cc_version = getenv("LORE_CC_VERSION", "1.0");
+cxx = getenv("LORE_CXX", "g++"); \#"gcc";\#"icx";
+cc  = getenv("LORE_CC",  "gcc"); \#"gcc";\#"icx";
+
+Search {
+	prebuildcmd = "rm -rvf opentuner.*";
+	measureorig = True;
+	\#measureorig = False;
+	buildcmd = "./$build_cmd_sh $opt_build_type_name";
+	runcmd = "./$run_cmd_sh";
+	buildorig = "./$build_cmd_sh $orig_build_type_name";
+	runorig = "./$run_cmd_sh";
+}
+
+CodeReg scop {
+	depAvail = Query.IsDepAvailable();
+	\#print "IsDepAvailable "+str(depAvail);
+	perfect = Query.IsPerfectLoopNest();
+	depth = Query.LoopNestInfo();
+	\#print "\#-\#-\# "+str(depth);
+
+	if (depAvail) {
+		if (perfect && depth > 1) {
+	\#\#\# Interchange
+			\#print looporder;
+			looporder = seq(0,depth);
+			permorder = permutation(looporder);
+			RoseLore.Interchange(order=permorder);
+		}
+
+		{
+
+	\#\#\# Tile loops
+			if (perfect) {
+				indexT1 = integer(1 .. depth);
+				T1fac = poweroftwo(2 .. 32);\#2,4,8,16,32
+				RoseLore.Tiling(loop=indexT1, factor=T1fac);
+			}
+
+		} OR {
+
+	\#\#\# Unroll and jam
+			if (depth > 1) {
+				indexUAJ = integer(1 .. depth-1);
+				UAJfac = poweroftwo(2 .. 4);\#2,4
+				RoseLore.UnrollAndJam(loop=indexUAJ, factor=UAJfac);
+			}
+
+		} OR {
+		\#empty
+			None;
+		}
+
+	\#\#\# Distribute inner loops
+		innerloops = Query.ListInnerLoops();
+		*RoseLoreRef.Distribute(loop=innerloops);
+	}
+
+\#\#\# Unroll inner loops
+	innerloops = Query.ListInnerLoops();
+	\#leninner = len(innerloops);
+	\#print "len "+str(leninner);
+	UNfac = poweroftwo(2 .. 8);\#2,4,8
+	RoseLoreRef.Unroll(loop=innerloops, factor=UNfac);
+
+}

@@ -5,6 +5,7 @@ import shutil
 import subprocess
 # See: https://pytrie.readthedocs.io/en/latest/ for documentation
 from pytrie import StringTrie
+from util import load_compiler_env
 
 
 # We use CC compiler names as compiler names and here provide lookup for different languages
@@ -12,6 +13,8 @@ compiler_map={
     "icc:CC":"icc", "icc:CXX":"icpc", "icc:FC":"ifort",
     "icx:CC":"icx", "icx:CXX":"icpx", "icx:FC":"ifx",
     "gcc:CC":"gcc", "gcc:CXX":"g++", "gcc:FC":"gfortran",
+    "mpiicc:CC":"mpiicc", "mpiicc:CXX":"mpiicpc", "mpiicc:FC":"mpiifort",
+    "mpicc:CC":"mpicc", "mpicc:CXX":"mpic++", "mpicc:FC":"mpifort"
 }
 
 #src_dir=$(basename $(pwd))
@@ -81,37 +84,41 @@ def map_compiler_flags(orig_compiler, new_compiler, orig_flags):
     return flags
 
 def exec(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC, 
-         user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target):
+         user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target, mode):
+    # Assume we can write to parent path to source directory
+
+    if mode == 'prepare' or mode == 'both': 
+        build_dir, output_dir, output_name, env = setup_build(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags)
+    else:
+        # For 'make' get current env for next step
+        env = os.environ.copy()
+        build_dir=get_build_dir(src_dir)
+        output_dir=os.path.dirname(relative_binary_path)
+        output_name=os.path.basename(relative_binary_path)
+        
+    if mode == 'make' or mode == 'both': 
+        build_binary(user_target, build_dir, env, output_dir, output_name)
+
+def setup_build(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags):
+    build_dir=get_build_dir(src_dir)
+    output_dir=os.path.dirname(relative_binary_path)
+    output_name=os.path.basename(relative_binary_path)
     user_CXX=compiler_map[user_CC+":CXX"]
     user_FC=compiler_map[user_CC+":FC"]
 
-    # Assume we can write to parent path to source directory
-    build_dir=os.path.join(src_dir, '..', 'build')
     shutil.rmtree(build_dir, ignore_errors=True)
     my_env = os.environ.copy()
     # setup env
     #subprocess.run("/bin/bash -c 'source /nfs/site/proj/openmp/compilers/intel/2022/Linux/intel64/load.sh --force && env > /tmp/env.txt'", shell=True, env=my_env)
-    script = os.path.join(compiler_dir, 'Linux/intel64/load.sh')
-    #script = '/nfs/site/proj/openmp/compilers/intel/19.0/Linux/intel64/load.sh'
-    pipe = subprocess.Popen(f"/bin/bash -c 'source {script} --force && env'", stdout=subprocess.PIPE, shell=True)
-    output = pipe.communicate()[0]
-    #for line in output.splitlines():
-    #    print(str(line).split("=", 1))
-    env = dict((line.split("=", 1) if '=' in line else ('','') for line in output.decode('utf-8').splitlines()))
-    # try to pop the dummy '' key
-    env.pop('','')
+    env = load_compiler_env(compiler_dir)
 
     #print(env)
     #read(x)
     subprocess.run('icc --version', shell=True, env=env)
     #my_env=env
     
-    
-
-    output_dir=os.path.dirname(relative_binary_path)
-    output_name=os.path.basename(relative_binary_path)
     cmake_config_cmd=f'cmake -DCMAKE_CXX_COMPILER={user_CXX} -DCMAKE_C_COMPILER={user_CC} '\
-        f'-DCMAKE_Fortran_COMPILER={user_FC} '\
+        f'-DCMAKE_Fortran_COMPILER={user_FC} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 '\
         f'-DCMAKE_C_FLAGS="{map_compiler_flags(orig_user_CC, user_CC, user_c_flags)}" '\
         f'-DCMAKE_CXX_FLAGS="{map_compiler_flags(orig_user_CC, user_CC, user_cxx_flags)}" '\
         f'-DCMAKE_Fortran_FLAGS="{map_compiler_flags(orig_user_CC, user_CC, user_fc_flags)}" '\
@@ -120,12 +127,19 @@ def exec(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC,
     print(cmake_config_cmd)
     env['VERBOSE']='1'
     subprocess.run(cmake_config_cmd, shell=True, env=env)
+    return build_dir, output_dir, output_name, env
+
+def get_build_dir(src_dir):
+    return os.path.join(src_dir, '..', 'build')
+
+def build_binary(user_target, build_dir, env, output_dir, output_name):
     cmake_build_cmd=f'time cmake --build {build_dir} --target {user_target}'
     subprocess.run(cmake_build_cmd, shell=True, env=env)
     os.rename(os.path.join(output_dir, user_target), os.path.join(output_dir, output_name))
 
 
-def build_argparser(parser, include_binary_path=True):
+
+def build_argparser(parser, include_binary_path=True, include_mode=True):
     parser.add_argument('--src-dir', help='Source tree path', required=True)
     parser.add_argument('--compiler-dir', help='Path to compiler', required=True)
     if include_binary_path:
@@ -137,6 +151,8 @@ def build_argparser(parser, include_binary_path=True):
     parser.add_argument('--user-fc-flags', help='Fortran flags provided by user', required=True)
     parser.add_argument('--user-link-flags', help='Link flags provided by user', required=True)
     parser.add_argument('--user-target', help='Target for this build', required=True)
+    if include_mode:
+        parser.add_argument('--mode', help='Mode of build', choices=['prepare', 'make', 'both'], required=True)
 
 # For sample inputs: see VSCode launch.json file
 
@@ -146,7 +162,7 @@ def main():
     args = parser.parse_args()
 
     exec(args.src_dir, args.compiler_dir, args.relative_binary_path, args.orig_user_CC, args.target_CC,
-         args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target)
+         args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target, args.mode)
 
 
 if __name__ == "__main__": 

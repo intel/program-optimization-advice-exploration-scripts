@@ -1,0 +1,48 @@
+import re                                                                       
+
+def make_result(metric):
+    return {'metric' : metric,
+            'exps' : tuple([(metric,)]),
+            'unit' : ('cycles',),
+            'desc' : ('Total',)}
+                                                                                
+#if $timing_fn_name == 'getTimingNew'
+def getTimingNew(std,error):
+    metric=0.0
+    \# Read the last line containing most recent measurement
+    with open('time.out') as f:
+        metric = float(f.readlines()[-1])
+    return make_result(metric)
+#else
+def getTiming(std,error):
+    \#print std                                                                  
+    pattern = re.compile(r"^ min\s+max.*")                                      
+    r = None                                                                    
+    lines_iter = iter(std.splitlines())                                         
+    \#lines_iter = std.splitlines()                                              
+    for l in lines_iter:                                                        
+        \#print("Testing",l)                                                     
+        \#if l.startswith("\tmin\tmax"):                                         
+        mat = pattern.match(l)                                                  
+        \#print mat                                                              
+        if mat:                                                                 
+            \#print "Found!", mat                                                
+            \#r = lines_iter.next()                                              
+            r = next(lines_iter)                                                
+            break                                                               
+                                                                                
+    result = 'N/A'                                                              
+    if r:                                                                       
+        \#print(r)                                                               
+        m = re.split('\s+', r)                                                  
+        \#print(m)                                                               
+        if m and len(m) >= 4:                                                   
+            \# get the median                                                    
+            metric = float(m[3])                                                
+            result = make_result(metric)                                       
+        else:                                                                   
+            result = {'metric': 'N/A'}                                          
+    else:                                                                       
+        result = {'metric': 'N/A'}                                              
+    return result  
+#end if
