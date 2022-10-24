@@ -1,18 +1,24 @@
 # Contributors: Padua/Yoonseo
-import json
-import datetime
 import argparse
+import datetime
+import json
 import os
 import re
-import subprocess
-import stat
 import shutil
-from logger import log, QaasComponents
+import stat
+import subprocess
+
+import icelib.tools.search.resultsdb.models as m
 from Cheetah.Template import Template
+from icelib.tools.search.resultsdb.connect import connect
+
 from app_builder import build_argparser as builder_build_argparser
+from app_builder import build_binary, get_build_dir, setup_build
 from app_runner import build_argparser as runner_build_argparser
-from app_builder import setup_build, build_binary, get_build_dir
 from app_runner import prepare as prepare_run
+from locus_lib import get_median_metric
+from locus_lib import regenerate
+from logger import QaasComponents, log
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
 template_dir=os.path.join(script_dir, '..', 'templates')
@@ -79,15 +85,16 @@ def generate_locus_file_and_scripts(dbfile, run_dir, compiler, src_file, codelet
     engine='opentuner'
     ntests=500
     #ntests=50
+    locus_file='scop.locus'
     preproc_folders=" ".join([part.strip() for part in inc_flags.split("-I") if part])
     locus_run_cmd = [f'ice-locus-{engine}.py --database {dbfile} -f {src_file} '
-                    f'-t scop.locus -o suffix --search --ntests {ntests} --tfunc {timing_script_file}:{timing_fn_name} '
+                    f'-t {locus_file} -o suffix --search --ntests {ntests} --tfunc {timing_script_file}:{timing_fn_name} '
                     f'--preproc {preproc_folders} '
                     f'--suffixinfo {codelet_name}  --equery --no-applyDFAOpt --suffix {locus_outfile_suffix} --debug' ]
                     
     # returning iceorig_file to be restored by build_cmd script after each Locus search step
     # Also return locus_run_cmd to be used
-    return iceorig_file, locus_run_cmd, dbfile 
+    return iceorig_file, locus_run_cmd, dbfile, locus_file
 
 # Execution scheme:
 # 
@@ -191,6 +198,7 @@ def exec(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC,
     locus_src_dir = os.path.join(run_dir, 'src')
     locus_bin_run_dir = os.path.join(run_dir, 'run')
     locus_bin = os.path.join(locus_bin_run_dir, 'pgm')
+    locus_result_dir = os.path.join(run_dir, 'results')
     # TODO: fix hardcoding
     #full_src_file = os.path.join(locus_src_dir, 'nn-codelets/conv_op/direct_conv/1.1/1.1_back_prop_sx5/codelet.c')
     full_src_file = os.path.join(locus_src_dir, 'nn-codelets/conv_op/direct_conv/1.2/1.2_back_prop_sx5/codelet.c')
@@ -239,7 +247,7 @@ def exec(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC,
     # Will be created by Locus
     dbfile=os.path.join(run_dir,'lore-locus.db')
 
-    full_iceorig_file, locus_run_cmd, dbfile = generate_locus_file_and_scripts(dbfile, run_dir, 
+    full_iceorig_file, locus_run_cmd, dbfile, locus_file = generate_locus_file_and_scripts(dbfile, run_dir, 
         user_CC, full_src_file, 'conv', locus_bin_run_dir, inc_flags)
     print(full_iceorig_file)
     print(locus_run_cmd)
@@ -288,6 +296,42 @@ def exec(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC,
 # 6. after all is done (reverse operation of #1)
 #   mv <file>.orig <file>
     shutil.copy2(restore_src_file, full_src_file) 
+
+
+    if extract_best_variant(dbfile, locus_file, locus_result_dir):
+        # Best variant regenerated in place, so rebuild will produce opt executable
+        os.remove(locus_bin)
+        build_binary(user_target, build_dir, env, output_dir, output_name)
+        # Copy the binary to result directory 
+        os.makedirs(os.path.dirname(relative_binary_path), exist_ok=True)
+        shutil.copy2(locus_bin, relative_binary_path)
+
+
+# Return True if best variant generated False if not
+def extract_best_variant(db_path, lfname, result_dir):
+    debug = False
+    engine, session = connect('sqlite:///'+db_path, debug)
+    variants = (session.query(m.Variant)
+                .join(m.Search, m.Search.id == m.Variant.searchid)
+                .join(m.LocusFile)
+                .filter(m.LocusFile.locusfilename == lfname))
+    min_median = float("inf")
+    min_median_variant = None
+    for var in variants:
+        unit, median_metric = get_median_metric(var)
+        assert unit == 'cycles'
+        if median_metric < min_median:
+            min_median_variant = var
+            min_median = median_metric
+    if min_median_variant:
+        x = session.query(m.Search,m.LocusFile.locusfilename).join(m.LocusFile)
+        # Found the best variant, regenerate source and locus file
+        workdir=os.path.join(result_dir, f'v-{min_median_variant.id}')
+        regenerate(session, x, workdir, int(min_median_variant.id))
+        # Note the source code is regenerated in place to replace the source file
+        return True
+    return False
+
 
 
 # def exec(src_dir, compiler_dir, relative_binary_path, locus_run_dir):
