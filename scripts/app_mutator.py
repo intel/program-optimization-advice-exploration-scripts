@@ -86,15 +86,16 @@ def generate_locus_file_and_scripts(dbfile, run_dir, compiler, src_file, codelet
     ntests=500
     #ntests=50
     locus_file='scop.locus'
-    preproc_folders=" ".join([part.strip() for part in inc_flags.split("-I") if part])
+    preproc_folders = [part.strip() for part in inc_flags.split("-I") if part]
+    preproc_folders_str = " ".join(preproc_folders)
     locus_run_cmd = [f'ice-locus-{engine}.py --database {dbfile} -f {src_file} '
                     f'-t {locus_file} -o suffix --search --ntests {ntests} --tfunc {timing_script_file}:{timing_fn_name} '
-                    f'--preproc {preproc_folders} '
+                    f'--preproc {preproc_folders_str} '
                     f'--suffixinfo {codelet_name}  --equery --no-applyDFAOpt --suffix {locus_outfile_suffix} --debug' ]
                     
     # returning iceorig_file to be restored by build_cmd script after each Locus search step
     # Also return locus_run_cmd to be used
-    return iceorig_file, locus_run_cmd, dbfile, locus_file
+    return iceorig_file, locus_run_cmd, dbfile, locus_file, preproc_folders
 
 # Execution scheme:
 # 
@@ -247,7 +248,7 @@ def exec(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC,
     # Will be created by Locus
     dbfile=os.path.join(run_dir,'lore-locus.db')
 
-    full_iceorig_file, locus_run_cmd, dbfile, locus_file = generate_locus_file_and_scripts(dbfile, run_dir, 
+    full_iceorig_file, locus_run_cmd, dbfile, locus_file, header_folders = generate_locus_file_and_scripts(dbfile, run_dir, 
         user_CC, full_src_file, 'conv', locus_bin_run_dir, inc_flags)
     print(full_iceorig_file)
     print(locus_run_cmd)
@@ -298,7 +299,7 @@ def exec(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC,
     shutil.copy2(restore_src_file, full_src_file) 
 
 
-    if extract_best_variant(dbfile, locus_file, locus_result_dir):
+    if extract_best_variant(dbfile, locus_file, locus_result_dir, header_folders):
         # Best variant regenerated in place, so rebuild will produce opt executable
         os.remove(locus_bin)
         build_binary(user_target, build_dir, env, output_dir, output_name)
@@ -308,7 +309,7 @@ def exec(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC,
 
 
 # Return True if best variant generated False if not
-def extract_best_variant(db_path, lfname, result_dir):
+def extract_best_variant(db_path, lfname, result_dir, header_folders):
     debug = False
     engine, session = connect('sqlite:///'+db_path, debug)
     variants = (session.query(m.Variant)
@@ -327,7 +328,7 @@ def extract_best_variant(db_path, lfname, result_dir):
         x = session.query(m.Search,m.LocusFile.locusfilename).join(m.LocusFile)
         # Found the best variant, regenerate source and locus file
         workdir=os.path.join(result_dir, f'v-{min_median_variant.id}')
-        regenerate(session, x, workdir, int(min_median_variant.id))
+        regenerate(session, x, workdir, int(min_median_variant.id), header_folders)
         # Note the source code is regenerated in place to replace the source file
         return True
     return False
