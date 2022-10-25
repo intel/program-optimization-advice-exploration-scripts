@@ -25,6 +25,9 @@ fi
 
 if [ ! -d ice-locus-dev ]; then
   git clone https://bitbucket.org/thiagotei/ice-locus-dev.git  --config core.autocrlf=input
+  cd ice-locus-dev
+  git checkout intel
+  cd ..
 fi
 
 if [ ! -d pocc-1.1 ]; then
