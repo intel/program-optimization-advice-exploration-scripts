@@ -71,7 +71,7 @@ def generate_build_run_timing_scripts(run_dir, src_file, codelet_name, locus_bin
     make_cmd=f'python {script_dir}/app_builder.py' \
         + f" --src-dir $QAAS_locus_src_dir" \
 		+ " --mode make " \
-		+ f" --relative-binary-path $QAAS_binary_path" \
+		+ f" --output-binary-path $QAAS_binary_path" \
 		+ f" --compiler-dir $QAAS_compiler_dir" \
 		+ f" --orig-user-CC $QAAS_orig_user_CC" \
 		+ f" --target-CC $QAAS_user_CC" \
@@ -122,7 +122,7 @@ def generate_build_run_timing_scripts(run_dir, src_file, codelet_name, locus_bin
 #   c. cp <file>.iceorig to <file> to restore it for next steps of search
 # 6. after all is done
 #   mv <file>.orig <file>
-def exec(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC, 
+def exec(src_dir, compiler_dir, output_binary_path, orig_user_CC, user_CC, 
          user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
          binary_path, run_dir, data_path, run_cmd, env_var_map, target_location):
     my_env = os.environ.copy()
@@ -242,8 +242,8 @@ def exec(src_dir, compiler_dir, relative_binary_path, orig_user_CC, user_CC,
         os.remove(locus_bin)
         build_binary(user_target, build_dir, target_location, env, output_dir, output_name)
         # Copy the binary to result directory 
-        os.makedirs(os.path.dirname(relative_binary_path), exist_ok=True)
-        shutil.copy2(locus_bin, relative_binary_path)
+        os.makedirs(os.path.dirname(output_binary_path), exist_ok=True)
+        shutil.copy2(locus_bin, output_binary_path)
 
 
 # Return True if best variant generated False if not
@@ -271,19 +271,6 @@ def extract_best_variant(db_path, lfname, result_dir, header_folders):
         return True
     return False
 
-
-
-# def exec(src_dir, compiler_dir, relative_binary_path, locus_run_dir):
-#     log(QaasComponents.APP_MUTATOR, f'Tuning source code from {src_dir} to be compiled by {compiler_dir}', mockup=True)
-#     opt_binary = os.path.join(src_dir, relative_binary_path)
-#     # Will be created by Locus
-#     dbfile=os.path.join(locus_run_dir,'lore-locus.db')
-#     log(QaasComponents.APP_MUTATOR, f'Locus DB: {dbfile}')
-#     return opt_binary
-#     run_mutator(dbfile, compiler, full_src_file, num_cores)
-#     log(QaasComponents.APP_MUTATOR, f'Output to Optimized binary {opt_binary}', mockup=True)
-#     return opt_binary
-
 def main():
     parser = argparse.ArgumentParser(description="Run mutator in QaaS")
     # Builder flags
@@ -293,7 +280,7 @@ def main():
     runner_build_argparser(parser, include_mode=False)
     args = parser.parse_args()
     env_var_map = dict([(v.split("=",1)) for v in args.var]) 
-    exec(args.src_dir, args.compiler_dir, args.relative_binary_path, args.orig_user_CC, args.target_CC,
+    exec(args.src_dir, args.compiler_dir, args.output_binary_path, args.orig_user_CC, args.target_CC,
          args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target,
          args.binary_path, args.run_dir, args.data_path, args.run_cmd, env_var_map, args.user_target_location)
 

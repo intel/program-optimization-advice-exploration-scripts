@@ -106,26 +106,26 @@ def add_underlying_flag (flags, flag, compiler):
     return flag_list_to_str(flag_list)
     
 
-def exec(src_dir, compiler_dir, relative_binary_path, user_CC_combo, target_CC_combo, 
+def exec(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, 
          user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target, user_target_location, mode):
     # Assume we can write to parent path to source directory
 
     if mode == 'prepare' or mode == 'both': 
-        build_dir, output_dir, output_name, env = setup_build(src_dir, compiler_dir, relative_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags)
+        build_dir, output_dir, output_name, env = setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags)
     else:
         # For 'make' get current env for next step
         env = os.environ.copy()
         build_dir=get_build_dir(src_dir)
-        output_dir=os.path.dirname(relative_binary_path)
-        output_name=os.path.basename(relative_binary_path)
+        output_dir=os.path.dirname(output_binary_path)
+        output_name=os.path.basename(output_binary_path)
         
     if mode == 'make' or mode == 'both': 
         build_binary(user_target, build_dir, user_target_location, env, output_dir, output_name)
 
-def setup_build(src_dir, compiler_dir, relative_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags):
+def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags):
     build_dir=get_build_dir(src_dir)
-    output_dir=os.path.dirname(relative_binary_path)
-    output_name=os.path.basename(relative_binary_path)
+    output_dir=os.path.dirname(output_binary_path)
+    output_name=os.path.basename(output_binary_path)
     user_mpi_compiler, user_CC, user_CXX, user_FC = parse_compiler_combo(user_CC_combo)
     target_mpi_compiler, target_CC, target_CXX, target_FC = parse_compiler_combo(target_CC_combo)
 
@@ -239,7 +239,7 @@ def build_argparser(parser, include_binary_path=True, include_mode=True):
     parser.add_argument('--src-dir', help='Source tree path', required=True)
     parser.add_argument('--compiler-dir', help='Path to compiler', required=True)
     if include_binary_path:
-        parser.add_argument('--relative-binary-path', help='Path to place the binary executable', required=True)
+        parser.add_argument('--output-binary-path', help='Path to place the binary executable', required=True)
     parser.add_argument('--orig-user-CC', help='Original assumed compiler', required=True)
     parser.add_argument('--target-CC', help='Target compiler for this build', required=True)
     parser.add_argument('--user-c-flags', help='C flags provided by user', required=True)
@@ -258,7 +258,7 @@ def main():
     build_argparser(parser)
     args = parser.parse_args()
 
-    exec(args.src_dir, args.compiler_dir, args.relative_binary_path, args.orig_user_CC, args.target_CC,
+    exec(args.src_dir, args.compiler_dir, args.output_binary_path, args.orig_user_CC, args.target_CC,
          args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target, args.user_target_location, args.mode)
 
 
