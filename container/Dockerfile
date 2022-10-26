@@ -127,9 +127,18 @@ RUN mkdir build && mkdir install && cd build && sed -i '/^set(Boost_NO_SYSTEM_PA
 
 # Setup QaaS scripts for build & run
 RUN mkdir /qaas
-RUN mkdir -p /app/builder /app/runner
 COPY app_builder.py /qaas
 COPY app_runner.py /qaas
+RUN mkdir -p /app/builder /app/runner
+RUN groupadd -g 8888 qaas && \
+    useradd -s /bin/bash -u 8888 -g qaas qaas && \
+    chown qaas:qaas /app/builder && \
+    chown qaas:qaas /app/runner
+
+# Setup user run directories
+USER qaas
+ENV USER=qaas
+ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install
 WORKDIR /app/runner
 
 CMD ["/bin/bash"]
