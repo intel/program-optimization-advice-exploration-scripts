@@ -1,6 +1,5 @@
 \#!/bin/bash
 btype="\$1"
-echo HERE \$QAAS_user_cxx_flags
 
 rm -f ./$exe_file
 if [[ \$btype == "$orig_build_type_name" ]]; then

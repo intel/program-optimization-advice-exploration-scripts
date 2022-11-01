@@ -1,10 +1,14 @@
 import re                                                                       
+from oneview_runner import aggregate_loop_time
+
+def make_result_time_unit(data, unit):
+    return {'metric' : data,
+            'exps' : tuple([(data,)]),
+            'unit' : (unit,),
+            'desc' : ('Total',)}
 
 def make_result(metric):
-    return {'metric' : metric,
-            'exps' : tuple([(metric,)]),
-            'unit' : ('cycles',),
-            'desc' : ('Total',)}
+    return make_result_time_unit(metric, 'cycles')
                                                                                 
 #if $timing_fn_name == 'getTimingNew'
 def getTimingNew(std,error):
@@ -13,6 +17,10 @@ def getTimingNew(std,error):
     with open('time.out') as f:
         metric = float(f.readlines()[-1])
     return make_result(metric)
+#else if $timing_fn_name == 'getTimingQaas'
+def getTimingQaas(std,error):
+    time_result, unit_result = aggregate_loop_time("$locus_bin_run_dir", "$locus_bin", "$src_file", $timing_script_loop_head)
+    return make_result_time_unit(time_result, unit_result)
 #else
 def getTiming(std,error):
     \#print std                                                                  
