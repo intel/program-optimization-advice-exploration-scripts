@@ -58,6 +58,7 @@ def regenerate_source_file(all_srcfilenames, locus_out_file, dry_run, header_fol
     lp = LocusParser(args.optfile, args.debug)
     ice_inst = ICE(lp, None, args)
     ice_inst.run()
+    print(f'Regenerated source files:{all_srcfilenames}')
     return ice_inst
 
 def regenerate_locus_file(session, envdict, v, workdir):
