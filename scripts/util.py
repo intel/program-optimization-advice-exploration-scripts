@@ -1,10 +1,18 @@
 import os
 import subprocess
+import datetime
 
 # routine providing api usable for chaining
 def make_dir(path):
     os.makedirs(path)
     return path
+
+def generate_timestamp_str():
+    locus_timestamp = int(round(datetime.datetime.now().timestamp()))
+    locus_ts_str = str(locus_timestamp)
+    locus_ts_str = locus_ts_str[:3] + "-" + locus_ts_str[4:6] + "-" + locus_ts_str[7:]
+    return locus_ts_str
+
 
 
 def load_compiler_env(compiler_dir):
