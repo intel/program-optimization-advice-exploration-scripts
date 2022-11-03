@@ -131,7 +131,7 @@ COPY app_builder.py /qaas
 COPY app_runner.py /qaas
 RUN mkdir -p /app/builder /app/runner
 RUN groupadd -g 8888 qaas && \
-    useradd -s /bin/bash -u 8888 -g qaas qaas && \
+    useradd -m -d /home/qaas -s /bin/bash -u 8888 -g qaas qaas && \
     chown qaas:qaas /app/builder && \
     chown qaas:qaas /app/runner
 
