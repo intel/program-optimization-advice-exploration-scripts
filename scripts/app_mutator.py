@@ -19,7 +19,7 @@ from app_runner import prepare as prepare_run
 from locus_lib import get_median_metric
 from locus_lib import regenerate
 from logger import QaasComponents, log
-from oneview_runner import parse_lprof_loop_profile, LPROF_TIME_METRIC
+from oneview_runner import parse_lprof_loop_profile, LPROF_AVG_CYCLES_METRIC
 from util import generate_timestamp_str
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -209,7 +209,7 @@ def exec(src_dir, compiler_dir, output_binary_path, orig_user_CC, user_CC,
     subprocess.run(run_sh_cmd, shell=True, env=env, cwd=run_dir)
     loop_profile_df = parse_lprof_loop_profile(env, locus_bin_run_dir, locus_bin)
     # Sort reversing of time
-    loop_profile_df.sort_values(by = LPROF_TIME_METRIC, ascending=False)
+    loop_profile_df.sort_values(by = LPROF_AVG_CYCLES_METRIC, ascending=False)
     # Now pick the hottest loop for tuning
     # TODO: setup with budget in mind to try more loops and/or specific loops
     target_loop_profile_df = loop_profile_df.head(1)
@@ -315,7 +315,7 @@ def extract_best_variant(db_path, lfname, result_dir, header_folders):
     min_median_variant = None
     for var in variants:
         unit, median_metric = get_median_metric(var)
-        assert unit == LPROF_TIME_METRIC
+        assert unit == LPROF_AVG_CYCLES_METRIC
         if median_metric < min_median:
             min_median_variant = var
             min_median = median_metric
