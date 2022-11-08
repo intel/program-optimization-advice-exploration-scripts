@@ -3,7 +3,7 @@ import subprocess
 import shutil
 import os
 from util import load_compiler_env
-from oneview_runner import run_lprof_loop_profile
+from fdo_lib import LProfProfiler
 
 def prepare(binary_path, run_dir, data_path):
     os.makedirs(run_dir, exist_ok=True)
@@ -27,7 +27,7 @@ def run(binary_path, run_dir, run_cmd, env_var_map, my_env = os.environ.copy()):
     print(f"run_dir is: {run_dir}")
     # try LProf
     #shutil.copy2(MAQAO_BIN, run_dir) 
-    run_lprof_loop_profile(run_dir, my_env, run_cmd, binary_name)
+    LProfProfiler().run_lprof_loop_profile(run_dir, my_env, run_cmd, binary_name)
 
 # copy executable binary to current directory,
 # copy data file to current directory,
