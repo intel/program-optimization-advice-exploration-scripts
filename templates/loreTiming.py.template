@@ -1,5 +1,7 @@
 import re                                                                       
+#if $timing_fn_name == 'getTimingQaas'
 from oneview_runner import aggregate_loop_time
+#end if
 
 def make_result_time_unit(data, unit):
     return {'metric' : data,
