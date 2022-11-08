@@ -30,6 +30,12 @@ if [ ! -d ice-locus-dev ]; then
   cd ..
 fi
 
+if [ ! -d fdo-lib ]; then
+  git clone git@gitlab.com:davidwong/fdo-lib.git
+fi
+
+
+
 if [ ! -d pocc-1.1 ]; then
   curl -O http://web.cs.ucla.edu/~pouchet/software/pocc/download/pocc-1.1-full.tar.gz
   tar xvf pocc-1.1-full.tar.gz

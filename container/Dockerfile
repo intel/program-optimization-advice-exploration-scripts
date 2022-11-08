@@ -92,6 +92,11 @@ COPY ice-locus-dev/ /share/ice-locus-dev
 WORKDIR /share/ice-locus-dev
 RUN python3 setup.py install
 
+#Setup FDO-LIB
+COPY fdo-lib/ /share/fdo-lib
+WORKDIR /share/fdo-lib
+RUN python3 setup.py install
+
 # Setup pips
 USER root
 ENV USER=root
