@@ -1,41 +1,75 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+###############################################################################
+# TO BE FIXED
+# Copyright (C) 2022  Intel Corporation  All rights reserved
+###############################################################################
+# HISTORY
+# Created June 2022
 # Contributors: Hafid/David
-#from argparse import ArgumentParser
-import env_provisioner
+
+"""QAAS CLI."""
+
+import os
+import sys
+import json
+import logging 
+import utils.config
+import utils.cmdargs
+from utils.runcmd import QAASRunCMD
+from env_provisioner import QAASEnvProvisioner
+from job_submit import QAASJobSubmit
 import database_populator
 import result_presenter
-import service_submitter
-import job
-import os
-import util
 
-compiler_subdir_map = { 'icc:2022': 'intel/2022', 'icc:19.1': 'intel/19.1',
-                       'icx:2022': 'intel/2022', 'icx:19.1': 'intel/19.1',
-                       'gcc:11.1': 'gcc/gcc-11.1', 'gcc:11.1': 'gcc/gcc-11.1' }
+# -----------------------------------------------------------------------------
+# MAIN
+# -----------------------------------------------------------------------------
+def main():
+    """QaaS Script Entry Point."""
 
-def run(qaas_root, qaas_db_address, qaas_compiler_dir, qaas_ov_dir):
-  service_dir, src_url, data_url, docker_file, oneview_config, timestamp, \
-    orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags, \
-      user_link_flags, user_target, user_target_location, env_var_map, run_cmd = service_submitter.get_input(qaas_root)
+    # parse arguments
+    args = utils.cmdargs.parse_cli_args(sys.argv)
 
-  src_dir, data_dir, ov_run_dir, locus_run_dir, docker_image = env_provisioner.setup_environ(service_dir, src_url, data_url, docker_file)
-  # collect a list of machine to search
-  machines = job.get_machines()
-  # then for each machine, run experiment in container
-  for machine in machines:
-    mach_ov_run_dir = util.make_dir(os.path.join(ov_run_dir, machine))
-    for target_CC, target_CC_VERSION in [('icc', '2022')]:
-      # Details TBD about compiler path map
-      compiler_subdir = compiler_subdir_map[target_CC+":"+target_CC_VERSION]
-      mach_locus_run_dir = util.make_dir(os.path.join(locus_run_dir, machine, target_CC))
-      job.launch(machine, src_dir, data_dir, oneview_config, mach_ov_run_dir, mach_locus_run_dir, docker_image, \
-        os.path.join(qaas_compiler_dir, compiler_subdir), qaas_ov_dir,
-        orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-        user_link_flags, user_target, user_target_location, env_var_map, run_cmd)
+    # setup QaaS configuration
+    params = utils.config.QAASConfig(config_file_path="../config/qaas.conf")
+    # get QaaS global configuration
+    params.read_system_config()
+    logging.debug("QaaS System Config:\n\t%s", params.system)
+    # get QaaS user's configuration
+    params.read_user_config(args.app_params)
+    logging.debug("QaaS User Config:\n\t%s", params.user)
 
-  # Populate results to database
-  for machine in machines:
-    mach_ov_run_dir = os.path.join(ov_run_dir, machine)
-    database_populator.populate(mach_ov_run_dir, qaas_db_address, timestamp)
+    # Setup Env. Provisionning: code  + data location
+    prov = QAASEnvProvisioner(params.system["global"]["QAAS_ROOT"], 
+                              params.user["account"]["QAAS_ACCOUNT"], 
+                              params.user["application"]["APP_NAME"], 
+                              params.user["application"]["GIT"],
+                              params.system["machines"]["QAAS_MACHINES_POOL"],
+                              params.system["container"])
+    rc = prov.create_work_dirs()
+    if rc != 0:
+       return rc
+    rc = prov.clone_source_repo()
+    if rc != 0:
+       return rc
 
-  result_presenter.show_results(qaas_db_address, timestamp)
+    # setup job submission
+    job = QAASJobSubmit(params.system["compilers"],
+                        params.user["compiler"],
+                        prov)
+    rc = job.build_default()
+    rc = job.run_reference_app()
+    if rc != 0:
+       return rc
+
+    return rc
+     
+if __name__ == '__main__':
+    rc = main()
+    exitcode = 1
+    if rc == 0:
+        exitcode = 0
+    logging.debug("exitcode = %s", exitcode)
+    sys.exit(exitcode)
