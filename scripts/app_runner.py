@@ -2,7 +2,7 @@ import argparse
 import subprocess
 import shutil
 import os
-from util import load_compiler_env
+from util import parse_env_map 
 from fdo_lib import LProfProfiler
 
 def prepare(binary_path, run_dir, data_path):
@@ -12,7 +12,13 @@ def prepare(binary_path, run_dir, data_path):
     except:
         pass
     try:
-        shutil.copy(data_path, run_dir)
+        if os.path.isfile(data_path):
+            shutil.copy(data_path, run_dir)
+        else:
+            assert os.path.isdir(data_path)
+            for file in os.listdir(data_path): 
+                shutil.copy(os.path.join(data_path, file), run_dir)
+        
     except:
         pass
     
@@ -53,7 +59,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run application")
     build_argparser(parser)
     args = parser.parse_args()
-    env_var_map = dict([(v.split("=",1)) for v in args.var]) if args.var else {}
+    env_var_map = parse_env_map(args)
     exec(args.binary_path, args.run_dir, args.data_path, args.run_cmd, env_var_map, args.mode)
 
 if __name__ == "__main__": 

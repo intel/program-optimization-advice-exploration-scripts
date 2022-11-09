@@ -15,6 +15,7 @@ from app_runner import build_argparser as runner_build_argparser
 from app_runner import prepare as prepare_run
 from logger import QaasComponents, log
 from util import generate_timestamp_str
+from util import parse_env_map 
 from fdo_lib import LocusRunner
 from fdo_lib import LProfProfiler
 from fdo_lib import LocusDbAccess
@@ -433,7 +434,7 @@ def main():
     # runner flags
     runner_build_argparser(parser, include_mode=False)
     args = parser.parse_args()
-    env_var_map = dict([(v.split("=",1)) for v in args.var]) 
+    env_var_map = parse_env_map(args)
     exec(args.src_dir, args.compiler_dir, args.output_binary_path, args.orig_user_CC, args.target_CC,
          args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target,
          args.data_path, args.run_cmd, env_var_map, args.user_target_location)

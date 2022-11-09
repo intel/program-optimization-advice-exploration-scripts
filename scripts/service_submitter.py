@@ -21,7 +21,10 @@ MOCK_UP_USER_C_FLAGS='-g -qno-offload -fpic -wd266 -diag-disable 1879,3415,10006
 MOCK_UP_USER_CXX_FLAGS=''
 MOCK_UP_USER_FC_FLAGS=''
 MOCK_UP_USER_LINK_FLAGS='-g -fpic -diag-disable 1879,3415,10006,10010,10411 -Wl,--as-needed -lrt -ldl -Wl,--no-as-needed -Wl,--as-needed -lstdc++ -Wl,--no-as-needed'
-MOCK_UP_USER_TARGET='1.1_back_prop_sx5'
+MOCK_UP_USER_TARGET='1.2_back_prop_sx5'
+MOCK_UP_USER_TARGET_LOCATION="nn-codelets/conv_op/direct_conv/1.2/1.2_back_prop_sx5/1.2_back_prop_sx5"
+MOCK_UP_ENV_VAR_MAP={"foo":"1", "bar":"2"}
+MOCK_UP_RUN_CMD='<binary>'
 
 def get_input(qaas_root):
     #qaas_user = os.getlogin()
@@ -33,6 +36,6 @@ def get_input(qaas_root):
     ov_file=os.path.join(service_dir, 'config.lua')
     return service_dir, SRC_URL, DATA_URL, docker_file, ov_file, qaas_timestamp, \
         MOCK_UP_USER_CC, MOCK_UP_USER_C_FLAGS, MOCK_UP_USER_CXX_FLAGS, MOCK_UP_USER_FC_FLAGS, \
-            MOCK_UP_USER_LINK_FLAGS, MOCK_UP_USER_TARGET
+            MOCK_UP_USER_LINK_FLAGS, MOCK_UP_USER_TARGET, MOCK_UP_USER_TARGET_LOCATION, MOCK_UP_ENV_VAR_MAP, MOCK_UP_RUN_CMD
 
 

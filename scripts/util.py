@@ -26,3 +26,8 @@ def load_compiler_env(compiler_dir):
     # try to pop the dummy '' key
     env.pop('','')
     return env
+
+
+# parse the -var command line argument for env maps
+def parse_env_map(args):
+    return dict([(v.split("=",1)) for v in args.var]) if args.var else {}

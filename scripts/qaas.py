@@ -16,7 +16,7 @@ compiler_subdir_map = { 'icc:2022': 'intel/2022', 'icc:19.1': 'intel/19.1',
 def run(qaas_root, qaas_db_address, qaas_compiler_dir, qaas_ov_dir):
   service_dir, src_url, data_url, docker_file, oneview_config, timestamp, \
     orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags, \
-      user_link_flags, user_target = service_submitter.get_input(qaas_root)
+      user_link_flags, user_target, user_target_location, env_var_map, run_cmd = service_submitter.get_input(qaas_root)
 
   src_dir, data_dir, ov_run_dir, locus_run_dir, docker_image = env_provisioner.setup_environ(service_dir, src_url, data_url, docker_file)
   # collect a list of machine to search
@@ -31,7 +31,7 @@ def run(qaas_root, qaas_db_address, qaas_compiler_dir, qaas_ov_dir):
       job.launch(machine, src_dir, data_dir, oneview_config, mach_ov_run_dir, mach_locus_run_dir, docker_image, \
         os.path.join(qaas_compiler_dir, compiler_subdir), qaas_ov_dir,
         orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-        user_link_flags, user_target)
+        user_link_flags, user_target, user_target_location, env_var_map, run_cmd)
 
   # Populate results to database
   for machine in machines:
