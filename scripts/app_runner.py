@@ -2,7 +2,8 @@ import argparse
 import subprocess
 import shutil
 import os
-from util import load_compiler_env
+from util import parse_env_map 
+from fdo_lib import LProfProfiler
 
 def prepare(binary_path, run_dir, data_path):
     os.makedirs(run_dir, exist_ok=True)
@@ -11,7 +12,13 @@ def prepare(binary_path, run_dir, data_path):
     except:
         pass
     try:
-        shutil.copy(data_path, run_dir)
+        if os.path.isfile(data_path):
+            shutil.copy(data_path, run_dir)
+        else:
+            assert os.path.isdir(data_path)
+            for file in os.listdir(data_path): 
+                shutil.copy(os.path.join(data_path, file), run_dir)
+        
     except:
         pass
     
@@ -23,9 +30,11 @@ def run(binary_path, run_dir, run_cmd, env_var_map, my_env = os.environ.copy()):
     #my_env.update(env)
     binary_name = os.path.basename(binary_path)
     #true_run_cmd='ls; echo $OMP_NUM_THREADS'
-    true_run_cmd = run_cmd.replace('<binary>', './'+binary_name)
     print(f"run_dir is: {run_dir}")
-    subprocess.run(true_run_cmd, shell=True, env=my_env, cwd=run_dir)
+    # try LProf
+    #shutil.copy2(MAQAO_BIN, run_dir) 
+    LProfProfiler().run_lprof_loop_profile(run_dir, my_env, run_cmd, binary_name)
+
 # copy executable binary to current directory,
 # copy data file to current directory,
 # set up env map
@@ -50,7 +59,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run application")
     build_argparser(parser)
     args = parser.parse_args()
-    env_var_map = dict([(v.split("=",1)) for v in args.var]) if args.var else {}
+    env_var_map = parse_env_map(args)
     exec(args.binary_path, args.run_dir, args.data_path, args.run_cmd, env_var_map, args.mode)
 
 if __name__ == "__main__": 

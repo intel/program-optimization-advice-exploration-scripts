@@ -42,23 +42,23 @@ def get_median_metric(variant):
     return unit,medmetric
 
 from icelib.ice import argparser as iceargparser
-def regenerate_source_file(all_srcfilenames, locus_out_file, dry_run):
+def regenerate_source_file(all_srcfilenames, locus_out_file, dry_run, header_folders=None):
     argparser = argparse.ArgumentParser(add_help=True, 
                 formatter_class=argparse.ArgumentDefaultsHelpFormatter, 
                 parents=[iceargparser, optlangargparser])
             #srcfile='/host/nfs/site/proj/alac/data/UIUC-LORE/codelets/tmp/lore-codelets/full_src/all/NPB_2.3-OpenACC-C/BT/bt.c_compute_rhs_line1907_0/bt.c_compute_rhs_line1907_loop.c.0.c.iceorig.c'
             # TODO: Check with Thiago: may want to add an option to have no output at all
     output_mode = ICE_OUTPUT_MODE_STDOUT if dry_run else ICE_OUTPUT_MODE_INPLACE
-    args = argparser.parse_args(['--output', output_mode, 
-                                 '--srcfiles', *all_srcfilenames, 
-                                 '--preproc', '/nfs/site/proj/alac/tmp/qaas-locus-runs/run-166-64-933/src/nn-codelets/conv_op/direct_conv/1.2/1.2_back_prop_sx5',
-                                 '--optfile', locus_out_file]) 
+    lp_args = ['--output', output_mode, '--srcfiles', *all_srcfilenames, '--optfile', locus_out_file]
+    if header_folders: lp_args.extend(['--preproc', *header_folders])
+    args = argparser.parse_args(lp_args) 
     from icelib.ice import init_logging as iceinit_logging
     args.rundirpath = iceinit_logging()
             # Have to save the locustree and use the saved optfile as ICE.run() tries to copy optfile
     lp = LocusParser(args.optfile, args.debug)
     ice_inst = ICE(lp, None, args)
     ice_inst.run()
+    print(f'Regenerated source files:{all_srcfilenames}')
     return ice_inst
 
 def regenerate_locus_file(session, envdict, v, workdir):
@@ -83,7 +83,7 @@ def regenerate_locus_file(session, envdict, v, workdir):
     locus_out_file=os.path.join(workdir, lprog.locusfilename)
     GenLocus.searchmode(locustree, locus_out_file)
     return locus_out_file
-def regenerate(session, x, topdir, variant_id):
+def regenerate(session, x, topdir, variant_id, header_folders=None):
     for se, lfname in x:
         envdict = saveenvvars(se, lfname)['envdict']
         searchdir=os.path.join(topdir, f'se-{se.id}')
@@ -101,6 +101,6 @@ def regenerate(session, x, topdir, variant_id):
                 all_srcfilenames=[os.path.join(workdir,sf.srcfilename) for sf in se.srcfiles]
 
                 locus_out_file = regenerate_locus_file(session, envdict, v, workdir)
-                ice_inst = regenerate_source_file(all_srcfilenames, locus_out_file, False)
+                ice_inst = regenerate_source_file(all_srcfilenames, locus_out_file, False, header_folders)
                 print(f'Output source files at {workdir}')
     print('Finished file generation.')

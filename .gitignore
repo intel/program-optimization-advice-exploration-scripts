@@ -2,3 +2,4 @@
 .venv
 .vscode
 *.swp
+container/pocc*
