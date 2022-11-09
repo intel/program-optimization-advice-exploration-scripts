@@ -1,102 +1,62 @@
 ARG BASE_IMAGE=ubuntu
-#ARG BASE_IMAGE_TAG=22.04
 ARG BASE_IMAGE_TAG=20.04
 
 FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG}
 
-LABEL maintainer "Abdelhafid Mazouz abdelhafid.mazouz@intel.com>"
+LABEL maintainer "David Wong / Abdelhafid Mazouz first.last@intel.com>"
 LABEL description="Base Image for running QaaS containers"
 
-# # Setup container environment work
-#RUN echo "alias ls='ls --color=auto'" >> /root/.bashrc && \
-#     echo "alias ll='ls -l'" >> /root/.bashrc; \
-RUN apt-get update && apt-get install --no-install-recommends -y procps psmisc \
-     iputils-ping \
-      iproute2 \
-      wget \
-      make gcc g++ gfortran \
-      # For installing Intel OneAPI package
-      ca-certificates gnupg
-# installed below
-#    apt-get install -y git vim  ; \
-#     pkg-config build-essential \
-# cmake built below - TODO: check which way better
-#     apt-get install -y cmake 
+# Setup container environment work
+RUN apt-get update && \
+   DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+# processes mngt
+   procps psmisc \
+# network mngt
+   iputils-ping iproute2 wget \
+# OS utilities
+   pkg-config software-properties-common \
+# more basic utilities
+   vim less \
+# more dev utilities
+   git git-lfs \
+   python3-pip \
+# perf. tools
+   time cpufrequtils numactl
 
-# # Setup intel compiler
-# RUN export https_proxy=http://proxy-chain.intel.com:912 ; \
-RUN  wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /etc/apt/trusted.gpg.d/oneapi-archive-keyring.gpg > /dev/null ; \
-     echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list ; \
-     apt-get update ; \
-     apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-mpi intel-oneapi-mpi-devel ; \
-     mv /etc/apt/sources.list.d/oneAPI.list /etc/apt/sources.list.d/oneAPI.list.bak
-#RUN  wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB ; \
-#         apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB ; \
-#         rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB; \
-#         echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list ; \
-#     apt-get update ; \
-#     apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-mpi intel-oneapi-mpi-devel ; \
-#     mv /etc/apt/sources.list.d/oneAPI.list /etc/apt/sources.list.d/oneAPI.list.bak
-
-#     Need to add key for new version of Ubuntu
-#     See: https://chrisjean.com/fix-apt-get-update-the-following-signatures-couldnt-be-verified-because-the-public-key-is-not-available/
-#     Commented for now using old version of Ubuntu (uncomment to add key for 22.04)
-#RUN if [ ${http_proxy} != "http://" ]; then pcmd="--keyserver-options http-proxy=$http_proxy"; else pcmd=''; fi; apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 $pcmd --recv-keys 3B4FE6ACC0B21F32; apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 $pcmd --recv-keys 40976EAF437D05B5
-
+RUN apt-get install --no-install-recommends -y \
+# most recent version of compilers
+   make gcc g++ gfortran && \
 # Need to install gcc-4.9 
 # See https://askubuntu.com/questions/1235819/ubuntu-20-04-gcc-version-lower-than-gcc-7
-RUN echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe" >> /etc/apt/sources.list
-#RUN echo "deb http://archive.ubuntu.com/ubuntu focal main" >> /etc/apt/sources.list && echo "deb http://archive.ubuntu.com/ubuntu/ focal universe" >> /etc/apt/sources.list
-
-RUN apt-get update && apt-get install --no-install-recommends -y make \
- software-properties-common && \
- add-apt-repository ppa:rosecompiler/rose-development && \
- apt-get update && apt-get install --no-install-recommends -y g++ rsync zip \
-# openssh-server \
+   echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe" >> /etc/apt/sources.list && \
+   add-apt-repository ppa:rosecompiler/rose-development && \
+   apt-get update && apt-get install --no-install-recommends -y \
 # Following steps from ROSE website: https://github.com/rose-compiler/rose/wiki/Install-Using-apt-get
    rose \
- # Optional: Installs ROSE tools in addition to ROSE Core
+# Optional: Installs ROSE tools in addition to ROSE Core
    rose-tools \
 # More utilities specified at https://gitlab.com/Wingpad/rose-utils
    default-jdk \
-   git git-lfs g++ wget \
-# More basic utilities
-   vim \
-   less \
-   sudo \
- # Need pkg-config to csvkit
-   pkg-config \
- # Used in Capescripts
-   bc \
-   time \
-   python3-pip \
-   cpufrequtils numactl \
 # For Locus
    lib32readline8 lib32readline-dev \
    cproto ctags build-essential libreadline-dev libncurses5-dev \
    libncursesw5-dev \
    subversion python-is-python3 \
    indent swig \
-   # for pocc, need to install gcc-4.9 
+# for pocc, need to install gcc-4.9 
    gcc-4.9 g++-4.9 uuid-dev libswitch-perl \
-   # for hugeadm
+# for hugeadm
    libhugetlbfs-bin \
-   # for new build of cmake
+# for new build of cmake
    libssl-dev \
-   # for UIUC Compiler Optimizations
+# for UIUC Compiler Optimizations
    libgmp-dev \
-   # for LORE mutator in UIUC Compiler Optimizations
+# for LORE mutator in UIUC Compiler Optimizations
    gcc-8 g++-8 \
-   # for PROMPT
+# for PROMPT
    binutils-dev libiberty-dev \
-   # For fast app build
+# For fast app build
    ninja-build
-
- #tex4ht
- #texlive-latex-base texlive-latex-extra 
-
-
-RUN chmod u+s /usr/bin/cpufreq-set
 
 RUN python3 -m pip install sympy \
   && python3 -m pip install csvkit \
@@ -107,17 +67,8 @@ RUN python3 -m pip install sympy \
   && python3 -m pip install pytrie \
   && python3 -m pip install pandas
 
-
-# configure SSH for communication with Visual Studio 
-RUN mkdir -p /var/run/sshd
-
-RUN echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config && \ 
-   ssh-keygen -A 
-
-# expose port 22 
-EXPOSE 22
-
 # Build cmake
+# NOTE: WHY WE NEED A SPECFIC VERSION instead of apt install cmake
 RUN cd /root \
   && wget https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
   && tar xvf cmake-3.21.1.tar.gz \
@@ -126,39 +77,31 @@ RUN cd /root \
   && make \
   && make install
 
-
 ENV ROSE_HOME=/usr/rose
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 
-RUN groupadd -g 8088 builder && \
-   useradd -m -d /home/builder -s /bin/bash -u 8088 -g builder -G sudo builder
-
-RUN echo "builder:builder" | chpasswd
-
 RUN mkdir /share && chmod a+rwx /share && chmod +t /share
 
-
-USER builder
-ENV USER=builder
-COPY --chown=builder rose-utils-for-qaas/ /share/rose-utils
-COPY --chown=builder ice-locus-dev/ /share/ice-locus-dev
-COPY --chown=builder pocc-1.1/ /share/pocc-1.1
-RUN mkdir /share/uiuc-compiler-opts
-COPY --chown=builder uiuc-compiler-opts/ /share/uiuc-compiler-opts/src-git
-
+# Setup ROSE utils
+COPY rose-utils-for-qaas/ /share/rose-utils
 WORKDIR /share/rose-utils
 RUN ./build.sh
 
-USER root
+#Setup LOCUS
+COPY ice-locus-dev/ /share/ice-locus-dev
 WORKDIR /share/ice-locus-dev
 RUN python3 setup.py install
 
-USER builder
-# Setup for subversion proxy
-# COPY foo /home/builder/.subversion/servers
+#Setup FDO-LIB
+COPY fdo-lib/ /share/fdo-lib
+WORKDIR /share/fdo-lib
+RUN python3 setup.py install
 
+# Setup pips
+USER root
+ENV USER=root
 RUN mkdir /share/pips
-COPY --chown=builder gen_svn_servers.sh /share/pips
+COPY gen_svn_servers.sh /share/pips
 WORKDIR /share/pips
 RUN alias g77=gfortran
 RUN wget https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
@@ -166,18 +109,18 @@ RUN wget https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
    && ./gen_svn_servers.sh \
    && ./setup_pips.sh --dynamic --light --pyconf=python3-config
 
-
 # Setting up following https://bitbucket.org/thiagotei/uiuc-compiler-opts/wiki/Home
-
-USER builder
+COPY pocc-1.1/ /share/pocc-1.1
+WORKDIR /share/pocc-1.1
 ENV CC=gcc-4.9
 ENV CXX=g++-4.9
-WORKDIR /share/pocc-1.1
 RUN ./install.sh && cd analyzers/candl && patch -p1 -i ../../pocc-1.1-candl-0.6.2.patch && make install
 
 # Build UIUC Compiler Optimizations
 # Ensure using new version of GCC/G++ (should be 9.3.0 for this container)
 # Updated: use GCC/G++ (version 8.4.0) to ensure all tools build (incl Locus-Lore)
+RUN mkdir /share/uiuc-compiler-opts
+COPY uiuc-compiler-opts/ /share/uiuc-compiler-opts/src-git
 ENV CC=gcc-8
 ENV CXX=g++-8
 WORKDIR /share/uiuc-compiler-opts
@@ -186,3 +129,21 @@ RUN mkdir build && mkdir install && cd build && sed -i '/^set(Boost_NO_SYSTEM_PA
    && sed -i 's|#set(POCC_ROOT "/shared/pocc/pocc-1.1")|set(POCC_ROOT "/share/pocc-1.1")|g' ../src-git/CMakeLists.txt \
    && cmake -DROSE_PATH=/usr/rose -DCMAKE_CXX_FLAGS=-std=c++11 -DCMAKE_INSTALL_PREFIX=/share/uiuc-compiler-opts/install ../src-git \
    && make install
+
+# Setup QaaS scripts for build & run
+RUN mkdir /qaas
+COPY app_builder.py /qaas
+COPY app_runner.py /qaas
+RUN mkdir -p /app/builder /app/runner
+RUN groupadd -g 8888 qaas && \
+    useradd -m -d /home/qaas -s /bin/bash -u 8888 -g qaas qaas && \
+    chown qaas:qaas /app/builder && \
+    chown qaas:qaas /app/runner
+
+# Setup user run directories
+USER qaas
+ENV USER=qaas
+ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install
+WORKDIR /app/runner
+
+CMD ["/bin/bash"]
