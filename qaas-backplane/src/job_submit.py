@@ -32,20 +32,23 @@ class QAASJobSubmit:
         logging.info("Build %s using default compiler settings on %s", self.provisioner.app_name, self.provisioner.machine)
         build_cmd = "\"podman run --rm --name " + self.provisioner.app_name + \
                     " -v /home/qaas/DEMO/scripts/app_builder.py:/qaas/app_builder.py" + \
+                    " -v /home/qaas/DEMO/scripts/util.py:/qaas/util.py" + \
                     " -v " + self.compilers["QAAS_INTEL_COMPILERS_DIRECTORY"] + ":/opt/intel/oneapi" + \
                     " -v " + self.compilers["QAAS_GNU_COMPILERS_DIRECTORY"] + ":/opt/gnu" + \
                     " -v " + self.provisioner.get_workdir("build") + ":/app/builder" + \
                     " " + self.provisioner.image_name + " /usr/bin/python3 /qaas/app_builder.py" + \
                     " --src-dir /app/builder/" + self.provisioner.app_name + \
                     " --compiler-dir /opt/intel/oneapi/" + \
-                    " --relative-binary-path builder/build/bin/miniQMC" + \
+                    " --output-binary-path builder/build/bin/miniQMC" + \
                     " --orig-user-CC='" + self.compiler["USER_CC"] + "'" + \
                     " --target-CC='" + self.compiler["USER_CC"] + "'" + \
                     " --user-c-flags='" + self.compiler["USER_C_FLAGS"] + "'" + \
                     " --user-cxx-flags='" + self.compiler["USER_CXX_FLAGS"] + "'" + \
                     " --user-fc-flags='" + self.compiler["USER_FC_FLAGS"] + "'" + \
                     " --user-link-flags='" + self.compiler["USER_LINK_FLAGS"] + "'" + \
-                    " --user-target='" + self.compiler["USER_TARGET"] + "'\""
+                    " --user-target='" + self.compiler["USER_TARGET"] + "'" + \
+                    " --user-target-location='/app/builder/build/" + self.compiler["USER_TARGET_LOCATION"] + "'" + \
+                    " --mode=both" + "\""
         logging.debug("build_cmd=%s", build_cmd)
         rc = 0
         rc, cmdout = QAASRunCMD(self.provisioner.machine).run_remote_cmd(build_cmd)

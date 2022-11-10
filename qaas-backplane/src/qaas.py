@@ -20,8 +20,8 @@ import utils.cmdargs
 from utils.runcmd import QAASRunCMD
 from env_provisioner import QAASEnvProvisioner
 from job_submit import QAASJobSubmit
-import database_populator
-import result_presenter
+#import database_populator
+#import result_presenter
 
 # -----------------------------------------------------------------------------
 # MAIN
@@ -60,7 +60,7 @@ def main():
                         params.user["compiler"],
                         prov)
     rc = job.build_default()
-    rc = job.run_reference_app()
+    #rc = job.run_reference_app()
     if rc != 0:
        return rc
 
