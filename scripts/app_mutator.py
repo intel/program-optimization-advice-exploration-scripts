@@ -12,7 +12,7 @@ from Cheetah.Template import Template
 from app_builder import build_argparser as builder_build_argparser
 from app_builder import build_binary, get_build_dir, setup_build
 from app_runner import build_argparser as runner_build_argparser
-from app_runner import prepare as prepare_run
+from app_runner import AppRunner
 from logger import QaasComponents, log
 from util import generate_timestamp_str
 from util import parse_env_map 
@@ -136,7 +136,9 @@ def exec(src_dir, compiler_dir, output_binary_path, orig_user_CC, user_CC,
         build_binary(user_target, helper.build_dir, target_location, helper.env, helper.output_dir, helper.output_name)
         # Copy the binary to result directory 
         os.makedirs(os.path.dirname(output_binary_path), exist_ok=True)
+        print(f'Copying mutator output binary to {output_binary_path} from {helper.locus_bin}')
         shutil.copy2(helper.locus_bin, output_binary_path)
+    return helper.env
 
 # def exec_locus(helper):
 #     helper.setup_locus_run_dir()
@@ -194,7 +196,7 @@ def get_target_loop(compiler_dir, orig_user_CC, user_CC, user_c_flags, user_cxx_
     compile_command_json_file = os.path.join(build_dir, 'compile_commands.json')
 
 #1.5 setup trial run to select loops (before insert of Locus pragma)
-    prepare_run(locus_bin, locus_bin_run_dir, data_path)
+    AppRunner(locus_bin_run_dir).prepare(locus_bin, data_path)
 
     full_src_file, insert_pragma_before_line = profile_app(run_dir, data_path, app_run_cmd, locus_bin_run_dir, locus_bin, env)
     return make_cmd,build_dir,compile_command_json_file,full_src_file,insert_pragma_before_line

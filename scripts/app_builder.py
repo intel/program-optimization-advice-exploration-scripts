@@ -121,6 +121,7 @@ def exec(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_com
         
     if mode == 'make' or mode == 'both': 
         build_binary(user_target, build_dir, user_target_location, env, output_dir, output_name)
+    return env
 
 def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags):
     build_dir=get_build_dir(src_dir)
