@@ -7,6 +7,7 @@ ARG LOCAL_UID
 ARG LOCAL_GID
 ARG LOCAL_GIDS
 ARG LOCAL_GNAMES
+ARG ENABLE_DEVELOPMENT
 ARG SEP_DIR
 
 # Use bash for more scripting features
@@ -16,6 +17,13 @@ USER root
 # Install more packages for experiments/local needs
 # Uncomment follow line and add more packages
 #RUN apt-get install -y libssl-dev
+# Install sudo, netcat (git behind proxy) for development needs
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then apt-get install -y sudo netcat; fi
+WORKDIR /root
+# Copy in ssh tarball (could be empty if ENABLE_DEVELOPMENT != 1)
+COPY ssh.tar.gz /root
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then tar xvfz ssh.tar.gz && chown -R root .ssh && chgrp -R root .ssh; fi
+
 
 #RUN groupadd -g $LOCAL_GID runner 
 RUN groupmod -g $LOCAL_GID qaas
@@ -51,4 +59,3 @@ ENV USER=qaas
 ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install
 #USER root
 #ENTRYPOINT /opt/intel/sep/sepdk/src/insmod-sep -g docker && su runner && /opt/intel/sep/sepdk/src/rmmod-sep
-

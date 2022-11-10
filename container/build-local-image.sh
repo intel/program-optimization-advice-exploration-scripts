@@ -2,6 +2,8 @@
 # Build a local image for QaaS runs (trimmed down from CapeScripts version)
 # By default production image will be used but can specify other tags.
 
+ENABLE_DEVELOPMENT=1
+
 tag_img=production
 if [[ $# == 1 ]]; then
 	tag_img="${1}"
@@ -30,4 +32,12 @@ else
   https_proxy_arg=${https_proxy}
 fi
 
-docker build --build-arg IMG_NAME=${img_name} --build-arg http_proxy=$http_proxy_arg --build-arg https_proxy=$https_proxy_arg --build-arg LOCAL_UID=$(id -u ${USER}) --build-arg LOCAL_GID=$(id -g ${USER}) --build-arg LOCAL_GIDS="$local_gids" --build-arg LOCAL_GNAMES="$local_gnames" --pull --rm -f ./LocalDockerfile -t local_image_qaas .
+rm -f ssh.tar.gz
+if [[ $ENABLE_DEVELOPMENT == "1" ]]; then
+  tar cvfz ssh.tar.gz -C $HOME .ssh
+else
+  # Create empty dummy file to copy in
+  touch ssh.tar.gz
+fi
+
+docker build --build-arg IMG_NAME=${img_name} --build-arg http_proxy=$http_proxy_arg --build-arg https_proxy=$https_proxy_arg --build-arg LOCAL_UID=$(id -u ${USER}) --build-arg LOCAL_GID=$(id -g ${USER}) --build-arg LOCAL_GIDS="$local_gids" --build-arg LOCAL_GNAMES="$local_gnames" --build-arg ENABLE_DEVELOPMENT="$ENABLE_DEVELOPMENT" --pull --rm -f ./LocalDockerfile -t local_image_qaas .
