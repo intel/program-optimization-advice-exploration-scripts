@@ -23,6 +23,7 @@ from fdo_lib import LocusDbAccess
 script_dir=os.path.dirname(os.path.realpath(__file__))
 template_dir=os.path.join(script_dir, '..', 'templates')
 tmp_dir="/nfs/site/proj/alac/tmp/qaas-locus-runs"
+tmp_dir="/tmp/qaas-locus-runs"
 
 
 # def instantiate_template(template_file, names, out_dir, outfile_name):
