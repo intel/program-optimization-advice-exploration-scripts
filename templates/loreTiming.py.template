@@ -1,6 +1,6 @@
 import re                                                                       
 #if $timing_fn_name == 'getTimingQaas'
-from oneview_runner import aggregate_loop_time
+from fdo_lib import LProfProfiler
 #end if
 
 def make_result_time_unit(data, unit):
@@ -21,7 +21,7 @@ def getTimingNew(std,error):
     return make_result(metric)
 #else if $timing_fn_name == 'getTimingQaas'
 def getTimingQaas(std,error):
-    time_result, unit_result = aggregate_loop_time("$locus_bin_run_dir", "$locus_bin", "$src_file", $timing_script_loop_head)
+    time_result, unit_result = LProfProfiler($maqao_path).aggregate_loop_time("$locus_bin_run_dir", "$locus_bin", "$src_file", $timing_script_loop_head)
     return make_result_time_unit(time_result, unit_result)
 #else
 def getTiming(std,error):
