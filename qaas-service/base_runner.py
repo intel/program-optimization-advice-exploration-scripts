@@ -3,8 +3,12 @@ import shutil
 from abc import ABC, abstractmethod
 
 class BaseRunner(ABC):
-    def __init__(self):
-        pass
+    def __init__(self, maqao_dir):
+        self._maqao_dir = maqao_dir
+    
+    @property
+    def maqao_dir(self):
+        return self._maqao_dir
 
     def prepare(self, binary_path, data_path):
         os.makedirs(self.run_dir, exist_ok=True)

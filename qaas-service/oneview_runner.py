@@ -13,17 +13,14 @@ class OneviewRunner(BaseRunner):
     #MAQAO_DIR="/nfs/site/proj/alac/software/UvsqTools/20221102"
     ONEVIEW_OUT_DIR='oneview_out_dir'
 
-    def __init__(self, ov_dir, level, ov_result_root, ov_config):
+    def __init__(self, maqao_dir, level, ov_result_root, ov_config):
+        super().__init__(maqao_dir)
         self.level = level
-        self.ov_dir = ov_dir
         self.ov_result_root = ov_result_root
         self.ov_config = ov_config
         self.ov_timestamp = int(round(datetime.datetime.now().timestamp()))
         self.run_dir = os.path.join(self.ov_result_root, f'oneview_run_{self.ov_timestamp}')
 
-    @property
-    def maqao_dir(self):
-        return self.ov_dir
 
     @property
     def maqao_bin_dir(self):
@@ -67,10 +64,10 @@ class OneviewRunner(BaseRunner):
         subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.ov_result_root)
     
     
-def exec(env, binary_path, data_path, ov_result_root, run_cmd, ov_dir, ov_config, mode, 
+def exec(env, binary_path, data_path, ov_result_root, run_cmd, maqao_path, ov_config, mode, 
              mpi_run_command=None, mpi_num_processes=1, omp_num_threads=1, 
              mpi_envs={"I_MPI_PIN_PROCESSOR_LIST":"all:map=spread"}, omp_envs={}):
-    ov_runner = OneviewRunner(ov_dir=ov_dir, level=1, ov_result_root=ov_result_root, ov_config=ov_config)
+    ov_runner = OneviewRunner(maqao_dir=maqao_path, level=1, ov_result_root=ov_result_root, ov_config=ov_config)
     ov_runner.exec (env, binary_path, data_path, run_cmd, mode, mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs)
     log(QaasComponents.OV_RUNNER, f'Result at {ov_runner.ov_result_dir}', mockup=False)
     return ov_runner.ov_result_dir
