@@ -33,7 +33,8 @@ def main():
     args = utils.cmdargs.parse_cli_args(sys.argv)
 
     # setup QaaS configuration
-    params = utils.config.QAASConfig(config_file_path="../config/qaas.conf")
+    script_dir=os.path.dirname(os.path.realpath(__file__))
+    params = utils.config.QAASConfig(config_file_path=os.path.join(script_dir, "../config/qaas.conf"))
     # get QaaS global configuration
     params.read_system_config()
     logging.debug("QaaS System Config:\n\t%s", params.system)
@@ -55,11 +56,18 @@ def main():
     if rc != 0:
        return rc
 
+    rc = prov.clone_data_repo()
+    if rc != 0:
+       return rc
+
     # setup job submission
     job = QAASJobSubmit(params.system["compilers"],
                         params.user["compiler"],
+                        params.user["application"],
                         prov)
-    rc = job.build_default()
+
+    rc = job.run_job()
+    #rc = job.build_default()
     #rc = job.run_reference_app()
     if rc != 0:
        return rc

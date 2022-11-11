@@ -12,6 +12,7 @@
 
 import os
 import logging
+import urllib
 from utils.runcmd import QAASRunCMD
 
 # define QAAS GIT-related constants
@@ -19,7 +20,13 @@ GIT_USER = "USER"
 GIT_TOKEN = "TOKEN"
 GIT_BRANCH = "BRANCH"
 GIT_SRC_URL = "SRC_URL"
+
+GIT_DATA_USER = "DATA_USER"
+GIT_DATA_TOKEN = "DATA_TOKEN"
+GIT_DATA_BRANCH = "DATA_BRANCH"
 GIT_DATA_URL = "DATA_URL"
+GIT_DATA_BRANCH = "DATA_BRANCH"
+GIT_DATA_DOWNLOAD_PATH = "DATA_DOWNLOAD_PATH"
 
 # define directory structure constants
 WORKDIR_ROOT_INDEX  = 0
@@ -28,6 +35,7 @@ RUNDIR_INDEX        = 2
 BASEDIR_INDEX       = 3
 OVDIR_INDEX         = 4
 LOCUSDIR_INDEX      = 5
+DATADIR_INDEX      = 6
 QAAS_RUN_TYPES = ["base_runs", "oneview_runs", "locus_runs"]
 
 class QAASEnvProvisioner:
@@ -39,18 +47,28 @@ class QAASEnvProvisioner:
         self.account = account
         self.app_name = app_name
         # setup working directories
+        # NOTE: Following append order related to the INDEX values and also there are
+        # len(QAAS_RUN_TYPES) run directories allocated assumed
+        # (BASEDIR_INDEX, OVDIR_INDEX, LOCUSDIR_INDEX) matches QAAS_RUN_TYPES array order
         self.work_dirs = []
         self.work_dirs.append(os.path.join(self.service_dir, self.account, self.app_name))
         self.work_dirs.append(os.path.join(self.work_dirs[WORKDIR_ROOT_INDEX], "build"))
         self.work_dirs.append(os.path.join(self.work_dirs[WORKDIR_ROOT_INDEX], "run"))
         for workdir in QAAS_RUN_TYPES:
             self.work_dirs.append(os.path.join(self.work_dirs[RUNDIR_INDEX], workdir))
+        self.work_dirs.append(os.path.join(self.work_dirs[WORKDIR_ROOT_INDEX], "dataset"))
         # save git configuration
         self.git_user = git_params[GIT_USER]
         self.git_token = git_params[GIT_TOKEN]
         self.git_branch = git_params[GIT_BRANCH]
         self.git_src_url = git_params[GIT_SRC_URL]
+
+
+        self.git_data_user = git_params[GIT_DATA_USER]
+        self.git_data_token = git_params[GIT_DATA_TOKEN]
+        self.git_data_branch = git_params[GIT_DATA_BRANCH]
         self.git_data_url = git_params[GIT_DATA_URL]
+        self.git_data_download_path = git_params[GIT_DATA_DOWNLOAD_PATH]
         # save target machine access parameters
         self.machine = machine
         self.image_name = container["QAAS_CONTAINER_IMAGE"] + ":" + container["QAAS_CONTAINER_TAG"]
@@ -70,6 +88,8 @@ class QAASEnvProvisioner:
             return self.work_dirs[OVDIR_INDEX]
         elif target == "locus_runs":
             return self.work_dirs[LOCUSDIR_INDEX]
+        elif target == "dataset":
+            return self.work_dirs[DATADIR_INDEX]
 
     def create_work_dirs(self):
         """Create working directories."""
@@ -95,13 +115,36 @@ class QAASEnvProvisioner:
     def clone_source_repo(self):
         """Clone the application's GIT repo."""
         logging.info("Cloning application GIT repo on %s", self.machine)
-        target_branch = self.git_branch
-        if self.git_branch == None:
-            target_branch = "master"
+        target_branch, git_url = self.generate_git_url_branch(self.git_branch, self.git_src_url,
+                                                              self.git_user, self.git_token)
         cmdline = "'cd " + self.get_workdir("build") + \
                   " && if [[ ! -d " + self.app_name + " ]]; then" + \
                   " git clone -b " + target_branch + \
-                  " " + self.git_src_url + " " + self.app_name + \
+                  " " + git_url + " " + self.app_name + \
                   " && rm -rf " + self.app_name + "/.git; fi'"
         rc, cmdout = QAASRunCMD(self.machine).run_remote_cmd(cmdline)
         return rc
+
+    def clone_data_repo(self):
+        """Clone the application's GIT repo."""
+        logging.info("Cloning application GIT repo on %s", self.machine)
+        target_branch, git_url = self.generate_git_url_branch(self.git_data_branch, self.git_data_url,
+                                                              self.git_data_user, self.git_data_token)
+        cmdline = "'cd " + self.get_workdir("dataset") + \
+                  " && if [[ ! -d " + self.app_name + " ]]; then" + \
+                  " git clone --no-checkout -b " + target_branch + \
+                  " " + git_url + " " + self.app_name + \
+                  " && cd "+self.app_name + \
+                 f" && git sparse-checkout set {self.git_data_download_path}" + \
+                  " && git checkout"+ \
+                  " && rm -rf .git; fi'" 
+        rc, cmdout = QAASRunCMD(self.machine).run_remote_cmd(cmdline)
+        return rc
+
+    def generate_git_url_branch(self, branch, url, user, token):
+        if branch == None:
+            branch = "master"
+        if user:
+            credential = f'{urllib.parse.quote(user, safe="")}:{token}'
+            url = url.replace('://', f'://{credential}@')
+        return branch, url
