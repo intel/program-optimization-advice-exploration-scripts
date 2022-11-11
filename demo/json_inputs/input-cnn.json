@@ -1,0 +1,34 @@
+{
+    "account": {
+        "QAAS_ACCOUNT": "intel"
+    }, 
+    "application": {
+        "APP_NAME": "cnn",
+        "GIT": {
+            "USER":   "david.c.wong@intel.com",
+            "TOKEN":  "glpat-PST8GxLzeMMQ6cWTLz9d",
+            "BRANCH": "master",
+            "SRC_URL": "https://gitlab.com/davidwong/conv-codelets.git",
+            "DATA_USER":   "david.c.wong@intel.com",
+            "DATA_TOKEN":  "glpat-PST8GxLzeMMQ6cWTLz9d",
+            "DATA_URL": "https://gitlab.com/davidwong/conv-codelets.git",
+            "DATA_BRANCH": "master",
+            "DATA_DOWNLOAD_PATH": "nn-codelets/conv_op/direct_conv/1.2/1.2_back_prop_sx5/codelet.data"
+        },
+        "RUN": {
+            "APP_DATA_ARGS": "",
+            "APP_RUN_CMD": "<binary>",
+            "APP_ENV_MAP": { "Foo": "bar" }
+        }
+    }, 
+    "compiler": {
+        "USER_CC": "icc", 
+        "USER_CC_VERSION": "2022", 
+        "USER_C_FLAGS": "-g -qno-offload -fpic -wd266 -diag-disable 1879,3415,10006,10010,10411,13003 -O3 -fno-alias -ansi-alias -qoverride_limits -fp-model fast=2 -D_REENTRANT -xCore-AVX2", 
+        "USER_CXX_FLAGS": "", 
+        "USER_FC_FLAGS": "", 
+        "USER_LINK_FLAGS": "-g -fpic -diag-disable 1879,3415,10006,10010,10411 -Wl,--as-needed -lrt -ldl -Wl,--no-as-needed -Wl,--as-needed -lstdc++ -Wl,--no-as-needed",
+        "USER_TARGET": "1.2_back_prop_sx5",
+        "USER_TARGET_LOCATION": "nn-codelets/conv_op/direct_conv/1.2/1.2_back_prop_sx5/1.2_back_prop_sx5"
+    }
+}
