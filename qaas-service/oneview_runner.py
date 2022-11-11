@@ -10,7 +10,7 @@ script_dir=os.path.dirname(os.path.realpath(__file__))
 
 # TODO: refactor with Profiler.py
 class OneviewRunner(BaseRunner):
-    MAQAO_DIR="/nfs/site/proj/alac/software/UvsqTools/20221102"
+    #MAQAO_DIR="/nfs/site/proj/alac/software/UvsqTools/20221102"
     ONEVIEW_OUT_DIR='oneview_out_dir'
 
     def __init__(self, ov_dir, level, ov_result_root, ov_config):
