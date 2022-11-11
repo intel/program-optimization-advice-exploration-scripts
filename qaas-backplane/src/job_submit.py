@@ -22,10 +22,11 @@ compiler_subdir_map = { 'icc:2022': 'intel/2022', 'icc:19.1': 'intel/19.1',
 
 class QAASJobSubmit:
     """."""
-    def __init__(self, system_compilers, user_compiler, provisioner):
+    def __init__(self, system_compilers, user_compiler, user_application, provisioner):
         self.compiler = user_compiler
         self.compilers = system_compilers
         self.provisioner = provisioner
+        self.application = user_application
 
     def build_default(self):
         """Run build stage."""
@@ -56,6 +57,46 @@ class QAASJobSubmit:
             logging.debug(cmdout)
         return rc
 
+    def run_job(self):
+        """Run job script itself"""
+        compiler_dir = "/nfs/site/proj/openmp/compilers/intel/2022"
+        ov_run_dir=self.provisioner.get_workdir("oneview_runs")
+        locus_run_dir=self.provisioner.get_workdir("locus_runs")
+        ov_dir="/opt/maqao"
+        container_app_builder_path="/app/builder"
+        container_app_dataset_path="/app/dataset"
+        container_app_oneview_path="/app/oneview_runs"
+        container_app_locus_path="/app/locus_runs"
+        app_run_info = self.application["RUN"]
+        env_var_map=app_run_info["APP_ENV_MAP"]
+        env_var_flags = "".join([f' --var {k}={v}' for k,v in env_var_map.items()])
+        job_cmd = "\"podman run --rm --name " + self.provisioner.app_name + \
+                   f" -v {ov_dir}:{ov_dir}" + \
+                    " -v /home/qaas/QAAS_SCRIPT_ROOT:/qaas/QAAS_SCRIPT_ROOT" + \
+                    " -v /nfs/site/proj/openmp/compilers:/nfs/site/proj/openmp/compilers" + \
+                    " -v " + self.provisioner.get_workdir("build") + f":{container_app_builder_path}" + \
+                    " -v " + self.provisioner.get_workdir("oneview_runs") + f":{container_app_oneview_path}" + \
+                    " -v " + self.provisioner.get_workdir("locus_runs") + f":{container_app_locus_path}" + \
+                    " -v " + os.path.join(self.provisioner.get_workdir("dataset"), self.provisioner.app_name) + f":{container_app_dataset_path}" + \
+                    " --cap-add  SYS_ADMIN,SYS_PTRACE" + \
+                    " " + self.provisioner.image_name + " /usr/bin/python3 /qaas/QAAS_SCRIPT_ROOT/qaas-service/job.py "+ \
+                    f' --src-dir {os.path.join(container_app_builder_path, self.provisioner.app_name)}'+ \
+                    f' --data_dir {os.path.join(container_app_dataset_path, self.provisioner.git_data_download_path)} --ov_config unused --ov_run_dir {container_app_oneview_path}'+ \
+                    f' --locus_run_dir {container_app_locus_path} --compiler-dir {compiler_dir} --ov_dir {ov_dir}'+ \
+                    f' --orig-user-CC {self.compiler["USER_CC"]} --target-CC {self.compiler["USER_CC"]} --user-c-flags "{self.compiler["USER_C_FLAGS"]}"'+ \
+                    f' --user-cxx-flags "{self.compiler["USER_CXX_FLAGS"]}" --user-fc-flags "{self.compiler["USER_FC_FLAGS"]}"'+ \
+                    f' --user-link-flags "{self.compiler["USER_LINK_FLAGS"]}" --user-target {self.compiler["USER_TARGET"]} --user-target-location {self.compiler["USER_TARGET_LOCATION"]}'+ \
+                    f'{env_var_flags}'+ \
+                    f' --run-cmd "{app_run_info["APP_RUN_CMD"]}"' + \
+                    "\"" 
+        
+        logging.debug("job_cmd=%s", job_cmd)
+        rc = 0
+        rc, cmdout = QAASRunCMD(self.provisioner.machine).run_remote_cmd(job_cmd)
+        if rc == 0:
+            logging.debug(cmdout)
+        return rc
+    
     def run_reference_app(self):
         """Run a reference run of the application."""
         logging.info("Run a reference run of %s on %s", self.provisioner.app_name, self.provisioner.machine)
