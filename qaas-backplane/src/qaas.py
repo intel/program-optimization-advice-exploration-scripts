@@ -55,6 +55,7 @@ def launch_qaas(app_params, service_msg_recv_handler):
 
     # Setup Env. Provisionning: code  + data location
     prov = QAASEnvProvisioner(params.system["global"]["QAAS_ROOT"], 
+                              params.system["global"]["QAAS_SCRIPT_ROOT"], 
                               params.user["account"]["QAAS_ACCOUNT"], 
                               params.user["application"]["APP_NAME"], 
                               params.user["application"]["GIT"],

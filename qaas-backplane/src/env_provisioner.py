@@ -43,11 +43,12 @@ QAAS_RUN_TYPES = ["base_runs", "oneview_runs", "locus_runs"]
 
 class QAASEnvProvisioner:
     """Object to manage environment setup."""
-    def __init__(self, service_dir, account, app_name, git_params, machine, container, 
+    def __init__(self, service_dir, script_root, account, app_name, git_params, machine, container, 
                  compilers, compiler_mappings, comm_port, service_msg_recv_handler):
         logging.debug("QAASEnvProvisioner Constructor")
         # save mete information
         self.service_dir = service_dir
+        self.script_root = script_root
         self.account = account
         self.app_name = app_name
         # setup working directories

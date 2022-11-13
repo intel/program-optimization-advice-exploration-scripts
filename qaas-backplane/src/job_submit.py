@@ -59,6 +59,7 @@ class QAASJobSubmit:
 
     def run_job(self):
         """Run job script itself"""
+        script_root = self.provisioner.script_root
         compiler_root = self.provisioner.get_compiler_root()
         compiler_subdir = self.provisioner.get_compiler_subdir(self.compiler["USER_CC"], self.compiler["USER_CC_VERSION"])
         ov_run_dir = self.provisioner.get_workdir("oneview_runs")
@@ -68,7 +69,10 @@ class QAASJobSubmit:
         container_app_dataset_path="/app/dataset"
         container_app_oneview_path="/app/oneview_runs"
         container_app_locus_path="/app/locus_runs"
-        container_compiler_root="/app/compilers"
+        #container_compiler_root="/app/compilers"
+        # The current load script seems to require the same path
+        container_compiler_root=compiler_root
+        container_script_root="/app/QAAS_SCRIPT_ROOT"
         app_run_info = self.application["RUN"]
         env_var_map=app_run_info["APP_ENV_MAP"]
         env_var_flags = "".join([f' --var {k}={v}' for k,v in env_var_map.items()])
@@ -76,15 +80,14 @@ class QAASJobSubmit:
         job_cmd = "'podman run --rm --name " + self.provisioner.app_name + \
                     " --network=host " + \
                    f" -v {ov_dir}:{ov_dir}" + \
-                    " -v /home/qaas/QAAS_SCRIPT_ROOT:/qaas/QAAS_SCRIPT_ROOT" + \
-                    " -v /nfs/site/proj/openmp/compilers:/nfs/site/proj/openmp/compilers" + \
+                   f" -v {script_root}:{container_script_root}" + \
                     " -v " + self.provisioner.get_workdir("build") + f":{container_app_builder_path}" + \
                     " -v " + ov_run_dir + f":{container_app_oneview_path}" + \
                     " -v " + locus_run_dir + f":{container_app_locus_path}" + \
                     " -v " + compiler_root + f":{container_compiler_root}" + \
                     " -v " + os.path.join(self.provisioner.get_workdir("dataset"), self.provisioner.app_name) + f":{container_app_dataset_path}" + \
                     " --cap-add  SYS_ADMIN,SYS_PTRACE" + \
-                    " " + self.provisioner.image_name + " /usr/bin/python3 /qaas/QAAS_SCRIPT_ROOT/qaas-service/job.py "+ \
+                    " " + self.provisioner.image_name + f" /usr/bin/python3 {container_script_root}/qaas-service/job.py "+ \
                     f' --src-dir {os.path.join(container_app_builder_path, self.provisioner.app_name)}'+ \
                     f' --data_dir {os.path.join(container_app_dataset_path, self.provisioner.git_data_download_path)} --ov_config unused --ov_run_dir {container_app_oneview_path}'+ \
                     f' --locus_run_dir {container_app_locus_path} --compiler-dir {os.path.join(container_compiler_root, compiler_subdir)} --ov_dir {ov_dir}'+ \
