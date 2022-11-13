@@ -12,8 +12,9 @@
 
 import os
 import logging
-import urllib
+import urllib.parse
 from utils.runcmd import QAASRunCMD
+from utils.comm import ServiceMessageReceiver
 
 # define QAAS GIT-related constants
 GIT_USER = "USER"
@@ -40,7 +41,7 @@ QAAS_RUN_TYPES = ["base_runs", "oneview_runs", "locus_runs"]
 
 class QAASEnvProvisioner:
     """Object to manage environment setup."""
-    def __init__(self, service_dir, account, app_name, git_params, machine, container):
+    def __init__(self, service_dir, account, app_name, git_params, machine, container, comm_port, service_msg_recv_handler):
         logging.debug("QAASEnvProvisioner Constructor")
         # save mete information
         self.service_dir = service_dir
@@ -73,6 +74,8 @@ class QAASEnvProvisioner:
         self.machine = machine
         self.image_name = container["QAAS_CONTAINER_IMAGE"] + ":" + container["QAAS_CONTAINER_TAG"]
         self.image_uid = container["QAAS_CONTAINER_UID"]
+        self.comm_port = comm_port
+        self.msg_server = ServiceMessageReceiver(("localhost", self.comm_port), service_msg_recv_handler=service_msg_recv_handler) 
 
     def get_workdir(self, target):
         """Get a given dir."""
@@ -99,7 +102,7 @@ class QAASEnvProvisioner:
         for index in range(1, len(self.work_dirs), 1): 
             cmds = cmds + " && " + "mkdir -p " + self.work_dirs[index]
         cmds = cmds + "'"
-        rc, cmdout = QAASRunCMD(self.machine).run_remote_cmd(cmds)
+        rc, cmdout = QAASRunCMD(self.comm_port, self.machine).run_remote_cmd(cmds)
         if rc != 0:
             return rc
         # update ownership rights for container runs 
@@ -109,7 +112,7 @@ class QAASEnvProvisioner:
     def update_workdir_owner(self):
         """Update working directories ownership rights to build & run in a container."""
         cmdline = "podman unshare chown -R :" + self.image_uid + " " + self.get_workdir("root")
-        rc, cmdout = QAASRunCMD(self.machine).run_remote_cmd(cmdline)
+        rc, cmdout = QAASRunCMD(self.comm_port, self.machine).run_remote_cmd(cmdline)
         return rc
 
     def clone_source_repo(self):
@@ -122,7 +125,7 @@ class QAASEnvProvisioner:
                   " git clone -b " + target_branch + \
                   " " + git_url + " " + self.app_name + \
                   " && rm -rf " + self.app_name + "/.git; fi'"
-        rc, cmdout = QAASRunCMD(self.machine).run_remote_cmd(cmdline)
+        rc, cmdout = QAASRunCMD(self.comm_port, self.machine).run_remote_cmd(cmdline)
         return rc
 
     def clone_data_repo(self):
@@ -138,7 +141,7 @@ class QAASEnvProvisioner:
                  f" && git sparse-checkout set {self.git_data_download_path}" + \
                   " && git checkout"+ \
                   " && rm -rf .git; fi'" 
-        rc, cmdout = QAASRunCMD(self.machine).run_remote_cmd(cmdline)
+        rc, cmdout = QAASRunCMD(self.comm_port, self.machine).run_remote_cmd(cmdline)
         return rc
 
     def generate_git_url_branch(self, branch, url, user, token):
@@ -148,3 +151,6 @@ class QAASEnvProvisioner:
             credential = f'{urllib.parse.quote(user, safe="")}:{token}'
             url = url.replace('://', f'://{credential}@')
         return branch, url
+    
+    def finish(self):
+        self.msg_server.shutdown()
