@@ -5,7 +5,7 @@ import shutil
 import subprocess
 # See: https://pytrie.readthedocs.io/en/latest/ for documentation
 from pytrie import StringTrie
-from utils.util import load_compiler_env
+from utils.util import load_compiler_env, split_compiler_combo
 
 
 # We use CC compiler names as compiler names and here provide lookup for different languages
@@ -220,14 +220,6 @@ def parse_compiler_combo(CC_combo):
     FC = compiler_map[CC+":FC"]
     return mpi_wrapper, CC,CXX,FC
 
-def split_compiler_combo(CC_combo):
-    CC_combo = CC_combo.split("-")
-    if len(CC_combo) == 1:
-        mpi_wrapper = None
-        CC = CC_combo[0]
-    else:
-        mpi_wrapper, CC = CC_combo
-    return mpi_wrapper,CC
 
 def get_build_dir(src_dir):
     return os.path.join(src_dir, '..', 'build')

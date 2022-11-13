@@ -15,6 +15,7 @@ import logging
 import urllib.parse
 from utils.runcmd import QAASRunCMD
 from utils.comm import ServiceMessageReceiver
+from utils.util import split_compiler_combo
 
 # define QAAS GIT-related constants
 GIT_USER = "USER"
@@ -39,14 +40,6 @@ LOCUSDIR_INDEX      = 5
 DATADIR_INDEX      = 6
 QAAS_RUN_TYPES = ["base_runs", "oneview_runs", "locus_runs"]
 
-def split_compiler_combo(CC_combo):
-    CC_combo = CC_combo.split("-")
-    if len(CC_combo) == 1:
-        mpi_wrapper = None
-        CC = CC_combo[0]
-    else:
-        mpi_wrapper, CC = CC_combo
-    return mpi_wrapper,CC
 
 class QAASEnvProvisioner:
     """Object to manage environment setup."""
