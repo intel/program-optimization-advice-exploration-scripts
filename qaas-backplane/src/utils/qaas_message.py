@@ -1,14 +1,16 @@
 import pickle
+import socket
 
 class QaasMessage:
     def __init__(self, info):
         self.info = info
+        self.hostname = socket.gethostname()
 
     def is_end_job(self):
         return False
 
     def encode(self):
-        return pickle.dump(self)
+        return pickle.dumps(self)
 
     def str(self):
         return self.info
