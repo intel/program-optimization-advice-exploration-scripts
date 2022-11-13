@@ -9,7 +9,7 @@ import app_mutator
 import oneview_runner
 from logger import log, QaasComponents
 from app_builder import build_argparser as app_builder_builder_argparser
-from util import parse_env_map 
+from utils.util import parse_env_map 
 from utils import qaas_message as qm
 from utils.comm import ServiceMessageSender
 

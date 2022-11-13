@@ -4,7 +4,7 @@ import os
 from logger import log, QaasComponents
 import argparse
 import subprocess
-from util import generate_timestamp_str
+from utils.util import generate_timestamp_str
 from base_runner import BaseRunner
 script_dir=os.path.dirname(os.path.realpath(__file__))
 

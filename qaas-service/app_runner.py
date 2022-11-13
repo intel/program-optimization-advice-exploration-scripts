@@ -2,7 +2,7 @@ import argparse
 import subprocess
 import shutil
 import os
-from util import parse_env_map 
+from utils.util import parse_env_map 
 from fdo_lib import LProfProfiler
 from base_runner import BaseRunner
 

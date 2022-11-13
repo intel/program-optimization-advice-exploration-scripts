@@ -14,8 +14,8 @@ from app_builder import build_binary, get_build_dir, setup_build
 from app_runner import build_argparser as runner_build_argparser
 from app_runner import AppRunner
 from logger import QaasComponents, log
-from util import generate_timestamp_str
-from util import parse_env_map 
+from utils.util import generate_timestamp_str
+from utils.util import parse_env_map 
 from fdo_lib import LocusRunner
 from fdo_lib import LProfProfiler
 from fdo_lib import LocusDbAccess
