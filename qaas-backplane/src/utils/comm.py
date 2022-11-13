@@ -33,6 +33,23 @@ class ServiceMessageHandler(socketserver.BaseRequestHandler):
             print(f"Recv from: {msg.hostname}")
             self.server.handler_on_recv(msg)
 
+class ServiceMessageSender:
+    def __init__(self, comm_port):
+        self.comm_port = comm_port
+        self.connect()
+
+    def send(self, data):
+        if self.msg_sender:
+            self.msg_sender.sendall(data.encode())
+        self.close()
+        self.connect()
+        
+    def connect(self):
+        self.msg_sender = socket.create_connection(("localhost", self.comm_port)) if self.comm_port else None
+        
+    def close(self):
+        if self.msg_sender:
+            self.msg_sender.close()
     
 class SshCommunicator:
     def __init__(self, port):
