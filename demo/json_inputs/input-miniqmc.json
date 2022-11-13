@@ -9,13 +9,21 @@
             "TOKEN":  "",
             "BRANCH": "OMP_offload",
             "SRC_URL": "https://github.com/jngkim/miniqmc.git",
-            "DATA_URL": ""
+            "DATA_USER":   "",
+            "DATA_TOKEN":  "",
+            "DATA_URL": "",
+            "DATA_BRANCH": "",
+            "DATA_DOWNLOAD_PATH": ""
         },
-        "APP_DATA_ARGS": "-g \"2 2 2\" -b" 
+        "RUN": {
+            "APP_DATA_ARGS": "-g \"2 2 2\" -b",
+            "APP_RUN_CMD": "<binary> -g '2 2 2' -b",
+            "APP_ENV_MAP": { }
+        }
     }, 
     "compiler": {
-        "USER_CC": "mpiicc", 
-        "USER_CC_VERSION": "2022", 
+        "USER_CC": "mpiicc-icx", 
+        "USER_CC_VERSION": "2021", 
         "USER_C_FLAGS": "", 
         "USER_CXX_FLAGS": "-cxx=icpx -mprefer-vector-width=512 -std=c++17 -g -fno-omit-frame-pointer -DENABLE_OFFLOAD=0", 
         "USER_FC_FLAGS": "", 
