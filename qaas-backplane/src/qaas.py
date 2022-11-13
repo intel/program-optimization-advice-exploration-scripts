@@ -32,6 +32,17 @@ def main():
     # parse arguments
     args = utils.cmdargs.parse_cli_args(sys.argv)
 
+    # Command line just print the message for service message, GUI will act on message differently.
+    rc = launch_qaas(args.app_params, lambda msg: print(msg.str()))
+
+    exitcode = 1
+    if rc == 0:
+        exitcode = 0
+    logging.debug("exitcode = %s", exitcode)
+    sys.exit(exitcode)
+
+# Webfront will call this to launch qaas for a submission
+def launch_qaas(app_params, service_msg_recv_handler):
     # setup QaaS configuration
     script_dir=os.path.dirname(os.path.realpath(__file__))
     params = utils.config.QAASConfig(config_file_path=os.path.join(script_dir, "../config/qaas.conf"))
@@ -39,7 +50,7 @@ def main():
     params.read_system_config()
     logging.debug("QaaS System Config:\n\t%s", params.system)
     # get QaaS user's configuration
-    params.read_user_config(args.app_params)
+    params.read_user_config(app_params)
     logging.debug("QaaS User Config:\n\t%s", params.user)
 
     # Setup Env. Provisionning: code  + data location
@@ -48,7 +59,9 @@ def main():
                               params.user["application"]["APP_NAME"], 
                               params.user["application"]["GIT"],
                               params.system["machines"]["QAAS_MACHINES_POOL"],
-                              params.system["container"])
+                              params.system["container"],
+                              int(params.system["global"]["QAAS_COMM_PORT"]),
+                              service_msg_recv_handler)
     rc = prov.create_work_dirs()
     if rc != 0:
        return rc
@@ -71,13 +84,8 @@ def main():
     #rc = job.run_reference_app()
     if rc != 0:
        return rc
-
+    prov.finish()
     return rc
      
 if __name__ == '__main__':
-    rc = main()
-    exitcode = 1
-    if rc == 0:
-        exitcode = 0
-    logging.debug("exitcode = %s", exitcode)
-    sys.exit(exitcode)
+   main()

@@ -70,7 +70,9 @@ class QAASJobSubmit:
         app_run_info = self.application["RUN"]
         env_var_map=app_run_info["APP_ENV_MAP"]
         env_var_flags = "".join([f' --var {k}={v}' for k,v in env_var_map.items()])
+        # Below used --network=host so script can communicate back to launcher via ssh forwarding.  Can try to restrict to self.provisioner.comm_port if needed
         job_cmd = "'podman run --rm --name " + self.provisioner.app_name + \
+                    " --network=host " + \
                    f" -v {ov_dir}:{ov_dir}" + \
                     " -v /home/qaas/QAAS_SCRIPT_ROOT:/qaas/QAAS_SCRIPT_ROOT" + \
                     " -v /nfs/site/proj/openmp/compilers:/nfs/site/proj/openmp/compilers" + \
@@ -88,11 +90,12 @@ class QAASJobSubmit:
                     f' --user-link-flags "{self.compiler["USER_LINK_FLAGS"]}" --user-target {self.compiler["USER_TARGET"]} --user-target-location {self.compiler["USER_TARGET_LOCATION"]}'+ \
                     f'{env_var_flags}'+ \
                     f' --run-cmd "{app_run_info["APP_RUN_CMD"]}"' + \
+                    f" --comm-port {self.provisioner.comm_port}" + \
                     "'" 
         
         logging.debug("job_cmd=%s", job_cmd)
         rc = 0
-        rc, cmdout = QAASRunCMD(self.provisioner.machine).run_remote_cmd(job_cmd)
+        rc, cmdout = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine).run_remote_cmd(job_cmd)
         if rc == 0:
             logging.debug(cmdout)
         return rc

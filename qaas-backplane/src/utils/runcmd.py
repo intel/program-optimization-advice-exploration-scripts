@@ -19,10 +19,11 @@ DEFAULT_USER = 'qaas'
 DEFAULT_LOCATION= 'localhost'
 
 class QAASRunCMD:
-    def __init__(self, machine=DEFAULT_LOCATION, user=DEFAULT_USER):
+    def __init__(self, comm_port, machine=DEFAULT_LOCATION, user=DEFAULT_USER):
         self.machine = machine
         self.user = user
-        self.ssh_cmd = "/usr/bin/ssh " + self.user + "@" + self.machine + " "
+        # Use remote port forwarding and then local side listen to the forwarding port, expecting remote side connect back
+        self.ssh_cmd = f"/usr/bin/ssh -R {comm_port}:localhost:{comm_port} " + self.user + "@" + self.machine + " "
 
     def run_cmd(self, cmdline):
         runcmd = subprocess.Popen(cmdline, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -31,7 +32,7 @@ class QAASRunCMD:
              logging.error(runcmd.err)
         return runcmd.returncode, runcmd.out
 
-    def run_local_cmd(cmd, local_cmd):
+    def run_local_cmd(self, local_cmd):
         """Run a local command."""
         cmdline = local_cmd
         logging.debug("cmdline=%s", cmdline)
