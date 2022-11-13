@@ -60,6 +60,8 @@ def launch_qaas(app_params, service_msg_recv_handler):
                               params.user["application"]["GIT"],
                               params.system["machines"]["QAAS_MACHINES_POOL"],
                               params.system["container"],
+                              params.system["compilers"],
+                              params.system["compiler_mappings"],
                               int(params.system["global"]["QAAS_COMM_PORT"]),
                               service_msg_recv_handler)
     rc = prov.create_work_dirs()

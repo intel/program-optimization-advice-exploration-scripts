@@ -39,9 +39,19 @@ LOCUSDIR_INDEX      = 5
 DATADIR_INDEX      = 6
 QAAS_RUN_TYPES = ["base_runs", "oneview_runs", "locus_runs"]
 
+def split_compiler_combo(CC_combo):
+    CC_combo = CC_combo.split("-")
+    if len(CC_combo) == 1:
+        mpi_wrapper = None
+        CC = CC_combo[0]
+    else:
+        mpi_wrapper, CC = CC_combo
+    return mpi_wrapper,CC
+
 class QAASEnvProvisioner:
     """Object to manage environment setup."""
-    def __init__(self, service_dir, account, app_name, git_params, machine, container, comm_port, service_msg_recv_handler):
+    def __init__(self, service_dir, account, app_name, git_params, machine, container, 
+                 compilers, compiler_mappings, comm_port, service_msg_recv_handler):
         logging.debug("QAASEnvProvisioner Constructor")
         # save mete information
         self.service_dir = service_dir
@@ -76,6 +86,19 @@ class QAASEnvProvisioner:
         self.image_uid = container["QAAS_CONTAINER_UID"]
         self.comm_port = comm_port
         self.msg_server = ServiceMessageReceiver(("localhost", self.comm_port), service_msg_recv_handler=service_msg_recv_handler) 
+        self.compiler_root = compilers["QAAS_COMPILERS_ROOT_DIRECTORY"]
+        self.compiler_mappings = compiler_mappings
+
+    def get_compiler_subdir(self, compiler_combo, version):
+        # Need to handle mpiicc-icc
+        _, compiler = split_compiler_combo(compiler_combo)
+        return self.compiler_mappings[f"{compiler}_{version}"]
+
+    def get_compiler_root(self):
+        return self.compiler_root
+
+    def get_compilerdir(self):
+        return "/nfs/site/proj/openmp/compilers/intel/2022"
 
     def get_workdir(self, target):
         """Get a given dir."""
@@ -130,17 +153,23 @@ class QAASEnvProvisioner:
 
     def clone_data_repo(self):
         """Clone the application's GIT repo."""
-        logging.info("Cloning application GIT repo on %s", self.machine)
-        target_branch, git_url = self.generate_git_url_branch(self.git_data_branch, self.git_data_url,
-                                                              self.git_data_user, self.git_data_token)
-        cmdline = "'cd " + self.get_workdir("dataset") + \
-                  " && if [[ ! -d " + self.app_name + " ]]; then" + \
-                  " git clone --no-checkout -b " + target_branch + \
-                  " " + git_url + " " + self.app_name + \
-                  " && cd "+self.app_name + \
-                 f" && git sparse-checkout set {self.git_data_download_path}" + \
-                  " && git checkout"+ \
-                  " && rm -rf .git; fi'" 
+        if self.git_data_url:
+            logging.info("Cloning data GIT repo on %s", self.machine)
+            target_branch, git_url = self.generate_git_url_branch(self.git_data_branch, self.git_data_url, 
+                                                                  self.git_data_user, self.git_data_token)
+            cmdline = "'cd " + self.get_workdir("dataset") + \
+                " && if [[ ! -d " + self.app_name + " ]]; then" + \
+                " git clone --no-checkout -b " + target_branch + \
+                " " + git_url + " " + self.app_name + \
+                " && cd "+self.app_name + \
+               f" && git sparse-checkout set {self.git_data_download_path}" + \
+                " && git checkout"+ \
+                " && rm -rf .git; fi'" 
+        else:
+            logging.info("Making empty data directory on %s", self.machine)
+            cmdline = "'cd " + self.get_workdir("dataset") + \
+                " && if [[ ! -d " + self.app_name + " ]]; then" + \
+               f" mkdir {self.app_name}; fi'" 
         rc, cmdout = QAASRunCMD(self.comm_port, self.machine).run_remote_cmd(cmdline)
         return rc
 
