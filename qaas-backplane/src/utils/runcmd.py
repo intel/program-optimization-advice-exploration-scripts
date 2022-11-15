@@ -32,6 +32,12 @@ class QAASRunCMD:
              logging.error(runcmd.err)
         return runcmd.returncode, runcmd.out
 
+    def copy_remote_file(self, remote_file, local_dir):
+        scp_cmd = f"/usr/bin/scp " + self.user + "@" + self.machine + f":{remote_file} {local_dir}"
+        logging.debug("cmdline=%s", scp_cmd)
+        rc, cmdout = self.run_cmd(scp_cmd)
+        return rc, cmdout
+    
     def run_local_cmd(self, local_cmd):
         """Run a local command."""
         cmdline = local_cmd
