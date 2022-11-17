@@ -9,6 +9,9 @@ class QaasMessage:
     def is_end_job(self):
         return False
 
+    def is_end_qaas(self):
+        return False
+
     def encode(self):
         return pickle.dumps(self)
 
@@ -29,4 +32,16 @@ class EndJob(QaasMessage):
         super().__init__("Job End")
 
     def is_end_job(self):
+        return True
+
+class BeginQaas(QaasMessage):
+    def __init__(self):
+        super().__init__("QAAS Begin")
+
+class EndQaas(QaasMessage):
+    def __init__(self, output_ov_dir):
+        super().__init__("QAAS End")
+        self.output_ov_dir = output_ov_dir
+
+    def is_end_qaas(self):
         return True

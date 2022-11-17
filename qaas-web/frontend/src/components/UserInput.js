@@ -18,10 +18,9 @@ import Select from '@mui/material/Select';
 import StatusPanel from './StatusPanel';
 import Button from '@mui/material/Button';
 import axios from "axios";
-import { io } from "socket.io-client";
 
 
-export default function UserInput({setTimestamps}) {
+export default function UserInput({ setTimestamps }) {
     //style
     const splitScreen = {
         display: 'flex',
@@ -81,7 +80,7 @@ export default function UserInput({setTimestamps}) {
     const [input, setInput] = useState(
         {
             account: {
-                QAAS_ACCOUNT: ""
+                QAAS_ACCOUNT: "intel"
             },
             application: {
                 APP_NAME: "",
@@ -90,9 +89,17 @@ export default function UserInput({setTimestamps}) {
                     TOKEN: "",
                     BRANCH: "",
                     SRC_URL: "",
-                    DATA_URL: ""
+                    DATA_USER: "",
+                    DATA_TOKEN: "",
+                    DATA_URL: "",
+                    DATA_BRANCH: "",
+                    DATA_DOWNLOAD_PATH: ""
                 },
-                APP_DATA_ARGS: ""
+                RUN: {
+                    APP_DATA_ARGS: "",
+                    APP_RUN_CMD: "",
+                    APP_ENV_MAP: {}
+                }
             },
             compiler: {
                 USER_CC: "",
@@ -101,7 +108,8 @@ export default function UserInput({setTimestamps}) {
                 USER_CXX_FLAGS: "",
                 USER_FC_FLAGS: "",
                 USER_LINK_FLAGS: "",
-                USER_TARGET: ""
+                USER_TARGET: "",
+                USER_TARGET_LOCATION: ""
             }
         }
     )
@@ -111,7 +119,7 @@ export default function UserInput({setTimestamps}) {
     // let endPoint = "http://127.0.0.1:5000";
     useEffect(() => {
         // let endPoint = "http://10.241.129.38:5000";
-        let endPoint = "http://localhost:5000/";
+        let endPoint = "http://localhost:5002/";
         // let namespace = "/test"
         if (buttonStatus === true) {
             console.log("try connect socket")
@@ -124,17 +132,17 @@ export default function UserInput({setTimestamps}) {
             //   });
             const path = endPoint
             console.log("path to connect", path)
-            const socket = io.connect(`${endPoint}`, {
-                // 'autoConnect': false
-            })
+            // const socket = io.connect(`${endPoint}`, {
+            //     // 'autoConnect': false
+            // })
             // const socket = io.connect()
 
             // const socket = io.of(endPoint+namespace)
 
             console.log("endpoint is ", `${endPoint}`)
-            socket.on("connect", (data) => {
-                console.log(data);
-            });
+            // socket.on("connect", (data) => {
+            //     console.log(data);
+            // });
             // const socket = io(endPoint, {
             //     autoConnect: false
             // });
@@ -154,19 +162,19 @@ export default function UserInput({setTimestamps}) {
             //         console.log("successfully connected")
             //     }
             // });
-            socket.on("connect_error", (error) => {
-                console.log(error)
-            });
+            // socket.on("connect_error", (error) => {
+            //     console.log(error)
+            // });
             // io = require("socket.io-client")
             // let socket = io.connect("http://localhost:5000");
             // let socket = io.connect(`${endPoint}`);
-            console.log("socket is ", socket)
+            // console.log("socket is ", socket)
             // setSocketInstance(socket);
             // socket.emit("data", "test from frontend");
-            socket.on("test", (data) => {
-                console.log("data from backend", data);
-                setStatusMsg(data['broadcast_data'])
-            });
+            // socket.on("test", (data) => {
+            //     console.log("data from backend", data);
+            //     setStatusMsg(data['broadcast_data'])
+            // });
 
 
             // socket.on("data", (data) => {
@@ -174,12 +182,12 @@ export default function UserInput({setTimestamps}) {
             // });
             // setLoading(false);
 
-            socket.on("disconnect", (data) => {
-                console.log(data);
-            });
-            return function cleanup() {
-                socket.disconnect();
-            };
+            // socket.on("disconnect", (data) => {
+            //     console.log(data);
+            // });
+            // return function cleanup() {
+            //     socket.disconnect();
+            // };
 
 
         }
@@ -245,6 +253,16 @@ export default function UserInput({setTimestamps}) {
                     >
                         <div style={titleStyle}>Build</div>
                         <div style={divStyle}>
+                        <div style={subtitleStyle}>App Name</div>
+                            <TextField sx={{ width: '55ch', pr: '5px' }} label="App Name" variant="outlined"
+                                onChange={
+                                    (event) => {
+                                        const s = { ...input }
+                                        s.application.APP_NAME = event.target.value
+                                        setInput({ ...s })
+                                    }
+                                }
+                            />
                             <div style={subtitleStyle}>Source tarball URL</div>
                             <TextField sx={{ width: '55ch', pr: '5px' }} label="git location" variant="outlined"
                                 onChange={
@@ -264,11 +282,32 @@ export default function UserInput({setTimestamps}) {
                                     }
                                 }
                             />
+                            <div>
+                                <TextField sx={{ pr: '5px', pt: '5px' }} label="Git User" id="outlined-basic" variant="outlined"
+                                    onChange={
+                                        (event) => {
+                                            const s = { ...input }
+                                            s.application.GIT.USER = event.target.value
+                                            setInput({ ...s })
+                                        }
+                                    }
+                                />
+                                <TextField sx={{ pr: '5px', pt: '5px' }} label="Git Token" id="outlined-basic" variant="outlined"
+                                    onChange={
+                                        (event) => {
+                                            const s = { ...input }
+                                            s.application.GIT.TOKEN = event.target.value
+                                            setInput({ ...s })
+                                        }
+                                    }
+                                />
+                            </div>
+
                         </div>
                         <div style={divStyle}>
                             <div style={subtitleStyle}>Compiler and Flags</div>
-                            <Box sx={{ minWidth: 120 }}>
-                                <FormControl fullWidth>
+                            <div>
+                                <FormControl sx={{ minWidth: 120 }}>
                                     <InputLabel id="demo-simple-select-label">Compiler</InputLabel>
                                     <Select
                                         labelId="demo-simple-select-label"
@@ -283,12 +322,33 @@ export default function UserInput({setTimestamps}) {
                                             }
                                         }
                                     >
-                                        <MenuItem value={"ICC"}>ICC</MenuItem>
-                                        <MenuItem value={"GCC"}>GCC</MenuItem>
-                                        <MenuItem value={"LLVM"}>LLVM</MenuItem>
+                                        <MenuItem value={"icc"}>ICC</MenuItem>
+                                        <MenuItem value={"gcc"}>GCC</MenuItem>
+                                        <MenuItem value={"llvm"}>LLVM</MenuItem>
+                                    </Select>
+
+                                </FormControl>
+                                <FormControl sx={{ minWidth: 120 }}>
+                                    <InputLabel id="demo-simple-select-label">Version</InputLabel>
+                                    <Select
+                                        labelId="demo-simple-select-label"
+                                        id="demo-simple-select"
+                                        value={input.compiler.USER_CC_VERSION}
+                                        label="Version"
+                                        onChange={
+                                            (event) => {
+                                                const s = { ...input }
+                                                s.compiler.USER_CC_VERSION = event.target.value
+                                                setInput({ ...s })
+                                            }
+                                        }
+                                    >
+                                        <MenuItem value={"2022"}>2022</MenuItem>
                                     </Select>
                                 </FormControl>
-                            </Box>
+
+
+                            </div>
                             <TextField sx={{ pr: '5px', pt: '5px' }} label="CFLAGS" id="outlined-basic" variant="outlined"
                                 onChange={
                                     (event) => {
@@ -316,11 +376,20 @@ export default function UserInput({setTimestamps}) {
                                     }
                                 }
                             />
+                            <TextField sx={{ pr: '5px', pt: '5px' }} id="outlined-basic" label="Link Flags" variant="outlined"
+                                onChange={
+                                    (event) => {
+                                        const s = { ...input }
+                                        s.compiler.USER_LINK_FLAGS = event.target.value
+                                        setInput({ ...s })
+                                    }
+                                }
+                            />
 
                         </div>
                         <div style={divStyle}>
                             <div style={subtitleStyle}>Target Binary Location</div>
-                            <TextField sx={{ pr: '5px' }} id="outlined-basic" label="Target" variant="outlined"
+                            <TextField sx={{ pr: '5px' }} id="outlined-basic" label="User Target" variant="outlined"
                                 onChange={
                                     (event) => {
                                         const s = { ...input }
@@ -329,8 +398,14 @@ export default function UserInput({setTimestamps}) {
                                     }
                                 }
                             />
-                            <TextField sx={{ width: '55ch' }} id="outlined-basic" label="path" variant="outlined"
-
+                            <TextField sx={{ width: '55ch' }} id="outlined-basic" label="User Target Location" variant="outlined"
+                                onChange={
+                                    (event) => {
+                                        const s = { ...input }
+                                        s.compiler.USER_TARGET_LOCATION = event.target.value
+                                        setInput({ ...s })
+                                    }
+                                }
                             />
                         </div>
 
@@ -375,8 +450,8 @@ export default function UserInput({setTimestamps}) {
                         <div style={titleStyle}>Run</div>
 
                         <div style={divStyle}>
-                            <div style={subtitleStyle} >Data Tarball Location</div>
-                            <TextField fullWidth id="outlined-basic" label="tarball location" variant="outlined"
+                            <div style={subtitleStyle}>Data URL</div>
+                            <TextField sx={{ width: '55ch', pr: '5px' }} label="Data URL" variant="outlined"
                                 onChange={
                                     (event) => {
                                         const s = { ...input }
@@ -385,18 +460,58 @@ export default function UserInput({setTimestamps}) {
                                     }
                                 }
                             />
-                        </div>
-                        <div style={divStyle}>
-                            <div style={subtitleStyle} >Run Command</div>
-                            <TextField fullWidth id="outlined-basic" label="<text field to enter>" variant="outlined"
+                            <TextField id="outlined-basic" label="Data Branch" variant="outlined"
                                 onChange={
                                     (event) => {
                                         const s = { ...input }
-                                        s.application.APP_DATA_ARGS = event.target.value
+                                        s.application.GIT.DATA_BRANCH = event.target.value
                                         setInput({ ...s })
                                     }
                                 }
                             />
+                            <div>
+                                <TextField sx={{ pr: '5px', pt: '5px' }} label="Data User" id="outlined-basic" variant="outlined"
+                                    onChange={
+                                        (event) => {
+                                            const s = { ...input }
+                                            s.application.GIT.DATA_USER = event.target.value
+                                            setInput({ ...s })
+                                        }
+                                    }
+                                />
+                                <TextField sx={{ pr: '5px', pt: '5px' }} label="Data Token" id="outlined-basic" variant="outlined"
+                                    onChange={
+                                        (event) => {
+                                            const s = { ...input }
+                                            s.application.GIT.DATA_TOKEN = event.target.value
+                                            setInput({ ...s })
+                                        }
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <TextField fullWidth sx={{ pr: '5px', pt: '5px' }} label="Data Download Path" id="outlined-basic" variant="outlined"
+                                    onChange={
+                                        (event) => {
+                                            const s = { ...input }
+                                            s.application.GIT.DATA_DOWNLOAD_PATH = event.target.value
+                                            setInput({ ...s })
+                                        }
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <div style={subtitleStyle}>APP Run Command</div>
+                                <TextField fullWidth sx={{ pr: '5px', pt: '5px' }} label="Data Download Path" id="outlined-basic" variant="outlined"
+                                    onChange={
+                                        (event) => {
+                                            const s = { ...input }
+                                            s.application.RUN.APP_RUN_CMD = event.target.value
+                                            setInput({ ...s })
+                                        }
+                                    }
+                                />
+                            </div>
 
                         </div>
                         <div style={divStyle}>
