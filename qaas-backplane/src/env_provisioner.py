@@ -15,7 +15,7 @@ import logging
 import urllib.parse
 from utils.runcmd import QAASRunCMD
 from utils.comm import ServiceMessageReceiver
-from utils.util import split_compiler_combo
+from utils.util import split_compiler_combo, generate_timestamp, timestamp_str
 
 # define QAAS GIT-related constants
 GIT_USER = "USER"
@@ -44,10 +44,12 @@ QAAS_RUN_TYPES = ["base_runs", "oneview_runs", "locus_runs"]
 class QAASEnvProvisioner:
     """Object to manage environment setup."""
     def __init__(self, service_dir, script_root, account, app_name, git_params, machine, container, 
-                 compilers, compiler_mappings, comm_port, service_msg_recv_handler):
+                 compilers, compiler_mappings, comm_port, service_msg_recv_handler,
+                 launch_output_dir):
         logging.debug("QAASEnvProvisioner Constructor")
         # save mete information
-        self.service_dir = service_dir
+        self._session_id = generate_timestamp()
+        self._service_dir = service_dir
         self.script_root = script_root
         self.account = account
         self.app_name = app_name
@@ -82,6 +84,23 @@ class QAASEnvProvisioner:
         self.msg_server = ServiceMessageReceiver(("localhost", self.comm_port), service_msg_recv_handler=service_msg_recv_handler) 
         self.compiler_root = compilers["QAAS_COMPILERS_ROOT_DIRECTORY"]
         self.compiler_mappings = compiler_mappings
+        self._launch_output_dir = launch_output_dir
+
+    @property
+    def service_dir(self):
+        return self.sessioned_dir(self._service_dir)
+
+    @property
+    def launch_output_dir(self):
+        return self.sessioned_dir(self._launch_output_dir)
+
+    def sessioned_dir(self, root):
+        return os.path.join(root, timestamp_str(self.session_id))
+
+    # Getting session id useful to identify different runs
+    @property
+    def session_id(self):
+        return self._session_id
 
     def get_compiler_subdir(self, compiler_combo, version):
         # Need to handle mpiicc-icc
@@ -174,6 +193,35 @@ class QAASEnvProvisioner:
             credential = f'{urllib.parse.quote(user, safe="")}:{token}'
             url = url.replace('://', f'://{credential}@')
         return branch, url
+    
+    def retrieve_results(self):
+        ov_run_dir = self.get_workdir("oneview_runs")
+        ov_name = "oneview_runs"
+        gz_file = f"{ov_name}.tar.gz"
+        remote_gz_file = f"/tmp/{gz_file}"
+        local_out_dir = os.path.join(self.launch_output_dir, ov_name)
+
+        cmd_runner = QAASRunCMD(self.comm_port, self.machine)
+
+        tar_cmd = f"'cd {ov_run_dir} && tar --ignore-failed-read -czvf {remote_gz_file} ./*/oneview_results*'"
+        rc, cmdout = cmd_runner.run_remote_cmd(tar_cmd)
+        if rc != 0:
+            return rc
+
+        os.makedirs(local_out_dir, exist_ok=True)
+
+        rc, cmdout = cmd_runner.copy_remote_file(remote_gz_file, local_out_dir)
+        if rc != 0:
+            return rc
+
+        untar_cmd = f"cd {local_out_dir} && tar xvfz {gz_file}"
+        rc, cmdout = cmd_runner.run_local_cmd(untar_cmd)
+        if rc != 0:
+            return rc
+
+        rm_gz_cmd = f"rm -f {remote_gz_file}"
+        rc, cmdout = cmd_runner.run_remote_cmd(rm_gz_cmd)
+        return rc
     
     def finish(self):
         self.msg_server.shutdown()
