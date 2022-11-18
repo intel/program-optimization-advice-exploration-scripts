@@ -8,7 +8,12 @@ def make_dir(path):
     return path
 
 def generate_timestamp_str():
-    locus_timestamp = int(round(datetime.datetime.now().timestamp()))
+    return timestamp_str(generate_timestamp())
+
+def generate_timestamp():
+    return int(round(datetime.datetime.now().timestamp()))
+
+def timestamp_str(locus_timestamp):
     locus_ts_str = str(locus_timestamp)
     locus_ts_str = locus_ts_str[:3] + "-" + locus_ts_str[4:6] + "-" + locus_ts_str[7:]
     return locus_ts_str
