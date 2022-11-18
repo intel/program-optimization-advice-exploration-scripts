@@ -14,8 +14,8 @@ from app_builder import build_binary, get_build_dir, setup_build
 from app_runner import build_argparser as runner_build_argparser
 from app_runner import AppRunner
 from logger import QaasComponents, log
-from util import generate_timestamp_str
-from util import parse_env_map 
+from utils.util import generate_timestamp_str
+from utils.util import parse_env_map 
 from fdo_lib import LocusRunner
 from fdo_lib import LProfProfiler
 from fdo_lib import LocusDbAccess
@@ -23,6 +23,7 @@ from fdo_lib import LocusDbAccess
 script_dir=os.path.dirname(os.path.realpath(__file__))
 template_dir=os.path.join(script_dir, '..', 'templates')
 tmp_dir="/nfs/site/proj/alac/tmp/qaas-locus-runs"
+tmp_dir="/tmp/qaas-locus-runs"
 
 
 # def instantiate_template(template_file, names, out_dir, outfile_name):
@@ -119,11 +120,11 @@ def generate_build_cmd():
 #   c. cp <file>.iceorig to <file> to restore it for next steps of search
 # 6. after all is done
 #   mv <file>.orig <file>
-def exec(src_dir, compiler_dir, output_binary_path, orig_user_CC, user_CC, 
+def exec(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC, 
          user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
          data_path, run_cmd, env_var_map, target_location):
     # Will be created by Locus
-    helper = QaaSLocusRunner(src_dir, compiler_dir, output_binary_path, orig_user_CC, user_CC, 
+    helper = QaaSLocusRunner(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC, 
          user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
          data_path, run_cmd, env_var_map, target_location)
 
@@ -169,7 +170,7 @@ def exec(src_dir, compiler_dir, output_binary_path, orig_user_CC, user_CC,
 #     locus_run_cmd = helper.generate_locus_command(helper.db_file, helper.full_src_file, locus_outfile_suffix, timing_script_file, timing_fn_name, ntests)
 #     return iceorig_file,locus_run_cmd
 
-def get_target_loop(compiler_dir, orig_user_CC, user_CC, user_c_flags, user_cxx_flags, user_fc_flags, \
+def get_target_loop(compiler_dir, maqao_path, orig_user_CC, user_CC, user_c_flags, user_cxx_flags, user_fc_flags, \
     user_link_flags, user_target, data_path, app_run_cmd, target_location, run_dir, locus_src_dir, locus_bin_run_dir, \
         locus_bin, env):
     make_cmd = generate_build_cmd()
@@ -196,14 +197,14 @@ def get_target_loop(compiler_dir, orig_user_CC, user_CC, user_c_flags, user_cxx_
     compile_command_json_file = os.path.join(build_dir, 'compile_commands.json')
 
 #1.5 setup trial run to select loops (before insert of Locus pragma)
-    AppRunner(locus_bin_run_dir).prepare(locus_bin, data_path)
+    AppRunner(locus_bin_run_dir, maqao_path).prepare(locus_bin, data_path)
 
-    full_src_file, insert_pragma_before_line = profile_app(run_dir, data_path, app_run_cmd, locus_bin_run_dir, locus_bin, env)
+    full_src_file, insert_pragma_before_line = profile_app(run_dir, maqao_path, data_path, app_run_cmd, locus_bin_run_dir, locus_bin, env)
     return make_cmd,build_dir,compile_command_json_file,full_src_file,insert_pragma_before_line
 
-def setup_locus_run_dir(src_dir, compiler_dir, orig_user_CC, user_CC, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, env_var_map):
+def setup_locus_run_dir(locus_run_root, src_dir, compiler_dir, orig_user_CC, user_CC, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, env_var_map):
     locus_ts_str = generate_timestamp_str()
-    run_dir = os.path.join(tmp_dir, f"run-{locus_ts_str}")
+    run_dir = os.path.join(locus_run_root, f"run-{locus_ts_str}")
 
     os.makedirs(run_dir)
 
@@ -223,14 +224,16 @@ def setup_locus_run_dir(src_dir, compiler_dir, orig_user_CC, user_CC, user_c_fla
     return run_dir,locus_src_dir,locus_bin_run_dir,locus_bin,locus_result_dir,output_dir,output_name,env
 
 class QaaSLocusRunner(LocusRunner):
-    def __init__(self, src_dir, compiler_dir, output_binary_path, orig_user_CC, user_CC, 
+    def __init__(self, locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC, 
         user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
         data_path, app_run_cmd, env_var_map, target_location):
         super().__init__()
+        self.locus_run_root = locus_run_root
         self.src_file = None
 
         self.src_dir = src_dir
         self.compiler_dir = compiler_dir
+        self.maqao_path = maqao_path
         self.output_binary_path = output_binary_path
         self.orig_user_CC = orig_user_CC
         self.user_CC = user_CC
@@ -248,7 +251,7 @@ class QaaSLocusRunner(LocusRunner):
     # This set self.run_dir which implicitly also define self.db_file property
     def setup_locus_run_dir(self):
         self.run_dir, self.locus_src_dir, self.locus_bin_run_dir, self.locus_bin, self.locus_result_dir, self.output_dir, self.output_name, \
-            self.env = setup_locus_run_dir(self.src_dir, self.compiler_dir, self.orig_user_CC, self.user_CC, \
+            self.env = setup_locus_run_dir(self.locus_run_root, self.src_dir, self.compiler_dir, self.orig_user_CC, self.user_CC, \
                 self.user_c_flags, self.user_cxx_flags, self.user_fc_flags, self.user_link_flags, self.env_var_map)
 
 
@@ -278,7 +281,8 @@ class QaaSLocusRunner(LocusRunner):
             "timing_script_loop_head": new_loop_head_line_num,
             "locus_bin": self.locus_bin,
             'locus_run_dir': self.run_dir,
-            "locus_bin_run_dir": self.locus_bin_run_dir
+            "locus_bin_run_dir": self.locus_bin_run_dir,
+            "maqao_path": self.maqao_path
             })
         timing_fn_name='getTimingQaas' 
         return timing_fn_name
@@ -291,6 +295,7 @@ class QaaSLocusRunner(LocusRunner):
     def run_cmd(self):
         return f'python {script_dir}/app_runner.py' \
             + f" --binary-path $QAAS_binary_path" \
+            + f" --maqao-path $QAAS_maqao_path" \
                 + f" --run-dir $QAAS_run_dir" \
 		+ f" --data-path $QAAS_data_path" \
 		+ f" --mode run" \
@@ -303,7 +308,7 @@ class QaaSLocusRunner(LocusRunner):
     def set_target(self):
         if not self.full_src_file:
             self._build_cmd, self.build_dir, self.compile_command_json_file, self.full_src_file, self.insert_pragma_before_line = \
-            get_target_loop(self.compiler_dir, self.orig_user_CC, self.user_CC, self.user_c_flags, self.user_cxx_flags, self.user_fc_flags, \
+            get_target_loop(self.compiler_dir, self.maqao_path, self.orig_user_CC, self.user_CC, self.user_c_flags, self.user_cxx_flags, self.user_fc_flags, \
                 self.user_link_flags, self.user_target, self.data_path, self.app_run_cmd, self.target_location, self.run_dir, \
                     self.locus_src_dir, self.locus_bin_run_dir, \
                     self.locus_bin, self.env)
@@ -350,13 +355,14 @@ class QaaSLocusRunner(LocusRunner):
 # #   mv <file>.orig <file>
 #     shutil.copy2(full_restore_src_file, full_src_file)
 
-def profile_app(run_dir, data_path, app_run_cmd, locus_bin_run_dir, locus_bin, env):
+def profile_app(run_dir, maqao_path, data_path, app_run_cmd, locus_bin_run_dir, locus_bin, env):
     #run_sh_cmd=f'./{run_cmd_sh_file}'
     env["QAAS_run_dir"]=f"{locus_bin_run_dir}"
+    env["QAAS_maqao_path"]=f"{maqao_path}"
     env["QAAS_data_path"]=f"{data_path}"
     env["QAAS_run_cmd"]=f"{app_run_cmd}"
     # below command try the run script
-    loop_profile_df = LProfProfiler().collect_loop_info(app_run_cmd, locus_bin_run_dir, locus_bin, env)
+    loop_profile_df = LProfProfiler(maqao_path).collect_loop_info(app_run_cmd, locus_bin_run_dir, locus_bin, env)
     # Now pick the hottest loop for tuning
     # TODO: setup with budget in mind to try more loops and/or specific loops
     target_loop_profile_df = loop_profile_df.head(1)
@@ -435,9 +441,11 @@ def main():
 
     # runner flags
     runner_build_argparser(parser, include_mode=False)
+
+    parser.add_argument('--locus-run-root', help='Path to root of locus run directory', required=True)
     args = parser.parse_args()
     env_var_map = parse_env_map(args)
-    exec(args.src_dir, args.compiler_dir, args.output_binary_path, args.orig_user_CC, args.target_CC,
+    exec(args.locus_run_root, args.src_dir, args.compiler_dir, args.maqao_path, args.output_binary_path, args.orig_user_CC, args.target_CC,
          args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target,
          args.data_path, args.run_cmd, env_var_map, args.user_target_location)
 

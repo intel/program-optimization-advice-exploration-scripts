@@ -8,12 +8,25 @@ def make_dir(path):
     return path
 
 def generate_timestamp_str():
-    locus_timestamp = int(round(datetime.datetime.now().timestamp()))
+    return timestamp_str(generate_timestamp())
+
+def generate_timestamp():
+    return int(round(datetime.datetime.now().timestamp()))
+
+def timestamp_str(locus_timestamp):
     locus_ts_str = str(locus_timestamp)
     locus_ts_str = locus_ts_str[:3] + "-" + locus_ts_str[4:6] + "-" + locus_ts_str[7:]
     return locus_ts_str
 
 
+def split_compiler_combo(CC_combo):
+    CC_combo = CC_combo.split("-")
+    if len(CC_combo) == 1:
+        mpi_wrapper = None
+        CC = CC_combo[0]
+    else:
+        mpi_wrapper, CC = CC_combo
+    return mpi_wrapper,CC
 
 def load_compiler_env(compiler_dir):
     script = os.path.join(compiler_dir, 'Linux/intel64/load.sh')
