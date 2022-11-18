@@ -17,13 +17,13 @@ import qaas
 import threading
 import queue
 from qaas import launch_qaas
-
+from settings import SQLALCHEMY_DATABASE_URI 
 qaas_data_folder = "/tmp/qaas_data"
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
 app = Flask(__name__)
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://ov_db_with_speed_up_so:pZrYe942iKd841n@maria4344-lb-fm-in.iglb.intel.com:3307/ov_db_with_speed_up?ssl=true'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://moon:Jy459616!@localhost/test'
+app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'secret!'
 db = SQLAlchemy(app)
@@ -46,14 +46,17 @@ def delete_created_path(path_list):
             os.remove(path)
         elif os.path.isdir(path):
             shutil.rmtree(path)
+
 def get_df_from_tablename_by_time(tablename, query_time):
     table = db.metadata.tables[tablename]
     query = db.session.query(table).filter_by(timestamp = query_time)
     df = pd.read_sql_query(query.statement, query.session.bind)
     return df
+
 def get_filename(column_names, file_extension):
     filename = "_".join(column_names)
     return filename + file_extension
+
 def generate_manifest_csv(exp_dir, run_dir):
     # TODO: fix binary name hardcoded
     content=f"""type;run;usage;path;
@@ -150,24 +153,6 @@ def create_new_timestamp():
         shutil.copytree(current_ov_dir, full_exp_dir)
         print(f'exp:{full_exp_dir}')    
     
-    # qaas_message_queue = Queue()
-    # qaas_launcher_process = Process(target=qaas.run_qaas, args=(qaas_message_queue, ovcommand, run_dir))
-    # qaas_launcher_process.start()
-    # while True:
-    #     # Queue message will end up handled by
-    #     # WebSockets or Server side event
-    #     msg = qaas_message_queue.get()
-    #     msg.print()
-    #     socketio.emit("test",{"broadcast_data":msg},broadcast=True)
-
-    #     # msg_type, msg_data = msg
-    #     # print(f'{msg_type}:{msg_data}')
-    #     if msg.web_should_stop():
-    #         break
-
-
-
-    # qaas_launcher_process.join()
     ov_output_dir=os.path.join(run_dir, exp_dir)
 
     generate_manifest_csv(exp_dir, run_dir)
