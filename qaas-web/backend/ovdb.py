@@ -6,28 +6,28 @@ import pathlib
 from pathlib import Path
 import re
 import sys
+from settings import PERM_DATA_FOLDER
 #dialect+driver://username:password@host:port/database
 #mysql+pymysql://moon:Jy459616!@localhost/test
 # engine = create_engine(f'=true')
 engine = create_engine(f'mysql://moon:Jy459616!@localhost/test')
 connection = engine.connect()
 
+#where experimental run is default ./expR1
 exp_dir = sys.argv[1] if len(sys.argv) > 1 else 'expR1'
-print(exp_dir)
-localvar_path = f"./{exp_dir}/static_data/local_vars.csv"
-# localvar_path = "./expR1/static_data/local_vars.csv"
-# localvar_path = "./expR3/static_data/local_vars.csv"
+run_dir = sys.argv[2]
+print("this experiment is run in ",exp_dir)
 
+localvar_path = f"{os.path.join(run_dir, exp_dir)}/static_data/local_vars.csv"
 localvar_df = pandas.read_csv(localvar_path, sep=';')
 timestamp =  pandas.to_datetime(localvar_df.get('timestamp').iloc[0])
-print("offline script timestamp pushed to db",timestamp)
-manifest_path = "./manifest.csv"
-# manifest_path = "./manifest.csv"
-# manifest_path = "./manifestR3.csv"
-target_path = "./file_storage/"+timestamp.strftime('%m_%d_%Y_%H_%M_%S')
-# print("targetpath",target_path)
+print("timestamp extraced from experimental run local var csv",timestamp)
+manifest_path = f"{run_dir}/manifest.csv"
+
+#where files that are not in db are copied create if not exist
+target_path = os.path.join(PERM_DATA_FOLDER,timestamp.strftime('%m_%d_%Y_%H_%M_%S'))
 if not os.path.exists(target_path):
-        os.makedirs(target_path)
+    os.makedirs(target_path)
 
 
 #get filename from path
@@ -148,16 +148,7 @@ def modify_path(path):
     # cleaned_path = sub_path
     return cleaned_path
 manifest_df = pandas.read_csv(manifest_path, sep=';')
-print(f'pushing manifest with timestamp{timestamp}')
 manifest_df["timestamp"] = timestamp
 manifest_df['path'] = manifest_df['path'].apply(modify_path)
 manifest_df.to_sql(name= "manifest", con=engine, if_exists='append',index=False)
 localvar_df.to_sql(name= "local_vars", con=engine, if_exists='append',index=False)
-
-#save local_vars.csv
-# hierarchy should be in table and have all info
-#shared data: lprof loops/functions/blocks separate tables, create 3 more col for machine name, pid, tid
-#shared data: runs: add run column separate table for all csv, for global metrics only metrics table, add the number in help in metrics table
-# find the timestap used in the experiment 
-
-#asm: one table, empty if source location is nul

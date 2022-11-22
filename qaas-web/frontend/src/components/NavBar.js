@@ -11,7 +11,7 @@ import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import HomeIcon from '@mui/icons-material/Home';
 import { Link } from 'react-router-dom'
-const pages = ['submitservice','browseResult'];
+const pages = ['input','result'];
 
 function Navbar() {
     const [anchorElNav, setAnchorElNav] = React.useState(null);
