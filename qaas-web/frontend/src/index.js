@@ -6,7 +6,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import WelcomePage from './components/WelcomePage';
 import Navbar from './components/NavBar';
 import BrowseResult from './components/BrowseResult';
-import UserInput from './components/UserInput';
+import UserInputStepper from './components/UserInputInteractive';
 export default function App() {
 
   return (
@@ -18,8 +18,8 @@ export default function App() {
 
           <Routes>
             <Route path="/" element={<WelcomePage />} />
-            <Route path="/submitservice" element={<UserInput />} />
-            <Route path="/browseresult" element={<BrowseResult />} />
+            <Route path="/input" element={<UserInputStepper />} />
+            <Route path="/result" element={<BrowseResult />} />
 
           </Routes>
         </BrowserRouter>

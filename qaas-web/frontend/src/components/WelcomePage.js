@@ -1,19 +1,29 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { Link } from 'react-router-dom'
+import {  useNavigate } from 'react-router-dom'
+import Button from '@mui/material/Button';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 export default function WelcomePage() {
+    const navigate = useNavigate();
+    const navigateToInput = () => {
+        navigate('/input');
+    };
+    const navigateToResult = () => {
+        navigate('/result');
+    };
+
     return (
         <div style={{ marginTop: 80 }}>
             <Box sx={{ width: '100%' }}>
 
                 <Typography variant="h2" align="center" gutterBottom>
                     Welcome to QaaS (Quality as a Service):
-                    <Typography variant="h3" gutterBottom>
+                    <Typography variant="h5" gutterBottom>
 
                         Users submit codes – QaaS returns results; nothing further is required of users.
-                    </Typography>
+                        </Typography>
 
                 </Typography>
                 <Typography variant="h6" gutterBottom>
@@ -34,44 +44,45 @@ export default function WelcomePage() {
 
                     </p>
 
+
+                </Typography>
+                <Typography variant="h6" align="center" gutterBottom>
                     <p>
 
 
                         You can click here to see a
-                        <Link to={`/browseresult`}>
-                            <strong> catalog </strong>
-                        </Link>
+                        <strong> catalog </strong>
 
-                        of typical results from a range of applications and miniapps (X).
+
+                        of typical results from a range of applications and miniapps
+                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToResult} endIcon={<ArrowForwardIcon />}>Result</Button>
 
 
                     </p>
-                </Typography>
-                <Typography variant="h6" align="center" gutterBottom>
                     <div>
 
-                        Our turnaround time is 24 hours max for jobs submitted through the menu found here (X).
+                        For details of our <strong>legal and security policy</strong>, click here
+                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToInput} endIcon={<ArrowForwardIcon />}>Input</Button>
+
+
+                    </div>
+                    <div>
+
+                        Our turnaround time is 24 hours max for jobs submitted through the menu found here
+                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToInput} endIcon={<ArrowForwardIcon />}>Input</Button>
 
 
                     </div>
 
                     <div>
 
-                        Our
-                        <Link to={`/submitservice`}>
-                            <strong> tool background </strong>
-                        </Link>
+                        Our <strong> tool background </strong> documents can be found here
+                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToInput} endIcon={<ArrowForwardIcon />}>Input</Button>
 
-                        documents can be found here (X).
 
 
                     </div>
-                    <div>
-
-                        For details of our <strong>legal and security policy</strong>, click here (X).
-
-
-                    </div>
+                    
                 </Typography>
             </Box>
         </div>

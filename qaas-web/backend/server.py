@@ -17,7 +17,7 @@ import qaas
 import threading
 import queue
 from qaas import launch_qaas
-
+from settings import PERM_DATA_FOLDER
 qaas_data_folder = "/tmp/qaas_data"
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
@@ -174,7 +174,7 @@ def create_new_timestamp():
     print(f"Manifest file saved under: {run_dir}")
     #TODO: call it as python function directly 
     #TODO: move it out from app example directory
-    ovdb_command=f'python3 {script_dir}/ovdb.py {exp_dir}'
+    ovdb_command=f'python3 {script_dir}/ovdb.py {exp_dir} {run_dir} '
 
     subprocess.run(ovdb_command, shell=True, cwd=run_dir)
 
@@ -208,7 +208,7 @@ def update_html(query_time):
     db.Model.metadata.reflect(bind=db.engine,schema='test')
 
     otter_path = "/nfs/site/proj/alac/members/yue/source_code_with_expert/src/plugins/otter/example"
-    storage_path = otter_path + "/file_storage/"+pd.to_datetime(query_time).strftime('%m_%d_%Y_%H_%M_%S')
+    storage_path = os.path.join(PERM_DATA_FOLDER,pd.to_datetime(query_time).strftime('%m_%d_%Y_%H_%M_%S'))
     to_delete=[]
 
     #get manifest file out
