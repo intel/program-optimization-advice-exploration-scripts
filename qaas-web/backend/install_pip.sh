@@ -2,7 +2,7 @@
 
 #FLASK_DIR=/nfs/site/proj/alac/members/yue/web-service
 #TODO: Ability to use non-script directory
-FLASK_DIR=/nfs/site/proj/alac/members/yue/qaas/qaas/qaas-web/backend
+FLASK_DIR=$(pwd)
 cd $FLASK_DIR
 python3 -m venv ./venv
 source ./venv/bin/activate
