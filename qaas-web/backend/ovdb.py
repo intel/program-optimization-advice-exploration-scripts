@@ -7,10 +7,16 @@ from pathlib import Path
 import re
 import sys
 from settings import PERM_DATA_FOLDER
+import configparser
+config_path = f"{os.path.dirname(os.path.realpath(__file__))}/../config/qaas-web.conf"
+print(config_path)
+config = configparser.ConfigParser()
+config.read(config_path)
+print("config ",config.sections())
 #dialect+driver://username:password@host:port/database
 #mysql+pymysql://moon:Jy459616!@localhost/test
 # engine = create_engine(f'=true')
-engine = create_engine(f'mysql://moon:Jy459616!@localhost/test')
+engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI'])
 connection = engine.connect()
 
 #where experimental run is default ./expR1
@@ -25,7 +31,7 @@ print("timestamp extraced from experimental run local var csv",timestamp)
 manifest_path = f"{run_dir}/manifest.csv"
 
 #where files that are not in db are copied create if not exist
-target_path = os.path.join(PERM_DATA_FOLDER,timestamp.strftime('%m_%d_%Y_%H_%M_%S'))
+target_path = os.path.join(config['web']['PERM_DATA_FOLDER'],timestamp.strftime('%m_%d_%Y_%H_%M_%S'))
 if not os.path.exists(target_path):
     os.makedirs(target_path)
 
