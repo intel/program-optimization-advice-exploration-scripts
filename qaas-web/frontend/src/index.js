@@ -7,6 +7,11 @@ import WelcomePage from './components/WelcomePage';
 import Navbar from './components/NavBar';
 import BrowseResult from './components/BrowseResult';
 import UserInputStepper from './components/UserInputInteractive';
+import QaasPage from './components/QaasPage';
+import LoginPage from './components/LoginPage';
+import CatalogPage from './components/CatalogPage';
+import LegalPage from './components/LegalPage';
+import ToolBackgroundPage from './components/ToolBackgroundPage';
 export default function App() {
 
   return (
@@ -20,7 +25,11 @@ export default function App() {
             <Route path="/" element={<WelcomePage />} />
             <Route path="/input" element={<UserInputStepper />} />
             <Route path="/result" element={<BrowseResult />} />
-
+            <Route path="/qaas" element={<QaasPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/legal" element={<LegalPage />} />
+            <Route path="/catalog" element={<CatalogPage />} />
+            <Route path="/tool" element={<ToolBackgroundPage />} />
           </Routes>
         </BrowserRouter>
       </React.StrictMode>
