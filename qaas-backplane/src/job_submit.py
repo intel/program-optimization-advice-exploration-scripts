@@ -160,9 +160,9 @@ class QAASJobSubmit:
                     f' --src-dir {os.path.join(container_app_builder_path, self.provisioner.app_name)}'+ \
                     f' --data_dir {os.path.join(container_app_dataset_path, self.provisioner.git_data_download_path)} --ov_config unused --ov_run_dir {container_app_oneview_path}'+ \
                     f' --locus_run_dir {container_app_locus_path} --compiler-dir {os.path.join(container_compiler_root, compiler_subdir)} --ov_dir {ov_dir}'+ \
-                    f' --orig-user-CC {self.compiler["USER_CC"]} --target-CC {self.compiler["USER_CC"]} --user-c-flags "{self.compiler["USER_C_FLAGS"]}"'+ \
-                    f' --user-cxx-flags "{self.compiler["USER_CXX_FLAGS"]}" --user-fc-flags "{self.compiler["USER_FC_FLAGS"]}"'+ \
-                    f' --user-link-flags "{self.compiler["USER_LINK_FLAGS"]}" --user-target {self.compiler["USER_TARGET"]} --user-target-location {self.compiler["USER_TARGET_LOCATION"]}'+ \
+                    f' --orig-user-CC {self.compiler["USER_CC"]} --target-CC {self.compiler["USER_CC"]} --user-c-flags="{self.compiler["USER_C_FLAGS"]}"'+ \
+                    f' --user-cxx-flags="{self.compiler["USER_CXX_FLAGS"]}" --user-fc-flags="{self.compiler["USER_FC_FLAGS"]}"'+ \
+                    f' --user-link-flags="{self.compiler["USER_LINK_FLAGS"]}" --user-target {self.compiler["USER_TARGET"]} --user-target-location {self.compiler["USER_TARGET_LOCATION"]}'+ \
                     f'{env_var_flags}'+ \
                     f' --run-cmd "{app_run_info["APP_RUN_CMD"]}"' + \
                     f" --comm-port {self.provisioner.comm_port}" 
