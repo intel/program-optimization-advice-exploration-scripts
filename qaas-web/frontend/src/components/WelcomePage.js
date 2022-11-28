@@ -1,17 +1,23 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import {  useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Button from '@mui/material/Button';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 export default function WelcomePage() {
     const navigate = useNavigate();
-    const navigateToInput = () => {
-        navigate('/input');
+    const navigateToLegal = () => {
+        navigate('/legal');
     };
-    const navigateToResult = () => {
-        navigate('/result');
+    const navigateToCatalog = () => {
+        navigate('/catalog');
+    };
+    const navigateToLogin = () => {
+        navigate('/login');
+    };
+    const navigateToTool = () => {
+        navigate('/tool');
     };
 
     return (
@@ -23,7 +29,7 @@ export default function WelcomePage() {
                     <Typography variant="h5" gutterBottom>
 
                         Users submit codes – QaaS returns results; nothing further is required of users.
-                        </Typography>
+                    </Typography>
 
                 </Typography>
                 <Typography variant="h6" gutterBottom>
@@ -55,35 +61,29 @@ export default function WelcomePage() {
 
 
                         of typical results from a range of applications and miniapps
-                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToResult} endIcon={<ArrowForwardIcon />}>Result</Button>
+                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToCatalog} endIcon={<ArrowForwardIcon />}>Catalog</Button>
 
 
                     </p>
                     <div>
 
                         For details of our <strong>legal and security policy</strong>, click here
-                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToInput} endIcon={<ArrowForwardIcon />}>Input</Button>
+                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToLegal} endIcon={<ArrowForwardIcon />}>Legal</Button>
 
 
                     </div>
                     <div>
-
-                        Our turnaround time is 24 hours max for jobs submitted through the menu found here
-                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToInput} endIcon={<ArrowForwardIcon />}>Input</Button>
-
-
-                    </div>
-
-                    <div>
-
-                        Our <strong> tool background </strong> documents can be found here
-                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToInput} endIcon={<ArrowForwardIcon />}>Input</Button>
-
+                        <p>
+                            Our <strong> tool background </strong> documents can be found here
+                            <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToTool} endIcon={<ArrowForwardIcon />}>Tool Background</Button>
+                        </p>
 
 
                     </div>
-                    
+
                 </Typography>
+                <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToLogin} endIcon={<ArrowForwardIcon />}>Sign Up</Button>
+                <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToLogin} endIcon={<ArrowForwardIcon />}>Log In</Button>
             </Box>
         </div>
     )

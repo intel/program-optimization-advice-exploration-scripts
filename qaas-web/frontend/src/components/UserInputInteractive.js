@@ -22,17 +22,20 @@ import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import Typography from '@mui/material/Typography';
-import {  useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
-const steps = ['Build Info', 'Run Info', 'Status Info'];
+const steps = ['Build Info', 'Run Info', 'Validation and Domain Specific Rate', 'Golden Run System Settings', 'Optional Run System Settings', 'Status Info'];
 
 export default function UserInputStepper() {
     const [activeStep, setActiveStep] = React.useState(0);
     const [skipped, setSkipped] = React.useState(new Set());
 
     const isStepOptional = (step) => {
-        return step === 100000;
+        return step === 2;
     };
 
     const isStepSkipped = (step) => {
@@ -145,23 +148,28 @@ export default function UserInputStepper() {
                 },
                 RUN: {
                     APP_DATA_ARGS: "",
-                    APP_RUN_CMD: "",
-                    APP_ENV_MAP: {}
+                    APP_RUN_CMD: "<binary>",
+                    APP_ENV_MAP: {},
+                    APP_SCALABILITY_TYPE: "Strong/Sequential"
                 }
             },
             compiler: {
-                USER_CC: "",
-                USER_CC_VERSION: "",
+                USER_CC: "icc",
+                USER_CC_VERSION: "2022",
                 USER_C_FLAGS: "",
                 USER_CXX_FLAGS: "",
                 USER_FC_FLAGS: "",
                 USER_LINK_FLAGS: "",
                 USER_TARGET: "",
                 USER_TARGET_LOCATION: ""
+            },
+            library: {
+                USER_MPI: "Intel MPI",
+                USER_MATH: "Intel MKL"
             }
         }
     )
-    
+
     const navigateToResult = () => {
         navigate('/result');
     };
@@ -204,7 +212,7 @@ export default function UserInputStepper() {
                 {activeStep === steps.length ? (
                     <React.Fragment>
                         <Typography sx={{ mt: 2, mb: 1 }}>
-                            All steps completed - you&apos;re finished 
+                            All steps completed - you&apos;re finished
                         </Typography>
                         <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToResult} endIcon={<ArrowForwardIcon />}>See Result</Button>
 
@@ -366,6 +374,54 @@ export default function UserInputStepper() {
                                         />
 
                                     </div>
+
+                                    <div style={divStyle}>
+                                        <div style={subtitleStyle}>Libraries</div>
+                                        <div>
+                                            <FormControl sx={{ minWidth: 160 }}>
+                                                <InputLabel id="demo-simple-select-label">Math Libraries</InputLabel>
+                                                <Select
+                                                    labelId="demo-simple-select-label"
+                                                    id="demo-simple-select"
+                                                    value={input.library.USER_MATH}
+                                                    label="Math Libraries"
+                                                    onChange={
+                                                        (event) => {
+                                                            const s = { ...input }
+                                                            s.library = event.target.value
+                                                            setInput({ ...s })
+                                                        }
+                                                    }
+                                                >
+                                                    <MenuItem value={"Intel MKL"}>Intel MKL</MenuItem>
+                                                    <MenuItem value={"OpenBLAS"}>OpenBLAS</MenuItem>
+                                                    <MenuItem value={"GNU Scientific"}>GNU Scientific</MenuItem>
+                                                </Select>
+
+                                            </FormControl>
+                                            <FormControl sx={{ minWidth: 160 }}>
+                                                <InputLabel id="demo-simple-select-label">MPI Libraries</InputLabel>
+                                                <Select
+                                                    labelId="demo-simple-select-label"
+                                                    id="demo-simple-select"
+                                                    value={input.library.USER_MPI}
+                                                    label="MPI Libraries"
+                                                    onChange={
+                                                        (event) => {
+                                                            const s = { ...input }
+                                                            s.library.USER_MPI = event.target.value
+                                                            setInput({ ...s })
+                                                        }
+                                                    }
+                                                >
+                                                    <MenuItem value={"Intel MPI"}>Intel MPI</MenuItem>
+                                                    <MenuItem value={"Open MPI"}>Open MPI</MenuItem>
+                                                    <MenuItem value={"OPAL MPI"}>OPAL MPI</MenuItem>
+                                                </Select>
+                                            </FormControl>
+
+                                        </div>
+                                    </div>
                                     <div style={divStyle}>
                                         <div style={subtitleStyle}>Target Binary Location</div>
                                         <TextField sx={{ pr: '5px' }} id="outlined-basic" label="User Target" variant="outlined"
@@ -388,32 +444,7 @@ export default function UserInputStepper() {
                                         />
                                     </div>
 
-                                    <div style={divStyle}>
-                                        <div style={titleStyle}>System Settings</div>
-                                        <div style={divStyle}>
-                                            CPU choices
-                                            Skylake <Checkbox />
-                                            Cascadelake <Checkbox defaultChecked />
-                                            Ice Lake <Checkbox defaultChecked />
 
-                                        </div>
-                                        <div>
-                                            Turboboost  ON<Checkbox defaultChecked />  OFF<Checkbox />
-                                        </div>
-                                        <div>
-                                            Hyperthreading  ON<Checkbox defaultChecked />  OFF<Checkbox defaultChecked />
-                                        </div>
-                                        <div>
-                                            Hugepage  ON<Checkbox />  OFF<Checkbox defaultChecked />
-                                        </div>
-                                        <div>
-                                            Intel P-state Governor  ON<Checkbox />  OFF<Checkbox defaultChecked />
-                                        </div>
-                                        <div>
-                                            Prefetch  ON<Checkbox />  OFF<Checkbox defaultChecked />
-                                        </div>
-
-                                    </div>
                                 </Box>
                             </div>
 
@@ -488,7 +519,7 @@ export default function UserInputStepper() {
                                         </div>
                                         <div>
                                             <div style={subtitleStyle}>APP Run Command</div>
-                                            <TextField fullWidth sx={{ pr: '5px', pt: '5px' }} label="Data Download Path" id="outlined-basic" variant="outlined"
+                                            <TextField defaultValue={input.application.RUN.APP_RUN_CMD} fullWidth sx={{ pr: '5px', pt: '5px' }} label="Data Download Path" id="outlined-basic" variant="outlined"
                                                 onChange={
                                                     (event) => {
                                                         const s = { ...input }
@@ -498,7 +529,19 @@ export default function UserInputStepper() {
                                                 }
                                             />
                                         </div>
+                                        <div>
 
+                                            <div style={subtitleStyle}>App scalability</div>
+                                            <RadioGroup
+                                                row
+                                                aria-labelledby="demo-row-radio-buttons-group-label"
+                                                name="row-radio-buttons-group"
+                                                defaultValue={input.application.RUN.APP_SCALABILITY_TYPE}
+                                            >
+                                                <FormControlLabel value="Strong/Sequential" control={<Radio />} label="Strong/Sequential" />
+                                                <FormControlLabel value="Weak" control={<Radio />} label="Weak" />
+                                            </RadioGroup>
+                                        </div>
                                     </div>
                                     <div style={divStyle}>
                                         <div style={subtitleStyle}>Env Variables</div>
@@ -535,8 +578,261 @@ export default function UserInputStepper() {
 
 
                         }
-
                         {activeStep === 2 &&
+
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
+                                <Box
+
+                                    sx={{
+                                        padding: '20px',
+                                        width: '70%',
+                                        boxShadow: 3
+
+                                    }}
+
+                                >
+
+                                    <div style={titleStyle}>Validation and Domain Specific Rate</div>
+
+                                    <div style={divStyle}>
+                                        <div style={subtitleStyle}>Validation Script URL</div>
+                                        <TextField sx={{ width: '55ch', pr: '5px' }} label="Validation Script URL" variant="outlined"
+                                            onChange={
+                                                (event) => {
+                                                    const s = { ...input }
+                                                    s.application.GIT.DATA_URL = event.target.value
+                                                    setInput({ ...s })
+                                                }
+                                            }
+                                        />
+                                        <TextField id="outlined-basic" label="Validation Script Branch" variant="outlined"
+                                            onChange={
+                                                (event) => {
+                                                    const s = { ...input }
+                                                    s.application.GIT.DATA_BRANCH = event.target.value
+                                                    setInput({ ...s })
+                                                }
+                                            }
+                                        />
+                                        <div>
+                                            <TextField sx={{ pr: '5px', pt: '5px' }} label="Validation Script User" id="outlined-basic" variant="outlined"
+                                                onChange={
+                                                    (event) => {
+                                                        const s = { ...input }
+                                                        s.application.GIT.DATA_USER = event.target.value
+                                                        setInput({ ...s })
+                                                    }
+                                                }
+                                            />
+                                            <TextField sx={{ pr: '5px', pt: '5px' }} label="Validation Script Token" id="outlined-basic" variant="outlined"
+                                                onChange={
+                                                    (event) => {
+                                                        const s = { ...input }
+                                                        s.application.GIT.DATA_TOKEN = event.target.value
+                                                        setInput({ ...s })
+                                                    }
+                                                }
+                                            />
+                                        </div>
+                                        <div>
+                                            <TextField fullWidth sx={{ pr: '5px', pt: '5px' }} label="Validation Script Download Path" id="outlined-basic" variant="outlined"
+                                                onChange={
+                                                    (event) => {
+                                                        const s = { ...input }
+                                                        s.application.GIT.DATA_DOWNLOAD_PATH = event.target.value
+                                                        setInput({ ...s })
+                                                    }
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                    <div style={divStyle}>
+                                        <div style={subtitleStyle}>Rate Script URL</div>
+                                        <TextField sx={{ width: '55ch', pr: '5px' }} label="Rate Script URL" variant="outlined"
+                                            onChange={
+                                                (event) => {
+                                                    const s = { ...input }
+                                                    s.application.GIT.DATA_URL = event.target.value
+                                                    setInput({ ...s })
+                                                }
+                                            }
+                                        />
+                                        <TextField id="outlined-basic" label="Rate Script Branch" variant="outlined"
+                                            onChange={
+                                                (event) => {
+                                                    const s = { ...input }
+                                                    s.application.GIT.DATA_BRANCH = event.target.value
+                                                    setInput({ ...s })
+                                                }
+                                            }
+                                        />
+                                        <div>
+                                            <TextField sx={{ pr: '5px', pt: '5px' }} label="Rate Script User" id="outlined-basic" variant="outlined"
+                                                onChange={
+                                                    (event) => {
+                                                        const s = { ...input }
+                                                        s.application.GIT.DATA_USER = event.target.value
+                                                        setInput({ ...s })
+                                                    }
+                                                }
+                                            />
+                                            <TextField sx={{ pr: '5px', pt: '5px' }} label="Rate Script Token" id="outlined-basic" variant="outlined"
+                                                onChange={
+                                                    (event) => {
+                                                        const s = { ...input }
+                                                        s.application.GIT.DATA_TOKEN = event.target.value
+                                                        setInput({ ...s })
+                                                    }
+                                                }
+                                            />
+                                        </div>
+                                        <div>
+                                            <TextField fullWidth sx={{ pr: '5px', pt: '5px' }} label="Rate Script Download Path" id="outlined-basic" variant="outlined"
+                                                onChange={
+                                                    (event) => {
+                                                        const s = { ...input }
+                                                        s.application.GIT.DATA_DOWNLOAD_PATH = event.target.value
+                                                        setInput({ ...s })
+                                                    }
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                </Box>
+                            </div>
+                        }
+                        {activeStep === 3 &&
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
+                                <Box
+
+                                    sx={{
+                                        padding: '20px',
+                                        width: '70%',
+                                        boxShadow: 3
+
+                                    }}
+                                >
+                                    <div style={divStyle}>
+                                        <div style={titleStyle}>Golden Run System Settings</div>
+                                        <div>
+                                            CPU choices
+                                            <RadioGroup
+                                                row
+                                                aria-labelledby="demo-row-radio-buttons-group-label"
+                                                name="row-radio-buttons-group"
+                                            >
+                                                <FormControlLabel value="Sky Lake" control={<Radio />} label="Sky Lake" />
+                                                <FormControlLabel value="Cascade Lake" control={<Radio />} label="Cascade Lake" />
+                                                <FormControlLabel value="Ice Lake" control={<Radio />} label="Ice Lake" />
+                                            </RadioGroup>
+                                        </div>
+                                        <div>
+                                            Hyperthreading
+                                            <RadioGroup
+                                                row
+                                                aria-labelledby="demo-row-radio-buttons-group-label"
+                                                name="row-radio-buttons-group"
+                                            >
+                                                <FormControlLabel value="on" control={<Radio />} label="ON" />
+                                                <FormControlLabel value="off" control={<Radio />} label="OFF" />
+                                            </RadioGroup>
+                                        </div>
+                                        <div>
+                                            Huge Page
+                                            <RadioGroup
+                                                row
+                                                aria-labelledby="demo-row-radio-buttons-group-label"
+                                                name="row-radio-buttons-group"
+                                            >
+                                                <FormControlLabel value="on" control={<Radio />} label="ON" />
+                                                <FormControlLabel value="off" control={<Radio />} label="OFF" />
+                                            </RadioGroup>
+                                        </div>
+                                        <div>
+                                            Enable Turboboost
+                                            <RadioGroup
+                                                row
+                                                aria-labelledby="demo-row-radio-buttons-group-label"
+                                                name="row-radio-buttons-group"
+                                            >
+                                                <FormControlLabel value="on" control={<Radio />} label="ON" />
+                                                <FormControlLabel value="off" control={<Radio />} label="OFF" />
+                                            </RadioGroup>
+                                        </div>
+                                        <div>
+                                            Enable Freqency Stepping (Intel P-state Governor)
+                                            <RadioGroup
+                                                row
+                                                aria-labelledby="demo-row-radio-buttons-group-label"
+                                                name="row-radio-buttons-group"
+                                            >
+                                                <FormControlLabel value="on" control={<Radio />} label="ON" />
+                                                <FormControlLabel value="off" control={<Radio />} label="OFF" />
+                                            </RadioGroup>
+                                        </div>
+                                        <div>
+                                            Prefetch
+                                            <RadioGroup
+                                                row
+                                                aria-labelledby="demo-row-radio-buttons-group-label"
+                                                name="row-radio-buttons-group"
+                                            >
+                                                <FormControlLabel value="on" control={<Radio />} label="ON" />
+                                                <FormControlLabel value="off" control={<Radio />} label="OFF" />
+                                            </RadioGroup>
+                                        </div>
+
+                                    </div>
+                                </Box>
+                            </div>
+
+
+                        }
+                        {activeStep === 4 &&
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
+                                <Box
+
+                                    sx={{
+                                        padding: '20px',
+                                        width: '70%',
+                                        boxShadow: 3
+
+                                    }}
+                                >
+                                    <div style={divStyle}>
+                                        <div style={titleStyle}>Optional Run System Settings</div>
+                                        <div style={divStyle}>
+                                            CPU choices
+                                            Skylake <Checkbox />
+                                            Cascadelake <Checkbox defaultChecked />
+                                            Ice Lake <Checkbox defaultChecked />
+
+                                        </div>
+                                        <div>
+                                            Turboboost  ON<Checkbox defaultChecked />  OFF<Checkbox />
+                                        </div>
+                                        <div>
+                                            Hyperthreading  ON<Checkbox defaultChecked />  OFF<Checkbox defaultChecked />
+                                        </div>
+                                        <div>
+                                            Hugepage  ON<Checkbox />  OFF<Checkbox defaultChecked />
+                                        </div>
+                                        <div>
+                                            Intel P-state Governor  ON<Checkbox />  OFF<Checkbox defaultChecked />
+                                        </div>
+                                        <div>
+                                            Prefetch  ON<Checkbox />  OFF<Checkbox defaultChecked />
+                                        </div>
+
+
+
+                                    </div>
+                                </Box>
+                            </div>
+
+
+                        }
+                        {activeStep === 5 &&
 
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
                                 <Box
@@ -575,7 +871,7 @@ export default function UserInputStepper() {
                                 </Button>
                             )}
 
-                            {activeStep === 1 ?
+                            {activeStep === 4 ?
 
                                 <Button onClick={handleSumbitNext}>
                                     Submit
