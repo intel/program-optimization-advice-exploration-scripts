@@ -83,10 +83,10 @@ def generate_build_cmd():
 		+ f" --compiler-dir \"$QAAS_compiler_dir\"" \
 		+ f" --orig-user-CC \"$QAAS_orig_user_CC\"" \
 		+ f" --target-CC \"$QAAS_user_CC\"" \
-		+ f" --user-c-flags \"$QAAS_user_c_flags\"" \
-		+ f" --user-cxx-flags \"$QAAS_user_cxx_flags\"" \
-		+ f" --user-fc-flags \"$QAAS_user_fc_flags\"" \
-		+ f" --user-link-flags \"$QAAS_user_link_flags\"" \
+		+ f" --user-c-flags=\"$QAAS_user_c_flags\"" \
+		+ f" --user-cxx-flags=\"$QAAS_user_cxx_flags\"" \
+		+ f" --user-fc-flags=\"$QAAS_user_fc_flags\"" \
+		+ f" --user-link-flags=\"$QAAS_user_link_flags\"" \
 		+ f" --user-target \"$QAAS_user_target\"" \
 		+ f" --user-target-location \"$QAAS_user_target_location\""
     return make_cmd
