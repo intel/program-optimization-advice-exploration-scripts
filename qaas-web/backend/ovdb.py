@@ -6,7 +6,6 @@ import pathlib
 from pathlib import Path
 import re
 import sys
-from settings import PERM_DATA_FOLDER
 import configparser
 config_path = f"{os.path.dirname(os.path.realpath(__file__))}/../config/qaas-web.conf"
 print(config_path)
