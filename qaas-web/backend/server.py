@@ -1,7 +1,7 @@
 from glob import glob
 import pandas
 from sqlalchemy import null
-from flask import Flask
+from flask import Flask,Response
 from flask import request,jsonify
 from flask_sqlalchemy import SQLAlchemy
 from multiprocessing import Process, Queue
@@ -10,6 +10,7 @@ import subprocess
 import json
 import pandas as pd
 import os
+import time
 from pathlib import Path
 import shutil
 import datetime
@@ -18,10 +19,13 @@ import threading
 import queue
 from qaas import launch_qaas
 from settings import PERM_DATA_FOLDER
+from flask_cors import CORS
+
 qaas_data_folder = "/tmp/qaas_data"
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
 app = Flask(__name__)
+CORS(app)
 # app.config['SQLALCHEMY_DATABASE_URI'] = '=true'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://moon:Jy459616!@localhost/test'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -94,14 +98,25 @@ def get_all_timestamps():
                     timestamps= time_list,
                     statusCode= 200,
                     )
+@app.route('/stream')
+def stream():
+
+    def get_data():
+
+        while True:
+            #gotcha
+            time.sleep(1)
+            yield f'event: ping\ndata: {datetime.datetime.now().second} \n\n'
+
+    return Response(get_data(), mimetype='text/event-stream')
 
 @app.route('/test_launch_button', methods=['POST'])
 def test_launch_button():
-    qaas_request = request.get_json()
-    # print(json.dumps(qaas_request))
-    # event_name = 'launchButton'
-    broadcast_data = "test status message"
-    return jsonify(broadcast_data)
+
+    return jsonify(isError= False,
+                message= "Success",
+                statusCode= 200,
+                )
 
 @app.route('/create_new_timestamp', methods=['GET','POST'])
 def create_new_timestamp():
