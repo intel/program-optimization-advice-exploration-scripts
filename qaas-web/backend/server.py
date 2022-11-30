@@ -18,16 +18,19 @@ import qaas
 import threading
 import queue
 from qaas import launch_qaas
-from settings import PERM_DATA_FOLDER
+import configparser
 from flask_cors import CORS
 
-qaas_data_folder = "/tmp/qaas_data"
+config_path = "../config/qaas-web.conf"
+config = configparser.ConfigParser()
+config.read(config_path)
+
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
 app = Flask(__name__)
 CORS(app)
 # app.config['SQLALCHEMY_DATABASE_URI'] = '=true'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://moon:Jy459616!@localhost/test'
+app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'secret!'
 db = SQLAlchemy(app)
@@ -38,8 +41,8 @@ db.Model.metadata.reflect(bind=db.engine,schema='test')
 #can move to startup script
 
 def run_otter_command(manifest_file):
-    cdcommand= "cd /nfs/site/proj/alac/members/yue/source_code_with_expert/src/plugins/otter/example;"
-    ottercommand = "/nfs/site/proj/alac/software/UvsqTools/20221102/bin/maqao otter --input=" + manifest_file
+    cdcommand= f"cd {config['web']['EXPR_FOLDER']};"
+    ottercommand = f"{config['web']['MAQAO_VERSION']} otter --input=" + manifest_file
     command = cdcommand +  ottercommand
     ret = subprocess.run(command, capture_output=True, shell=True)
     print(ret.stdout.decode())
@@ -124,20 +127,17 @@ def create_new_timestamp():
     # print(json.dumps(qaas_request))
     ov_timestamp = int(round(datetime.datetime.now().timestamp()))
     query_time = str(datetime.datetime.fromtimestamp(ov_timestamp))
-    # import time
-    # time.sleep(20)
     exp_dir=f"expR1-{ov_timestamp}"
     ovcommand = f"maqao oneview -R1 -c=./config.lua -xp={exp_dir}"
-    # TODO: Hardcoded for now to be passed in later
-    run_dir = '/nfs/site/proj/alac/members/yue/source_code_with_expert/src/plugins/otter/example'
+    run_dir = config['web']['EXPR_FOLDER']
     #subprocess.run(ovcommand, shell=True, cwd=run_dir)
 
-    ov_data_dir = os.path.join(qaas_data_folder, 'ov_data')
+    ov_data_dir = os.path.join(config['web']['QAAS_DATA_FOLDER'], 'ov_data')
     os.makedirs(ov_data_dir, exist_ok=True)
     json_file = os.path.join(ov_data_dir, 'input-cnn.json')
-    shutil.copy('/nfs/site/proj/alac/members/yue/qaas/qaas/demo/json_inputs/input-cnn.json', json_file)
+    # shutil.copy(config['web']['INPUT_JSON_FOLDER'], json_file)
     qaas_message_queue = queue.Queue()
-    t = threading.Thread(target=launch_qaas, args=(json_file, lambda msg: qaas_message_queue.put(msg), qaas_data_folder))
+    t = threading.Thread(target=launch_qaas, args=(json_file, lambda msg: qaas_message_queue.put(msg), config['web']['QAAS_DATA_FOLDER']))
     t.start()
     while True:
         # Queue message will end up handled by
@@ -222,8 +222,7 @@ def get_html_by_timestamp():
 def update_html(query_time):
     db.Model.metadata.reflect(bind=db.engine,schema='test')
 
-    otter_path = "/nfs/site/proj/alac/members/yue/source_code_with_expert/src/plugins/otter/example"
-    storage_path = os.path.join(PERM_DATA_FOLDER,pd.to_datetime(query_time).strftime('%m_%d_%Y_%H_%M_%S'))
+    storage_path = os.path.join(config['web']['PERM_DATA_FOLDER'],pd.to_datetime(query_time).strftime('%m_%d_%Y_%H_%M_%S'))
     to_delete=[]
 
     #get manifest file out
@@ -297,7 +296,7 @@ def get_data_table_rows():
     timestamps = pd.read_sql_query(query.statement, query.session.bind).values
     machines=[]
     #TODO get all machine instead of just 1
-    exp_dir = "/nfs/site/proj/alac/members/yue/source_code_with_expert/src/plugins/otter/example"
+    exp_dir = config['web']['EXPR_FOLDER']
     local_vars = db.metadata.tables['test.local_vars']
     machine_query = db.session.query(local_vars.c.hostname.distinct())
     machines = pd.read_sql_query(machine_query.statement, query.session.bind).values
