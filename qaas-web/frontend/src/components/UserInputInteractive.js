@@ -64,12 +64,44 @@ export default function UserInputStepper() {
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
         setSkipped(newSkipped);
 
+        //build connection stream
+        const sse = new EventSource('http://localhost:5002/stream')
+        console.log("sse: ", sse)
+
+        function handleStream(e) {
+            console.log("got message from backend: ", e)
+            setStatusMsg(e.data)
+        }
+        sse.onopen = e => {
+            console.log("message opened ", e);
+        }
+        sse.onmessage = e => {
+            console.log("on message")
+            handleStream(e)
+        }
+        sse.addEventListener('ping', e => {
+            console.log("add event listener")
+            console.log(e);
+        })
+        sse.onerror = e => {
+            //GOTCHA - can close stream and 'stall'
+            console.log("error on sse")
+            sse.close()
+        }
+
+
         //call backend
         setSSEStatus(true)
-        axios.post("/create_new_timestamp", input)
+        axios.post("/test_launch_button", input)
             .then((response) => {
                 setSSEStatus(false)
             })
+
+        return () => {
+            console.log("colose connection")
+            sse.close()
+
+        }
     };
 
 
@@ -185,6 +217,11 @@ export default function UserInputStepper() {
         ])
         // setEdit(true)
     };
+    //useeffect
+
+
+
+
     /******************************************************************* Finish prepare Written Code *************************************************/
 
     return (
@@ -557,8 +594,8 @@ export default function UserInputStepper() {
                                                     <TableBody>
                                                         {envrows.map((row, i) => (
                                                             <TableRow>
-                                                                <TableCell contenteditable='true' align="center">{row.name}</TableCell>
-                                                                <TableCell contenteditable='true' align="center">{row.value}</TableCell>
+                                                                <TableCell contentEditable='true' align="center">{row.name}</TableCell>
+                                                                <TableCell contentEditable='true' align="center">{row.value}</TableCell>
                                                                 <TableCell align="center"><DeleteIcon onClick={() => handleDelete(i)} /></TableCell>
 
 
