@@ -19,7 +19,7 @@ import threading
 import queue
 from qaas import launch_qaas
 import configparser
-from ovdb import populate_database
+from ovdb import populate_database, generate_manifest_csv
 from flask_cors import CORS
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../config/qaas-web.conf")
@@ -84,8 +84,8 @@ def create_app(config):
     ########################### http request ################################
     @app.route('/get_all_timestamps', methods=['GET','POST'])
     def get_all_timestamps():
-        manifest = db.metadata.tables['test.manifest']
-        query = db.session.query(manifest.c.timestamp.distinct())
+        get_timestamp_table = db.metadata.tables['test.local_vars']
+        query = db.session.query(get_timestamp_table.c.timestamp.distinct())
         timestamps = pd.read_sql_query(query.statement, query.session.bind).values
         time_list = [pd.to_datetime(timestamp[0]) for timestamp in timestamps]
         time_list = json.dumps(time_list, default=str)
@@ -121,29 +121,17 @@ def create_app(config):
     @app.route('/create_new_timestamp', methods=['GET','POST'])
     def create_new_timestamp():
         qaas_request = request.get_json()
-        # print(json.dumps(qaas_request))
-        ov_timestamp = int(round(datetime.datetime.now().timestamp()))
-        query_time = str(datetime.datetime.fromtimestamp(ov_timestamp))
-        exp_dir=f"expR1-{ov_timestamp}"
-        ovcommand = f"maqao oneview -R1 -c=./config.lua -xp={exp_dir}"
-        run_dir = config['web']['EXPR_FOLDER']
-        #subprocess.run(ovcommand, shell=True, cwd=run_dir)
+        print(json.dumps(qaas_request))
 
         ov_data_dir = os.path.join(config['web']['QAAS_DATA_FOLDER'], 'ov_data')
         os.makedirs(ov_data_dir, exist_ok=True)
         json_file = os.path.join(ov_data_dir, 'input-cnn.json')
-        # shutil.copy(config['web']['INPUT_JSON_FOLDER'], json_file)
+        
+        #call backplane and wait to finish
         t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
         t.start()
-        # while True:
-        #     # Queue message will end up handled by
-        #     # WebSockets or Server side event
-        #     msg = qaas_message_queue.get()
-        #     print(msg.str())
-        #     if msg.is_end_qaas():
-        #         output_ov_dir = msg.output_ov_dir
-        #         break
         t.join()
+        
         output_ov_dir = t.output_ov_dir
         ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
         for version in ['orig', 'opt']:
@@ -156,18 +144,10 @@ def create_app(config):
             current_ov_dir = os.path.join(ov_version_output_dir, result_folder)
         
         if True:
-            # current_ov_dir = '/tmp/qaas_data/166-56-642/oneview_runs/orig/oneview_results_1668569657'
             print(f'Selected folder : {current_ov_dir}')
-            full_exp_dir = os.path.join(run_dir, exp_dir)
-            shutil.copytree(current_ov_dir, full_exp_dir)
-            print(f'exp:{full_exp_dir}')    
-        
-        ov_output_dir=os.path.join(run_dir, exp_dir)
 
-        query_time = populate_database(exp_dir, run_dir)
+        query_time = populate_database(current_ov_dir)
         update_html(query_time)
-
-
 
         return jsonify(isError= False,
                     message= "Success",
@@ -195,42 +175,32 @@ def create_app(config):
         to_delete=[]
 
         #get manifest file out
-        manifest = db.metadata.tables['test.manifest']
-        print(f"manifest query time : {query_time}")
-        manifest_df = get_df_from_tablename_by_time('test.manifest', query_time)
+        manifest_path = generate_manifest_csv(storage_path)
+        #find manifest file that contains querytime in permanet storage 
+        manifest_df = pd.read_csv(manifest_path, sep=';')
         # get local_vars out
         local_vars_df = get_df_from_tablename_by_time('test.local_vars', query_time)
 
         for table in db.metadata.tables:
             tablename = table.split(".")[1]
-            if tablename != "manifest":
-                table_type = manifest_df[manifest_df['path'].str.contains(tablename)]['type'].values[0]
-                #convert all file table to file
-                if table_type == "file":
-                    file_df = get_df_from_tablename_by_time(table, query_time).iloc[:,:-2]#none and timestamps col
-                    file_absolute_path = storage_path +"/"+ manifest_df[manifest_df['path'].str.contains(tablename)]['path'].values[0]
-                    file_df.to_csv(file_absolute_path, sep=';', index=False)
-                    to_delete.append(file_absolute_path)
+            table_type = manifest_df[manifest_df['path'].str.contains(tablename)]['type'].values[0]
+            #convert all file table to file
+            if table_type == "file":
+                file_df = get_df_from_tablename_by_time(table, query_time).iloc[:,:-2]#none and timestamps col
+                file_absolute_path = os.path.join(storage_path, manifest_df[manifest_df['path'].str.contains(tablename)]['path'].values[0])
+                print(file_absolute_path)
+                file_df.to_csv(file_absolute_path, sep=';', index=False)
+                to_delete.append(file_absolute_path)
 
             
         #get asm out
         asm_df = get_df_from_tablename_by_time('test.asm', query_time)
-
-        #get asm path from manifest
-        asm_path_query = db.session.query(manifest.c.path).filter(manifest.c.timestamp == query_time, manifest.c.path.like('%asm%'))
-        asm_path = storage_path + "/" +pd.read_sql_query(asm_path_query.statement, asm_path_query.session.bind).values[0][0]
+        asm_path = os.path.join(storage_path, "static/asm")
 
         if not os.path.exists(asm_path):
                 os.makedirs(asm_path)
 
         #create and delete
-        #create manifest file
-        manifest_path=storage_path+"/"+"manifest.csv"
-        manifest_header = ['type','run','usage','path']
-        manifest_df['path'] = manifest_df['path'].apply(lambda path: storage_path+"/" + path)
-        manifest_df.to_csv(manifest_path, sep=';', index=False, columns=manifest_header)
-        local_vars_df.to_csv(storage_path+"/local_vars.csv", sep=';', index=False)
-
         #create asm folder files
         asm_header = ['address','source_location','insn','indent']
         unique_run = asm_df['loop_id'].unique()
@@ -260,8 +230,8 @@ def create_app(config):
         #dataset and application in config.lua
         #machine in local_var
         #get all timestamps, for each time stamp, get machine
-        manifest = db.metadata.tables['test.manifest']
-        query = db.session.query(manifest.c.timestamp.distinct())
+        get_timestamp_table = db.metadata.tables['test.local_vars']
+        query = db.session.query(get_timestamp_table.c.timestamp.distinct())
         timestamps = pd.read_sql_query(query.statement, query.session.bind).values
         machines=[]
         #TODO get all machine instead of just 1
