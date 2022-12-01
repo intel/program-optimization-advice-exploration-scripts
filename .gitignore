@@ -4,3 +4,4 @@
 *.swp
 container/pocc*
 qaas-web/backend/venv
+qaas-web/frontend/public/otter_html
