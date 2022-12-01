@@ -34,6 +34,7 @@ export default function UserInputStepper() {
     const [activeStep, setActiveStep] = React.useState(0);
     const [skipped, setSkipped] = React.useState(new Set());
 
+    const [statusMsg, setStatusMsg] = useState("");
     const isStepOptional = (step) => {
         return step === 2;
     };
@@ -80,8 +81,8 @@ export default function UserInputStepper() {
             handleStream(e)
         }
         sse.addEventListener('ping', e => {
-            console.log("add event listener")
-            console.log(e);
+            setStatusMsg(e.data)
+            console.log("in add event listener",statusMsg)
         })
         sse.onerror = e => {
             //GOTCHA - can close stream and 'stall'
@@ -92,16 +93,18 @@ export default function UserInputStepper() {
 
         //call backend
         setSSEStatus(true)
-        axios.post("/test_launch_button", input)
+        axios.post("/create_new_timestamp", input)
             .then((response) => {
                 setSSEStatus(false)
-            })
+                return () => {
+                    console.log("colose connection")
+                    sse.close()
 
-        return () => {
-            console.log("colose connection")
-            sse.close()
+                }
+            }
+        )
 
-        }
+
     };
 
 
@@ -157,7 +160,6 @@ export default function UserInputStepper() {
     const [envrows, setEnvRows] = useState(envRows);
     //socket
     const [SSEStatus, setSSEStatus] = useState(false);
-    const [statusMsg, setStatusMsg] = useState("");
     //user input state
     //input state
     const [input, setInput] = useState(
