@@ -25,10 +25,22 @@ script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../config/qaas-web.conf")
 # more initializations in main()
 
+class QaaSThread(threading.Thread):
+    def __init__(self, json_file, qaas_data_folder, qaas_message_queue):
+        super().__init__()
+        self.json_file = json_file
+        self.qaas_data_folder = qaas_data_folder
+        self.qaas_message_queue = qaas_message_queue
+
+
+    def run(self):
+        self.rc, self.output_ov_dir = launch_qaas (self.json_file, lambda msg: self.qaas_message_queue.put(msg), self.qaas_data_folder)
+
 #can move to startup script
 # See: https://flask.palletsprojects.com/en/1.1.x/tutorial/factory/
 def create_app(config):
     app = Flask(__name__)
+    qaas_message_queue = queue.Queue()
     CORS(app)
     # app.config['SQLALCHEMY_DATABASE_URI'] = '=true'
     app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI']
@@ -43,6 +55,8 @@ def create_app(config):
 
     def run_otter_command(manifest_file):
         cdcommand= f"cd {config['web']['EXPR_FOLDER']};"
+        qaas_web_folder = os.path.join(script_dir, "../frontend/public")
+        cdcommand= f"cd {qaas_web_folder};"
         ottercommand = f"{config['web']['MAQAO_VERSION']} otter --input=" + manifest_file
         command = cdcommand +  ottercommand
         ret = subprocess.run(command, capture_output=True, shell=True)
@@ -80,14 +94,29 @@ def create_app(config):
                         timestamps= time_list,
                         statusCode= 200,
                         )
+    @app.route('/stream')
+    def stream():
 
-@app.route('/test_launch_button', methods=['POST'])
-def test_launch_button():
+        def get_data():
 
-    return jsonify(isError= False,
-                message= "Success",
-                statusCode= 200,
-                )
+            while True:
+                #gotcha
+                msg = qaas_message_queue.get()
+                print(msg.str())
+                time.sleep(1) 
+                if msg.is_end_qaas():
+                    break
+                yield f'event: ping\ndata: {msg.str()} \n\n'
+
+        return Response(get_data(), mimetype='text/event-stream')
+
+    @app.route('/test_launch_button', methods=['POST'])
+    def test_launch_button():
+
+        return jsonify(isError= False,
+                    message= "Success",
+                    statusCode= 200,
+                    )
 
     @app.route('/create_new_timestamp', methods=['GET','POST'])
     def create_new_timestamp():
@@ -104,18 +133,18 @@ def test_launch_button():
         os.makedirs(ov_data_dir, exist_ok=True)
         json_file = os.path.join(ov_data_dir, 'input-cnn.json')
         # shutil.copy(config['web']['INPUT_JSON_FOLDER'], json_file)
-        qaas_message_queue = queue.Queue()
-        t = threading.Thread(target=launch_qaas, args=(json_file, lambda msg: qaas_message_queue.put(msg), config['web']['QAAS_DATA_FOLDER']))
+        t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
         t.start()
-        while True:
-            # Queue message will end up handled by
-            # WebSockets or Server side event
-            msg = qaas_message_queue.get()
-            print(msg.str())
-            if msg.is_end_qaas():
-                output_ov_dir = msg.output_ov_dir
-                break
+        # while True:
+        #     # Queue message will end up handled by
+        #     # WebSockets or Server side event
+        #     msg = qaas_message_queue.get()
+        #     print(msg.str())
+        #     if msg.is_end_qaas():
+        #         output_ov_dir = msg.output_ov_dir
+        #         break
         t.join()
+        output_ov_dir = t.output_ov_dir
         ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
         for version in ['orig', 'opt']:
             ov_version_output_dir = os.path.join(ov_output_dir, version)
