@@ -3,3 +3,4 @@
 .vscode
 *.swp
 container/pocc*
+qaas-web/backend/venv
