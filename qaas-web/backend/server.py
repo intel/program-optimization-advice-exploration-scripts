@@ -55,7 +55,7 @@ def create_app(config):
 
     def run_otter_command(manifest_file):
         cdcommand= f"cd {config['web']['EXPR_FOLDER']};"
-        qaas_web_folder = os.path.join(script_dir, "../frontend/public")
+        qaas_web_folder = os.path.join(script_dir, "../frontend/src")
         cdcommand= f"cd {qaas_web_folder};"
         ottercommand = f"{config['web']['MAQAO_VERSION']} otter --input=" + manifest_file
         command = cdcommand +  ottercommand
@@ -195,7 +195,7 @@ def create_app(config):
             
         #get asm out
         asm_df = get_df_from_tablename_by_time('test.asm', query_time)
-        asm_path = os.path.join(storage_path, "static/asm")
+        asm_path = os.path.join(storage_path, "static_data/asm")
 
         if not os.path.exists(asm_path):
                 os.makedirs(asm_path)
