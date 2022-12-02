@@ -83,10 +83,10 @@ def generate_build_cmd():
 		+ f" --compiler-dir \"$QAAS_compiler_dir\"" \
 		+ f" --orig-user-CC \"$QAAS_orig_user_CC\"" \
 		+ f" --target-CC \"$QAAS_user_CC\"" \
-		+ f" --user-c-flags \"$QAAS_user_c_flags\"" \
-		+ f" --user-cxx-flags \"$QAAS_user_cxx_flags\"" \
-		+ f" --user-fc-flags \"$QAAS_user_fc_flags\"" \
-		+ f" --user-link-flags \"$QAAS_user_link_flags\"" \
+		+ f" --user-c-flags=\"$QAAS_user_c_flags\"" \
+		+ f" --user-cxx-flags=\"$QAAS_user_cxx_flags\"" \
+		+ f" --user-fc-flags=\"$QAAS_user_fc_flags\"" \
+		+ f" --user-link-flags=\"$QAAS_user_link_flags\"" \
 		+ f" --user-target \"$QAAS_user_target\"" \
 		+ f" --user-target-location \"$QAAS_user_target_location\""
     return make_cmd
@@ -320,7 +320,9 @@ class QaaSLocusRunner(LocusRunner):
 
     @property
     def preproc_folders(self):
-        return [part.strip() for part in self.inc_flags.split("-I") if part]
+        inc_flags = self.inc_flags
+        return inc_flags_to_folders(inc_flags)
+
 
     # Return the suffix info for Locus runs
     @property
@@ -328,6 +330,8 @@ class QaaSLocusRunner(LocusRunner):
         return 'qaas'
         
 
+def inc_flags_to_folders(inc_flags):
+    return [part.strip() for part in inc_flags.split("-I") if part]
 # def run_locus(run_dir, env, full_src_file, insert_pragma_before_line, iceorig_file, locus_run_cmd):
 #     full_restore_src_file=full_src_file + '.orig'
 #     shutil.copy2(full_src_file, full_restore_src_file) # save restore file
@@ -377,6 +381,8 @@ def profile_app(run_dir, maqao_path, data_path, app_run_cmd, locus_bin_run_dir, 
 
 def setup_dep_files(compile_command_json_file, full_src_file):
     src_folder=os.path.dirname(full_src_file)
+    dep_file=os.path.join(src_folder, os.path.splitext(os.path.basename(full_src_file))[0]+'.dep')
+    inc_flags=""
     with open(compile_command_json_file, 'r') as f:
         for compile_command in json.load(f):
             cnt_file = compile_command['file']
@@ -386,10 +392,33 @@ def setup_dep_files(compile_command_json_file, full_src_file):
                 matched_command = compile_command['command']
                 print(matched_command)
                 inc_flags = " ".join([part for part in matched_command.split(" ") if part.startswith('-I')]+[f'-I{src_folder}'])
-                dep_file=os.path.join(src_folder, os.path.splitext(os.path.basename(full_src_file))[0]+'.dep')
                 # Write the inc flags to dep file to be picked up by ROSE
                 with open(dep_file, 'w') as f: f.write(inc_flags)
-                break
+                return inc_flags
+    # Cannot find any source file matching full_src_file
+    # This could be due to source file being included
+    with open(compile_command_json_file, 'r') as f:
+        for compile_command in json.load(f):
+            cnt_file = compile_command['file']
+            matched_command = compile_command['command']
+            parts = [part for part in matched_command.split(" ") if part.startswith('-I')]+[f'-I{src_folder}']
+            inc_flags = " ".join(parts)
+            inc_folders =  set(inc_flags_to_folders(inc_flags))
+            print(cnt_file)
+            cnt_file_src_folder=os.path.dirname(cnt_file)
+            inc_folders.add(cnt_file_src_folder)
+            with open(cnt_file, 'r') as rd:
+                lines = rd.readlines()
+                for line in lines:
+                    print(line)
+                    import re
+                    match_include = re.match('#include\s+"([^"]+)"', line.strip())
+                    if match_include:
+                        inc_file = match_include.groups()[0]
+                        if inc_file_match_src_file(inc_file, full_src_file, inc_folders): 
+                            with open(dep_file, 'w') as f: f.write(inc_flags)
+                            return inc_flags
+
     return inc_flags
 
 # def set_locus_env(env):
@@ -398,6 +427,13 @@ def setup_dep_files(compile_command_json_file, full_src_file):
 #         env['PYTHONPATH'] = f'{env["PYTHONPATH"]}:{script_dir}'
 #     else:
 #         env['PYTHONPATH'] = script_dir
+
+def inc_file_match_src_file(inc_file, src_file, inc_folders):
+    for inc_folder in inc_folders: 
+        cnt_inc_file = os.path.join(inc_folder, inc_file)
+        if os.path.isfile(cnt_inc_file) and os.path.samefile(cnt_inc_file, src_file):
+            return True
+    return False
 
 def insert_locus_pragma(full_src_file, insert_pragma_before_line):
     with open(full_src_file, 'r') as rd:

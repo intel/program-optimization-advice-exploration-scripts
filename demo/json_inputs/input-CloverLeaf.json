@@ -1,0 +1,34 @@
+{
+    "account": {
+        "QAAS_ACCOUNT": "intel"
+    }, 
+    "application": {
+        "APP_NAME": "CloverLeaf",
+        "GIT": {
+            "USER":   "david.c.wong@intel.com",
+            "TOKEN":  "glpat-PST8GxLzeMMQ6cWTLz9d",
+            "BRANCH": "master",
+            "SRC_URL": "https://gitlab.com/davidwong/CloverLeaf.git",
+            "DATA_USER":   "david.c.wong@intel.com",
+            "DATA_TOKEN":  "glpat-PST8GxLzeMMQ6cWTLz9d",
+            "DATA_URL": "https://gitlab.com/davidwong/CloverLeaf.git",
+            "DATA_BRANCH": "master",
+            "DATA_DOWNLOAD_PATH": "clover.in"
+        },
+        "RUN": {
+            "APP_DATA_ARGS": "",
+            "APP_RUN_CMD": "<binary>",
+            "APP_ENV_MAP": { }
+        }
+    }, 
+    "compiler": {
+        "USER_CC": "mpiicc-icx", 
+        "USER_CC_VERSION": "2021", 
+        "USER_C_FLAGS": "", 
+        "USER_CXX_FLAGS": "-cxx=icpx -DUSE_OPENMP=1 -mprefer-vector-width=512 -std=c++17 -g -fno-omit-frame-pointer -DENABLE_OFFLOAD=0", 
+        "USER_FC_FLAGS": "", 
+        "USER_LINK_FLAGS": "",
+        "USER_TARGET": "MYCLOVER",
+        "USER_TARGET_LOCATION": "MYCLOVER"
+    }
+}
