@@ -19,8 +19,8 @@ export default function DataTable({ columns_raw, rows_raw }) {
     const [isLoading, setIsLoading] = useState(false);
     const [shouldShowLoading, setShouldShowLoading] = useState(false);
     const [shouldLoadHTML, setShouldLoadHTML] = useState(false);
-
     const [loadTimestampTable, setLoadTimeStampTable] = useState(false);
+
     const columns = [{ field: 'id', headerName: 'ID', width: 90 },
     { field: columns_raw[0], headerName: columns_raw[0], width: 200 }]
     const rows = rows_raw.map(configRows)
@@ -40,11 +40,12 @@ export default function DataTable({ columns_raw, rows_raw }) {
     const main_table_rows = [{ "id": 1, "Application": neededInfo["Application"], "Machine": neededInfo["Machine"], "Dataset": neededInfo["Dataset"] }]
 
     const handleEvent = () => {
-        setLoadTimeStampTable(true);
+        setLoadTimeStampTable(!loadTimestampTable);
     }
     const handleTimestampClick = (params) => {
         setIsLoading(true)
         setShouldShowLoading(true)
+        setShouldLoadHTML(false)
         console.log("params is ",params['row']['timestamps'])
         axios.post("/get_html_by_timestamp", { timestamp: params['row']['timestamps'] })
             .then((response) => {
@@ -53,9 +54,10 @@ export default function DataTable({ columns_raw, rows_raw }) {
                 setShouldLoadHTML(true)
             })
     }
-    var filepath = "./otter_html/index.html"
-
+    var filepath = process.env.PUBLIC_URL+'/otter_html/index.html'
+    console.log("public url ",process.env.PUBLIC_URL)
     return (
+        
         <div style={{ height: 400, width: '100%' }}>
             <DataGrid
                 onCellClick={handleEvent}
