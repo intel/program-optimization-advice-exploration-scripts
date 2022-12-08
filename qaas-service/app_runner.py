@@ -3,7 +3,6 @@ import subprocess
 import shutil
 import os
 from utils.util import parse_env_map 
-from utils.runcmd import QAASRunCMD
 from fdo_lib import LProfProfiler
 from base_runner import BaseRunner
 
@@ -26,12 +25,11 @@ class AppRunner(BaseRunner):
         binary_name = os.path.basename(binary_path)
         #true_run_cmd='ls; echo $OMP_NUM_THREADS'
 
-        rc, cmdout = QAASRunCMD(0).run_local_cmd("numactl -H | awk '/cpus/ && $2>=max {max=$2}; END{print max}'")
-        last_node = int(cmdout.decode("utf-8"))
-        rc, cmdout = QAASRunCMD(0).run_local_cmd(f"numactl -H | grep 'node {last_node}' | grep  'cpus' |cut -d: -f2|xargs -n1|sort -r -n|head -1")
-        last_core = int(cmdout.decode("utf-8"))
+        if not mpi_command:
+            true_run_cmd = self.pin_seq_run_cmd(run_cmd)
+        else:
+            true_run_cmd=f'{mpi_command} {run_cmd}'
 
-        true_run_cmd=f'{mpi_command} {run_cmd}' if mpi_command else f'numactl -m {last_node} -C {last_core} {run_cmd}'
         print(f"run_dir is: {run_dir}")
         # try LProf
         #shutil.copy2(MAQAO_BIN, run_dir) 
