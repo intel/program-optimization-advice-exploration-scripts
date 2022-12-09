@@ -171,7 +171,6 @@ def run_ovdb(exp_dir):
             #copy binary that is not inside exp
             sub_path =  full_path[len(exp_dir)+1:] if os.path.isabs(path) else ''
             new_path = os.path.join(target_path ,sub_path)
-            print("created path",new_path)
             os.makedirs(os.path.dirname(new_path), exist_ok=True)
             
 

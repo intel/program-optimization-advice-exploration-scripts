@@ -28,15 +28,15 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
-const steps = ['Build Info', 'Run Info', 'Validation and Domain Specific Rate', 'Golden Run System Settings', 'Optional Run System Settings', 'Status Info'];
+const steps = ['Build Info', 'Run Info', 'Golden Run System Settings', 'Optional Run System Settings', 'Validation and Domain Specific Rate', 'Status Info'];
 
-export default function UserInputStepper() {
+export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML}) {
     const [activeStep, setActiveStep] = React.useState(0);
     const [skipped, setSkipped] = React.useState(new Set());
 
     const [statusMsg, setStatusMsg] = useState("");
     const isStepOptional = (step) => {
-        return step === 2;
+        return step === 4;
     };
 
     const isStepSkipped = (step) => {
@@ -82,7 +82,7 @@ export default function UserInputStepper() {
         }
         sse.addEventListener('ping', e => {
             setStatusMsg(e.data)
-            console.log("in add event listener",statusMsg)
+            console.log("in add event listener", statusMsg)
         })
         sse.onerror = e => {
             //GOTCHA - can close stream and 'stall'
@@ -102,7 +102,7 @@ export default function UserInputStepper() {
 
                 }
             }
-        )
+            )
 
 
     };
@@ -160,6 +160,8 @@ export default function UserInputStepper() {
     const [envrows, setEnvRows] = useState(envRows);
     //socket
     const [SSEStatus, setSSEStatus] = useState(false);
+    //default checked
+
     //user input state
     //input state
     const [input, setInput] = useState(
@@ -200,13 +202,37 @@ export default function UserInputStepper() {
             library: {
                 USER_MPI: "Intel MPI",
                 USER_MATH: "Intel MKL"
+            },
+            system: {
+                USER_OPTION: {
+                    CPU: "",
+                    HYPERTHREADING: "",
+                    HUGEPAGE: "",
+                    TURBO_BOOST: "",
+                    FREQ_SCALING: "",
+                    PREFETCH: "",
+                },
+                SEARCH_OPTIONS: {
+                    CPU: ["Default"],
+                    HYPERTHREADING: ["Default"],
+                    HUGEPAGE: ["Default"],
+                    TURBO_BOOST: ["Default"],
+                    FREQ_SCALING: ["Default"],
+                    PREFETCH: ["Default"],
+                    COMPILER: ["Default"]
+                }
+
             }
         }
     )
 
-    const navigateToResult = () => {
-        navigate('/result');
+    const handleFinishButtonClick = () => {
+        setIsLoading(false)
+        setShouldLoadHTML(true)
     };
+    const isValueInInput = (input_location, value) => {
+        return input_location.indexOf[value] > -1
+    }
     const handleDelete = (i) => {
         setEnvRows((prevEnvRows) =>
             prevEnvRows.filter((_, index) => index !== i)
@@ -219,8 +245,33 @@ export default function UserInputStepper() {
         ])
         // setEdit(true)
     };
-    //useeffect
+    const handleCheckBoxClick = (e, default_button_name) => {
+        //set component to checked
+        //delete default from input
+        //add component to input
+        const s = { ...input }
+        var filteredArray = s.system.SEARCH_OPTIONS.filter(function (e) { return e !== default_button_name })
+        setInput({ ...s })
+    }
+    //constant sub components
+    const checkBoxComponent = ({ title, listItems }) => {
+        return (
+            <div >
+                {title}
+                
+                <div>
+                    {listItems.map((item, index)=>{
 
+                    })}
+                    Skylake <Checkbox checked={isValueInInput(input.system.SEARCH_OPTIONS.CPU, "Skylake")} onChange={(e) => handleCheckBoxClick(e, "cpu")} />
+                    Cascadelake <Checkbox checked={input.system.SEARCH_OPTIONS.CPU.indexOf("Cascadelake") > -1} onChange={(e) => handleCheckBoxClick(e, "cpu")} />
+                    Ice Lake <Checkbox checked={input.system.SEARCH_OPTIONS.CPU.indexOf("Ice Lake") > -1} onChange={(e) => handleCheckBoxClick(e, "cpu")} />
+                    Default <Checkbox defaultChecked />
+                </div>
+            </div>
+
+        )
+    }
 
 
 
@@ -253,7 +304,7 @@ export default function UserInputStepper() {
                         <Typography sx={{ mt: 2, mb: 1 }}>
                             All steps completed - you&apos;re finished
                         </Typography>
-                        <Button sx={{ ml: 3 }} variant="contained" onClick={navigateToResult} endIcon={<ArrowForwardIcon />}>See Result</Button>
+                        <Button sx={{ ml: 3 }} variant="contained" onClick={handleFinishButtonClick} endIcon={<ArrowForwardIcon />}>See Result</Button>
 
                         <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
                             <Box sx={{ flex: '1 1 auto' }} />
@@ -617,7 +668,7 @@ export default function UserInputStepper() {
 
 
                         }
-                        {activeStep === 2 &&
+                        {activeStep === 4 &&
 
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
                                 <Box
@@ -740,7 +791,7 @@ export default function UserInputStepper() {
                                 </Box>
                             </div>
                         }
-                        {activeStep === 3 &&
+                        {activeStep === 2 &&
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
                                 <Box
 
@@ -759,10 +810,12 @@ export default function UserInputStepper() {
                                                 row
                                                 aria-labelledby="demo-row-radio-buttons-group-label"
                                                 name="row-radio-buttons-group"
+                                                defaultValue={"Default"}
                                             >
                                                 <FormControlLabel value="Sky Lake" control={<Radio />} label="Sky Lake" />
                                                 <FormControlLabel value="Cascade Lake" control={<Radio />} label="Cascade Lake" />
                                                 <FormControlLabel value="Ice Lake" control={<Radio />} label="Ice Lake" />
+                                                <FormControlLabel value="Default" control={<Radio />} label="Default" />
                                             </RadioGroup>
                                         </div>
                                         <div>
@@ -771,9 +824,11 @@ export default function UserInputStepper() {
                                                 row
                                                 aria-labelledby="demo-row-radio-buttons-group-label"
                                                 name="row-radio-buttons-group"
+                                                defaultValue={"Default"}
                                             >
                                                 <FormControlLabel value="on" control={<Radio />} label="ON" />
                                                 <FormControlLabel value="off" control={<Radio />} label="OFF" />
+                                                <FormControlLabel value="Default" control={<Radio />} label="Default" />
                                             </RadioGroup>
                                         </div>
                                         <div>
@@ -782,9 +837,11 @@ export default function UserInputStepper() {
                                                 row
                                                 aria-labelledby="demo-row-radio-buttons-group-label"
                                                 name="row-radio-buttons-group"
+                                                defaultValue={"Default"}
                                             >
                                                 <FormControlLabel value="on" control={<Radio />} label="ON" />
                                                 <FormControlLabel value="off" control={<Radio />} label="OFF" />
+                                                <FormControlLabel value="Default" control={<Radio />} label="Default" />
                                             </RadioGroup>
                                         </div>
                                         <div>
@@ -793,9 +850,11 @@ export default function UserInputStepper() {
                                                 row
                                                 aria-labelledby="demo-row-radio-buttons-group-label"
                                                 name="row-radio-buttons-group"
+                                                defaultValue={"Default"}
                                             >
                                                 <FormControlLabel value="on" control={<Radio />} label="ON" />
                                                 <FormControlLabel value="off" control={<Radio />} label="OFF" />
+                                                <FormControlLabel value="Default" control={<Radio />} label="Default" />
                                             </RadioGroup>
                                         </div>
                                         <div>
@@ -804,9 +863,11 @@ export default function UserInputStepper() {
                                                 row
                                                 aria-labelledby="demo-row-radio-buttons-group-label"
                                                 name="row-radio-buttons-group"
+                                                defaultValue={"Default"}
                                             >
                                                 <FormControlLabel value="on" control={<Radio />} label="ON" />
                                                 <FormControlLabel value="off" control={<Radio />} label="OFF" />
+                                                <FormControlLabel value="Default" control={<Radio />} label="Default" />
                                             </RadioGroup>
                                         </div>
                                         <div>
@@ -815,9 +876,11 @@ export default function UserInputStepper() {
                                                 row
                                                 aria-labelledby="demo-row-radio-buttons-group-label"
                                                 name="row-radio-buttons-group"
+                                                defaultValue={"Default"}
                                             >
                                                 <FormControlLabel value="on" control={<Radio />} label="ON" />
                                                 <FormControlLabel value="off" control={<Radio />} label="OFF" />
+                                                <FormControlLabel value="Default" control={<Radio />} label="Default" />
                                             </RadioGroup>
                                         </div>
 
@@ -827,7 +890,7 @@ export default function UserInputStepper() {
 
 
                         }
-                        {activeStep === 4 &&
+                        {activeStep === 3 &&
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
                                 <Box
 
@@ -840,29 +903,67 @@ export default function UserInputStepper() {
                                 >
                                     <div style={divStyle}>
                                         <div style={titleStyle}>Optional Run System Settings</div>
-                                        <div style={divStyle}>
+                                        <div >
                                             CPU choices
-                                            Skylake <Checkbox />
-                                            Cascadelake <Checkbox defaultChecked />
-                                            Ice Lake <Checkbox defaultChecked />
+                                            <div>
 
+                                                Skylake <Checkbox  />
+                                                Cascadelake <Checkbox  />
+                                                Ice Lake <Checkbox  />
+                                                Default <Checkbox defaultChecked />
+                                            </div>
                                         </div>
                                         <div>
-                                            Turboboost  ON<Checkbox defaultChecked />  OFF<Checkbox />
+                                            Hyperthreading
+                                            <div>
+                                                ON<Checkbox />
+                                                OFF<Checkbox />
+                                                Default <Checkbox defaultChecked />
+                                            </div>
                                         </div>
                                         <div>
-                                            Hyperthreading  ON<Checkbox defaultChecked />  OFF<Checkbox defaultChecked />
+                                            Hugepage
+                                            <div>
+                                                ON<Checkbox />
+                                                OFF<Checkbox />
+                                                Default <Checkbox defaultChecked />
+                                            </div>
                                         </div>
                                         <div>
-                                            Hugepage  ON<Checkbox />  OFF<Checkbox defaultChecked />
-                                        </div>
-                                        <div>
-                                            Intel P-state Governor  ON<Checkbox />  OFF<Checkbox defaultChecked />
-                                        </div>
-                                        <div>
-                                            Prefetch  ON<Checkbox />  OFF<Checkbox defaultChecked />
+                                            Enable Turboboost
+                                            <div>
+                                                ON<Checkbox />
+                                                OFF<Checkbox />
+                                                Default <Checkbox defaultChecked />
+                                            </div>
                                         </div>
 
+
+                                        <div>
+                                            Enable Freqency Stepping (Intel P-state Governor)
+                                            <div>
+                                                ON<Checkbox />
+                                                OFF<Checkbox />
+                                                Default <Checkbox defaultChecked />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            Prefetch
+                                            <div>
+                                                ON<Checkbox />
+                                                OFF<Checkbox />
+                                                Default <Checkbox defaultChecked />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            Compiler Choices
+                                            <div>
+                                                ICC<Checkbox />
+                                                GCC<Checkbox />
+                                                LLVM<Checkbox />
+                                                Default <Checkbox defaultChecked />
+                                            </div>
+                                        </div>
 
 
                                     </div>

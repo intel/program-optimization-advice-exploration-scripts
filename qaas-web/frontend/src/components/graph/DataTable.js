@@ -14,11 +14,24 @@ function configRows(item, index) {
 }
 
 
-export default function DataTable({ columns_raw, rows_raw }) {
+export default function DataTable({ columns_raw, rows_raw, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
+    //style
+    const splitScreen = {
+        display: 'flex',
+        flexDirection: 'row',
+        paddingBottom: "10px"
+    }
+    const leftPane = {
+        width: '50%',
+
+    }
+    const rightPane = {
+        width: '50%',
+        paddingLeft: "10px"
+    }
+    //state
     const [neededInfo, setNeededInfo] = useState({});
-    const [isLoading, setIsLoading] = useState(false);
     const [shouldShowLoading, setShouldShowLoading] = useState(false);
-    const [shouldLoadHTML, setShouldLoadHTML] = useState(false);
     const [loadTimestampTable, setLoadTimeStampTable] = useState(false);
 
     const columns = [{ field: 'id', headerName: 'ID', width: 90 },
@@ -46,7 +59,7 @@ export default function DataTable({ columns_raw, rows_raw }) {
         setIsLoading(true)
         setShouldShowLoading(true)
         setShouldLoadHTML(false)
-        console.log("params is ",params['row']['timestamps'])
+        console.log("params is ", params['row']['timestamps'])
         axios.post("/get_html_by_timestamp", { timestamp: params['row']['timestamps'] })
             .then((response) => {
                 setIsLoading(false)
@@ -54,10 +67,10 @@ export default function DataTable({ columns_raw, rows_raw }) {
                 setShouldLoadHTML(true)
             })
     }
-    var filepath = process.env.PUBLIC_URL+'/otter_html/index.html'
-    console.log("public url ",process.env.PUBLIC_URL)
+    var orig_filepath = process.env.PUBLIC_URL + '/orig/otter_html/index.html'
+    var opt_filepath = process.env.PUBLIC_URL + '/opt/otter_html/index.html'
     return (
-        
+
         <div style={{ height: 400, width: '100%' }}>
             <DataGrid
                 onCellClick={handleEvent}
@@ -75,8 +88,17 @@ export default function DataTable({ columns_raw, rows_raw }) {
                 rowsPerPageOptions={[5]}
                 checkboxSelection
             />}
-            {isLoading  && shouldShowLoading && <LoadingAlert text="Loading..." />}
-            <div>{!isLoading && shouldLoadHTML && <div ><Iframe id="html" className="htmlclass" url={filepath} height="1000px" width="100%" /></div>}</div>
+            {isLoading && shouldShowLoading && <LoadingAlert text="Loading..." />}
+            <div style={splitScreen}>
+                <div style={leftPane}>
+
+                    <div>{!isLoading && shouldLoadHTML && <div ><Iframe id="html" className="htmlclass" url={orig_filepath} height="1000px" width="100%" /></div>}</div>
+                </div>
+                <div style={rightPane}>
+
+                    <div>{!isLoading && shouldLoadHTML && <div ><Iframe id="html" className="htmlclass" url={opt_filepath} height="1000px" width="100%" /></div>}</div>
+                </div>
+            </div>
 
         </div>
     );
