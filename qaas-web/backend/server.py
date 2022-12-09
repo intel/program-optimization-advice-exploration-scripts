@@ -53,9 +53,10 @@ def create_app(config):
     db.Model.metadata.reflect(bind=db.engine,schema='test')
 
 
-    def run_otter_command(manifest_file):
+    def run_otter_command(manifest_file, version):
         cdcommand= f"cd {config['web']['EXPR_FOLDER']};"
-        qaas_web_folder = os.path.join(script_dir, "../frontend/src")
+        qaas_web_folder = os.path.join(script_dir, "../frontend/private", version)
+        os.makedirs(qaas_web_folder, exist_ok=True)
         cdcommand= f"cd {qaas_web_folder};"
         ottercommand = f"{config['web']['MAQAO_VERSION']} otter --input=" + manifest_file
         command = cdcommand +  ottercommand
@@ -125,7 +126,7 @@ def create_app(config):
 
         ov_data_dir = os.path.join(config['web']['QAAS_DATA_FOLDER'], 'ov_data')
         os.makedirs(ov_data_dir, exist_ok=True)
-        json_file = os.path.join(ov_data_dir, 'input-cnn.json')
+        json_file = config['web']['INPUT_JSON_FILE']
         
         #call backplane and wait to finish
         t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
@@ -142,12 +143,12 @@ def create_app(config):
             result_folder = result_folders[0]
             print(result_folder)
             current_ov_dir = os.path.join(ov_version_output_dir, result_folder)
-        
-        if True:
             print(f'Selected folder : {current_ov_dir}')
+            query_time = populate_database(current_ov_dir)
+            update_html(query_time, version)
+        
+        #if True:
 
-        query_time = populate_database(current_ov_dir)
-        update_html(query_time)
 
         return jsonify(isError= False,
                     message= "Success",
@@ -160,7 +161,7 @@ def create_app(config):
     def get_html_by_timestamp():
         #place to put files
         query_time = request.get_json()['timestamp'] 
-        update_html(query_time)
+        update_html(query_time, 'orig')
 
         #get table using timestamp
         return jsonify(isError= False,
@@ -168,7 +169,7 @@ def create_app(config):
                         statusCode= 200,
                         )
 
-    def update_html(query_time):
+    def update_html(query_time, version):
         db.Model.metadata.reflect(bind=db.engine,schema='test')
 
         storage_path = os.path.join(config['web']['PERM_DATA_FOLDER'],pd.to_datetime(query_time).strftime('%m_%d_%Y_%H_%M_%S'))
@@ -188,7 +189,6 @@ def create_app(config):
             if table_type == "file":
                 file_df = get_df_from_tablename_by_time(table, query_time).iloc[:,:-2]#none and timestamps col
                 file_absolute_path = os.path.join(storage_path, manifest_df[manifest_df['path'].str.contains(tablename)]['path'].values[0])
-                print(file_absolute_path)
                 file_df.to_csv(file_absolute_path, sep=';', index=False)
                 to_delete.append(file_absolute_path)
 
@@ -217,7 +217,7 @@ def create_app(config):
             # print(cur_asm_loop_path)
             cur_asm_loop_df.to_csv(cur_asm_loop_path, sep=';', index=False, columns=asm_header)
         
-        run_otter_command(manifest_path)
+        run_otter_command(manifest_path, version)
 
         to_delete.append(asm_path)
         to_delete.append(manifest_path)

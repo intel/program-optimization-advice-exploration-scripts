@@ -1,4 +1,4 @@
-import React from 'react';
+import React,{useState} from 'react';
 import ReactDOM from 'react-dom/client';
 // import TimestampListBox from './components/TimestampListBox';
 import { BrowserRouter, Route, Routes } from "react-router-dom";
@@ -14,6 +14,8 @@ import LegalPage from './components/LegalPage';
 import ToolBackgroundPage from './components/ToolBackgroundPage';
 export default function App() {
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [shouldLoadHTML, setShouldLoadHTML] = useState(false);
   return (
 
     <div>
@@ -23,8 +25,8 @@ export default function App() {
 
           <Routes>
             <Route path="/" element={<WelcomePage />} />
-            <Route path="/input" element={<UserInputStepper />} />
-            <Route path="/result" element={<BrowseResult />} />
+            <Route path="/input" element={<UserInputStepper isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML}/>} />
+            <Route path="/result" element={<BrowseResult isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML}/>} />
             <Route path="/qaas" element={<QaasPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/legal" element={<LegalPage />} />
