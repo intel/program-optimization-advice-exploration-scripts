@@ -49,15 +49,16 @@ class OneviewRunner(BaseRunner):
     #     self.true_run(binary_path, run_dir, run_cmd, run_env, mpi_command)
 
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
-        true_run_cmd = run_cmd.replace('<binary>', binary_path)
+        run_cmd = run_cmd.replace('<binary>', binary_path)
+        pinning_cmd = "" if not mpi_command else f"--pinning-command=\"{self.get_pinning_cmd()}\""
 
         self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
         os.makedirs(self.ov_result_dir)
 
         ov_mpi_command = f"--mpi_command=\"{mpi_command}\"" if mpi_command else ""
         ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} '\
-            f'--run-directory="{run_dir}" '\
-            f'xp={self.ov_result_dir} --replace -- {true_run_cmd}'
+            f'--run-directory="{run_dir}" {pinning_cmd} '\
+            f'xp={self.ov_result_dir} --replace -- {run_cmd}'
             #f'--dataset={data_dir} --dataset-handler=copy --run-directory="<dataset>" '\
         print(ov_run_cmd)
         print(self.ov_result_dir)
