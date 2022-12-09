@@ -26,14 +26,17 @@ class AppRunner(BaseRunner):
         #true_run_cmd='ls; echo $OMP_NUM_THREADS'
 
         if not mpi_command:
-            true_run_cmd = self.pin_seq_run_cmd(run_cmd)
+            #true_run_cmd = self.pin_seq_run_cmd(run_cmd)
+            true_run_cmd = run_cmd
+            _, last_core = self.get_last_core_and_node()
         else:
             true_run_cmd=f'{mpi_command} {run_cmd}'
+            last_core = None
 
         print(f"run_dir is: {run_dir}")
         # try LProf
         #shutil.copy2(MAQAO_BIN, run_dir) 
-        LProfProfiler(self.maqao_dir).run_lprof_loop_profile(run_dir, run_env, true_run_cmd, binary_name)
+        LProfProfiler(self.maqao_dir).run_lprof_loop_profile(run_dir, run_env, true_run_cmd, binary_name, last_core)
 
 # copy executable binary to current directory,
 # copy data file to current directory,
