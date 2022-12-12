@@ -13,6 +13,7 @@ from app_builder import build_argparser as builder_build_argparser
 from app_builder import build_binary, get_build_dir, setup_build
 from app_runner import build_argparser as runner_build_argparser
 from app_runner import AppRunner
+from base_runner import get_last_core_and_node
 from logger import QaasComponents, log
 from utils.util import generate_timestamp_str
 from utils.util import parse_env_map 
@@ -24,6 +25,7 @@ script_dir=os.path.dirname(os.path.realpath(__file__))
 template_dir=os.path.join(script_dir, '..', 'templates')
 tmp_dir="/nfs/site/proj/alac/tmp/qaas-locus-runs"
 tmp_dir="/tmp/qaas-locus-runs"
+QAAS_LOCUS_TEMPLATE_FILE_NAME="scop.locus.template"
 
 
 # def instantiate_template(template_file, names, out_dir, outfile_name):
@@ -122,11 +124,14 @@ def generate_build_cmd():
 #   mv <file>.orig <file>
 def exec(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC, 
          user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
-         data_path, run_cmd, env_var_map, target_location):
+         data_path, run_cmd, env_var_map, target_location, 
+         mpi_run_command=None, mpi_num_processes=1, omp_num_threads=1,
+         mpi_envs={"I_MPI_PIN_PROCESSOR_LIST":"all:map=spread"}, omp_envs={}):
     # Will be created by Locus
     helper = QaaSLocusRunner(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC, 
          user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
-         data_path, run_cmd, env_var_map, target_location)
+         data_path, run_cmd, env_var_map, target_location,
+         mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs)
 
     helper.exec_locus()
 
@@ -172,7 +177,7 @@ def exec(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, 
 
 def get_target_loop(compiler_dir, maqao_path, orig_user_CC, user_CC, user_c_flags, user_cxx_flags, user_fc_flags, \
     user_link_flags, user_target, data_path, app_run_cmd, target_location, run_dir, locus_src_dir, locus_bin_run_dir, \
-        locus_bin, env):
+        locus_bin, env, mpi_run_command):
     make_cmd = generate_build_cmd()
 
     #build_binary(user_target, build_dir, env, output_dir, output_name)
@@ -199,7 +204,7 @@ def get_target_loop(compiler_dir, maqao_path, orig_user_CC, user_CC, user_c_flag
 #1.5 setup trial run to select loops (before insert of Locus pragma)
     AppRunner(locus_bin_run_dir, maqao_path).prepare(locus_bin, data_path)
 
-    full_src_file, insert_pragma_before_line = profile_app(run_dir, maqao_path, data_path, app_run_cmd, locus_bin_run_dir, locus_bin, env)
+    full_src_file, insert_pragma_before_line = profile_app(run_dir, maqao_path, data_path, app_run_cmd, locus_bin_run_dir, locus_bin, env, mpi_run_command)
     return make_cmd,build_dir,compile_command_json_file,full_src_file,insert_pragma_before_line
 
 def setup_locus_run_dir(locus_run_root, src_dir, compiler_dir, orig_user_CC, user_CC, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, env_var_map):
@@ -226,7 +231,8 @@ def setup_locus_run_dir(locus_run_root, src_dir, compiler_dir, orig_user_CC, use
 class QaaSLocusRunner(LocusRunner):
     def __init__(self, locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC, 
         user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
-        data_path, app_run_cmd, env_var_map, target_location):
+        data_path, app_run_cmd, env_var_map, target_location,
+        mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs):
         super().__init__()
         self.locus_run_root = locus_run_root
         self.src_file = None
@@ -247,6 +253,11 @@ class QaaSLocusRunner(LocusRunner):
         self.env_var_map = env_var_map
         self.target_location = target_location
         self.full_src_file = None
+        self.mpi_run_command = mpi_run_command
+        self.mpi_num_processes = mpi_num_processes
+        self.omp_num_threads = omp_num_threads
+        self.mpi_envs = mpi_envs
+        self.omp_envs = omp_envs
 
     # This set self.run_dir which implicitly also define self.db_file property
     def setup_locus_run_dir(self):
@@ -263,6 +274,11 @@ class QaaSLocusRunner(LocusRunner):
             env['PYTHONPATH'] = f'{env["PYTHONPATH"]}:{script_dir}'
         else:
             env['PYTHONPATH'] = script_dir
+
+            
+    @property
+    def user_locus_file(self):
+        return os.path.join(template_dir, QAAS_LOCUS_TEMPLATE_FILE_NAME)
 
     # def generate_locus_command(self, dbfile, full_src_file, locus_outfile_suffix, timing_script_file, timing_fn_name, ntests):
     #     # Locus will invoke build_cmd script and that script will make use of full_iceorig_file to restore back to full_src_file
@@ -311,7 +327,7 @@ class QaaSLocusRunner(LocusRunner):
             get_target_loop(self.compiler_dir, self.maqao_path, self.orig_user_CC, self.user_CC, self.user_c_flags, self.user_cxx_flags, self.user_fc_flags, \
                 self.user_link_flags, self.user_target, self.data_path, self.app_run_cmd, self.target_location, self.run_dir, \
                     self.locus_src_dir, self.locus_bin_run_dir, \
-                    self.locus_bin, self.env)
+                    self.locus_bin, self.env, self.mpi_run_command)
 
     # Locus run directory is the run directory
     @property
@@ -359,14 +375,16 @@ def inc_flags_to_folders(inc_flags):
 # #   mv <file>.orig <file>
 #     shutil.copy2(full_restore_src_file, full_src_file)
 
-def profile_app(run_dir, maqao_path, data_path, app_run_cmd, locus_bin_run_dir, locus_bin, env):
+def profile_app(run_dir, maqao_path, data_path, app_run_cmd, locus_bin_run_dir, locus_bin, env, mpi_run_command):
     #run_sh_cmd=f'./{run_cmd_sh_file}'
     env["QAAS_run_dir"]=f"{locus_bin_run_dir}"
     env["QAAS_maqao_path"]=f"{maqao_path}"
     env["QAAS_data_path"]=f"{data_path}"
     env["QAAS_run_cmd"]=f"{app_run_cmd}"
     # below command try the run script
-    loop_profile_df = LProfProfiler(maqao_path).collect_loop_info(app_run_cmd, locus_bin_run_dir, locus_bin, env)
+    _, last_core = get_last_core_and_node()
+    loop_profile_df = LProfProfiler(maqao_path).collect_loop_info(app_run_cmd, locus_bin_run_dir, locus_bin, env,
+                                                                  mpi_run_command, last_core)
     # Now pick the hottest loop for tuning
     # TODO: setup with budget in mind to try more loops and/or specific loops
     target_loop_profile_df = loop_profile_df.head(1)
