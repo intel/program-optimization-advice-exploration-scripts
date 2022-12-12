@@ -57,15 +57,19 @@ class BaseRunner(ABC):
                      mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs, env)
 
     def pin_seq_run_cmd(self, run_cmd):
-        last_node, last_core = self.get_last_core_and_node()
-        pinning_cmd = f'/usr/bin/numactl -m {last_node} -C {last_core}'
+        pinning_cmd = self.get_pinning_cmd()
 
         seq_run_cmd = f'{pinning_cmd} {run_cmd}'
         return seq_run_cmd
 
-    def get_last_core_and_node(self):
-        rc, cmdout = QAASRunCMD(0).run_local_cmd("/usr/bin/numactl -H | awk '/cpus/ && $2>=max {max=$2}; END{print max}'")
-        last_node = int(cmdout.decode("utf-8"))
-        rc, cmdout = QAASRunCMD(0).run_local_cmd(f"/usr/bin/numactl -H | grep 'node {last_node}' | grep  'cpus' |cut -d: -f2|xargs -n1|sort -r -n|head -1")
-        last_core = int(cmdout.decode("utf-8"))
-        return last_node,last_core
+    def get_pinning_cmd(self):
+        last_node, last_core = get_last_core_and_node()
+        pinning_cmd = f'/usr/bin/numactl -m {last_node} -C {last_core}'
+        return pinning_cmd
+
+def get_last_core_and_node():
+    rc, cmdout = QAASRunCMD(0).run_local_cmd("/usr/bin/numactl -H | awk '/cpus/ && $2>=max {max=$2}; END{print max}'")
+    last_node = int(cmdout.decode("utf-8"))
+    rc, cmdout = QAASRunCMD(0).run_local_cmd(f"/usr/bin/numactl -H | grep 'node {last_node}' | grep  'cpus' |cut -d: -f2|xargs -n1|sort -r -n|head -1")
+    last_core = int(cmdout.decode("utf-8"))
+    return last_node,last_core
