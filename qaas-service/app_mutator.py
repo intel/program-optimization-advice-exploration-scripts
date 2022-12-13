@@ -280,6 +280,10 @@ class QaaSLocusRunner(LocusRunner):
     def user_locus_file(self):
         return os.path.join(template_dir, QAAS_LOCUS_TEMPLATE_FILE_NAME)
 
+    @property
+    def num_locus_tests(self):
+        return 20
+
     # def generate_locus_command(self, dbfile, full_src_file, locus_outfile_suffix, timing_script_file, timing_fn_name, ntests):
     #     # Locus will invoke build_cmd script and that script will make use of full_iceorig_file to restore back to full_src_file
     #     #engine='exhaustive'
