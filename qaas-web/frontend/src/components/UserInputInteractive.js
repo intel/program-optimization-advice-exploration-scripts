@@ -229,6 +229,7 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
     const handleFinishButtonClick = () => {
         setIsLoading(false)
         setShouldLoadHTML(true)
+        navigate('/result')
     };
     const isValueInInput = (input_location, value) => {
         return input_location.indexOf[value] > -1
@@ -317,7 +318,7 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
 
                         {activeStep === 0 &&
 
-                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }} >
                                 <Box
 
                                     sx={{
@@ -544,7 +545,7 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
 
                         {activeStep === 1 &&
 
-                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '75vh' }} >
                                 <Box
 
                                     sx={{
@@ -657,7 +658,7 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
                                                     </TableBody>
                                                 </Table>
                                             </TableContainer>
-                                            <AddIcon style={{ padding: '10px' }} onClick={() => handleCreate()} />
+                                            {/* <AddIcon style={{ padding: '1px' }} onClick={() => handleCreate()} /> */}
                                         </div>
 
                                     </div>
@@ -670,7 +671,7 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
                         }
                         {activeStep === 4 &&
 
-                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }} >
                                 <Box
 
                                     sx={{
@@ -792,7 +793,7 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
                             </div>
                         }
                         {activeStep === 2 &&
-                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '75vh' }} >
                                 <Box
 
                                     sx={{
@@ -891,7 +892,7 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
 
                         }
                         {activeStep === 3 &&
-                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }} >
                                 <Box
 
                                     sx={{
@@ -974,7 +975,7 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
                         }
                         {activeStep === 5 &&
 
-                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }} >
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }} >
                                 <Box
 
                                     sx={{
