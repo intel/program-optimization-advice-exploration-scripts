@@ -59,6 +59,7 @@ class QAASJobSubmit:
     def run_container(self, app_cmd, mount_map, network_host=False, cap_add=False, debug=False):
         mount_flags = "".join([f' -v {k}:{v}' for k,v in mount_map.items()])
         start_container_flags, run_cmd = self.build_podman_run_command(app_cmd, network_host, cap_add, mount_flags) 
+        print(f'Container cmd: {run_cmd}')
         try:
             if debug:
                 # Split the container command in multiple steps enabling state capturing
