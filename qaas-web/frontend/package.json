@@ -14,6 +14,7 @@
     "@testing-library/user-event": "^13.5.0",
     "await": "^0.2.6",
     "axios": "^0.27.2",
+    "colormap": "^2.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-iframe": "^1.8.0",
@@ -21,6 +22,7 @@
     "react-router-dom": "^6.4.3",
     "react-scripts": "5.0.1",
     "react-split-pane": "^0.1.92",
+    "react-step-progress-bar": "^1.0.3",
     "socket.io-client": "^4.5.3",
     "web-vitals": "^2.1.4"
   },
@@ -48,5 +50,6 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://127.0.0.1:5002"
+  "proxy": "http://127.0.0.1:5002",
+  "homepage": "http://localhost:3000"
 }

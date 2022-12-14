@@ -35,7 +35,7 @@ def main():
     args = utils.cmdargs.parse_cli_args(sys.argv)
 
     # Command line just print the message for service message, GUI will act on message differently.
-    rc = launch_qaas(args.app_params, lambda msg: print(msg.str()))
+    rc, _ = launch_qaas(args.app_params, lambda msg: print(msg.str()))
 
     exitcode = 1
     if rc == 0:
@@ -104,7 +104,7 @@ def launch_qaas(app_params, service_msg_recv_handler, launch_output_dir='/tmp/qa
     print(f'ov results under: {prov.launch_output_dir}')
     prov.finish()
     service_msg_recv_handler(qm.EndQaas(prov.launch_output_dir))
-    return rc
+    return rc, prov.launch_output_dir
      
 if __name__ == '__main__':
    main()

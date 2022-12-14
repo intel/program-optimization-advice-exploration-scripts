@@ -24,7 +24,7 @@
     "compiler": {
         "USER_CC": "icc", 
         "USER_CC_VERSION": "2022", 
-        "USER_C_FLAGS": "-g -xCore-AVX2", 
+        "USER_C_FLAGS": "-g -O3 -no-pie -fce-protection=none -xCore-AVX2", 
         "USER_CXX_FLAGS": "", 
         "USER_FC_FLAGS": "", 
         "USER_LINK_FLAGS": "-g -fpic",

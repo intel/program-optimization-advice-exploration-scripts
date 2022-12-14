@@ -1,3 +1,4 @@
+wheel==0.38.4
 async-timeout==4.0.2
 bidict==0.22.0
 click==8.1.3

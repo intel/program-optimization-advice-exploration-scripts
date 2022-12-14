@@ -64,16 +64,10 @@ export default function UserInput({ setTimestamps }) {
 
     //state
     const [envrows, setEnvRows] = useState(envRows);
-    // const [isEdit, setEdit] = useState(false)
-    // const [disable, setDisable] = useState(true)
-    // const [open, setOpen] = React.useState(false);
-
-    // const [timestamps, setTimestamps] = useState([]);
     //socket
-    // const [socketInstance, setSocketInstance] = useState("");
     const [buttonStatus, setButtonStatus] = useState(false);
     const [statusMsg, setStatusMsg] = useState("");
-    // const [loading, setLoading] = useState(true);
+
 
 
     //input state
