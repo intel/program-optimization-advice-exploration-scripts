@@ -7,6 +7,20 @@ from pathlib import Path
 import re
 import sys
 
+#functions to append to dataframe
+def clear_dataframe(df):
+    df.drop(columns=df.columns, inplace=True)
+    df.drop(df.index, inplace=True)
+
+def replace_dataframe_content(to_df, from_df):
+    clear_dataframe(to_df)
+    for col in from_df.columns:
+        to_df[col] = from_df[col]
+
+def append_dataframe_rows(df, append_df):
+    merged = df.append(append_df, ignore_index=True)
+    replace_dataframe_content(df, merged)
+
 #get filename from path
 def get_tablename_and_ext_from_path(file_path):
     table_name = os.path.splitext(os.path.basename(file_path))[0]
@@ -62,7 +76,14 @@ def create_asm_table(dir_path, new_path, timestamp, engine):
             cur_df["module"] = "_".join(fn_parts[0:-1])   
         dfs.append(cur_df)
     df = pandas.concat(dfs)
-    df.to_sql(name= "asm", con=engine, if_exists='append',index=False)
+    table_name = "asm"
+    if engine.has_table(table_name):
+        #read sql 
+        old_df = pandas.read_sql(sql = table_name, con=engine)
+        append_dataframe_rows(old_df, df)
+        old_df.to_sql(name= table_name, con=engine, if_exists='replace',index=False)
+    else:
+        df.to_sql(name= table_name, con=engine, if_exists='append',index=False)
 
 def create_table_from_file(file_path, new_path, timestamp, engine):
     if os.path.exists(file_path) ==False:
@@ -72,7 +93,16 @@ def create_table_from_file(file_path, new_path, timestamp, engine):
     if ext == ".csv":
         cur_df = pandas.read_csv(file_path, sep=';')
         cur_df["timestamp"] = timestamp
-        cur_df.to_sql(name= table_name, con=engine, if_exists='append',index=False)
+        
+        if engine.has_table(table_name):
+            #read sql 
+            old_df = pandas.read_sql(sql = table_name, con=engine)
+            append_dataframe_rows(old_df, cur_df)
+            old_df.to_sql(name= table_name, con=engine, if_exists='replace',index=False)
+        else:
+            cur_df.to_sql(name= table_name, con=engine, if_exists='append',index=False)
+
+
     else:
         shutil.copyfile(file_path, new_path)
 def copyDir(from_path, to_path):

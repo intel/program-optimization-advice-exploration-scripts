@@ -60,6 +60,7 @@ def create_app(config):
         cdcommand= f"cd {qaas_web_folder};"
         ottercommand = f"{config['web']['MAQAO_VERSION']} otter --input=" + manifest_file
         command = cdcommand +  ottercommand
+        print(f'Run otter command: {command}')
         ret = subprocess.run(command, capture_output=True, shell=True)
         print(ret.stdout.decode())
 
@@ -134,8 +135,9 @@ def create_app(config):
         t.join()
         
         output_ov_dir = t.output_ov_dir
+        #output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-61-437"
         ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
-        for version in ['orig', 'opt']:
+        for version in ['opt','orig']:
             ov_version_output_dir = os.path.join(ov_output_dir, version)
             result_folders = os.listdir(ov_version_output_dir)
             # Should have only one folder
@@ -148,6 +150,9 @@ def create_app(config):
             update_html(query_time, version)
         
         #if True:
+        yellow = '\033[93m'
+        reset = '\033[39;49m'
+        print(f"{yellow}Finished job and html generation.{reset}")
 
 
         return jsonify(isError= False,
