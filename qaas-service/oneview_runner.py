@@ -50,7 +50,7 @@ class OneviewRunner(BaseRunner):
 
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         run_cmd = run_cmd.replace('<binary>', binary_path)
-        pinning_cmd = "" if not mpi_command else f"--pinning-command=\"{self.get_pinning_cmd()}\""
+        pinning_cmd = "" if mpi_command else f"--pinning-command=\"{self.get_pinning_cmd()}\""
 
         self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
         os.makedirs(self.ov_result_dir)
