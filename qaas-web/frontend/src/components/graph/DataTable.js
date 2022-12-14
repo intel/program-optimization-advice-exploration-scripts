@@ -14,13 +14,26 @@ function configRows(item, index) {
 }
 
 
-export default function DataTable({ columns_raw, rows_raw }) {
-    const [neededInfo, setNeededInfo] = useState({});
-    const [isLoading, setIsLoading] = useState(false);
-    const [shouldShowLoading, setShouldShowLoading] = useState(false);
-    const [shouldLoadHTML, setShouldLoadHTML] = useState(false);
+export default function DataTable({ columns_raw, rows_raw, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
+    //style
+    const splitScreen = {
+        display: 'flex',
+        flexDirection: 'row',
+        paddingBottom: "10px"
+    }
+    const leftPane = {
+        width: '50%',
 
+    }
+    const rightPane = {
+        width: '50%',
+        paddingLeft: "10px"
+    }
+    //state
+    const [neededInfo, setNeededInfo] = useState({});
+    const [shouldShowLoading, setShouldShowLoading] = useState(false);
     const [loadTimestampTable, setLoadTimeStampTable] = useState(false);
+
     const columns = [{ field: 'id', headerName: 'ID', width: 90 },
     { field: columns_raw[0], headerName: columns_raw[0], width: 200 }]
     const rows = rows_raw.map(configRows)
@@ -40,12 +53,13 @@ export default function DataTable({ columns_raw, rows_raw }) {
     const main_table_rows = [{ "id": 1, "Application": neededInfo["Application"], "Machine": neededInfo["Machine"], "Dataset": neededInfo["Dataset"] }]
 
     const handleEvent = () => {
-        setLoadTimeStampTable(true);
+        setLoadTimeStampTable(!loadTimestampTable);
     }
     const handleTimestampClick = (params) => {
         setIsLoading(true)
         setShouldShowLoading(true)
-        console.log("params is ",params['row']['timestamps'])
+        setShouldLoadHTML(false)
+        console.log("params is ", params['row']['timestamps'])
         axios.post("/get_html_by_timestamp", { timestamp: params['row']['timestamps'] })
             .then((response) => {
                 setIsLoading(false)
@@ -53,9 +67,11 @@ export default function DataTable({ columns_raw, rows_raw }) {
                 setShouldLoadHTML(true)
             })
     }
-    var filepath = "./otter_html/index.html"
-
+    var orig_filepath = process.env.PUBLIC_URL + '/orig/otter_html/index.html'
+    var opt_filepath = process.env.PUBLIC_URL + '/opt/otter_html/index.html'
+    console.log(isLoading, shouldLoadHTML)
     return (
+
         <div style={{ height: 400, width: '100%' }}>
             <DataGrid
                 onCellClick={handleEvent}
@@ -73,8 +89,20 @@ export default function DataTable({ columns_raw, rows_raw }) {
                 rowsPerPageOptions={[5]}
                 checkboxSelection
             />}
-            {isLoading  && shouldShowLoading && <LoadingAlert text="Loading..." />}
-            <div>{!isLoading && shouldLoadHTML && <div ><Iframe id="html" className="htmlclass" url={filepath} height="1000px" width="100%" /></div>}</div>
+            {isLoading && shouldShowLoading && <LoadingAlert text="Loading..." />}
+            {!isLoading && shouldLoadHTML &&
+                
+                <div style={splitScreen}>
+                    <div style={leftPane}>
+
+                        <div><div ><Iframe id="html" className="htmlclass" url={orig_filepath} height="1000px" width="100%" /></div></div>
+                    </div>
+                    <div style={rightPane}>
+
+                        <div> <div ><Iframe id="html" className="htmlclass" url={opt_filepath} height="1000px" width="100%" /></div></div>
+                    </div>
+                </div>
+            }
 
         </div>
     );

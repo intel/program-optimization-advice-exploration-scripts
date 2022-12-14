@@ -1,4 +1,4 @@
-import React from 'react';
+import React,{useState} from 'react';
 import ReactDOM from 'react-dom/client';
 // import TimestampListBox from './components/TimestampListBox';
 import { BrowserRouter, Route, Routes } from "react-router-dom";
@@ -6,9 +6,16 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import WelcomePage from './components/WelcomePage';
 import Navbar from './components/NavBar';
 import BrowseResult from './components/BrowseResult';
-import UserInput from './components/UserInput';
+import UserInputStepper from './components/UserInputInteractive';
+import QaasPage from './components/QaasPage';
+import LoginPage from './components/LoginPage';
+import CatalogPage from './components/CatalogPage';
+import LegalPage from './components/LegalPage';
+import ToolBackgroundPage from './components/ToolBackgroundPage';
 export default function App() {
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [shouldLoadHTML, setShouldLoadHTML] = useState(false);
   return (
 
     <div>
@@ -18,9 +25,13 @@ export default function App() {
 
           <Routes>
             <Route path="/" element={<WelcomePage />} />
-            <Route path="/submitservice" element={<UserInput />} />
-            <Route path="/browseresult" element={<BrowseResult />} />
-
+            <Route path="/input" element={<UserInputStepper isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML}/>} />
+            <Route path="/result" element={<BrowseResult isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML}/>} />
+            <Route path="/qaas" element={<QaasPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/legal" element={<LegalPage />} />
+            <Route path="/catalog" element={<CatalogPage />} />
+            <Route path="/tool" element={<ToolBackgroundPage />} />
           </Routes>
         </BrowserRouter>
       </React.StrictMode>
