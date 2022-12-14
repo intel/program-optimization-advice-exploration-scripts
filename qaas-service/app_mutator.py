@@ -25,7 +25,8 @@ script_dir=os.path.dirname(os.path.realpath(__file__))
 template_dir=os.path.join(script_dir, '..', 'templates')
 tmp_dir="/nfs/site/proj/alac/tmp/qaas-locus-runs"
 tmp_dir="/tmp/qaas-locus-runs"
-QAAS_LOCUS_TEMPLATE_FILE_NAME="scop.locus.template"
+#QAAS_LOCUS_TEMPLATE_FILE_NAME="scop.locus.template"
+QAAS_LOCUS_TEMPLATE_FILE_NAME="scop.locus.template.demo"
 
 
 # def instantiate_template(template_file, names, out_dir, outfile_name):
