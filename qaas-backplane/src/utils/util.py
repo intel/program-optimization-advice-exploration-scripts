@@ -15,7 +15,7 @@ def generate_timestamp():
 
 def timestamp_str(locus_timestamp):
     locus_ts_str = str(locus_timestamp)
-    locus_ts_str = locus_ts_str[:3] + "-" + locus_ts_str[4:6] + "-" + locus_ts_str[7:]
+    locus_ts_str = locus_ts_str[:3] + "-" + locus_ts_str[3:6] + "-" + locus_ts_str[6:]
     return locus_ts_str
 
 
