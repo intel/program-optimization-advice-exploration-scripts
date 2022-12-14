@@ -69,6 +69,7 @@ export default function DataTable({ columns_raw, rows_raw, isLoading, shouldLoad
     }
     var orig_filepath = process.env.PUBLIC_URL + '/orig/otter_html/index.html'
     var opt_filepath = process.env.PUBLIC_URL + '/opt/otter_html/index.html'
+    console.log(isLoading, shouldLoadHTML)
     return (
 
         <div style={{ height: 400, width: '100%' }}>
@@ -89,16 +90,19 @@ export default function DataTable({ columns_raw, rows_raw, isLoading, shouldLoad
                 checkboxSelection
             />}
             {isLoading && shouldShowLoading && <LoadingAlert text="Loading..." />}
-            <div style={splitScreen}>
-                <div style={leftPane}>
+            {!isLoading && shouldLoadHTML &&
+                
+                <div style={splitScreen}>
+                    <div style={leftPane}>
 
-                    <div>{!isLoading && shouldLoadHTML && <div ><Iframe id="html" className="htmlclass" url={orig_filepath} height="1000px" width="100%" /></div>}</div>
-                </div>
-                <div style={rightPane}>
+                        <div><div ><Iframe id="html" className="htmlclass" url={orig_filepath} height="1000px" width="100%" /></div></div>
+                    </div>
+                    <div style={rightPane}>
 
-                    <div>{!isLoading && shouldLoadHTML && <div ><Iframe id="html" className="htmlclass" url={opt_filepath} height="1000px" width="100%" /></div>}</div>
+                        <div> <div ><Iframe id="html" className="htmlclass" url={opt_filepath} height="1000px" width="100%" /></div></div>
+                    </div>
                 </div>
-            </div>
+            }
 
         </div>
     );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DataTable from './graph/DataTable';
 import axios from "axios";
 
-export default function BrowseResult({isLoading, shoudLoadHTML, setIsLoading, setShouldLoadHTML}) {
+export default function BrowseResult({isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML}) {
     
     const [timestamps, setTimestamps] = useState([]);
     // const [isLoading, setIsLoading] = useState(false);
@@ -16,9 +16,10 @@ export default function BrowseResult({isLoading, shoudLoadHTML, setIsLoading, se
             })
 
     }, [])
+    console.log("browseresult", isLoading,shouldLoadHTML,setIsLoading, setShouldLoadHTML)
     return (
         <div style={{ marginTop: 80 }}>
-            {timestamps.length > 0 && <DataTable isLoading={isLoading} shouldLoadHTML={shoudLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML} columns_raw={["timestamps"]} rows_raw={timestamps} />}
+            {timestamps.length > 0 && <DataTable isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML} columns_raw={["timestamps"]} rows_raw={timestamps} />}
 
 
         </div>
