@@ -8,19 +8,26 @@ import csv
 import re
 
 # OneView paths
-pathToCodeletExtractorDir = "/host/localdisk/spyankov/codelet-extractor"
-maqaoPath = '/host/localdisk/spyankov/cape-experiment-scripts/utils/MAQAO/maqao_new_2020'
+prefix = "/host/localdisk/cwong29/working/codelet_extractor_work"
+#pathToCodeletExtractorDir = "/host/localdisk/spyankov/codelet-extractor"
+pathToCodeletExtractorDir = f"{prefix}/codelet-extractor"
+maqaoPath = f'{prefix}/cape-experiment-scripts/utils/MAQAO/maqao_new_2020'
 
 # CloverLeaf paths
-pathToAnalyzedBinary = "/host/localdisk/spyankov/CloverLeaf/clover_leaf"
-pathToBenchmark = "/host/localdisk/spyankov/CloverLeaf"
+BIN_NAME="MYCLOVER"
+BIN_NAME="clover_leaf"
+pathToAnalyzedBinary = f"{prefix}/CloverLeaf/{BIN_NAME}"
+pathToBenchmark = f"{prefix}/CloverLeaf"
+
 LOOPFILEPATH = ""
 LOOPFILENAME = ""
 BASEFILENAME = ""
 LOOPOBJNAME = ""
 OBJDIR = "./obj" #pathToBenchmark + "/obj"
 MPIOBJDIR = "./mpiobj" #pathToBenchmark + "/mpiobj"
-PATHTOPIN = "/host/localdisk/spyankov/pin-3.22-98547-g7a303a835-gcc-linux"
+#PATHTOPIN = "/host/localdisk/spyankov/pin-3.22-98547-g7a303a835-gcc-linux"
+PATHTOPIN = f"{prefix}/pin"
+compilerFlags="-std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -DUSE_OPENMP -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data"
 
 # Global variables for segment boundaries and min/max accessed memory addresses
 start_ds_addr = 0
@@ -161,7 +168,8 @@ def parseReport(maqaoOutfile):
 # Extending the range by 2 due to inaccuracy detection of a loop by OneView
 def parseLineNumberString(lineNumbers):
     firstLineNum,secondLineNum = lineNumbers.split('-')
-    return [int(firstLineNum)-2,int(secondLineNum)+2]
+    #return [int(firstLineNum)-2,int(secondLineNum)+2]
+    return [int(firstLineNum)+3,int(secondLineNum)+10]
 
 # Function that finds a full path to the loop file
 # Currently, not working (returning the hardcoded global variable)
@@ -195,6 +203,33 @@ def extractLoop():
     myCmd += "/bin/LoopExtractor -I/usr/lib/x86_64-linux-gnu/openmpi/include -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data -DUSE_OPENMP -lm "
     myCmd += LOOPFILEPATH
     runBashCmd(myCmd)
+
+def build(ver, main_cc_file="./src/clover_leaf.cc"):
+    #myCmd = "mpic++ -std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -DUSE_OPENMP -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data -c ./LoopExtractor_data/codelet_"
+    outdir=f"./ExtractedLoop_objfiles/{ver}"
+    outobj=os.path.join(outdir, LOOPOBJNAME)
+    os.makedirs(outdir, exist_ok=True)
+
+    myCmd = f"mpic++ {compilerFlags} -c ./LoopExtractor_data/codelet_"
+    fileName = LOOPFILENAME.split('.')
+    myCmd += fileName[-2]
+    myCmd += f"/{ver}_"+BASEFILENAME
+    myCmd += f" -o {outobj}"
+    #myCmd += " -o ./ExtractedLoop_objfiles/"
+    #myCmd += LOOPOBJNAME#getObjName((LOOPFILEPATH.split('/'))[-1])
+    runBashCmd(myCmd)
+    #buildBinary(ver)
+    myCmd = "mpic++ -std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -fopenmp -DUSE_OPENMP "
+    myCmd += OBJDIR
+    myCmd += "/*.o " 
+    myCmd += MPIOBJDIR
+    myCmd += f"/*.o ./ExtractedLoop_objfiles/*.o {outobj} "
+    myCmd += f"{main_cc_file} -o "
+    myCmd += f"./{ver}"
+    runBashCmd(myCmd)
+
+    
+
 
 # Generation of an object file for some utilities necessary for running in-vitro extraction
 ### THIS WORKS FOR CLOVERLEAF OR OTHER BENCHMARKS THAT USE OBJECT FILES AS PART OF BUILDING PROCESS
@@ -236,39 +271,39 @@ def getLoopFileNames():
 
 # Generation of a binary out of previously generated object files
 ### THIS WORKS ONLY FOR CLOVERLEAF
-def buildObjFiles():
+def buildBinary(binary):
     myCmd = "mpic++ -std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -fopenmp -DUSE_OPENMP "
     myCmd += OBJDIR
     myCmd += "/*.o " 
     myCmd += MPIOBJDIR
     myCmd += "/*.o ./ExtractedLoop_objfiles/*.o "
     myCmd += "./src/clover_leaf.cc -o "
-    myCmd += "./clover_leaf"
+    myCmd += f"./{binary}"
     runBashCmd(myCmd)
 
 # Building a benchmark where base file was replaced with TRACE source file
 # to trace memory access addresses
 ### THIS WORKS ONLY FOR CLOVERLEAF
 def buildTraceSourceFile():
-    removeLoopObjFile()
-    myCmd = "mpic++ -std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -DUSE_OPENMP -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data -c ./LoopExtractor_data/codelet_"
-    fileName = LOOPFILENAME.split('.')
-    myCmd += fileName[-2]
-    myCmd += "/trace_"+BASEFILENAME
-    myCmd += " -o ./ExtractedLoop_objfiles/"
-    myCmd += LOOPOBJNAME#getObjName((LOOPFILEPATH.split('/'))[-1]))
-    runBashCmd(myCmd)
-    buildObjFiles()
+    build("trace")
+    # myCmd = "mpic++ -std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -DUSE_OPENMP -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data -c ./LoopExtractor_data/codelet_"
+    # fileName = LOOPFILENAME.split('.')
+    # myCmd += fileName[-2]
+    # myCmd += "/trace_"+BASEFILENAME
+    # myCmd += " -o ./ExtractedLoop_objfiles/"
+    # myCmd += LOOPOBJNAME#getObjName((LOOPFILEPATH.split('/'))[-1]))
+    # runBashCmd(myCmd)
+    # buildBinary("trace")
 
 # Running pintool to trace/save memory addresses
 ### THIS WORKS ONLY FOR CLOVERLEAF
-def runPin(passNum):
+def runPin(passNum, binary):
     myCmd = PATHTOPIN
     myCmd += "/pin -t "
     myCmd += PATHTOPIN
     #This line is used for more modern pintool (HuskyFuncTrace)
-    #myCmd += "/source/tools/HuskyFuncTrace/obj-intel64/HuskyFuncTrace.so -start_ds_addr " 
-    myCmd += "/source/tools/HuskyTool/obj-intel64/HuskyTool.so -start_ds_addr "
+    myCmd += "/source/tools/HuskyFuncTrace/obj-intel64/HuskyFuncTrace.so -start_ds_addr " 
+    #myCmd += "/source/tools/HuskyTool/obj-intel64/HuskyTool.so -start_ds_addr "
     myCmd += str(start_ds_addr)
     myCmd += " -end_ds_addr "
     myCmd += str(end_ds_addr)
@@ -286,9 +321,11 @@ def runPin(passNum):
     #This line is used for more modern pintool (HuskyFuncTrace)
     #myCmd += " -path_to_callgraph ./LoopExtractor_data/callgraphResult.extr -- ./clover_leaf |& tee /tmp/out.txt" 
     if passNum == 0:
-        myCmd += " -- ./clover_leaf >> /tmp/out.txt"
+        #myCmd += " -- ./clover_leaf >> /tmp/out.txt"
+        myCmd += f" -- ./{binary} >> /tmp/out.txt"
     elif passNum == 1:
-        myCmd += " -- ./clover_leaf "# >> /tmp/out.trace.txt"
+        #myCmd += " -- ./clover_leaf "# >> /tmp/out.trace.txt"
+        myCmd += f" -- ./{binary} "# >> /tmp/out.trace.txt"
     runBashCmd(myCmd)
 
 # Parsing text file with collected boundaries of heap, stack, data segment
@@ -379,10 +416,10 @@ def getMinMaxVars():
 def runTrace():
     removeTmpFiles()
     # First pass
-    runPin(0)
+    runPin(0, 'trace')
     getSegmentVars()
     # Second pass
-    runPin(1)
+    runPin(1, 'trace')
     getMinMaxVars()
 
 # Copying util files necessary for running in-vitro extraction
@@ -400,36 +437,47 @@ def copyUtilFiles():
 # to save data from traced memory access addresses
 ### THIS WORKS ONLY FOR CLOVERLEAF
 def buildSaveSourceFile():
-    myCmd = "mpic++ -std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -DUSE_OPENMP -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data -c ./LoopExtractor_data/codelet_"
-    fileName = LOOPFILENAME.split('.')
-    myCmd += fileName[-2]
-    myCmd += "/save_"+BASEFILENAME
-    myCmd += " -o ./ExtractedLoop_objfiles/"
-    myCmd += LOOPOBJNAME#getObjName((LOOPFILEPATH.split('/'))[-1])
-    runBashCmd(myCmd)
-    buildObjFiles()
+    build("save")
+    # myCmd = "mpic++ -std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -DUSE_OPENMP -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data -c ./LoopExtractor_data/codelet_"
+    # fileName = LOOPFILENAME.split('.')
+    # myCmd += fileName[-2]
+    # myCmd += "/save_"+BASEFILENAME
+    # myCmd += " -o ./ExtractedLoop_objfiles/"
+    # myCmd += LOOPOBJNAME#getObjName((LOOPFILEPATH.split('/'))[-1])
+    # runBashCmd(myCmd)
+    # buildBinary("save")
 
 # Building a driver file from RESTORE source file and generate a binary of a codelet
 ### THIS WORKS ONLY FOR CLOVERLEAF
 def buildRestoreSourceFile():
-    buildBenchmark()
-    rmCmd = "rm ./ExtractedLoop_objfiles/"
-    rmCmd += LOOPOBJNAME#getObjName((LOOPFILEPATH.split('/'))[-1])
-    runBashCmd(rmCmd)
-    myCmd = "mpic++ -std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -fopenmp -DUSE_OPENMP -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data "
+    ver="restore"
+    outdir=f"./ExtractedLoop_objfiles/{ver}"
+    outobj=os.path.join(outdir, LOOPOBJNAME)
+    os.makedirs(outdir, exist_ok=True)
+    #myCmd = "mpic++ -std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -fopenmp -DUSE_OPENMP -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data "
+    myCmd = f"mpic++ {compilerFlags} -c ./LoopExtractor_data/codelet_"
+    fileName = LOOPFILENAME.split('.')
+    myCmd += fileName[-2]
+    myCmd += f"/{ver}_" + BASEFILENAME
+    myCmd += f" -o {outobj}"
+    #myCmd += " -o ./ExtractedLoop_objfiles/"
+    #myCmd += LOOPOBJNAME#getObjName((LOOPFILEPATH.split('/'))[-1])
+    runBashCmd(myCmd)
+    
+    myCmd = "mpic++ -std=c++11 -Wall -Wpedantic -g -Wno-unknown-pragmas -O3 -march=native -lm -fopenmp -DUSE_OPENMP "
     myCmd += OBJDIR
     myCmd += "/*.o " 
     myCmd += MPIOBJDIR
-    myCmd += "/*.o ./ExtractedLoop_objfiles/*.o ./LoopExtractor_data/codelet_"
-    fileName = LOOPFILENAME.split('.')
-    myCmd += fileName[-2]
-    myCmd += "/restore_" + BASEFILENAME
-    myCmd += " -o ./restore"
+    myCmd += f"/*.o ./ExtractedLoop_objfiles/*.o {outobj} "
+    #myCmd += "./src/clover_leaf_no_main.cc -o "
+    myCmd += " -o "
+    myCmd += f"./{ver}"
     runBashCmd(myCmd)
+
 
 # Running SAVE inside of a pintool
 def runSave():
-    runPin(1)
+    runPin(1, 'save')
 
 # Building TRACE, SAVE, and RESTORE source files and running them to save datafiles
 def generateCodelet():
@@ -438,6 +486,7 @@ def generateCodelet():
     makeCodeletDir()
     buildUtil()
     buildLoopFile()
+    removeLoopObjFile()
     buildTraceSourceFile()
     print("Tracing memory addresses")
     runTrace()
@@ -446,7 +495,12 @@ def generateCodelet():
     print("Saving data from traced memory addresses")
     runSave() 
     print("FINISHED saving the data")
-    buildRestoreSourceFile()
+    buildBenchmark()
+    rmCmd = "rm ./ExtractedLoop_objfiles/"
+    rmCmd += LOOPOBJNAME#getObjName((LOOPFILEPATH.split('/'))[-1])
+    runBashCmd(rmCmd)
+    build("restore", "./src/clover_leaf_no_main.cc")
+    #buildRestoreSourceFile()
 
 # Building the benchmark from scratch
 ### THIS WORKS ONLY FOR CLOVERLEAF
@@ -476,7 +530,8 @@ def runExtractor(loopsToExtract):
     loop = ["clover.cc","81-81"]
     global LOOPFILEPATH
     #LOOPFILEPATH = "/host/localdisk/spyankov/CloverLeaf/src/update_halo.cc"
-    LOOPFILEPATH = "/host/localdisk/spyankov/CloverLeaf/src/clover.cc"
+    #LOOPFILEPATH = "/host/localdisk/spyankov/CloverLeaf/src/clover.cc"
+    LOOPFILEPATH = f"{prefix}/CloverLeaf/src/clover.cc"
     loopPath = findLoopPath(loop) #NOT WORKING AT THE MOMENT, RETURNING THE LOOPFILEPATH GLOBAL VARIABLE
     # Generating a Loop Location file with info about a loop (path to a file and line number of a loop) 
     # that should be extracted to the working directory
