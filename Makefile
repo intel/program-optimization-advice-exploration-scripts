@@ -1,6 +1,6 @@
 ifeq ($(OS), centos)
 	CC = g++-4.9
-	FLAGS = -std=c++11 -g -DOS_CENTOS
+	FLAGS = -std=c++14 -g -DOS_CENTOS
 
 	ROSE_PATH = ${CURDIR}/tools/rose_build
 	FLAGS += -DROSE_PATH=$(ROSE_PATH)
@@ -9,12 +9,12 @@ ifeq ($(OS), centos)
 	ROSE_LIB = -lROSE_DLL
 else
 	CC = g++
-	FLAGS = -std=c++11 -g
+	FLAGS = -std=c++14 -g
 
 	ROSE_PATH = /usr/rose
 	#BOOST_PATH = ${CURDIR}/tools/boost_build
 	ROSE_INCLUDE = -I${ROSE_PATH}/include/rose #-I${BOOST_PATH}/include/
-	ROSE_LIB = -lrose
+	ROSE_LIB = -L${JAVA_HOME}/lib -lrose
 endif
 
 OBJS = obj
@@ -72,7 +72,7 @@ $(OBJ_TRACER): $(SRC_TRACER)
 ##### DRIVER #####
 
 DRIVER_COMPILE_FLAGS = $(EXTRACTOR_COMPILE_FLAGS) $(OPENCV_INCLUDE)
-DRIVER_LD_FLAGS      = $(EXTRACTOR_LD_FLAGS) -pthread $(PREDICTOR_LD_FLAGS)
+DRIVER_LD_FLAGS      = -L${JAVA_HOME}/lib/server -ljvm $(EXTRACTOR_LD_FLAGS) -pthread $(PREDICTOR_LD_FLAGS)
 
 OBJ_DRIVER = $(OBJS)/driver.o
 SRC_DRIVER = $(DRIVER_PATH)/driver.cpp 

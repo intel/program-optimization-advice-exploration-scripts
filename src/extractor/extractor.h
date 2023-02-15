@@ -58,6 +58,7 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     Tracer *tr;
     vector<string> global_var_names;
     vector<string> short_loop_names;
+    SgSourceFile* src_file;
 
   public:
     string ignorePrettyFunctionCall1 = "__PRETTY_FUNCTION__";
@@ -98,6 +99,8 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     string getExtractionFileName(SgNode *astNode);
     void updateUniqueCounter(SgNode *astNode);
     string getLoopName(SgNode *astNode);
+    void set_src_file(SgSourceFile* file) { src_file = file; }
+    SgSourceFile* get_src_file() { return src_file; }
     void printHeaders(ofstream &loop_file_buf);
     void printGlobalsAsExtern(ofstream &loop_file_buf);
     void addExternDefs(SgFunctionDeclaration *func);
@@ -128,6 +131,7 @@ class LoopInfo {
     vector<string> scope_vars_str_vec;
     vector<SgVariableSymbol *> scope_vars_symbol_vec;
     vector<SgInitializedName *> scope_vars_initName_vec;
+    vector<SgInitializedName *> global_vars_initName_vec;
     set<SgFunctionDeclaration *> scope_funcCall_vec;
     vector<string> scope_globals_vec;
     vector<string> privateOMP_array_vec;
@@ -156,6 +160,8 @@ class LoopInfo {
     string sanitizeOMPpragma(const string &pragmaStr);
     void addLoopFuncAsExtern(); // In Base file
     void addLoopFuncCall();     // In Base file
+    SgFunctionDeclaration* addLoopFuncDefnDecl(SgGlobal* glb); // In Base file
+    void addGlobalVarDeclsAsExtern(SgGlobal* glb); // In Base file
 
     SgScopeStatement *getLoopScope() { return loop_scope; }
     SgNode *getLoopNode() {
