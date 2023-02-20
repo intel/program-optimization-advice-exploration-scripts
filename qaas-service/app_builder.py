@@ -53,8 +53,10 @@ lookup_functions = [
             ({'icc': 'fp-model fast=2', 'gcc': 'ffast-math', 'icx': 'fp-model fast'}, simple_replace),
             ({'icc': 'qoverride-limits', 'gcc': '', 'icx': 'qoverride-limits'}, simple_replace),
             ({'icc': 'xCore-AVX512', 'gcc': 'mavx512f', 'icx': 'xCore-AVX512'}, simple_replace),
-            ({'icc': 'qopt-zmm-usage=high', 'gcc': '', 'icx': 'mprefer-vector-width=512'}, simple_replace),
-            ({'icc': 'O3', 'gcc': 'O3', 'icx': 'O3'}, simple_replace)
+            ({'icc': 'qopt-zmm-usage=high', 'gcc': 'mprefer-vector-width=512', 'icx': 'mprefer-vector-width=512'}, simple_replace),
+            ({'icc': 'O3', 'gcc': 'O3', 'icx': 'O3'}, simple_replace),
+            ({'icc': 'grecord-gcc-switches', 'gcc': '', 'icx': 'grecord-gcc-switches'}, simple_replace),
+            ({'icc': 'fno-omit-frame-pointer', 'gcc': 'fno-omit-frame-pointer', 'icx': 'fno-omit-frame-pointer'}, simple_replace)
             ]
 def encode_compiler_flag(compiler, flag):
     return compiler+':'+flag
@@ -107,11 +109,11 @@ def add_underlying_flag (flags, flag, compiler):
     
 
 def exec(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, 
-         user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target, user_target_location, mode):
+         user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target, user_target_location, mode, extra_cmake_flags=""):
     # Assume we can write to parent path to source directory
 
     if mode == 'prepare' or mode == 'both': 
-        build_dir, output_dir, output_name, env = setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags)
+        build_dir, output_dir, output_name, env = setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, extra_cmake_flags)
     else:
         # For 'make' get current env for next step
         env = os.environ.copy()
@@ -123,7 +125,7 @@ def exec(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_com
         build_binary(user_target, build_dir, user_target_location, env, output_dir, output_name)
     return env
 
-def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags):
+def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, extra_cmake_flags=""):
     build_dir=get_build_dir(src_dir)
     output_dir=os.path.dirname(output_binary_path)
     output_name=os.path.basename(output_binary_path)
@@ -153,6 +155,7 @@ def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target
         f'-DCMAKE_CXX_FLAGS="{cmake_cxx_flags}" '\
         f'-DCMAKE_Fortran_FLAGS="{cmake_fortran_flags}" '\
         f'-DCMAKE_EXE_LINKER_FLAGS="{cmake_linker_flags}" '\
+        f'{extra_cmake_flags} '\
         f'-S {src_dir} -B {build_dir} -G Ninja '
     #    f'-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={output_dir}'
     print(cmake_config_cmd)
@@ -227,6 +230,7 @@ def get_build_dir(src_dir):
 def build_binary(user_target, build_dir, target_location, env, output_dir, output_name):
     cmake_target = user_target if user_target else 'all'
     cmake_build_cmd=f'time cmake --build {build_dir} --target {cmake_target}'
+    print(cmake_build_cmd)
     subprocess.run(cmake_build_cmd, shell=True, env=env)
     built_bin = os.path.join(build_dir, target_location)
     out_bin = os.path.join(output_dir, output_name)
@@ -252,6 +256,7 @@ def build_argparser(parser, include_binary_path=True, include_mode=True):
     parser.add_argument('--user-target-location', help='Target location for this build (executable in build directory)', required=True)
     if include_mode:
         parser.add_argument('--mode', help='Mode of build', choices=['prepare', 'make', 'both'], required=True)
+    parser.add_argument('--extra-cmake-flags', type=str, help='Extra CMAKE Flags for this build', default="\"\"")
 
 # For sample inputs: see VSCode launch.json file
 
@@ -261,7 +266,7 @@ def main():
     args = parser.parse_args()
 
     exec(args.src_dir, args.compiler_dir, args.output_binary_path, args.orig_user_CC, args.target_CC,
-         args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target, args.user_target_location, args.mode)
+         args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target, args.user_target_location, args.mode, args.extra_cmake_flags)
 
 
 if __name__ == "__main__": 

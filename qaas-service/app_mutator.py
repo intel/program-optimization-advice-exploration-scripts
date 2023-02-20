@@ -11,8 +11,8 @@ from Cheetah.Template import Template
 
 from app_builder import build_argparser as builder_build_argparser
 from app_builder import build_binary, get_build_dir, setup_build
-from app_runner import build_argparser as runner_build_argparser
-from app_runner import AppRunner
+from profiler_runner import build_argparser as runner_build_argparser
+from profiler_runner import ProfilerRunner
 from logger import QaasComponents, log
 from utils.util import generate_timestamp_str
 from utils.util import parse_env_map 
@@ -130,7 +130,6 @@ def exec(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, 
 
     helper.exec_locus()
 
-
     if LocusDbAccess(helper.db_file).extract_best_variant(helper.locus_file, helper.locus_result_dir, helper.preproc_folders):
         # Best variant regenerated in place, so rebuild will produce opt executable
         os.remove(helper.locus_bin)
@@ -197,7 +196,7 @@ def get_target_loop(compiler_dir, maqao_path, orig_user_CC, user_CC, user_c_flag
     compile_command_json_file = os.path.join(build_dir, 'compile_commands.json')
 
 #1.5 setup trial run to select loops (before insert of Locus pragma)
-    AppRunner(locus_bin_run_dir, maqao_path).prepare(locus_bin, data_path)
+    ProfilerRunner(locus_bin_run_dir, maqao_path).prepare(locus_bin, data_path)
 
     full_src_file, insert_pragma_before_line = profile_app(run_dir, maqao_path, data_path, app_run_cmd, locus_bin_run_dir, locus_bin, env)
     return make_cmd,build_dir,compile_command_json_file,full_src_file,insert_pragma_before_line
@@ -293,7 +292,7 @@ class QaaSLocusRunner(LocusRunner):
 
     @property
     def run_cmd(self):
-        return f'python {script_dir}/app_runner.py' \
+        return f'python {script_dir}/profiler_runner.py' \
             + f" --binary-path $QAAS_binary_path" \
             + f" --maqao-path $QAAS_maqao_path" \
                 + f" --run-dir $QAAS_run_dir" \
