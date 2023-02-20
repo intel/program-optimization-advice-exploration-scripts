@@ -33,11 +33,8 @@ class BaseRunner(ABC):
         run_env.update(omp_envs)
         run_env["OMP_NUM_THREADS"] = str(omp_num_threads)
         mpi_command = f"{mpi_run_command} -np {mpi_num_processes}" if mpi_run_command else ""
-
-        #my_env.update(env_var_map)
-        #env = load_compiler_env(compiler_dir)
-        #my_env.update(env)
-        self.true_run(binary_path, self.run_dir, run_cmd, run_env, mpi_command)
+        success = self.true_run(binary_path, self.run_dir, run_cmd, run_env, mpi_command)
+        return success
 
     # Subclass override to do the real run
     @abstractmethod
@@ -47,10 +44,11 @@ class BaseRunner(ABC):
     def exec(self, env, binary_path, data_path, run_cmd, mode,
              mpi_run_command, mpi_num_processes, omp_num_threads, 
              mpi_envs, omp_envs):
+        success = True
         if mode == 'prepare' or mode == 'both':
             self.prepare(binary_path, data_path)
-            print(self.run_dir)
 
         if mode == 'run' or mode == 'both':
-            self.run(binary_path, run_cmd, 
+           success = self.run(binary_path, run_cmd, 
                      mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs, env)
+        return success
