@@ -33,29 +33,6 @@ class QAASJobSubmit:
         self.provisioner = provisioner
         self.application = user_application
 
-    def build_default(self):
-        """Run build stage."""
-        logging.info("Build %s using default compiler settings on %s", self.provisioner.app_name, self.provisioner.machine)
-        app_cmd = "/usr/bin/python3 /qaas/app_builder.py" + \
-                    " --src-dir /app/builder/" + self.provisioner.app_name + \
-                    " --compiler-dir /opt/intel/oneapi/" + \
-                    " --output-binary-path builder/build/bin/miniQMC" + \
-                    " --orig-user-CC='" + self.compiler["USER_CC"] + "'" + \
-                    " --target-CC='" + self.compiler["USER_CC"] + "'" + \
-                    " --user-c-flags='" + self.compiler["USER_C_FLAGS"] + "'" + \
-                    " --user-cxx-flags='" + self.compiler["USER_CXX_FLAGS"] + "'" + \
-                    " --user-fc-flags='" + self.compiler["USER_FC_FLAGS"] + "'" + \
-                    " --user-link-flags='" + self.compiler["USER_LINK_FLAGS"] + "'" + \
-                    " --user-target='" + self.compiler["USER_TARGET"] + "'" + \
-                    " --user-target-location='/app/builder/build/" + self.compiler["USER_TARGET_LOCATION"] + "'" + \
-                    " --mode=both"
-        mount_map = { "/home/qaas/DEMO/scripts/app_builder.py":"/qaas/app_builder.py", 
-                     "/home/qaas/DEMO/scripts/util.py":"/qaas/util.py", 
-                     self.compilers["QAAS_INTEL_COMPILERS_DIRECTORY"]:"/opt/intel/oneapi", 
-                     self.compilers["QAAS_GNU_COMPILERS_DIRECTORY"]:"/opt/gnu", 
-                     self.provisioner.get_workdir("build"):"/app/builder" }
-        return self.run_container(app_cmd, mount_map, network_host=False, cap_add=False)
-
     def run_container(self, app_cmd, mount_map, network_host=False, cap_add=False, debug=False):
         mount_flags = "".join([f' -v {k}:{v}' for k,v in mount_map.items()])
         start_container_flags, run_cmd = self.build_podman_run_command(app_cmd, network_host, cap_add, mount_flags) 
@@ -119,20 +96,20 @@ class QAASJobSubmit:
 
     def copy_remote_file(self, remote_file, local_dir):
         rc = 0
-        rc, cmdout = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine).copy_remote_file(remote_file, local_dir)
+        rc, cmdout = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine, self.provisioner.ssh_port).copy_remote_file(remote_file, local_dir)
         if rc == 0:
             logging.debug(cmdout)
-            return 0, cmdout.decode("utf-8")
+            return 0, cmdout
         else:
             raise QAASJobException(rc)
 
     def run_remote_job_cmd(self, job_cmd):
         logging.debug("job_cmd=%s", job_cmd)
         rc = 0
-        rc, cmdout = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine).run_remote_cmd(job_cmd)
+        rc, cmdout = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine, self.provisioner.ssh_port).run_remote_cmd(job_cmd)
         if rc == 0:
             logging.debug(cmdout)
-            return 0, cmdout.decode("utf-8")
+            return 0, cmdout
         else:
             raise QAASJobException(rc)
 
@@ -143,11 +120,13 @@ class QAASJobSubmit:
         compiler_subdir = self.provisioner.get_compiler_subdir(self.compiler["USER_CC"], self.compiler["USER_CC_VERSION"])
         ov_run_dir = self.provisioner.get_workdir("oneview_runs")
         locus_run_dir = self.provisioner.get_workdir("locus_runs")
+        base_run_dir = self.provisioner.get_workdir("base_runs")
         ov_dir="/opt/maqao"
         container_app_builder_path="/app/builder"
         container_app_dataset_path="/app/dataset"
         container_app_oneview_path="/app/oneview_runs"
         container_app_locus_path="/app/locus_runs"
+        container_app_base_path="/app/base_runs"
         #container_compiler_root="/app/compilers"
         # The current load script seems to require the same path
         container_compiler_root=compiler_root
@@ -159,43 +138,20 @@ class QAASJobSubmit:
         app_cmd = f"/usr/bin/python3 {container_script_root}/qaas-service/job.py "+ \
                     f' --src-dir {os.path.join(container_app_builder_path, self.provisioner.app_name)}'+ \
                     f' --data_dir {os.path.join(container_app_dataset_path, self.provisioner.git_data_download_path)} --ov_config unused --ov_run_dir {container_app_oneview_path}'+ \
-                    f' --locus_run_dir {container_app_locus_path} --compiler-dir {os.path.join(container_compiler_root, compiler_subdir)} --ov_dir {ov_dir}'+ \
+                    f' --base_run_dir {container_app_base_path} --locus_run_dir {container_app_locus_path} --compiler-dir {os.path.join(container_compiler_root, compiler_subdir)} --ov_dir {ov_dir}'+ \
                     f' --orig-user-CC {self.compiler["USER_CC"]} --target-CC {self.compiler["USER_CC"]} --user-c-flags "{self.compiler["USER_C_FLAGS"]}"'+ \
                     f' --user-cxx-flags "{self.compiler["USER_CXX_FLAGS"]}" --user-fc-flags "{self.compiler["USER_FC_FLAGS"]}"'+ \
-                    f' --user-link-flags "{self.compiler["USER_LINK_FLAGS"]}" --user-target {self.compiler["USER_TARGET"]} --user-target-location {self.compiler["USER_TARGET_LOCATION"]}'+ \
+                    f' --user-link-flags "{self.compiler["USER_LINK_FLAGS"]}"'+ \
+                    f' --extra-cmake-flags "{self.compiler["USER_EXTRA_CMAKE_FLAGS"]}"' + \
+                    f' --user-target {self.compiler["USER_TARGET"]} --user-target-location {self.compiler["USER_TARGET_LOCATION"]}'+ \
                     f'{env_var_flags}'+ \
                     f' --run-cmd "{app_run_info["APP_RUN_CMD"]}"' + \
                     f" --comm-port {self.provisioner.comm_port}" 
         mount_map = { ov_dir:ov_dir, script_root:container_script_root,
                      self.provisioner.get_workdir("build") :container_app_builder_path, 
                      ov_run_dir:container_app_oneview_path, 
+                     base_run_dir:container_app_base_path,
                      locus_run_dir:container_app_locus_path, 
-                     compiler_root:container_compiler_root, 
+                     compiler_root:container_compiler_root,
                      os.path.join(self.provisioner.get_workdir("dataset"), self.provisioner.app_name):container_app_dataset_path}
         return self.run_container(app_cmd, mount_map, network_host=True, cap_add=True, debug=False)
-    
-    def run_reference_app(self):
-        """Run a reference run of the application."""
-        logging.info("Run a reference run of %s on %s", self.provisioner.app_name, self.provisioner.machine)
-        # NOTE: temporarly run the following until app_runner inetgration
-        run_cmd = "\"{ " + \
-                  "printf '#!/bin/bash\\n\\nRANKS=\$(nproc)\\nif [[ ! -z \\\"\$1\\\"  ]]; then RANKS=\$1; fi\\n\\n'" + \
-                  " && printf 'source /opt/intel/oneapi/setvars.sh >/dev/null\\n'" + \
-                  " && printf 'export OMP_NUM_THREADS=1\\nexport I_MPI_PIN_PROCESSOR_LIST=\\\"all:map=spread\\\"\\n'" + \
-                  " && printf '/opt/maqao/bin/maqao oneview -R1 xp=miniqmc-mpi --replace --mpi_command=\\\"mpirun -np \$RANKS\\\" -- '" + \
-                  " && printf '/app/builder/build/bin/miniqmc -g \\\"2 2 2\\\" -b\\n'" + \
-                  " ; } > " + self.provisioner.get_workdir("base_runs") + "/run.sh" + \
-                  " ; chmod ug+x " + self.provisioner.get_workdir("base_runs") + "/run.sh\""
-        try:
-            rc, _ = self.run_remote_job_cmd(run_cmd)
-            return rc
-        except QAASJobException as exp:
-            return exp.rc 
-        app_cmd = "/app/runner/run.sh 8"
-        mount_map = {"/opt/maqao":"/opt/maqao" , 
-                     self.compilers["QAAS_INTEL_COMPILERS_DIRECTORY"] : "/opt/intel/oneapi" , 
-                     self.compilers["QAAS_GNU_COMPILERS_DIRECTORY"] : "/opt/gnu" , 
-                     self.provisioner.get_workdir("build") : "/app/builder" , 
-                     self.provisioner.get_workdir("base_runs") : "/app/runner" }
-        return self.run_container(app_cmd, mount_map, network_host=False, cap_add=True) 
-
