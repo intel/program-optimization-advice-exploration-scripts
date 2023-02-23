@@ -66,6 +66,7 @@ def launch_qaas(app_params, service_msg_recv_handler, launch_output_dir='/tmp/qa
                               params.user["account"]["QAAS_ACCOUNT"], 
                               params.user["application"]["APP_NAME"], 
                               params.user["application"]["GIT"],
+                              params.system["machines"]["QAAS_SSH_PORT"],
                               params.system["machines"]["QAAS_MACHINES_POOL"],
                               params.system["container"],
                               params.system["compilers"],
