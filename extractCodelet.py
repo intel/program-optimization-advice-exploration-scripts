@@ -688,24 +688,29 @@ def main():
 
     # Extractor loop using in-situ extractor
     generateLoopLocFile(loop[0], loop[1], loop_extractor_data_dir)
-    runCmd(loop_extractor_command, cwd=extractor_work_dir, verbose=True)
+    env = os.environ.copy()
+    env['LD_LIBRARY_PATH'] = env['LD_LIBRARY_PATH']+':/usr/lib/jvm/java-11-openjdk-amd64/lib/server'
+    
+    runCmd(loop_extractor_command, cwd=extractor_work_dir, env=env, verbose=True)
+    basefilename, loopfilename = getLoopFileNames1('/tmp/loopFileNames.txt')
 
-    extractor_codelet_src_dir = single_glob(f'{loop_extractor_data_dir}/codelet_*')
 
     cmake_extractor_src_dir = ensure_dir_exists(src_dir, 'extractor_src')
+    cmake_extractor_include_dir = ensure_dir_exists(src_dir, 'extractor_include')
 
-    trace_src_file = single_glob(f'{extractor_codelet_src_dir}/trace_*')
+    #trace_src_file = single_glob(f'{extractor_codelet_src_dir}/trace_*')
+    trace_src_file = os.path.join(loop_extractor_data_dir, basefilename)
     shutil.copy2(trace_src_file, cmake_extractor_src_dir)
 
-    basefilename, loopfilename = getLoopFileNames1('/tmp/loopFileNames.txt')
-    loop_file = os.path.join(loop_extractor_data_dir,loopfilename)
+    loop_file = os.path.join(loop_extractor_data_dir, loopfilename)
     shutil.copy2(loop_file, cmake_extractor_src_dir)
 
-    cmake_extractor_include_dir = ensure_dir_exists(src_dir, 'extractor_include')
 
     initiateConfig1(cmake_extractor_include_dir)
     util_h_file = os.path.join(script_dir, 'src', 'tracer', 'util.h')
     shutil.copy2(util_h_file, cmake_extractor_include_dir)
+    util_c_file = os.path.join(script_dir, 'src', 'tracer', 'util.c')
+    shutil.copy2(util_c_file, cmake_extractor_src_dir)
     
     trace_binary=f'trace_{binary}'
     runCmd(f'cmake -DBUILD_TRACE=ON -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP" -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {src_dir} -B {build_dir}', cwd=run_cmake_dir, verbose=True)
@@ -721,12 +726,13 @@ def main():
     segment_info.run_trace(os.path.join(build_dir, trace_binary), src_dir, loop_name)
     print("FINISHED tracing memory addresses!")
 
-    save_src_file = single_glob(f'{extractor_codelet_src_dir}/save_*')
-    shutil.copy2(save_src_file, cmake_extractor_src_dir)
-    util_c_file = os.path.join(script_dir, 'src', 'tracer', 'util.c')
-    shutil.copy2(util_c_file, cmake_extractor_src_dir)
-    defs_h_file = os.path.join(script_dir, 'src', 'tracer', 'defs.h')
-    shutil.copy2(defs_h_file, cmake_extractor_include_dir)
+    #save_src_file = single_glob(f'{extractor_codelet_src_dir}/save_*')
+    #shutil.copy2(save_src_file, cmake_extractor_src_dir)
+    #util_c_file = os.path.join(script_dir, 'src', 'tracer', 'util.c')
+    #shutil.copy2(util_c_file, cmake_extractor_src_dir)
+    #defs_h_file = os.path.join(script_dir, 'src', 'tracer', 'defs.h')
+    #shutil.copy2(defs_h_file, cmake_extractor_include_dir)
+    # Copy updated address.h file to include to rebuild to save right heap and stack data
     shutil.copy2(segment_info.tracer_out_addresses_h_file, cmake_extractor_include_dir)
 
     save_binary=f'save_{binary}'
@@ -749,9 +755,11 @@ def main():
     restore_include_dir = ensure_dir_exists(extracted_codelet_dir, 'include')
     restore_src_dir = ensure_dir_exists(extracted_codelet_dir, 'src')
     shutil.copy2(util_c_file, restore_src_dir)
-    restore_src_file = single_glob(f'{extractor_codelet_src_dir}/restore_*')
+    # TODO: To fix hardcoding to unify with other generated source files.
+    restore_src_file = "/tmp/restore.cc"
     shutil.copy2(restore_src_file, restore_src_dir)
     shutil.copy2(loop_file, restore_src_dir)
+    # defs.h needed by util.c
     defs_h_file = os.path.join(script_dir, 'src', 'tracer', 'defs.h')
     shutil.copy2(defs_h_file, restore_include_dir)
     shutil.copy2(util_h_file, restore_include_dir)
@@ -760,10 +768,22 @@ def main():
     extracted_cmakelist_txt_file=os.path.join(script_dir, 'templates', 'CMakeLists.txt')
     shutil.copy2(extracted_cmakelist_txt_file, extracted_codelet_dir)
 
+    restore_data_dir = ensure_dir_exists(extracted_codelet_dir, 'data')
+    #shutil.copy2(save_data_dir, restore_data_dir)
+    restore_my_datafile_dir = os.path.join(restore_data_dir, 'myDataFile')
+    shutil.copytree(save_data_dir, restore_my_datafile_dir)
+
+
 
     # Try to build restore (extracted codelete)
-    runCmd(f'cmake -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP" -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {extracted_codelet_dir} -B {extracted_codelet_build_dir}', cwd=restore_work_dir, verbose=True)
+    runCmd(f'cmake -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g" -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {extracted_codelet_dir} -B {extracted_codelet_build_dir}', cwd=restore_work_dir, verbose=True)
     runCmd(f'cmake --build {extracted_codelet_build_dir} --target {restore_binary}', cwd=restore_work_dir, verbose=True)
+
+    restore_run_dir = ensure_dir_exists(restore_work_dir, 'run')
+    shutil.copytree(restore_my_datafile_dir, os.path.join(restore_run_dir, 'myDataFile'))
+    shutil.copy2(os.path.join(extracted_codelet_build_dir, restore_binary), restore_run_dir)
+    # Now can run built extracted codelet
+    runCmd(f'./{restore_binary}', cwd=restore_run_dir, verbose=True)
 
     #compilerflags=
     #runCmd(f"mpiicpc -c -cxx={loop_extractor_path} -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data -DUSE_OPENMP -lm /host/localdisk/cwong29/working/codelet_extractor_work/CloverLeaf/src/clover.cc -o /tmp/test.o

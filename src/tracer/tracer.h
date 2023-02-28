@@ -66,6 +66,7 @@ class Tracer : public AstSimpleProcessing {
     string loopExtrIncludeFlag;
 
     vector<string> globalVariableNames;
+    vector<SgInitializedName*> global_vars_initName_vec ;
     vector<string> localVariableNames;
 
     vector<string> filenameVec;
@@ -108,6 +109,7 @@ class Tracer : public AstSimpleProcessing {
     void setInsertStatement(SgStatement *insertBefore);
     void setLocalVars(std::vector<std::string> localVariableNames);
     void setGlobalVars(std::vector<std::string> globalVariableNames);
+    void setGlobalVarsInitNameVec(vector<SgInitializedName *> global_vars_initName_vec);
 
     void addLoopFuncInfo(LoopFuncInfo *LFI);
 

@@ -55,10 +55,14 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     vector<int> typedef_struct_lineno_vec;
     src_lang src_type;
 
-    Tracer *tr;
+    //Tracer *tr;
     vector<string> global_var_names;
     vector<string> short_loop_names;
-    SgSourceFile* src_file;
+    SgSourceFile* src_file_loop;
+    SgSourceFile* src_file_trace_save;
+    SgSourceFile* src_file_restore;
+    std::pair<unsigned, unsigned> lineNumbers;
+    vector<string> filenameVec;
 
   public:
     string ignorePrettyFunctionCall1 = "__PRETTY_FUNCTION__";
@@ -79,13 +83,16 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
 
   public:
     Extractor(){};
-    Extractor(const vector<string> &argv, Tracer *tr);
+    //Extractor(const vector<string> &argv, Tracer *tr);
+    Extractor(const vector<string> &argv);
 
     src_lang getSrcType() { return src_type; }
     SgGlobal *getGlobalNode() { return global_node; }
     SgStatement *getLastIncludeStatement() { return lastIncludeStmt; }
     string getDataFolderPath() { return LoopExtractor_data_folder_path; };
     string getOMPpragma() { return loopOMPpragma; };
+    void setLineNumbers(unsigned first, unsigned second) 
+    { lineNumbers.first = first; lineNumbers.second = second; }
 
     string getFilePath() { return LoopExtractor_file_path; };
     string getFileName() { return LoopExtractor_file_name; };
@@ -99,8 +106,10 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     string getExtractionFileName(SgNode *astNode);
     void updateUniqueCounter(SgNode *astNode);
     string getLoopName(SgNode *astNode);
-    void set_src_file(SgSourceFile* file) { src_file = file; }
-    SgSourceFile* get_src_file() { return src_file; }
+    void set_src_file_loop(SgSourceFile* file) { src_file_loop = file; }
+    void set_src_file_trace_save(SgSourceFile* file) { src_file_trace_save = file; }
+    void set_src_file_restore(SgSourceFile* file) { src_file_restore = file; }
+    SgSourceFile* get_src_file() { return src_file_loop; }
     void printHeaders(ofstream &loop_file_buf);
     void printGlobalsAsExtern(ofstream &loop_file_buf);
     void addExternDefs(SgFunctionDeclaration *func);
@@ -118,6 +127,8 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     evaluateSynthesizedAttribute(SgNode *astNode, InheritedAttribute inh_attr,
                                  SubTreeSynthesizedAttributes syn_attr_list);
     void inlineFunctions(const vector<string> &argv);
+
+    void do_extraction();
 };
 
 /* Must contain all info regarding the current loop */
@@ -153,6 +164,7 @@ class LoopInfo {
     void addScopeGlobalsAsExtern(string &externGlobalsStr);
 
     void printLoopFunc(ofstream &loop_file_buf);
+    void printLoopFunc1(string loop_file_name);
     void pushPointersToLocalVars(ofstream &loop_file_buf);
     void popLocalVarsToPointers(ofstream &loop_file_buf);
     void analyzeOMPprivateArrays(const string &pragmaStr);
@@ -160,8 +172,9 @@ class LoopInfo {
     string sanitizeOMPpragma(const string &pragmaStr);
     void addLoopFuncAsExtern(); // In Base file
     void addLoopFuncCall();     // In Base file
+    SgFunctionDeclaration* makeLoopFunc(bool defining, SgGlobal* glb) ;
     SgFunctionDeclaration* addLoopFuncDefnDecl(SgGlobal* glb); // In Base file
-    void addGlobalVarDeclsAsExtern(SgGlobal* glb); // In Base file
+    void addGlobalVarDecls(SgGlobal* glb, bool as_extern); // In Base file
 
     SgScopeStatement *getLoopScope() { return loop_scope; }
     SgNode *getLoopNode() {
@@ -171,8 +184,27 @@ class LoopInfo {
     vector<string> getLoopFuncArgsName(); //{ return scope_vars_str_vec; }
     vector<string> getLoopFuncArgsType();
     vector<string> getGlobalVars() { return scope_globals_vec; }
+    vector<SgInitializedName*> getGlobalVarsInitNameVec() { return global_vars_initName_vec; }
     SgForStatement *getLoopStatement() { return loop; }
     SgStatement *getLoopFuncCall() { return loop_func_call; }
+    void restoreGlobalVars();
+    void saveGlobalVars();
+    void saveRestoreGlobalVars(bool is_save);
+    std::vector<SgStatement *> buildDataSavingLines() ;
+    SgStatement *buildPrintFunc(std::string printStr, std::string variableName) ;
+    SgStatement *buildPrintAddrOfFunc(std::string printStr, std::string variableName) ;
+    SgStatement *buildPrintFunc(std::string printStr,  SgExpression* exp) ;
+    vector<SgStatement *> buildSegmentPtrs() ;
+    SgStatement *buildWriteStack(string datafileName);
+    SgStatement *buildWriteHeap(string datafileName);
+    vector<SgStatement *> saveLoopFuncParamAddresses(SgExprStatement* call_expr_stmt) ;
+    SgBasicBlock* saveLoopFuncParamAddressesInBB(SgExprStatement* call_expr_stmt) ;
+    SgBasicBlock* saveGlobalVarsInBB() ;
+    vector<SgStatement *> buildBrkStmt() ;
+    SgBasicBlock* addrPrintingInBB();
+    SgVariableDeclaration* buildExternVarDecl(string varName, SgType* type) ;
+    SgVariableDeclaration* buildExternCharStarStarVarDecl(string varName) ; 
+    SgVariableDeclaration* buildExternIntVarDecl(string varName) ;
 };
 
 #endif

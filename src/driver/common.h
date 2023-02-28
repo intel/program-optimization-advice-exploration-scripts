@@ -49,6 +49,10 @@ typedef enum {
     UNKNOWN
 } LoopExtractor_options;
 
+enum class ParamPassingStyle {
+    POINTER, REFERENCE, DIRECT
+};
+
 /* For the tracer */
 std::string parseFileName(std::string *fullName);
 
@@ -89,4 +93,5 @@ double getVectorMedian(vector<double> *dataVec);
 void genRandomStr(string &str, const int len);
 void stringReplaceAll(string &str, const string &from, const string &to);
 string getAbsolutePath(string const &fullString);
+ParamPassingStyle getPassingStyle(SgType* arg_type, src_lang lang);
 #endif

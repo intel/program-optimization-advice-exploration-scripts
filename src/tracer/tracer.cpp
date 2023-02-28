@@ -674,6 +674,9 @@ void Tracer::setLocalVars(std::vector<std::string> localVariableNames) {
 void Tracer::setGlobalVars(std::vector<std::string> globalVariableNames) {
     this->globalVariableNames = globalVariableNames;
 }
+void Tracer::setGlobalVarsInitNameVec(vector<SgInitializedName *> gvinv) {
+    this->global_vars_initName_vec = gvinv;
+};
 void Tracer::setInsertStatement(SgStatement *insertBefore) {
     this->insertBefore = insertBefore;
 }
@@ -916,6 +919,30 @@ std::vector<SgStatement *> Tracer::saveGlobalVars() {
      * global variable */
     SgSymbolTable *global_tbl = globalscope->get_symbol_table();
     SgType *return_void_type = SageBuilder::buildVoidType();
+
+    for (auto v: global_vars_initName_vec ) {
+        SgInitializedName* inv = isSgInitializedName(v);
+        std::cout << "GLOBAL:" << inv->unparseToString() << std::endl;
+        ParamPassingStyle style = getPassingStyle(inv->get_type(), src_lang_C);
+        SgExpression* arg_exp = SageBuilder::buildVarRefExp(inv);
+        if (style == ParamPassingStyle::POINTER)
+            arg_exp = (SageBuilder::buildAddressOfOp(arg_exp));
+        std::cout << "GLOBAL1:" << arg_exp->unparseToString() << std::endl;
+
+        SgExprListExp *fwrt_arg_list = SageBuilder::buildExprListExp();
+        SageInterface::appendExpression(fwrt_arg_list, arg_exp);
+        SgExprListExp *sizeArg = SageBuilder::buildExprListExp();
+        SageInterface::appendExpression(sizeArg, SageBuilder::buildVarRefExp(inv));
+        SgFunctionCallExp *sizeFunc = SageBuilder::buildFunctionCallExp("sizeof", SageBuilder::buildUnsignedIntType(), sizeArg);
+        SageInterface::appendExpression(fwrt_arg_list, sizeFunc);
+        SgIntVal *oneVal = SageBuilder::buildIntVal(1);
+        SageInterface::appendExpression(fwrt_arg_list, oneVal);
+        SageInterface::appendExpression(fwrt_arg_list, fp); // inserting fp to the list of arguments
+        SgExprStatement *fwrt = SageBuilder::buildFunctionCallStmt("fwrite", return_void_type, fwrt_arg_list);
+        ret.push_back(fwrt);
+    }
+
+    #if 0
     unsigned numOfGlobalVariables = globalVariableNames.size();
     for (int i = 0; i < numOfGlobalVariables; i++) {
         SgVariableSymbol *smbl =
@@ -926,6 +953,7 @@ std::vector<SgStatement *> Tracer::saveGlobalVars() {
             varName += smbl->get_name().getString();
             SgVarRefExp *varRef = SageBuilder::buildVarRefExp(SgName(varName));
             SageInterface::appendExpression(fwrt_arg_list, varRef);
+
             SgExprListExp *sizeArg = SageBuilder::buildExprListExp();
             SageInterface::appendExpression(sizeArg,
                                             SageBuilder::buildVarRefExp(smbl));
@@ -941,6 +969,7 @@ std::vector<SgStatement *> Tracer::saveGlobalVars() {
             ret.push_back(fwrt);
         }
     }
+    #endif
     /* 'fclose(fp);' line of a function call */
     SgExprListExp *fclose_arg_list = SageBuilder::buildExprListExp();
     SgExpression *filePointer = SageBuilder::buildVarRefExp(fileNameDecl);

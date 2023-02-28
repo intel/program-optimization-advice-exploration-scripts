@@ -114,63 +114,63 @@ string Extractor::getLoopName(SgNode *astNode) {
     return loopName;
 }
 
-void Extractor::printHeaders(ofstream &loop_file_buf) {
-    vector<string>::iterator iter;
-    bool hasOMP = false;
-    bool hasIO = false;
-    if_else_macro_count = 0;
+//  void Extractor::printHeaders(ofstream &loop_file_buf) {
+//     vector<string>::iterator iter;
+//     bool hasOMP = false;
+//     bool hasIO = false;
+//     if_else_macro_count = 0;
 
-    for (iter = header_vec.begin(); iter != header_vec.end(); iter++) {
-        string header_str = *iter;
-        /* If including a .c file then copy to LE data folder */
-        if (header_str.find(".c") != string::npos) {
-            continue;
-        }
-        if (header_str.find("#endif") == 0 && if_else_macro_count == 0)
-            continue;
-        loop_file_buf << header_str; // header_vec has space at the end already
-        if (header_str.find("omp.h") != string::npos)
-            hasOMP = true;
-        if (src_type == src_lang_C &&
-            header_str.find("stdio.h") != string::npos)
-            hasIO = true;
-        if (src_type == src_lang_CPP &&
-            header_str.find("iostream") != string::npos)
-            hasIO = true;
+//     for (iter = header_vec.begin(); iter != header_vec.end(); iter++) {
+//         string header_str = *iter;
+//         /* If including a .c file then copy to LE data folder */
+//         if (header_str.find(".c") != string::npos) {
+//             continue;
+//         }
+//         if (header_str.find("#endif") == 0 && if_else_macro_count == 0)
+//             continue;
+//         loop_file_buf << header_str; // header_vec has space at the end already
+//         if (header_str.find("omp.h") != string::npos)
+//             hasOMP = true;
+//         if (src_type == src_lang_C &&
+//             header_str.find("stdio.h") != string::npos)
+//             hasIO = true;
+//         if (src_type == src_lang_CPP &&
+//             header_str.find("iostream") != string::npos)
+//             hasIO = true;
 
-        if (header_str.find("#if") == 0)
-            if_else_macro_count++;
-        if (header_str.find("#endif") == 0)
-            if_else_macro_count--;
-    }
+//         if (header_str.find("#if") == 0)
+//             if_else_macro_count++;
+//         if (header_str.find("#endif") == 0)
+//             if_else_macro_count--;
+//     }
 
-    // TODO: if it is a fortran code
-    if (!hasOMP && (src_type == src_lang_C || src_type == src_lang_CPP))
-        loop_file_buf << "#include <omp.h>" << endl;
-    if (src_type == src_lang_C && !hasIO)
-        loop_file_buf << "#include <stdio.h>" << endl;
-    if (src_type == src_lang_CPP && !hasIO)
-        loop_file_buf << "#include <iostream>" << endl;
-}
+//     // TODO: if it is a fortran code
+//     if (!hasOMP && (src_type == src_lang_C || src_type == src_lang_CPP))
+//         loop_file_buf << "#include <omp.h>" << endl;
+//     if (src_type == src_lang_C && !hasIO)
+//         loop_file_buf << "#include <stdio.h>" << endl;
+//     if (src_type == src_lang_CPP && !hasIO)
+//         loop_file_buf << "#include <iostream>" << endl;
+// }
 
-void Extractor::printGlobalsAsExtern(ofstream &loop_file_buf) {
-    vector<string>::iterator iter;
-    for (iter = global_vars.begin(); iter != global_vars.end(); iter++) {
-        string var_str = *iter;
-        if (var_str.find("pragma") != string::npos)
-            loop_file_buf << var_str << endl;
-        else {
-            /* In case struct type contains stuct definition */
-            if (var_str.find("struct") != string::npos &&
-                var_str.find("{") != string::npos) {
-                var_str.erase(var_str.find_first_of("{"),
-                              var_str.find_last_of("}") -
-                                  var_str.find_first_of("{") + 1);
-            }
-            loop_file_buf << "extern " << var_str << ";" << endl;
-        }
-    }
-}
+// void Extractor::printGlobalsAsExtern(ofstream &loop_file_buf) {
+//     vector<string>::iterator iter;
+//     for (iter = global_vars.begin(); iter != global_vars.end(); iter++) {
+//         string var_str = *iter;
+//         if (var_str.find("pragma") != string::npos)
+//             loop_file_buf << var_str << endl;
+//         else {
+//             /* In case struct type contains stuct definition */
+//             if (var_str.find("struct") != string::npos &&
+//                 var_str.find("{") != string::npos) {
+//                 var_str.erase(var_str.find_first_of("{"),
+//                               var_str.find_last_of("}") -
+//                                   var_str.find_first_of("{") + 1);
+//             }
+//             loop_file_buf << "extern " << var_str << ";" << endl;
+//         }
+//     }
+// }
 
 bool LoopInfo::isDeclaredInInnerScope(SgScopeStatement *var_scope) {
     vector<SgNode *> nested_scopes =
@@ -186,6 +186,38 @@ bool LoopInfo::isDeclaredInInnerScope(SgScopeStatement *var_scope) {
 }
 
 void LoopInfo::getVarsInScope() {
+    /* collectVarRefs will collect all variables used in the loop body */
+    vector<SgVarRefExp *> sym_table;
+    set<SgInitializedName *> global_vars_initName_set;
+    SageInterface::collectVarRefs(dynamic_cast<SgLocatedNode *>(loop),
+                                  sym_table);
+
+    vector<SgVarRefExp *>::iterator iter;
+    for (iter = sym_table.begin(); iter != sym_table.end(); iter++) {
+        SgVariableSymbol *var = (*iter)->get_symbol();
+        SgScopeStatement *var_scope = (var->get_declaration())->get_scope();
+
+        if (!(isSgGlobal(var_scope) || isDeclaredInInnerScope(var_scope) ||
+              var_scope->get_qualified_name() != "") &&
+            find(scope_vars_symbol_vec.begin(), scope_vars_symbol_vec.end(),
+                 var) == scope_vars_symbol_vec.end()) {
+            scope_vars_symbol_vec.push_back(var); // Needed for function call
+            scope_vars_initName_vec.push_back(
+                var->get_declaration()); // Needed for function extern defn
+        } else if (isSgGlobal(var_scope) &&
+                   var_scope->get_qualified_name() != "") {
+            SgInitializedName* var_decl = var->get_declaration();
+            if (! global_vars_initName_set.count(var_decl)) {
+                // Needed for extracted function extern defn
+                global_vars_initName_set.insert(var_decl); 
+                global_vars_initName_vec.push_back(var_decl);
+            }
+        }
+    }
+}
+
+#if 0
+void LoopInfo::getVarsInScope1() {
     /* collectVarRefs will collect all variables used in the loop body */
     vector<SgVarRefExp *> sym_table;
     vector<string> temp_vec2;
@@ -404,220 +436,696 @@ void LoopInfo::getVarsInScope() {
     }
 }
 
-bool LoopInfo::hasFuncCallInScope() {
-    Rose_STL_Container<SgNode *> funcCallList =
-        NodeQuery::querySubTree(loop_scope, V_SgFunctionCallExp);
-    Rose_STL_Container<SgNode *>::iterator funcCallIter = funcCallList.begin();
-    /* If loop contain no function call */
-    if (funcCallIter == funcCallList.end())
-        return false;
+#endif
+// bool LoopInfo::hasFuncCallInScope() {
+//     Rose_STL_Container<SgNode *> funcCallList =
+//         NodeQuery::querySubTree(loop_scope, V_SgFunctionCallExp);
+//     Rose_STL_Container<SgNode *>::iterator funcCallIter = funcCallList.begin();
+//     /* If loop contain no function call */
+//     if (funcCallIter == funcCallList.end())
+//         return false;
 
-    for (; funcCallIter != funcCallList.end(); funcCallIter++) {
-        SgFunctionCallExp *funcCallExp = isSgFunctionCallExp(*funcCallIter);
-        //    bool inliningOK = doInline(funcCallExp);
-        //    if(inliningOK) continue;
-        SgFunctionDeclaration *funcDecl =
-            funcCallExp->getAssociatedFunctionDeclaration();
-        if (funcDecl != NULL && !SageInterface::isExtern(funcDecl)) {
-            scope_funcCall_vec.insert(funcDecl);
-        }
-    }
-    if (!scope_funcCall_vec.empty())
-        return true;
-    return false;
-}
+//     for (; funcCallIter != funcCallList.end(); funcCallIter++) {
+//         SgFunctionCallExp *funcCallExp = isSgFunctionCallExp(*funcCallIter);
+//         //    bool inliningOK = doInline(funcCallExp);
+//         //    if(inliningOK) continue;
+//         SgFunctionDeclaration *funcDecl =
+//             funcCallExp->getAssociatedFunctionDeclaration();
+//         if (funcDecl != NULL && !SageInterface::isExtern(funcDecl)) {
+//             scope_funcCall_vec.insert(funcDecl);
+//         }
+//     }
+//     if (!scope_funcCall_vec.empty())
+//         return true;
+//     return false;
+// }
 
-void LoopInfo::addScopeFuncAsExtern(string &externFuncStr) {
-    set<SgFunctionDeclaration *>::iterator iter;
-    for (iter = scope_funcCall_vec.begin(); iter != scope_funcCall_vec.end();
-         iter++) {
-        SgFunctionDeclaration *declFunc = *iter;
-        bool consider_as_Extern = true;
-        /* Check if it is a inline function */
-        for (auto const &inlineFunc : extr.inline_func_map) {
-            if (SageInterface::isSameFunction(declFunc, inlineFunc.first)) {
-                externFuncStr += inlineFunc.second;
-                consider_as_Extern = false;
-            }
-        }
-        if (consider_as_Extern)
-            externFuncStr += "extern " + declFunc->unparseToString() + '\n';
-    }
-}
+// void LoopInfo::addScopeFuncAsExtern(string &externFuncStr) {
+//     set<SgFunctionDeclaration *>::iterator iter;
+//     for (iter = scope_funcCall_vec.begin(); iter != scope_funcCall_vec.end();
+//          iter++) {
+//         SgFunctionDeclaration *declFunc = *iter;
+//         bool consider_as_Extern = true;
+//         /* Check if it is a inline function */
+//         for (auto const &inlineFunc : extr.inline_func_map) {
+//             if (SageInterface::isSameFunction(declFunc, inlineFunc.first)) {
+//                 externFuncStr += inlineFunc.second;
+//                 consider_as_Extern = false;
+//             }
+//         }
+//         if (consider_as_Extern)
+//             externFuncStr += "extern " + declFunc->unparseToString() + '\n';
+//     }
+// }
 
-void LoopInfo::addScopeGlobalsAsExtern(string &externGlobalsStr) {
-    for (auto const &str : scope_globals_vec) {
-        externGlobalsStr += "extern " + str + ";\n";
-    }
-}
+// void LoopInfo::addScopeGlobalsAsExtern(string &externGlobalsStr) {
+//     for (auto const &str : scope_globals_vec) {
+//         externGlobalsStr += "extern " + str + ";\n";
+//     }
+// }
+
+// /* Only called if C */
+// void LoopInfo::pushPointersToLocalVars(ofstream &loop_file_buf) {
+//     // ofstream& loop_file_buf = extr.loop_file_buf;
+
+//     vector<SgVariableSymbol *>::iterator iter;
+//     for (iter = scope_vars_symbol_vec.begin();
+//          iter != scope_vars_symbol_vec.end(); iter++) {
+//         SgVariableSymbol *var = (*iter);
+//         string var_type_str = (var->get_type())->unparseToString();
+//         string var_name_str = (var->get_name()).getString();
+//         bool isTypedefArray = false;
+//         bool isTypedefStruct = false;
+//         if ((var->get_type())->variantT() == V_SgTypedefType) {
+//             SgTypedefType *type_def_var =
+//                 dynamic_cast<SgTypedefType *>(var->get_type());
+//             if ((type_def_var->get_base_type())->variantT() == V_SgArrayType)
+//                 isTypedefArray = true;
+//             if (SageInterface::isStructType(type_def_var->get_base_type()))
+//                 isTypedefStruct = true;
+//         }
+//         bool isPrimitive = true;
+//         if ((var->get_type())->variantT() == V_SgArrayType || isTypedefArray) {
+//             isPrimitive = false;
+//         } else if (SageInterface::isStructType(var->get_type()) ||
+//                    isTypedefStruct) {
+//             isPrimitive = true;
+//         } else if ((var->get_type())->variantT() == V_SgPointerType) {
+//             isPrimitive = false;
+//             SgType *var_pointer_type = var->get_type()->stripType(1 << 2);
+//             if (var_pointer_type->variantT() == V_SgTypedefType) {
+//                 SgTypedefType *type_def_var =
+//                     dynamic_cast<SgTypedefType *>(var_pointer_type);
+//                 var_pointer_type = type_def_var->get_base_type();
+//             }
+//             if (SageInterface::isStructType(var_pointer_type))
+//                 isPrimitive = true;
+//         }
+//         /* In case struct type contains stuct definition */
+//         if (isPrimitive && var_type_str.find("{") != string::npos) {
+//             var_type_str.erase(var_type_str.find_first_of("{"),
+//                                var_type_str.find_last_of("}") -
+//                                    var_type_str.find_first_of("{") + 1);
+//         }
+
+//         if (isPrimitive) {
+//             loop_file_buf << var_type_str << " " << var_name_str << " = "
+//                           << "*" << var_name_str << "_primitive"
+//                           << ";" << endl;
+//         }
+//     }
+// }
 
 /* Only called if C */
-void LoopInfo::pushPointersToLocalVars(ofstream &loop_file_buf) {
-    // ofstream& loop_file_buf = extr.loop_file_buf;
+// void LoopInfo::popLocalVarsToPointers(ofstream &loop_file_buf) {
+//     // ofstream& loop_file_buf = extr.loop_file_buf;
 
-    vector<SgVariableSymbol *>::iterator iter;
-    for (iter = scope_vars_symbol_vec.begin();
-         iter != scope_vars_symbol_vec.end(); iter++) {
-        SgVariableSymbol *var = (*iter);
-        string var_type_str = (var->get_type())->unparseToString();
-        string var_name_str = (var->get_name()).getString();
-        bool isTypedefArray = false;
-        bool isTypedefStruct = false;
-        if ((var->get_type())->variantT() == V_SgTypedefType) {
-            SgTypedefType *type_def_var =
-                dynamic_cast<SgTypedefType *>(var->get_type());
-            if ((type_def_var->get_base_type())->variantT() == V_SgArrayType)
-                isTypedefArray = true;
-            if (SageInterface::isStructType(type_def_var->get_base_type()))
-                isTypedefStruct = true;
-        }
-        bool isPrimitive = true;
-        if ((var->get_type())->variantT() == V_SgArrayType || isTypedefArray) {
-            isPrimitive = false;
-        } else if (SageInterface::isStructType(var->get_type()) ||
-                   isTypedefStruct) {
-            isPrimitive = true;
-        } else if ((var->get_type())->variantT() == V_SgPointerType) {
-            isPrimitive = false;
-            SgType *var_pointer_type = var->get_type()->stripType(1 << 2);
-            if (var_pointer_type->variantT() == V_SgTypedefType) {
-                SgTypedefType *type_def_var =
-                    dynamic_cast<SgTypedefType *>(var_pointer_type);
-                var_pointer_type = type_def_var->get_base_type();
-            }
-            if (SageInterface::isStructType(var_pointer_type))
-                isPrimitive = true;
-        }
-        /* In case struct type contains stuct definition */
-        if (isPrimitive && var_type_str.find("{") != string::npos) {
-            var_type_str.erase(var_type_str.find_first_of("{"),
-                               var_type_str.find_last_of("}") -
-                                   var_type_str.find_first_of("{") + 1);
-        }
+//     vector<SgVariableSymbol *>::iterator iter;
+//     for (iter = scope_vars_symbol_vec.begin();
+//          iter != scope_vars_symbol_vec.end(); iter++) {
+//         SgVariableSymbol *var = (*iter);
+//         string var_type_str = (var->get_type())->unparseToString();
+//         string var_name_str = (var->get_name()).getString();
+//         bool isTypedefArray = false;
+//         bool isTypedefStruct = false;
+//         if ((var->get_type())->variantT() == V_SgTypedefType) {
+//             SgTypedefType *type_def_var =
+//                 dynamic_cast<SgTypedefType *>(var->get_type());
+//             if ((type_def_var->get_base_type())->variantT() == V_SgArrayType)
+//                 isTypedefArray = true;
+//             if (SageInterface::isStructType(type_def_var->get_base_type()))
+//                 isTypedefStruct = true;
+//         }
 
-        if (isPrimitive) {
-            loop_file_buf << var_type_str << " " << var_name_str << " = "
-                          << "*" << var_name_str << "_primitive"
-                          << ";" << endl;
-        }
-    }
-}
+//         bool isConst = false;
+//         if (SageInterface::isConstType(var->get_type()))
+//             isConst = true;
 
-/* Only called if C */
-void LoopInfo::popLocalVarsToPointers(ofstream &loop_file_buf) {
-    // ofstream& loop_file_buf = extr.loop_file_buf;
+//         bool isPrimitive = true;
+//         if ((var->get_type())->variantT() == V_SgArrayType || isTypedefArray) {
+//             isPrimitive = false;
+//         } else if (SageInterface::isStructType(var->get_type()) ||
+//                    isTypedefStruct) {
+//             isPrimitive = true;
+//         } else if ((var->get_type())->variantT() == V_SgPointerType) {
+//             isPrimitive = false;
+//             SgType *var_pointer_type = var->get_type()->stripType(1 << 2);
+//             if (var_pointer_type->variantT() == V_SgTypedefType) {
+//                 SgTypedefType *type_def_var =
+//                     dynamic_cast<SgTypedefType *>(var_pointer_type);
+//                 var_pointer_type = type_def_var->get_base_type();
+//             }
+//             if (SageInterface::isStructType(var_pointer_type))
+//                 isPrimitive = true;
+//         }
 
-    vector<SgVariableSymbol *>::iterator iter;
-    for (iter = scope_vars_symbol_vec.begin();
-         iter != scope_vars_symbol_vec.end(); iter++) {
-        SgVariableSymbol *var = (*iter);
-        string var_type_str = (var->get_type())->unparseToString();
-        string var_name_str = (var->get_name()).getString();
-        bool isTypedefArray = false;
-        bool isTypedefStruct = false;
-        if ((var->get_type())->variantT() == V_SgTypedefType) {
-            SgTypedefType *type_def_var =
-                dynamic_cast<SgTypedefType *>(var->get_type());
-            if ((type_def_var->get_base_type())->variantT() == V_SgArrayType)
-                isTypedefArray = true;
-            if (SageInterface::isStructType(type_def_var->get_base_type()))
-                isTypedefStruct = true;
-        }
-
-        bool isConst = false;
-        if (SageInterface::isConstType(var->get_type()))
-            isConst = true;
-
-        bool isPrimitive = true;
-        if ((var->get_type())->variantT() == V_SgArrayType || isTypedefArray) {
-            isPrimitive = false;
-        } else if (SageInterface::isStructType(var->get_type()) ||
-                   isTypedefStruct) {
-            isPrimitive = true;
-        } else if ((var->get_type())->variantT() == V_SgPointerType) {
-            isPrimitive = false;
-            SgType *var_pointer_type = var->get_type()->stripType(1 << 2);
-            if (var_pointer_type->variantT() == V_SgTypedefType) {
-                SgTypedefType *type_def_var =
-                    dynamic_cast<SgTypedefType *>(var_pointer_type);
-                var_pointer_type = type_def_var->get_base_type();
-            }
-            if (SageInterface::isStructType(var_pointer_type))
-                isPrimitive = true;
-        }
-
-        if (isPrimitive && !isConst) {
-            loop_file_buf << "*" << var_name_str << "_primitive"
-                          << " = " << var_name_str << ";" << endl;
-        }
-    }
-}
+//         if (isPrimitive && !isConst) {
+//             loop_file_buf << "*" << var_name_str << "_primitive"
+//                           << " = " << var_name_str << ";" << endl;
+//         }
+//     }
+// }
 
 /* Static arrays(local) can be private in OMP region, but cannot be passed to
  * Loop function
  * Need to (re)declared inside the loop function and Removed from function
  * parameter */
-void LoopInfo::analyzeOMPprivateArrays(const string &pragmaStr) {
-    if (pragmaStr.find(" private") != string::npos) {
-        int tmp = pragmaStr.find("(", pragmaStr.find(" private"));
-        string privateStr =
-            pragmaStr.substr(tmp + 1, pragmaStr.find(")", tmp) - tmp - 1);
-        boost::char_separator<char> sep(",");
-        boost::tokenizer<boost::char_separator<char>> tokens(privateStr, sep);
-        for (const auto &t : tokens) {
-            string s(t);
-            boost::algorithm::trim(s);
-            privateOMP_array_vec.push_back(s);
-        }
-    }
-}
+// void LoopInfo::analyzeOMPprivateArrays(const string &pragmaStr) {
+//     if (pragmaStr.find(" private") != string::npos) {
+//         int tmp = pragmaStr.find("(", pragmaStr.find(" private"));
+//         string privateStr =
+//             pragmaStr.substr(tmp + 1, pragmaStr.find(")", tmp) - tmp - 1);
+//         boost::char_separator<char> sep(",");
+//         boost::tokenizer<boost::char_separator<char>> tokens(privateStr, sep);
+//         for (const auto &t : tokens) {
+//             string s(t);
+//             boost::algorithm::trim(s);
+//             privateOMP_array_vec.push_back(s);
+//         }
+//     }
+// }
 
-string LoopInfo::printOMPprivateArrays() {
-    string arrays = "";
-    for (auto const &str : privateOMP_array_vec) {
-        if (OMParray_type_map.find(str) != OMParray_type_map.end()) {
-            arrays += (OMParray_type_map.find(str))->second;
-            arrays += ";\n";
-        }
-    }
-    return arrays;
-}
+// string LoopInfo::printOMPprivateArrays() {
+//     string arrays = "";
+//     for (auto const &str : privateOMP_array_vec) {
+//         if (OMParray_type_map.find(str) != OMParray_type_map.end()) {
+//             arrays += (OMParray_type_map.find(str))->second;
+//             arrays += ";\n";
+//         }
+//     }
+//     return arrays;
+// }
 
 /* SPEC write variables, that are not used in OMP loop, inside clauses which
  * extractor doesn't extract */
-string LoopInfo::sanitizeOMPpragma(const string &pragmaStr) {
-    string sanitizedStr(pragmaStr);
-    string tmpStr = "";
-    vector<string> clauseStr = {" private", " lastprivate", " firstprivate",
-                                " shared"};
-    for (auto const &str : clauseStr) {
-        tmpStr = sanitizedStr;
-        if (sanitizedStr.find(str) != string::npos) {
-            string vars = "";
-            int tmp1 = sanitizedStr.find("(", sanitizedStr.find(str));
-            int tmp2 = sanitizedStr.find(")", tmp1);
-            string privateStr = sanitizedStr.substr(tmp1 + 1, tmp2 - tmp1 - 1);
-            boost::char_separator<char> sep(",");
-            boost::tokenizer<boost::char_separator<char>> tokens(privateStr,
-                                                                 sep);
-            for (const auto &t : tokens) {
-                string s(t);
-                boost::algorithm::trim(s);
-                if (find(OMPscope_symbol_vec.begin(), OMPscope_symbol_vec.end(),
-                         s) != OMPscope_symbol_vec.end())
-                    vars += s + ",";
-            }
-            if (vars != "")
-                tmpStr = sanitizedStr.substr(0, tmp1 + 1) +
-                         vars.substr(0, vars.length() - 1) +
-                         sanitizedStr.substr(tmp2);
-            else
-                tmpStr = sanitizedStr.substr(0, sanitizedStr.find(str)) +
-                         sanitizedStr.substr(tmp2 + 1);
-        }
-        sanitizedStr = tmpStr;
+// string LoopInfo::sanitizeOMPpragma(const string &pragmaStr) {
+//     string sanitizedStr(pragmaStr);
+//     string tmpStr = "";
+//     vector<string> clauseStr = {" private", " lastprivate", " firstprivate",
+//                                 " shared"};
+//     for (auto const &str : clauseStr) {
+//         tmpStr = sanitizedStr;
+//         if (sanitizedStr.find(str) != string::npos) {
+//             string vars = "";
+//             int tmp1 = sanitizedStr.find("(", sanitizedStr.find(str));
+//             int tmp2 = sanitizedStr.find(")", tmp1);
+//             string privateStr = sanitizedStr.substr(tmp1 + 1, tmp2 - tmp1 - 1);
+//             boost::char_separator<char> sep(",");
+//             boost::tokenizer<boost::char_separator<char>> tokens(privateStr,
+//                                                                  sep);
+//             for (const auto &t : tokens) {
+//                 string s(t);
+//                 boost::algorithm::trim(s);
+//                 if (find(OMPscope_symbol_vec.begin(), OMPscope_symbol_vec.end(),
+//                          s) != OMPscope_symbol_vec.end())
+//                     vars += s + ",";
+//             }
+//             if (vars != "")
+//                 tmpStr = sanitizedStr.substr(0, tmp1 + 1) +
+//                          vars.substr(0, vars.length() - 1) +
+//                          sanitizedStr.substr(tmp2);
+//             else
+//                 tmpStr = sanitizedStr.substr(0, sanitizedStr.find(str)) +
+//                          sanitizedStr.substr(tmp2 + 1);
+//         }
+//         sanitizedStr = tmpStr;
+//     }
+//     return sanitizedStr;
+// }
+
+// Assuming parent scope already pushed by SageBuilder::pushScopeStack()
+SgBasicBlock* LoopInfo::saveGlobalVarsInBB() {
+    SgBasicBlock* bb = SageBuilder::buildBasicBlock_nfi(SageBuilder::topScopeStack());
+    SageBuilder::pushScopeStack(bb);
+    this->saveGlobalVars();
+    SageBuilder::popScopeStack();
+    return bb;
+}
+
+void LoopInfo::saveGlobalVars() {
+    this->saveRestoreGlobalVars(true);
+}
+
+void LoopInfo::restoreGlobalVars() {
+    this->saveRestoreGlobalVars(false);
+}
+
+/**
+ * @brief Function that generates code lines that saves and restores global variable
+ *        addresses in a datafile
+ * @return SgStatement* will be appended to current scope
+ */
+void LoopInfo::saveRestoreGlobalVars(bool is_save) {
+    string rw_mode = is_save ? "w" : "r";
+    string rw_call = is_save ? "fwrite" : "fread";
+    /* 'FILE* fp;' line of a function pointer declaration */
+    auto file_type = SageBuilder::buildPointerType(
+        SageBuilder::buildOpaqueType("FILE", SageBuilder::topScopeStack()));
+    std::string uniqueFileName = SageInterface::generateUniqueVariableName(
+        SageBuilder::topScopeStack(), "fp");
+    auto fileNameDecl = SageBuilder::buildVariableDeclaration(
+        uniqueFileName, file_type, NULL, SageBuilder::topScopeStack());
+    //ret.push_back(fileNameDecl);
+    SageInterface::appendStatement(fileNameDecl);
+    /* 'fp = fopen("datafile", "w");' line of a function call */
+    SgExpression *fp = SageBuilder::buildVarRefExp(fileNameDecl);
+    SgExprListExp *fopen_arg_list = SageBuilder::buildExprListExp();
+    SgStringVal *file_name = SageBuilder::buildStringVal("myDataFile/test.nhd");
+    SgStringVal *file_modifier = SageBuilder::buildStringVal(rw_mode);
+    SageInterface::appendExpression(fopen_arg_list, file_name);
+    SageInterface::appendExpression(fopen_arg_list, file_modifier);
+    SgFunctionCallExp *rhs = SageBuilder::buildFunctionCallExp(
+        "fopen", file_type, fopen_arg_list, SageBuilder::topScopeStack());
+    SgStatement *fopenStmt = SageBuilder::buildAssignStatement(fp, rhs);
+    //ret.push_back(fopenStmt);
+    SageInterface::appendStatement(fopenStmt);
+    /* 'fwrite(&var, sizeof(var), 1, fp);' line of a function call for each
+     * global variable */
+    //SgSymbolTable *global_tbl = globalscope->get_symbol_table();
+    SgType *return_void_type = SageBuilder::buildVoidType();
+
+    for (auto v: global_vars_initName_vec ) {
+        SgInitializedName* inv = isSgInitializedName(v);
+        std::cout << "GLOBAL:" << inv->unparseToString() << std::endl;
+        ParamPassingStyle style = getPassingStyle(inv->get_type(), src_lang_C);
+        SgExpression* arg_exp = SageBuilder::buildVarRefExp(inv);
+        if (style == ParamPassingStyle::POINTER)
+            arg_exp = (SageBuilder::buildAddressOfOp(arg_exp));
+        std::cout << "GLOBAL1:" << arg_exp->unparseToString() << std::endl;
+
+        SgExprListExp *fwrt_arg_list = SageBuilder::buildExprListExp();
+        SageInterface::appendExpression(fwrt_arg_list, arg_exp);
+        SgExprListExp *sizeArg = SageBuilder::buildExprListExp();
+        SageInterface::appendExpression(sizeArg, SageBuilder::buildVarRefExp(inv));
+        SgFunctionCallExp *sizeFunc = SageBuilder::buildFunctionCallExp("sizeof", SageBuilder::buildUnsignedIntType(), sizeArg);
+        SageInterface::appendExpression(fwrt_arg_list, sizeFunc);
+        SgIntVal *oneVal = SageBuilder::buildIntVal(1);
+        SageInterface::appendExpression(fwrt_arg_list, oneVal);
+        SageInterface::appendExpression(fwrt_arg_list, fp); // inserting fp to the list of arguments
+        SgExprStatement *fwrt = SageBuilder::buildFunctionCallStmt(rw_call, return_void_type, fwrt_arg_list);
+        //ret.push_back(fwrt);
+        SageInterface::appendStatement(fwrt);
     }
-    return sanitizedStr;
+    /* 'fclose(fp);' line of a function call */
+    SgExprListExp *fclose_arg_list = SageBuilder::buildExprListExp();
+    SgExpression *filePointer = SageBuilder::buildVarRefExp(fileNameDecl);
+    SageInterface::appendExpression(fclose_arg_list, filePointer);
+    SgExprStatement *fcloseStmt = SageBuilder::buildFunctionCallStmt(
+        SgName("fclose"), return_void_type, fclose_arg_list);
+    //ret.push_back(fcloseStmt);
+    SageInterface::appendStatement(fcloseStmt);
+}
+
+#if 0
+/**
+ * @brief Function that inserts lines of code to save data in SAVE source file
+ */
+void LoopInfo::insertSaveInfo() {
+    SageBuilder::pushScopeStack(loopFuncScope);
+
+    SgStatement *ifBody = buildDataSavingLines();
+    buildInstanceCheck(1, ifBody);
+    buildInstanceIncrement();
+
+    SageBuilder::popScopeStack();
+}
+
+#endif
+
+#if 0
+/**
+ * @brief Function that generates a basic block with most of code lines to save
+ * data
+ * @return SgStatement* that contains the generated basic block
+ */
+std::vector<SgStatement *> LoopInfo::buildDataSavingLines() {
+    //SageInterface::insertHeader("addresses.h", PreprocessingInfo::after, false,
+    //                            globalscope);
+    /* Most of code lines will be in a single basic block */
+    std::vector<SgStatement *> basicBlockStmts;
+    /* Saving Loop Parameter addresses */
+    std::vector<SgStatement *> funcParamsStmts = saveLoopFuncParamAddresses();
+    for (int i = 0; i < funcParamsStmts.size(); i++) {
+        basicBlockStmts.push_back(funcParamsStmts[i]);
+    }
+    /* Saving global variables */
+    std::vector<SgStatement *> globalVarStmts = saveGlobalVars();
+    for (int i = 0; i < globalVarStmts.size(); i++) {
+        basicBlockStmts.push_back(globalVarStmts[i]);
+    }
+    /* Environment variables */
+    basicBlockStmts.push_back(buildVarDecl("_end", "extern int"));
+    basicBlockStmts.push_back(buildVarDecl("_etext", "extern int"));
+    basicBlockStmts.push_back(buildVarDecl("_start", "extern int"));
+    basicBlockStmts.push_back(buildVarDecl("_edata", "extern int"));
+    basicBlockStmts.push_back(buildVarDecl("__bss_start", "extern int"));
+    basicBlockStmts.push_back(buildVarDecl("__data_start", "extern int"));
+    basicBlockStmts.push_back(buildVarDecl("environ", "extern char**"));
+    /* Segment (stack, heap, data segment) variables */
+    std::vector<SgStatement *> segmentPtrs = buildSegmentPtrs();
+    for (int i = 0; i < segmentPtrs.size(); i++) {
+        basicBlockStmts.push_back(segmentPtrs[i]);
+    }
+    basicBlockStmts.push_back(
+        buildPrintFunc("BP(STACK END): %09lx\\n", "basepointer"));
+    basicBlockStmts.push_back(
+        buildPrintFunc("SP(STACK BEGIN): %09lx\\n", "((char*)stackpointer)-1"));
+    basicBlockStmts.push_back(
+        buildPrintFunc("DS START: %09lx\\n", "&__data_start"));
+    basicBlockStmts.push_back(
+        buildPrintFunc("DS END: %09lx\\n", "((char*)&_end)-1"));
+    basicBlockStmts.push_back(buildPrintFunc("HEAP START: %09lx\\n", "&_end"));
+    basicBlockStmts.push_back(buildPrintFunc("HEAP END: %09lx\\n", "brk"));
+    /* Saving heap and stack */
+    basicBlockStmts.push_back(buildWriteHeap("myDataFile/test"));
+    basicBlockStmts.push_back(buildWriteStack("myDataFile/test"));
+
+    //SgStatement *result = SageBuilder::buildBasicBlock_nfi(basicBlockStmts);
+    return basicBlockStmts;
+}
+#endif
+
+#if 0
+/**
+ * @brief Function that generates code lines that saves global variable
+ *        addresses in a datafile
+ * @return vector of SgStatement* that contains the generated code lines
+ */
+std::vector<SgStatement *> LoopInfo::saveGlobalVars() {
+    std::vector<SgStatement *> ret;
+    /* 'FILE* fp;' line of a function pointer declaration */
+    auto file_type = SageBuilder::buildPointerType(
+        SageBuilder::buildOpaqueType("FILE", SageBuilder::topScopeStack()));
+    std::string uniqueFileName = SageInterface::generateUniqueVariableName(
+        SageBuilder::topScopeStack(), "fp");
+    auto fileNameDecl = SageBuilder::buildVariableDeclaration(
+        uniqueFileName, file_type, NULL, SageBuilder::topScopeStack());
+    ret.push_back(fileNameDecl);
+    /* 'fp = fopen("datafile", "w");' line of a function call */
+    SgExpression *fp = SageBuilder::buildVarRefExp(fileNameDecl);
+    SgExprListExp *fopen_arg_list = SageBuilder::buildExprListExp();
+    SgStringVal *file_name = SageBuilder::buildStringVal("myDataFile/test.nhd");
+    SgStringVal *file_modifier = SageBuilder::buildStringVal("w");
+    SageInterface::appendExpression(fopen_arg_list, file_name);
+    SageInterface::appendExpression(fopen_arg_list, file_modifier);
+    SgFunctionCallExp *rhs = SageBuilder::buildFunctionCallExp(
+        "fopen", file_type, fopen_arg_list, SageBuilder::topScopeStack());
+    SgStatement *fopenStmt = SageBuilder::buildAssignStatement(fp, rhs);
+    ret.push_back(fopenStmt);
+    /* 'fwrite(&var, sizeof(var), 1, fp);' line of a function call for each
+     * global variable */
+    SgSymbolTable *global_tbl = globalscope->get_symbol_table();
+    SgType *return_void_type = SageBuilder::buildVoidType();
+
+    for (auto v: global_vars_initName_vec ) {
+        SgInitializedName* inv = isSgInitializedName(v);
+        std::cout << "GLOBAL:" << inv->unparseToString() << std::endl;
+        ParamPassingStyle style = getPassingStyle(inv->get_type(), src_lang_C);
+        SgExpression* arg_exp = SageBuilder::buildVarRefExp(inv);
+        if (style == ParamPassingStyle::POINTER)
+            arg_exp = (SageBuilder::buildAddressOfOp(arg_exp));
+        std::cout << "GLOBAL1:" << arg_exp->unparseToString() << std::endl;
+
+        SgExprListExp *fwrt_arg_list = SageBuilder::buildExprListExp();
+        SageInterface::appendExpression(fwrt_arg_list, arg_exp);
+        SgExprListExp *sizeArg = SageBuilder::buildExprListExp();
+        SageInterface::appendExpression(sizeArg, SageBuilder::buildVarRefExp(inv));
+        SgFunctionCallExp *sizeFunc = SageBuilder::buildFunctionCallExp("sizeof", SageBuilder::buildUnsignedIntType(), sizeArg);
+        SageInterface::appendExpression(fwrt_arg_list, sizeFunc);
+        SgIntVal *oneVal = SageBuilder::buildIntVal(1);
+        SageInterface::appendExpression(fwrt_arg_list, oneVal);
+        SageInterface::appendExpression(fwrt_arg_list, fp); // inserting fp to the list of arguments
+        SgExprStatement *fwrt = SageBuilder::buildFunctionCallStmt("fwrite", return_void_type, fwrt_arg_list);
+        ret.push_back(fwrt);
+    }
+    /* 'fclose(fp);' line of a function call */
+    SgExprListExp *fclose_arg_list = SageBuilder::buildExprListExp();
+    SgExpression *filePointer = SageBuilder::buildVarRefExp(fileNameDecl);
+    SageInterface::appendExpression(fclose_arg_list, filePointer);
+    SgExprStatement *fcloseStmt = SageBuilder::buildFunctionCallStmt(
+        SgName("fclose"), return_void_type, fclose_arg_list);
+    ret.push_back(fcloseStmt);
+    return ret;
+}
+#endif
+
+// Assuming parent scope already pushed by SageBuilder::pushScopeStack()
+SgBasicBlock* LoopInfo::saveLoopFuncParamAddressesInBB(SgExprStatement *call_expr_stmt) {
+    SgBasicBlock* bb = SageBuilder::buildBasicBlock_nfi(SageBuilder::topScopeStack());
+    SageBuilder::pushScopeStack(bb);
+
+                        #if 0
+    vector<SgStatement *> ret;
+        SgExprStatement *exprStmt = isSgExprStatement(call_expr_stmt);
+        SgExpression *expr = exprStmt->get_expression();
+        SgFunctionCallExp *funcExpr = isSgFunctionCallExp(expr);
+            std::string funcName = funcExpr->get_function()->unparseToString();
+            auto funcArgs = funcExpr->get_args()->get_expressions();
+            int numOfArgs = funcArgs.size();
+                /* 'FILE* fp;' line of a function pointer declaration */
+                SgType *return_void_type = SageBuilder::buildVoidType();
+                auto file_type =
+                    SageBuilder::buildPointerType(SageBuilder::buildOpaqueType(
+                        "FILE", SageBuilder::topScopeStack()));
+                std::string uniqueFileName =
+                    SageInterface::generateUniqueVariableName(
+                        SageBuilder::topScopeStack(), "fp");
+                auto fileNameDecl = SageBuilder::buildVariableDeclaration(
+                    uniqueFileName, file_type, NULL,
+                    SageBuilder::topScopeStack());
+                    #endif
+    for (auto const &stmt : this->saveLoopFuncParamAddresses(call_expr_stmt)) {
+        bb->append_statement(stmt);
+    }
+    SageBuilder::popScopeStack();
+    return bb;
+}
+
+/**
+ * @brief Function that generates code lines that saves loop function
+ *        parameter addresses in a header file
+ * @return vector of SgStatement* that contains the generated code lines
+ */
+vector<SgStatement *> LoopInfo::saveLoopFuncParamAddresses(
+    SgExprStatement *call_expr_stmt) {
+
+    vector<SgStatement *> ret;
+    SgExprStatement *exprStmt = isSgExprStatement(call_expr_stmt);
+    if (exprStmt) {
+        SgExpression *expr = exprStmt->get_expression();
+        SgFunctionCallExp *funcExpr = isSgFunctionCallExp(expr);
+        if (funcExpr) {
+            std::string funcName = funcExpr->get_function()->unparseToString();
+            auto funcArgs = funcExpr->get_args()->get_expressions();
+            int numOfArgs = funcArgs.size();
+            if (numOfArgs > 0) {
+                /* 'FILE* fp;' line of a function pointer declaration */
+                SgType *return_void_type = SageBuilder::buildVoidType();
+                auto file_type =
+                    SageBuilder::buildPointerType(SageBuilder::buildOpaqueType(
+                        "FILE", SageBuilder::topScopeStack()));
+                std::string uniqueFileName =
+                    SageInterface::generateUniqueVariableName(
+                        SageBuilder::topScopeStack(), "fp");
+                auto fileNameDecl = SageBuilder::buildVariableDeclaration(
+                    uniqueFileName, file_type, NULL,
+                    SageBuilder::topScopeStack());
+                ret.push_back(fileNameDecl);
+                // david fix 
+                /* 'fp = fopen("datafile", "w");' line of a function call */
+                SgExpression *lhs = SageBuilder::buildVarRefExp(fileNameDecl);
+                SgExprListExp *fopen_arg_list = SageBuilder::buildExprListExp();
+                SgStringVal *file_name =
+                    SageBuilder::buildStringVal("saved_pointers.h");
+                SgStringVal *file_modifier = SageBuilder::buildStringVal("w");
+                SageInterface::appendExpression(fopen_arg_list, file_name);
+                SageInterface::appendExpression(fopen_arg_list, file_modifier);
+                SgFunctionCallExp *rhs = SageBuilder::buildFunctionCallExp(
+                    "fopen", file_type, fopen_arg_list,
+                    SageBuilder::topScopeStack());
+                SgStatement *fopenStmt =
+                    SageBuilder::buildAssignStatement(lhs, rhs);
+                ret.push_back(fopenStmt);
+                /* 'fprintf(fp, "#define SAVED_funcArgName (funcArgType*)%lld",
+                 * &funcArg);' line of a function call for each loop function
+                 * parameter
+                 */
+                for (int i = 0; i < numOfArgs; i++) {
+                    auto funcArgument = funcArgs[i];
+                    SgVarRefExp *varArg = isSgVarRefExp(funcArgument);
+                    if (!varArg && !isSgAddressOfOp(funcArgument)) {
+                        std::cout << "Argument is not a variable expression! \n"
+                                  << "funcArgument: "
+                                  << funcArgument->unparseToString()
+                                  << std::endl;
+                        continue;
+                    }
+
+                    SgExprListExp *fprintf_line_args = SageBuilder::buildExprListExp();
+                    std::string fpline = "#define SAVED_";
+                    SageInterface::appendExpression(fprintf_line_args, lhs);
+                    std::string varName = "&";
+                    if (varArg) {
+                        /* if the argument is a variable */
+                        fpline.append(varArg->unparseToString());
+                        fpline.append(" (");
+                        fpline.append(varArg->get_type()->unparseToString());
+                        fpline.append("*)%ld \\n");
+                        SgStringVal *lineVal =
+                            SageBuilder::buildStringVal(fpline);
+                        SageInterface::appendExpression(fprintf_line_args,
+                                                        lineVal);
+                        varName.append(varArg->unparseToString());
+                    } else if (isSgAddressOfOp(funcArgument)) {
+                        /* if the argument is a reference */
+                        SgAddressOfOp *addrArg = isSgAddressOfOp(funcArgument);
+                        SgType *type = addrArg->get_type();
+                        auto operand = addrArg->get_operand();
+                        SgType *operandType = operand->get_type();
+                        fpline.append(operand->unparseToString());
+                        fpline.append(" (");
+                        fpline.append(type->unparseToString());
+                        fpline.append(")%ld \\n");
+                        SgStringVal *lineVal =
+                            SageBuilder::buildStringVal(fpline);
+                        SageInterface::appendExpression(fprintf_line_args,
+                                                        lineVal);
+                        varName.append(operand->unparseToString());
+
+                    }
+                    SgVarRefExp *varRef = SageBuilder::buildVarRefExp(SgName(varName));
+                    SageInterface::appendExpression(fprintf_line_args, varRef);
+                    SgExprStatement *fprintf_funccall = SageBuilder::buildFunctionCallStmt( "fprintf", return_void_type, fprintf_line_args);
+                    ret.push_back(fprintf_funccall);
+                }
+                /* 'fclose(fp);' line of a function call */
+                SgExprListExp *fclose_arg_list =
+                    SageBuilder::buildExprListExp();
+                SgExpression *filePointer =
+                    SageBuilder::buildVarRefExp(fileNameDecl);
+                SageInterface::appendExpression(fclose_arg_list, filePointer);
+                SgExprStatement *fcloseStmt =
+                    SageBuilder::buildFunctionCallStmt(
+                        SgName("fclose"), return_void_type, fclose_arg_list);
+                ret.push_back(fcloseStmt);
+            }
+        } else
+            std::cout << "Something went wrong with funcExpr " << std::endl;
+    } else
+        std::cout << "SOMETHING WENT WRONG with exprStmt!" << std::endl;
+    return ret;
+}
+#if 0
+#endif
+
+/**
+ * @brief Function that generates heap saving lines of code
+ */
+SgStatement *LoopInfo::buildWriteHeap(string datafileName) {
+    SgType *return_void_type = SageBuilder::buildVoidType();
+    SgStringVal *addDataFile = SageBuilder::buildStringVal(datafileName);
+    SgExprListExp *heap_arg_list = SageBuilder::buildExprListExp();
+    SgVarRefExp *heap_arg1 =
+        SageBuilder::buildVarRefExp(SgName("min_heap_address"));
+    SgVarRefExp *heap_arg2 =
+        SageBuilder::buildVarRefExp(SgName("max_heap_address"));
+    SgVarRefExp *heap_arg3 =
+        SageBuilder::buildVarRefExp(SgName("heapPointerData"));
+    SageInterface::appendExpression(heap_arg_list, addDataFile);
+    SageInterface::appendExpression(heap_arg_list, heap_arg1);
+    SageInterface::appendExpression(heap_arg_list, heap_arg2);
+    SageInterface::appendExpression(heap_arg_list, heap_arg3);
+    SgExprStatement *callStmt = SageBuilder::buildFunctionCallStmt(
+        SgName("writeDataRangeToFile"), return_void_type, heap_arg_list);
+    return callStmt;
+}
+
+/**
+ * @brief Function that generates stack saving lines of code
+ */
+SgStatement *LoopInfo::buildWriteStack(string datafileName) {
+    SgType *return_void_type = SageBuilder::buildVoidType();
+    SgStringVal *addDataFile = SageBuilder::buildStringVal(datafileName);
+    SgExprListExp *stack_arg_list = SageBuilder::buildExprListExp();
+    SgVarRefExp *stack_arg1 =
+        SageBuilder::buildVarRefExp(SgName("min_stack_address"));
+    SgVarRefExp *stack_arg2 =
+        SageBuilder::buildVarRefExp(SgName("max_stack_address"));
+    SgVarRefExp *stack_arg3 =
+        SageBuilder::buildVarRefExp(SgName("stackPointerData"));
+    SageInterface::appendExpression(stack_arg_list, addDataFile);
+    SageInterface::appendExpression(stack_arg_list, stack_arg1);
+    SageInterface::appendExpression(stack_arg_list, stack_arg2);
+    SageInterface::appendExpression(stack_arg_list, stack_arg3);
+    SgExprStatement *callStmt = SageBuilder::buildFunctionCallStmt(
+        SgName("writeDataRangeToFile"), return_void_type, stack_arg_list);
+    return callStmt;
+}
+/**
+ * @brief Function that generates code lines that traces segment boundaries
+ *        by receiving the addresses of base frame (rbp) and stack frame (rsp)
+ * @return vector of SgStatement* that contains the generated code lines
+ */
+vector<SgStatement *> LoopInfo::buildSegmentPtrs() {
+    vector<SgStatement *> segmentPtrs;
+    /* Declare 'basepointer' and 'stackpointer' variables */
+    SgType *voidType = SageBuilder::buildVoidType();
+    SgType *voidPtrType = SageBuilder::buildPointerType(voidType);
+    SgVariableDeclaration *basePtrStmt = SageBuilder::buildVariableDeclaration(
+        "basepointer", voidPtrType, NULL, SageBuilder::topScopeStack());
+    SgVariableDeclaration *stackPtrStmt = SageBuilder::buildVariableDeclaration(
+        "stackpointer", voidPtrType, NULL, SageBuilder::topScopeStack());
+    segmentPtrs.push_back(basePtrStmt);
+    segmentPtrs.push_back(stackPtrStmt);
+    /* Get the address of the base pointer by calling
+     * '__builtin_frame_address(0)' Get the address of the stack pointer by
+     * calling 'alloca(0)'
+     */
+    SgExprListExp *heap_arg_list = SageBuilder::buildExprListExp();
+    auto heap_arg1 = SageBuilder::buildIntVal(0);
+    SageInterface::appendExpression(heap_arg_list, heap_arg1);
+    SgFunctionCallExp *basePtrCall = SageBuilder::buildFunctionCallExp(
+        SgName("__builtin_frame_address"), voidPtrType, heap_arg_list);
+    SgFunctionCallExp *stackPtrCall = SageBuilder::buildFunctionCallExp(
+        SgName("alloca"), voidPtrType, heap_arg_list);
+    /* Assign the result of the function call to the variable */
+    SgVarRefExp *basePtrRef = SageBuilder::buildVarRefExp("basepointer");
+    SgVarRefExp *stackPtrRef = SageBuilder::buildVarRefExp("stackpointer");
+    SgStatement *basePtrAsgn =
+        SageBuilder::buildAssignStatement(basePtrRef, basePtrCall);
+    SgStatement *stackPtrAsgn =
+        SageBuilder::buildAssignStatement(stackPtrRef, stackPtrCall);
+    segmentPtrs.push_back(basePtrAsgn);
+    segmentPtrs.push_back(stackPtrAsgn);
+    return segmentPtrs;
+}
+
+
+/**
+ * @brief Function that generates code lines that print some variable
+ * @param printStr - first parameter of printf function call (format string)
+ * @param variableName - name of the variable to be printed
+ * @return generated printf call statement
+ */
+SgStatement *LoopInfo::buildPrintFunc(std::string printStr, std::string variableName) {
+
+    return this->buildPrintFunc(printStr, SageBuilder::buildVarRefExp(SgName(variableName)));
+}
+SgStatement *LoopInfo::buildPrintAddrOfFunc(std::string printStr, std::string variableName) {
+
+    return this->buildPrintFunc(printStr, SageBuilder::buildAddressOfOp
+        (SageBuilder::buildVarRefExp(SgName(variableName))));
+}
+
+SgStatement *LoopInfo::buildPrintFunc(std::string printStr, SgExpression* exp) {
+    SgType *return_type = SageBuilder::buildIntType();
+    SgExprListExp *arg_list = SageBuilder::buildExprListExp();
+    SgStringVal *arg = SageBuilder::buildStringVal(printStr);
+    SageInterface::appendExpression(arg_list, arg);
+    SageInterface::appendExpression(arg_list, exp);
+    SgExprStatement *callStmt1 = SageBuilder::buildFunctionCallStmt(
+        SgName("printf"), return_type, arg_list);
+    return callStmt1;
 }
 
 /*
@@ -627,7 +1135,7 @@ string LoopInfo::sanitizeOMPpragma(const string &pragmaStr) {
  * Add OMP Timer around the loop. (Not sure)
  * Manages variables that are needed for extracting the loop.
  */
-void LoopInfo::printLoopFunc(ofstream &loop_file_buf) {
+void LoopInfo::printLoopFunc1(string outfile_name) {
 
     /* Scope of loop body contains the variables needed for this loop to compile
      */
@@ -637,110 +1145,335 @@ void LoopInfo::printLoopFunc(ofstream &loop_file_buf) {
         loop = *iter;
         loop_scope = (loop->get_loop_body())->get_scope();
 
+	/*
         if (hasFuncCallInScope()) {
             string externFuncStr;
             addScopeFuncAsExtern(externFuncStr);
-            loop_file_buf << externFuncStr;
         }
+    */
 
         // getParamatersInFunc - Dont need same analysis twice
         getVarsInScope();
     }
     loop = *(extr.consecutiveLoops.begin());
     loop_scope = (loop->get_loop_body())->get_scope();
-    /*
-     if( !scope_globals_vec.empty() ){
-       string externGlobalsStr;
-       addScopeGlobalsAsExtern( externGlobalsStr );
-       loop_file_buf << externGlobalsStr;
-     }
-   */
     // Function definition
-    const char* outfile = "/tmp/foo.cc";
+
+    /*
+    string loop_file_name = astNode->get_file_info()->get_filenameString();
+    std::remove("/tmp/trace_save.cc");
+    std::filesystem::copy(loop_file_name, "/tmp/trace_save.cc");
+    SgSourceFile* my_trace_save_src_file = isSgSourceFile(SageBuilder::buildFile("/tmp/trace_save.cc", "/tmp/trace_save.cc"));
+    SgGlobal * glb_trace_save_src = my_trace_save_src_file->get_globalScope();
+    extr.set_src_file_trace_save(my_trace_save_src_file);
+    SgSourceFile* loop_enc_src = SageInterface::getEnclosingSourceFile(loop);
+    SgGlobal * glb_loop_src1 = loop_enc_src->get_globalScope();
+    */
+
+
+
+
+
+    std::remove("/tmp/restore.cc");
+    SgSourceFile* my_restore_src_file = isSgSourceFile(SageBuilder::buildFile("/tmp/restore.cc", "/tmp/restore.cc"));
+    SgGlobal * glb_restore_src = my_restore_src_file->get_globalScope();
+    extr.set_src_file_restore(my_restore_src_file);
+    /*
+    SageInterface::insertHeader("config.h", PreprocessingInfo::after, false,
+                                glb_restore_src);
+    SageInterface::insertHeader("util.h", PreprocessingInfo::after, false,
+                                glb_restore_src);
+    SageInterface::insertHeader("alloca.h", PreprocessingInfo::after, false,
+                                glb_restore_src);
+    ::insertHeader(my_restore_src_file, "unistd.h", false, false);
+                                */
+    //PreprocessingInfo* rst = my_insertHeader(my_restore_src_file, "unistd.h", false, false);
+    //std::cout << "INSERT:" << rst << std::endl;
+    
+    //SageInterface::insertHeader(my_restore_src_file, "unistd1.h", false, true);
+    //std::cout << "FIND:" <<SageInterface::findHeader(my_restore_src_file, "unistd.h", false) << std::endl;
+
+
+
+
+    const char* outfile = outfile_name.c_str();
     std::remove(outfile);
     SgProject* project = TransformationSupport::getProject(loop);
     SgSourceFile* my_file = isSgSourceFile(SageBuilder::buildFile(outfile, outfile));
-    extr.set_src_file(my_file);
+    extr.set_src_file_loop(my_file);
 
     Sg_File_Info* file_info = my_file->get_file_info();
-    SgGlobal * glb = my_file->get_globalScope();
+    SgGlobal * glb_loop_src = my_file->get_globalScope();
 
-    this->addGlobalVarDeclsAsExtern(glb);
-    SgFunctionDeclaration *fn_decl = this->addLoopFuncDefnDecl(glb);
+    Rose_STL_Container<SgNode *> expList = NodeQuery::querySubTree(loop, V_SgExpression);
+    set<SgDeclarationStatement*> type_decls_s;
+    vector<SgDeclarationStatement*> type_decls_v;
+    vector<SgDeclarationStatement*>::iterator type_decls_iter;
+    for (Rose_STL_Container<SgNode*>::iterator iter = expList.begin(); iter !=expList.end(); iter ++) {
+        SgExpression* exp = isSgExpression(*iter);
+        SgType* exp_type = exp->get_type();
+        SgNamedType* named_exp_type = isSgNamedType(exp_type);
+        if (named_exp_type) {
+            SgDeclarationStatement* type_decl = named_exp_type->get_declaration();
+            type_decl = type_decl->get_definingDeclaration(); // ensure full decl
+            if (type_decls_s.count(type_decl) == 0) {
+                type_decls_s.insert(type_decl);
+                type_decls_v.push_back(type_decl);
+            }
+        }
+    }
+    for(type_decls_iter=type_decls_v.begin(); type_decls_iter != type_decls_v.end(); type_decls_iter++) {
+        SgDeclarationStatement* type_decl = isSgDeclarationStatement(SageInterface::deepCopy((*type_decls_iter)));
+        SageInterface::appendStatement(type_decl, glb_loop_src);
+    }
+    this->addGlobalVarDecls(glb_loop_src, true);
+    SgFunctionDeclaration *fn_decl = this->addLoopFuncDefnDecl(glb_loop_src);
+
+
     SgBasicBlock* fn_bb = fn_decl->get_definition()->get_body();
 
     SageBuilder::pushScopeStack(fn_bb);
+    SgPragmaDeclaration* scop_pragma = SageBuilder::buildPragmaDeclaration("scop", SageBuilder::topScopeStack());
+    SageInterface::appendStatement(scop_pragma, SageBuilder::topScopeStack());
     SgForStatement* myloop = isSgForStatement(SageInterface::deepCopy(loop));
     SageInterface::appendStatement(myloop, SageBuilder::topScopeStack());
+    SgPragmaDeclaration* end_scop_pragma = SageBuilder::buildPragmaDeclaration("endscop", SageBuilder::topScopeStack());
+    SageInterface::appendStatement(end_scop_pragma, SageBuilder::topScopeStack());
     SageBuilder::popScopeStack();
 
-    SageInterface::appendStatement(fn_decl, glb);
-    loop_file_buf << endl << "void " << getFuncName() << "( ";
-    if (!scope_vars_str_vec.empty()) {
-        vector<string>::iterator iter = scope_vars_str_vec.begin();
-        loop_file_buf << *iter;
-        iter++;
-        for (; iter != scope_vars_str_vec.end(); iter++) {
-            std::cout << "David Arg:" << *iter << std::endl;
-            loop_file_buf << ", " << *iter;
-        }
+    SageInterface::appendStatement(fn_decl, glb_loop_src);
+
+
+
+    
+    for(type_decls_iter=type_decls_v.begin(); type_decls_iter != type_decls_v.end(); type_decls_iter++) {
+        SgDeclarationStatement* type_decl = isSgDeclarationStatement(SageInterface::deepCopy((*type_decls_iter)));
+        SageInterface::appendStatement(type_decl, glb_restore_src);
     }
-    loop_file_buf << " ){" << endl; // Function Start
+    this->addGlobalVarDecls(glb_restore_src, false);
+    SgFunctionDeclaration* func_decl_restore = this->makeLoopFunc(false, glb_restore_src);
+    SageInterface::setExtern(func_decl_restore);
+    SageInterface::appendStatement(func_decl_restore, glb_restore_src);
 
-    // Required only for C, since C++ is passed through reference(&)
-    if (extr.getSrcType() == src_lang_C)
-        pushPointersToLocalVars(loop_file_buf);
+    // ROSE "hack" or "feature".  header files including can only be inserted after some declaration was done in a src file.
+    SageInterface::insertHeader("stdio.h", PreprocessingInfo::after, true, glb_restore_src);
+    SageInterface::insertHeader("util.h", PreprocessingInfo::after, false, glb_restore_src);
+    SageInterface::insertHeader("addresses.h", PreprocessingInfo::after, false, glb_restore_src);
+    SageInterface::insertHeader("saved_pointers.h", PreprocessingInfo::after, false, glb_restore_src);
+    SageInterface::insertHeader("unistd.h", PreprocessingInfo::after, true, glb_restore_src);
+    SageInterface::insertHeader("alloca.h", PreprocessingInfo::after, true, glb_restore_src);
 
-    if (extr.getOMPpragma() != "")
-        loop_file_buf << printOMPprivateArrays() << endl;
 
-    // TODO: Add SCoP pragma based on tool option
-    loop_file_buf << "#pragma scop" << endl;
+    SgFunctionDeclaration *main_decl = SageBuilder::buildDefiningFunctionDeclaration
+        ("main", SageBuilder::buildIntType(), SageBuilder::buildFunctionParameterList(), glb_restore_src);
 
-    // Get OMP pragma for this loop
-    if (extr.getOMPpragma() != "")
-        loop_file_buf << endl << sanitizeOMPpragma(extr.getOMPpragma()) << endl;
+    SgBasicBlock* main_fn_bb = main_decl->get_definition()->get_body();
+    SgType* void_type = SageBuilder::buildVoidType();
+    SgType* void_ptr_type = SageBuilder::buildPointerType(void_type);
+    SageBuilder::pushScopeStack(main_fn_bb);
 
-    // Print all the loops
-    string kernel_body_str = "";
-    for (vector<SgForStatement *>::iterator iter =
-             extr.consecutiveLoops.begin();
-         iter != extr.consecutiveLoops.end(); iter++) {
-        // Entire Loop Body
-        string loop_body_str = "";
-        if (extr.getSrcType() == src_lang_C) {
-            loop_body_str = (*iter)->unparseToString();
-        } else if (extr.getSrcType() == src_lang_CPP) {
-            loop_body_str = (*iter)->unparseToString();
-        }
-        if (loop_body_str.find("#else") == 0)
-            loop_body_str.erase(0, loop_body_str.find("\n") + 1);
-        if (loop_body_str.find("#endif") == 0)
-            loop_body_str.erase(0, loop_body_str.find("\n") + 1);
-        kernel_body_str += loop_body_str + '\n';
+    auto preRSP_var_decl = SageBuilder::buildVariableDeclaration_nfi(
+        "preRSP __asm__", void_ptr_type, 
+        SageBuilder::buildConstructorInitializer(
+            //SageBuilder::buildNondefiningMemberFunctionDeclaration("__asm__", void_ptr_type, NULL, NULL),
+            NULL,
+            SageBuilder::buildExprListExp(SageBuilder::buildStringVal("sp")),
+            void_ptr_type, false, false, false, true
+        ), 
+        SageBuilder::topScopeStack(), false, SgStorageModifier::e_register);
+    SageInterface::appendStatement(preRSP_var_decl);
+    //auto preRSP_init_name = preRSP_var_decl->get_vardefn();
+    //preRSP_init_name->set_register_name_code(SgInitializedName::e_register_sp);
+
+    auto size_var_decl = SageBuilder::buildVariableDeclaration(
+        "size", SageBuilder::buildUnsignedLongType(), 
+        SageBuilder::buildAssignInitializer(
+            SageBuilder::buildSubtractOp(
+                SageBuilder::buildCastExp(
+                    SageBuilder::buildVarRefExp("preRSP"), SageBuilder::buildUnsignedLongLongType()), 
+                SageBuilder::buildCastExp(
+                    SageBuilder::buildVarRefExp("min_stack_address"), SageBuilder::buildUnsignedLongLongType()))), 
+        SageBuilder::topScopeStack());
+    SageInterface::appendStatement(size_var_decl);
+
+    auto ptr_var_decl = SageBuilder::buildVariableDeclaration_nfi(
+        "ptr", void_ptr_type, 
+        SageBuilder::buildAssignInitializer(
+            SageBuilder::buildFunctionCallExp("alloca", 
+            void_ptr_type,
+            SageBuilder::buildExprListExp(SageBuilder::buildVarRefExp("size")))), 
+        SageBuilder::topScopeStack());
+    SageInterface::appendStatement(ptr_var_decl);
+
+    auto malloc_heap_call_stmt = SageBuilder::buildFunctionCallStmt(
+        "my_mallocMemoryChunkInclusive", 
+        void_type,
+        SageBuilder::buildExprListExp(
+            SageBuilder::buildStringVal("myDataFile/test.hd"),
+            SageBuilder::buildVarRefExp("min_heap_address"),
+            SageBuilder::buildVarRefExp("max_heap_address")) 
+    );
+    SageInterface::appendStatement(malloc_heap_call_stmt);
+    SageInterface::attachComment(malloc_heap_call_stmt, "After restoring heap, it will be safe to use heap, including fopen(), etc.");
+    SageInterface::attachComment(malloc_heap_call_stmt, "Now is safe to use heap, including fopen(), etc.", PreprocessingInfo::after);
+
+    auto read_stack_call_stmt = SageBuilder::buildFunctionCallStmt(
+        "readDataRangeFromFile", 
+        void_type,
+        SageBuilder::buildExprListExp(
+            SageBuilder::buildStringVal("myDataFile/test.st"),
+            SageBuilder::buildVarRefExp("min_stack_address"),
+            SageBuilder::buildVarRefExp("max_stack_address")) 
+    );
+    SageInterface::appendStatement(read_stack_call_stmt);
+    SageInterface::attachComment(read_stack_call_stmt, "Stack restored.", PreprocessingInfo::after);
+    
+
+
+    this->restoreGlobalVars();
+
+    vector<SgVariableSymbol *>::iterator iter;
+    vector<SgExpression *> expr_list;
+    vector<SgVariableSymbol *> saved_scope_vars_symbol_vec;
+    for (iter = scope_vars_symbol_vec.begin(); iter != scope_vars_symbol_vec.end(); iter++) { 
+        SgExpression *arg_exp = NULL;
+        SgVariableSymbol* arg_v = (*iter);
+        // SgVariableSymbol* saved_arg_v = new SgVariableSymbol(
+        //     SageBuilder::buildInitializedName(
+        //         "SAVED_"+arg_v->get_name(), SageBuilder::buildPointerType(arg_v->get_type())));
+
+        SgType *arg_type = arg_v->get_type();
+        ParamPassingStyle style = getPassingStyle(arg_type, extr.getSrcType());
+
+        //arg_exp = SageBuilder::buildPointerDerefExp(SageBuilder::buildVarRefExp(saved_arg_v));
+        arg_exp = SageBuilder::buildPointerDerefExp(SageBuilder::buildVarRefExp("SAVED_"+arg_v->get_name()));
+        if (style == ParamPassingStyle::POINTER)
+            arg_exp = (SageBuilder::buildAddressOfOp(arg_exp));
+        // no extra work for direct and reference type
+
+        ROSE_ASSERT(arg_exp != NULL);
+        expr_list.push_back(arg_exp); 
     }
-    loop = *(extr.consecutiveLoops.begin());
-    loop_scope = (loop->get_loop_body())->get_scope();
 
-    stringReplaceAll(kernel_body_str, "#pragma ivdep", "\n#pragma ivdep \n");
-    stringReplaceAll(kernel_body_str, "{", "\n{\n");
-    stringReplaceAll(kernel_body_str, "}", "\n}\n");
-    stringReplaceAll(kernel_body_str, ";", ";\n");
+    SgFunctionCallExp *call_expr = SageBuilder::buildFunctionCallExp(
+        getFuncName(), SageBuilder::buildVoidType(),
+        SageBuilder::buildExprListExp(expr_list), SageBuilder::topScopeStack());
+    SageInterface::appendStatement(SageBuilder::buildExprStatement(call_expr));
 
-    loop_file_buf << kernel_body_str << endl;
+    SageInterface::appendStatement
+        (SageBuilder::buildReturnStmt(SageBuilder::buildIntVal(0)), SageBuilder::topScopeStack());
 
-    loop_file_buf << "#pragma endscop" << endl;
+    SageBuilder::popScopeStack();
 
-    // Required only for C, since C++ is passed through reference(&)
-    if (extr.getSrcType() == src_lang_C)
-        popLocalVarsToPointers(loop_file_buf);
 
-    loop_file_buf << "}" << endl; // Function End
 
-    /* close unclosed macros */
-    for (int i = 0; i < extr.if_else_macro_count; i++)
-        loop_file_buf << "#endif" << endl;
+
+    SageInterface::appendStatement(main_decl, glb_restore_src);
+
+
 }
+/**
+ * @brief Function that generates an extern variable declaration of given type 
+ * @param varName - name of the variable
+ * @param type - type of the variable
+ * @return SgVariableDeclaration* that contains the generated variable declaration
+ */
+SgVariableDeclaration* LoopInfo::buildExternVarDecl(string varName, SgType* type) {
+    SgVariableDeclaration* var_decl = SageBuilder::buildVariableDeclaration(varName, type);
+    SageInterface::setExtern(var_decl);
+    return var_decl;
+}
+/**
+ * @brief Function that generates an extern variable declaration of type char**
+ * @param varName - name of the variable
+ * @return SgVariableDeclaration* that contains the generated variable declaration
+ */
+SgVariableDeclaration* LoopInfo::buildExternCharStarStarVarDecl(string varName) {
+    return this->buildExternVarDecl(varName, 
+        SageBuilder::buildPointerType(SageBuilder::buildPointerType(SageBuilder::buildCharType())));
+}
+/**
+ * @brief Function that generates an extern variable declaration of type int
+ * @param varName - name of the variable
+ * @return SgVariableDeclaration* that contains the generated variable declaration
+ */
+SgVariableDeclaration* LoopInfo::buildExternIntVarDecl(string varName) {
+    return this->buildExternVarDecl(varName, SageBuilder::buildIntType());
+}
+/**
+ * @brief Function that generates code lines that calls brk function
+ *        to get heap address
+ * @return vector of SgStatement* that contains the generated code lines
+ */
+std::vector<SgStatement *> LoopInfo::buildBrkStmt() {
+    std::vector<SgStatement *> ret;
+    //SgStatement *brkDecl = buildVarDecl("brk", "char*");
+    SgVariableDeclaration *brkDecl =
+        SageBuilder::buildVariableDeclaration("brk", 
+        SageBuilder::buildPointerType(SageBuilder::buildCharType()));
+    ret.push_back(brkDecl);
+    SgExpression *lhs = SageBuilder::buildVarRefExp("brk");
+    SgExprListExp *sbrkArgList = SageBuilder::buildExprListExp();
+    SgIntVal *zeroVal = SageBuilder::buildIntVal(0);
+    SageInterface::appendExpression(sbrkArgList, zeroVal);
+    auto brkType =
+        SageBuilder::buildOpaqueType("char*", SageBuilder::topScopeStack());
+    SgFunctionCallExp *rhs =
+        SageBuilder::buildFunctionCallExp("sbrk", brkType, sbrkArgList);
+    SgCastExp *voidToChar = SageBuilder::buildCastExp(rhs, brkType);
+    SgStatement *brkAsgn = SageBuilder::buildAssignStatement(lhs, voidToChar);
+    ret.push_back(brkAsgn);
+    return ret;
+}
+
+/**
+ * @brief Function that generates code lines to print segment boundary addresses
+ *        and imitates the behavior of the SAVE code (to avoid different memory
+ * allocation)
+ * @return SgStatement* that contains the generated basic block
+ */
+SgBasicBlock* LoopInfo::addrPrintingInBB() {
+    /* Most of code lines will be in a single basic block */
+    std::vector<SgStatement *> basicBlockStmts;
+    /* Environment variables */
+    basicBlockStmts.push_back(buildExternIntVarDecl("_end"));
+    basicBlockStmts.push_back(buildExternIntVarDecl("_etext"));
+    basicBlockStmts.push_back(buildExternIntVarDecl("_start"));
+    basicBlockStmts.push_back(buildExternIntVarDecl("_edata"));
+    basicBlockStmts.push_back(buildExternIntVarDecl("__bss_start"));
+    basicBlockStmts.push_back(buildExternIntVarDecl("__data_start"));
+    basicBlockStmts.push_back(buildExternCharStarStarVarDecl("environ"));
+    /* Printing segment boundary addresses */
+    vector<SgStatement *> segmentPtrs = buildSegmentPtrs();
+    for (int i = 0; i < segmentPtrs.size(); i++) {
+        basicBlockStmts.push_back(segmentPtrs[i]);
+    }
+    std::vector<SgStatement *> brkVec = buildBrkStmt();
+    for (int i = 0; i < brkVec.size(); i++) {
+        basicBlockStmts.push_back(brkVec[i]);
+    }
+    basicBlockStmts.push_back(
+        buildPrintFunc("BP(STACK END): %09lx\\n", "basepointer"));
+    basicBlockStmts.push_back(
+        buildPrintFunc("SP(STACK BEGIN): %09lx\\n", "((char*)stackpointer)-1"));
+    basicBlockStmts.push_back(
+        buildPrintAddrOfFunc("DS START: %09lx\\n", "__data_start"));
+    basicBlockStmts.push_back(
+        buildPrintFunc("DS END: %09lx\\n", "((char*)&_end)-1"));
+    basicBlockStmts.push_back(buildPrintAddrOfFunc("HEAP START: %09lx\\n", "_end"));
+    basicBlockStmts.push_back(buildPrintFunc("HEAP END: %09lx\\n", "brk"));
+    /* Imitation of SAVE code */
+    //basicBlockStmts.push_back(buildPrintImitFunc("myDataFile/test"));
+    //basicBlockStmts.push_back(buildPrintImitFunc("myDataFile/test"));
+    basicBlockStmts.push_back(buildWriteHeap("myDataFile/test"));
+    basicBlockStmts.push_back(buildWriteStack("myDataFile/test"));
+
+    SgBasicBlock *result = SageBuilder::buildBasicBlock_nfi(basicBlockStmts);
+    return result;
+}
+
+#if 0
+#endif
 
 void Extractor::addExternDefs(SgFunctionDeclaration *func) {
     externFuncDef.insert(pair<SgStatement *, SgScopeStatement *>(
@@ -751,7 +1484,7 @@ void Extractor::addExternDefs(SgFunctionDeclaration *func) {
 }
 
 /* Add loop function call as extern in the base source file */
-void LoopInfo::addGlobalVarDeclsAsExtern(SgGlobal* glb) {
+void LoopInfo::addGlobalVarDecls(SgGlobal* glb, bool as_extern) {
     vector<SgInitializedName *>::iterator iter;
     for (iter = global_vars_initName_vec.begin();
             iter != global_vars_initName_vec.end(); iter++) {
@@ -760,60 +1493,10 @@ void LoopInfo::addGlobalVarDeclsAsExtern(SgGlobal* glb) {
         std::cout << "David deArg:" << arg_name << std::endl;
         //SgInitializedName *arg_init_name;
         SgVariableDeclaration *var_decl;
-        if (extr.getSrcType() == src_lang_C) {
-            // Pointers for C
-            bool isTypedefArray = false;
-            bool isTypedefStruct = false;
-            if (((*iter)->get_type())->variantT() == V_SgTypedefType) {
-                SgTypedefType *type_def_var =
-                    dynamic_cast<SgTypedefType *>((*iter)->get_type());
-                if ((type_def_var->get_base_type())->variantT() ==
-                    V_SgArrayType)
-                    isTypedefArray = true;
-                else if (SageInterface::isStructType(
-                                type_def_var->get_base_type()))
-                    isTypedefStruct = true;
-            }
-            if (((*iter)->get_type())->variantT() == V_SgArrayType ||
-                isTypedefArray) {
-                var_decl = SageBuilder::buildVariableDeclaration(
-                    arg_name, (*iter)->get_type());
-            } else if (((*iter)->get_type())->variantT() ==
-                        V_SgPointerType) {
-                SgType *var_pointer_type =
-                    (*iter)->get_type()->stripType(1 << 2);
-                if (var_pointer_type->variantT() == V_SgTypedefType) {
-                    SgTypedefType *type_def_var =
-                        dynamic_cast<SgTypedefType *>(var_pointer_type);
-                    var_pointer_type = type_def_var->get_base_type();
-                }
-                if (SageInterface::isStructType(var_pointer_type)) {
-                    SgPointerType *arg_type =
-                        SageBuilder::buildPointerType((*iter)->get_type());
-                    var_decl = SageBuilder::buildVariableDeclaration(
-                        arg_name, arg_type);
-                } else {
-                    var_decl = SageBuilder::buildVariableDeclaration(
-                        arg_name, (*iter)->get_type());
-                }
-            } else { // TypedefStruct will be handled here
-                SgPointerType *arg_type =
-                    SageBuilder::buildPointerType((*iter)->get_type());
-                var_decl =
-                    SageBuilder::buildVariableDeclaration(arg_name, arg_type);
-            }
-        } else if (extr.getSrcType() == src_lang_CPP) {
-            // Reference for C++
-            std::cout << "David deArg type:" << (*iter)->get_type() << std::endl;
-            std::cout << "David deArg type unparse:" << (*iter)->get_type()->unparseToString() << std::endl;
-            SgReferenceType *arg_type =
-                SageBuilder::buildReferenceType((*iter)->get_type());
-            //std::cout << "David deArg type unparse 1:" << arg_type->unparseToString() << std::endl;
-            var_decl =
-                SageBuilder::buildVariableDeclaration(arg_name, arg_type);
-        }
+        var_decl = SageBuilder::buildVariableDeclaration( arg_name, (*iter)->get_type());
         //SageInterface::appendArg(paramList, arg_init_name);
-        SageInterface::setExtern(var_decl);
+        if (as_extern)
+            SageInterface::setExtern(var_decl);
         SageInterface::appendStatement(var_decl , glb);
         //std::cout << "David deArg type unparse 2:" << paramList->unparseToString() << std::endl;
     }
@@ -829,6 +1512,10 @@ void LoopInfo::addGlobalVarDeclsAsExtern(SgGlobal* glb) {
 }
 /* Add loop function call as extern in the base source file */
 SgFunctionDeclaration* LoopInfo::addLoopFuncDefnDecl(SgGlobal* glb) {
+    return this->makeLoopFunc(true, glb);
+}
+
+SgFunctionDeclaration* LoopInfo::makeLoopFunc(bool defining, SgGlobal* glb) {
     vector<SgInitializedName *>::iterator iter;
     SgFunctionParameterList *paramList =
         SageBuilder::buildFunctionParameterList();
@@ -836,148 +1523,31 @@ SgFunctionDeclaration* LoopInfo::addLoopFuncDefnDecl(SgGlobal* glb) {
             iter != scope_vars_initName_vec.end(); iter++) {
         // Create parameter list
         SgName arg_name = (*iter)->get_name();
-        std::cout << "David deArg:" << arg_name << std::endl;
+        SgType *arg_type = (*iter)->get_type();
         SgInitializedName *arg_init_name;
-        if (extr.getSrcType() == src_lang_C) {
-            // Pointers for C
-            bool isTypedefArray = false;
-            bool isTypedefStruct = false;
-            if (((*iter)->get_type())->variantT() == V_SgTypedefType) {
-                SgTypedefType *type_def_var =
-                    dynamic_cast<SgTypedefType *>((*iter)->get_type());
-                if ((type_def_var->get_base_type())->variantT() ==
-                    V_SgArrayType)
-                    isTypedefArray = true;
-                else if (SageInterface::isStructType(
-                                type_def_var->get_base_type()))
-                    isTypedefStruct = true;
-            }
-            if (((*iter)->get_type())->variantT() == V_SgArrayType ||
-                isTypedefArray) {
-                arg_init_name = SageBuilder::buildInitializedName(
-                    arg_name, (*iter)->get_type());
-            } else if (((*iter)->get_type())->variantT() ==
-                        V_SgPointerType) {
-                SgType *var_pointer_type =
-                    (*iter)->get_type()->stripType(1 << 2);
-                if (var_pointer_type->variantT() == V_SgTypedefType) {
-                    SgTypedefType *type_def_var =
-                        dynamic_cast<SgTypedefType *>(var_pointer_type);
-                    var_pointer_type = type_def_var->get_base_type();
-                }
-                if (SageInterface::isStructType(var_pointer_type)) {
-                    SgPointerType *arg_type =
-                        SageBuilder::buildPointerType((*iter)->get_type());
-                    arg_init_name = SageBuilder::buildInitializedName(
-                        arg_name, arg_type);
-                } else {
-                    arg_init_name = SageBuilder::buildInitializedName(
-                        arg_name, (*iter)->get_type());
-                }
-            } else { // TypedefStruct will be handled here
-                SgPointerType *arg_type =
-                    SageBuilder::buildPointerType((*iter)->get_type());
-                arg_init_name =
-                    SageBuilder::buildInitializedName(arg_name, arg_type);
-            }
-        } else if (extr.getSrcType() == src_lang_CPP) {
-            // Reference for C++
-            std::cout << "David deArg type:" << (*iter)->get_type() << std::endl;
-            std::cout << "David deArg type unparse:" << (*iter)->get_type()->unparseToString() << std::endl;
-            SgReferenceType *arg_type =
-                SageBuilder::buildReferenceType((*iter)->get_type());
-            //std::cout << "David deArg type unparse 1:" << arg_type->unparseToString() << std::endl;
-            arg_init_name =
-                SageBuilder::buildInitializedName(arg_name, arg_type);
-        }
+
+        ParamPassingStyle style = getPassingStyle(arg_type, extr.getSrcType());
+
+        //if (need_addressof_type)
+        if (style == ParamPassingStyle::POINTER)
+            arg_type = SageBuilder::buildPointerType(arg_type);
+        else if (style == ParamPassingStyle::REFERENCE)
+            arg_type = SageBuilder::buildReferenceType(arg_type);
+        arg_init_name = SageBuilder::buildInitializedName(arg_name, arg_type);
+
         SageInterface::appendArg(paramList, arg_init_name);
-        //std::cout << "David deArg type unparse 2:" << paramList->unparseToString() << std::endl;
     }
     // Create function declaration
-    // SgName func_name = getFuncName();
-    //SgName fn1 = getFuncName();
-    //std::string sss = fn1.getString();
-    //std::cout << "David:" << sss << std::endl;
     SgName func_name = getFuncName();
-    SgFunctionDeclaration *func =
-        SageBuilder::buildDefiningFunctionDeclaration(
-            func_name, SageBuilder::buildVoidType(), paramList,
-            glb);
-    //SageInterface::setExtern(func);
-    // Insert Function into Global scope
-    // SageInterface::prependStatement( func, extr.getGlobalNode() );
-    //extr.addExternDefs(func);
-    return func;
+    if (defining)
+        return SageBuilder::buildDefiningFunctionDeclaration(func_name, SageBuilder::buildVoidType(), paramList, glb);
+    else
+        return SageBuilder::buildNondefiningFunctionDeclaration(func_name, SageBuilder::buildVoidType(), paramList, glb);  
 }
-
 /* Add loop function call as extern in the base source file */
 void LoopInfo::addLoopFuncAsExtern() {
     if (extr.getGlobalNode() != NULL) {
-        vector<SgInitializedName *>::iterator iter;
-        SgFunctionParameterList *paramList =
-            SageBuilder::buildFunctionParameterList();
-        for (iter = scope_vars_initName_vec.begin();
-             iter != scope_vars_initName_vec.end(); iter++) {
-            // Create parameter list
-            SgName arg_name = (*iter)->get_name();
-            SgInitializedName *arg_init_name;
-            if (extr.getSrcType() == src_lang_C) {
-                // Pointers for C
-                bool isTypedefArray = false;
-                bool isTypedefStruct = false;
-                if (((*iter)->get_type())->variantT() == V_SgTypedefType) {
-                    SgTypedefType *type_def_var =
-                        dynamic_cast<SgTypedefType *>((*iter)->get_type());
-                    if ((type_def_var->get_base_type())->variantT() ==
-                        V_SgArrayType)
-                        isTypedefArray = true;
-                    else if (SageInterface::isStructType(
-                                 type_def_var->get_base_type()))
-                        isTypedefStruct = true;
-                }
-                if (((*iter)->get_type())->variantT() == V_SgArrayType ||
-                    isTypedefArray) {
-                    arg_init_name = SageBuilder::buildInitializedName(
-                        arg_name, (*iter)->get_type());
-                } else if (((*iter)->get_type())->variantT() ==
-                           V_SgPointerType) {
-                    SgType *var_pointer_type =
-                        (*iter)->get_type()->stripType(1 << 2);
-                    if (var_pointer_type->variantT() == V_SgTypedefType) {
-                        SgTypedefType *type_def_var =
-                            dynamic_cast<SgTypedefType *>(var_pointer_type);
-                        var_pointer_type = type_def_var->get_base_type();
-                    }
-                    if (SageInterface::isStructType(var_pointer_type)) {
-                        SgPointerType *arg_type =
-                            SageBuilder::buildPointerType((*iter)->get_type());
-                        arg_init_name = SageBuilder::buildInitializedName(
-                            arg_name, arg_type);
-                    } else {
-                        arg_init_name = SageBuilder::buildInitializedName(
-                            arg_name, (*iter)->get_type());
-                    }
-                } else { // TypedefStruct will be handled here
-                    SgPointerType *arg_type =
-                        SageBuilder::buildPointerType((*iter)->get_type());
-                    arg_init_name =
-                        SageBuilder::buildInitializedName(arg_name, arg_type);
-                }
-            } else if (extr.getSrcType() == src_lang_CPP) {
-                // Reference for C++
-                SgReferenceType *arg_type =
-                    SageBuilder::buildReferenceType((*iter)->get_type());
-                arg_init_name =
-                    SageBuilder::buildInitializedName(arg_name, arg_type);
-            }
-            SageInterface::appendArg(paramList, arg_init_name);
-        }
-        // Create function declaration
-        SgName func_name = getFuncName();
-        SgFunctionDeclaration *func =
-            SageBuilder::buildNondefiningFunctionDeclaration(
-                func_name, SageBuilder::buildVoidType(), paramList,
-                extr.getGlobalNode());
+        SgFunctionDeclaration* func = this->makeLoopFunc(false, extr.getGlobalNode());
         SageInterface::setExtern(func);
         // Insert Function into Global scope
         // SageInterface::prependStatement( func, extr.getGlobalNode() );
@@ -994,50 +1564,24 @@ void LoopInfo::addLoopFuncCall() {
     vector<SgExpression *> expr_list;
     for (iter = scope_vars_symbol_vec.begin();
          iter != scope_vars_symbol_vec.end(); iter++) {
-        if (extr.getSrcType() == src_lang_C) {
-            // 'Address Of' for C except when its an array
-            bool isTypedefArray = false;
-            bool isTypedefStruct = false;
-            if (((*iter)->get_type())->variantT() == V_SgTypedefType) {
-                SgTypedefType *type_def_var =
-                    dynamic_cast<SgTypedefType *>((*iter)->get_type());
-                if ((type_def_var->get_base_type())->variantT() ==
-                    V_SgArrayType)
-                    isTypedefArray = true;
-                else if (SageInterface::isStructType(
-                             type_def_var->get_base_type()))
-                    isTypedefStruct = true;
-            }
-            if (((*iter)->get_type())->variantT() == V_SgArrayType ||
-                isTypedefArray) {
-                expr_list.push_back(SageBuilder::buildVarRefExp((*iter)));
-            } else if (((*iter)->get_type())->variantT() == V_SgPointerType) {
-                SgType *var_pointer_type =
-                    (*iter)->get_type()->stripType(1 << 2);
-                if (var_pointer_type->variantT() == V_SgTypedefType) {
-                    SgTypedefType *type_def_var =
-                        dynamic_cast<SgTypedefType *>(var_pointer_type);
-                    var_pointer_type = type_def_var->get_base_type();
-                }
-                if (SageInterface::isStructType(var_pointer_type)) {
-                    expr_list.push_back(SageBuilder::buildAddressOfOp(
-                        SageBuilder::buildVarRefExp((*iter))));
-                } else {
-                    expr_list.push_back(SageBuilder::buildVarRefExp((*iter)));
-                }
-            } else { // typedef struct handled here
-                expr_list.push_back(SageBuilder::buildAddressOfOp(
-                    SageBuilder::buildVarRefExp((*iter))));
-            }
-        } else if (extr.getSrcType() == src_lang_CPP) {
-            // Reference for C++
-            expr_list.push_back(SageBuilder::buildVarRefExp((*iter)));
-        }
+        SgExpression *arg_exp = NULL;
+        SgType *arg_type = (*iter)->get_type();
+
+        ParamPassingStyle style = getPassingStyle(arg_type, extr.getSrcType());
+
+        arg_exp = (SageBuilder::buildVarRefExp((*iter)));
+        if (style == ParamPassingStyle::POINTER)
+            arg_exp = (SageBuilder::buildAddressOfOp(arg_exp));
+        // no extra work for direct and reference type
+
+        ROSE_ASSERT(arg_exp != NULL);
+        expr_list.push_back(arg_exp);
     }
     SgName func_name = getFuncName();
     SgFunctionCallExp *call_expr = SageBuilder::buildFunctionCallExp(
         func_name, SageBuilder::buildVoidType(),
         SageBuilder::buildExprListExp(expr_list), loop_scope);
+
     /* Check if previous statement is OMP pragma, then remove it */
     SgStatement *prevStmt = SageInterface::getPreviousStatement(loop, false);
     if (prevStmt != NULL && prevStmt->variantT() == V_SgPragmaDeclaration) {
@@ -1048,10 +1592,67 @@ void LoopInfo::addLoopFuncCall() {
                 prevStmt, SageBuilder::buildNullStatement(), true);
         }
     }
+
     /* Replace for loop with function call - Keep preprocessing info */
     SgExprStatement *call_expr_stmt =
         SageBuilder::buildExprStatement(call_expr);
+
     SageInterface::replaceStatement(loop, call_expr_stmt, true);
+
+    // BEGIN Add save stuff here
+    #if 1
+
+    //SgBasicBlock = 
+    SgGlobal* glb_scope = SageInterface::getGlobalScope(loop);
+    SageInterface::insertHeader("util.h", PreprocessingInfo::after, false, glb_scope);
+    SageInterface::insertHeader("addresses.h", PreprocessingInfo::after, false, glb_scope);
+    SageInterface::insertHeader("unistd.h", PreprocessingInfo::after, true, glb_scope);
+    string extr_instance_varname = "extr_instance";
+    //SgVariableDeclaration* extr_instance_var_decl = SageBuilder::buildVariableDeclaration(
+    //    extr_instance_varname, SageBuilder::buildIntType(), NULL, glb_scope);
+    SgVariableDeclaration* extr_instance_var_decl = SageBuilder::buildVariableDeclaration_nfi(
+        extr_instance_varname, SageBuilder::buildIntType(), 
+        SageBuilder::buildAssignInitializer(SageBuilder::buildIntVal(0)), glb_scope);
+    SageInterface::prependStatement(extr_instance_var_decl, glb_scope);
+
+
+    //SgVarRefExp *instVar = SageBuilder::buildVarRefExp(extr_instance_varname, glb_scope);
+    SgVarRefExp *instVar = SageBuilder::buildVarRefExp(extr_instance_varname, loop_scope);
+    // TODO: should be instanceNum instead of 1
+    SgIntVal *oneVal = SageBuilder::buildIntVal(1);
+    //SgIntVal *oneVal1 = SageBuilder::buildIntVal(1);
+    SgEqualityOp *cmp = SageBuilder::buildEqualityOp(instVar, oneVal);
+    //SgEqualityOp *cmp = SageBuilder::buildEqualityOp(oneVal1, oneVal);
+    SgStatement *cond = SageBuilder::buildExprStatement(cmp);
+
+    //vector<SgStatement *> bb_stmts
+
+    SgBasicBlock* if_bb = SageBuilder::buildBasicBlock_nfi(loop_scope);
+    SageBuilder::pushScopeStack(if_bb);
+    /* Replace for loop with function call - Keep preprocessing info */
+
+    if_bb->append_statement(this->saveLoopFuncParamAddressesInBB(call_expr_stmt));
+    if_bb->append_statement(this->saveGlobalVarsInBB());
+    if_bb->append_statement(this->addrPrintingInBB());
+    SageBuilder::popScopeStack();
+
+    //SgBasicBlock* if_bb = SageBuilder::buildBasicBlock_nfi(bb_stmts);
+
+
+
+    SgIfStmt *instCheck = SageBuilder::buildIfStmt(cond, if_bb, nullptr);
+    //SageInterface::replaceStatement(loop, instCheck, true);
+
+    SgVarRefExp *instVar1 = SageBuilder::buildVarRefExp(extr_instance_varname, loop_scope);
+    SgPlusPlusOp *incOp = SageBuilder::buildPlusPlusOp(instVar);
+    SgStatement *incStmt = SageBuilder::buildExprStatement(incOp);
+    SageInterface::insertStatementBefore(call_expr_stmt, instCheck);
+    SageInterface::insertStatementAfter(instCheck, incStmt);
+    #else
+
+    // END Add save stuff here
+    SageInterface::replaceStatement(loop, call_expr_stmt, true);
+    #endif
 
     loop_func_call = call_expr_stmt;
 }
@@ -1194,14 +1795,14 @@ void Extractor::extractLoops(SgNode *astNode) {
     cout << "line number of ast node: " << astNode->unparseToString() << endl;
     cout << "is " << lineNum << endl;
     /* Here we check if loop file number is the one we need */
-    if (lineNum >= tr->lineNumbers.first && lineNum <= tr->lineNumbers.second) {
+    if (lineNum >= lineNumbers.first && lineNum <= lineNumbers.second) {
         cout << "PASSED the lineNum check" << endl;
         SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
         updateUniqueCounter(astNode);
         string loop_file_name = getExtractionFileName(astNode);
 
-        ofstream loop_file_buf;
-        loop_file_buf.open(loop_file_name.c_str(), ofstream::out);
+        //ofstream loop_file_buf;
+        //loop_file_buf.open(loop_file_name.c_str(), ofstream::out);
 
         files_to_compile.insert(loop_file_name);
 
@@ -1224,15 +1825,11 @@ void Extractor::extractLoops(SgNode *astNode) {
         // Create loop object
         LoopInfo curr_loop(astNode, loop, getLoopName(astNode), *this);
 
-        printHeaders(loop_file_buf);
-        printGlobalsAsExtern(loop_file_buf);
-
-        // cerr << "Adding loop to file: " << curr_loop.getFuncName() << endl;
         /*
          * Take cares of print complete loop function and adding func calls
          * and extern loop func to the base file.
          */
-        curr_loop.printLoopFunc(loop_file_buf);
+        curr_loop.printLoopFunc1(loop_file_name);
         curr_loop.addLoopFuncCall();
         curr_loop.addLoopFuncAsExtern();
 
@@ -1246,9 +1843,10 @@ void Extractor::extractLoops(SgNode *astNode) {
             }
         }
 
-        loop_file_buf.close();
+        //loop_file_buf.close();
 
         /* Add all necessary loop info to the Tracer */
+        /*
         if (tr != NULL) {
             int found = loop_file_name.find_last_of("/");
             string loop_file_name_only = loop_file_name.substr(found + 1);
@@ -1256,6 +1854,7 @@ void Extractor::extractLoops(SgNode *astNode) {
             tr->setLoopScope(curr_loop.getLoopScope());
             tr->setLoopNode(curr_loop.getLoopNode());
             tr->setGlobalVars(curr_loop.getGlobalVars());
+            tr->setGlobalVarsInitNameVec(curr_loop.getGlobalVarsInitNameVec());
             tr->setInsertStatement(curr_loop.getLoopFuncCall());
             tr->setLoopFuncScope(curr_loop.getLoopFuncCall()->get_scope());
             string func_name = curr_loop.getFuncName();
@@ -1275,6 +1874,7 @@ void Extractor::extractLoops(SgNode *astNode) {
             lfi->setFuncDecl(funcDecl);
             tr->addLoopFuncInfo(lfi);
         }
+        */
     }
 
     /* Remove preprocessor text, since ROSE preprocessor has already worked */
@@ -1709,98 +2309,90 @@ void Extractor::modifyExtractedFileText(const string &base_file) {
     */
 }
 
-void Extractor::inlineFunctions(const vector<string> &argv) {
-    bool frontendConstantFolding = true;
-    SgProject *project = new SgProject(argv);
-    ConstantFolding::constantFoldingOptimization(project);
-    AstTests::runAllTests(project);
-    bool modifiedAST = true;
-    int count = 0;
-    do {
-        modifiedAST = false;
-        Rose_STL_Container<SgNode *> functionCallList =
-            NodeQuery::querySubTree(project, V_SgFunctionCallExp);
-        // Loop over all function calls
-        Rose_STL_Container<SgNode *>::iterator i = functionCallList.begin();
-        while (modifiedAST == false && i != functionCallList.end()) {
-            SgFunctionCallExp *functionCall = isSgFunctionCallExp(*i);
-            ROSE_ASSERT(functionCall != NULL);
-            // Not all function calls can be inlined in C, so report if
-            // successful.
-            bool sucessfullyInlined = doInline(functionCall);
-            if (sucessfullyInlined == true) {
-                // As soon as the AST is modified recompute the list of function
-                // calls (and restart the iterations over the modified list)
-                modifiedAST = true;
-                cout << "Function inlined" << endl;
-            } else {
-                modifiedAST = false;
-            }
-            // Increment the list iterator
-            i++;
-        }
-        // Quite when we have ceased to do any inline transformations
-        // and only do a predefined number of inline transformations
-        count++;
-    } while (modifiedAST == true && count < 10);
-    // Adding check for isTransformed flag consistancy.
-    cout << "AST check 1" << endl;
-    checkTransformedFlagsVisitor(project);
-    // Call function to postprocess the AST and fixup symbol tables
-    cout << "AST check 2" << endl;
-    // FixSgProject(*project);
-    // Rename each variable declaration
-    cout << "AST check 3" << endl;
-    renameVariables(project);
-    // Fold up blocks
-    cout << "AST check 4" << endl;
-    flattenBlocks(project);
-    // Adding check for isTransformed flag consistancy.
-    cout << "AST check 5" << endl;
-    checkTransformedFlagsVisitor(project);
-    // Clean up inliner-generated code
-    cout << "AST check 6" << endl;
-    cleanupInlinedCode(project);
-    // Adding check for isTransformed flag consistancy.
-    cout << "AST check 7" << endl;
-    checkTransformedFlagsVisitor(project);
-    // Change members to public
-    cout << "AST check 8" << endl;
-    changeAllMembersToPublic(project);
-    // Adding check for isTransformed flag consistancy.
-    cout << "AST check 9" << endl;
-    checkTransformedFlagsVisitor(project);
-    backend(project);
-}
-
-/* Extractor constructor, for initiating via driver */
-Extractor::Extractor(const vector<string> &argv, Tracer *tr) {
-    /* Get relative path unique code */
-    if (LoopExtractor_input_file_relpathcode.find(argv.back()) !=
-            LoopExtractor_input_file_relpathcode.end() &&
-        !(LoopExtractor_input_file_relpathcode.find(argv.back())->second)
-             .empty())
-        relpathcode =
-            LoopExtractor_input_file_relpathcode.find(argv.back())->second;
-
-    if (LoopExtractor_enabled_options[STATICANALYSIS]) {
-        // inlineFunctions(argv); // Has bugs bcoz of rose implementation
-    }
-
-    this->tr = tr;
+// void Extractor::inlineFunctions(const vector<string> &argv) {
+//     bool frontendConstantFolding = true;
+//     SgProject *project = new SgProject(argv);
+//     ConstantFolding::constantFoldingOptimization(project);
+//     AstTests::runAllTests(project);
+//     bool modifiedAST = true;
+//     int count = 0;
+//     do {
+//         modifiedAST = false;
+//         Rose_STL_Container<SgNode *> functionCallList =
+//             NodeQuery::querySubTree(project, V_SgFunctionCallExp);
+//         // Loop over all function calls
+//         Rose_STL_Container<SgNode *>::iterator i = functionCallList.begin();
+//         while (modifiedAST == false && i != functionCallList.end()) {
+//             SgFunctionCallExp *functionCall = isSgFunctionCallExp(*i);
+//             ROSE_ASSERT(functionCall != NULL);
+//             // Not all function calls can be inlined in C, so report if
+//             // successful.
+//             bool sucessfullyInlined = doInline(functionCall);
+//             if (sucessfullyInlined == true) {
+//                 // As soon as the AST is modified recompute the list of function
+//                 // calls (and restart the iterations over the modified list)
+//                 modifiedAST = true;
+//                 cout << "Function inlined" << endl;
+//             } else {
+//                 modifiedAST = false;
+//             }
+//             // Increment the list iterator
+//             i++;
+//         }
+//         // Quite when we have ceased to do any inline transformations
+//         // and only do a predefined number of inline transformations
+//         count++;
+//     } while (modifiedAST == true && count < 10);
+//     // Adding check for isTransformed flag consistancy.
+//     cout << "AST check 1" << endl;
+//     checkTransformedFlagsVisitor(project);
+//     // Call function to postprocess the AST and fixup symbol tables
+//     cout << "AST check 2" << endl;
+//     // FixSgProject(*project);
+//     // Rename each variable declaration
+//     cout << "AST check 3" << endl;
+//     renameVariables(project);
+//     // Fold up blocks
+//     cout << "AST check 4" << endl;
+//     flattenBlocks(project);
+//     // Adding check for isTransformed flag consistancy.
+//     cout << "AST check 5" << endl;
+//     checkTransformedFlagsVisitor(project);
+//     // Clean up inliner-generated code
+//     cout << "AST check 6" << endl;
+//     cleanupInlinedCode(project);
+//     // Adding check for isTransformed flag consistancy.
+//     cout << "AST check 7" << endl;
+//     checkTransformedFlagsVisitor(project);
+//     // Change members to public
+//     cout << "AST check 8" << endl;
+//     changeAllMembersToPublic(project);
+//     // Adding check for isTransformed flag consistancy.
+//     cout << "AST check 9" << endl;
+//     checkTransformedFlagsVisitor(project);
+//     backend(project);
+// }
+void Extractor::do_extraction() {
+    //this->tr = tr;
 
     SgProject *ast = NULL;
     /* Create AST and pass to the extraction functions */
-    ast = frontend(argv);
+    ast = frontend(filenameVec);
     ROSE_ASSERT(ast != NULL);
     InheritedAttribute inhr_attr;
     /* Traverse all files and their ASTs in Top Down fashion (Inherited Attr)
      * and extract loops */
+
     this->traverseInputFiles(ast, inhr_attr);
     // this->generateHeaderFile();
     this->addPostTraversalDefs();
     //SgFile* my_file = SageBuilder::buildFile("/tmp/foo12.cc", "/tmp/foo12.cc");
-    ast->get_fileList().push_back(src_file);
+    ast->get_fileList().push_back(src_file_loop);
+    ast->get_fileList().push_back(src_file_restore);
+    #if 0
+    //ast->get_fileList().push_back(src_file_trace_save);
+    #endif
+
     AstPostProcessing(ast);
     AstTests::runAllTests(ast);
     /* Generate rose_<orig file name> file for the transformed AST */
@@ -1810,9 +2402,9 @@ Extractor::Extractor(const vector<string> &argv, Tracer *tr) {
     /* If file doesn't have any loop, then LoopExtractor_file_name,_file_extn
      * would be empty at this point */
     if (LoopExtractor_file_name.empty()) {
-        LoopExtractor_file_path = getFilePath(argv.back());
-        LoopExtractor_original_file_name = getOrigFileName(argv.back());
-        LoopExtractor_file_extn = getFileExtn(argv.back());
+        LoopExtractor_file_path = getFilePath(filenameVec.back());
+        LoopExtractor_original_file_name = getOrigFileName(filenameVec.back());
+        LoopExtractor_file_extn = getFileExtn(filenameVec.back());
     }
     string base_file = getDataFolderPath() + getOrigFileName() + base_str +
                        "_" + relpathcode + "." + getFileExtn();
@@ -1822,7 +2414,7 @@ Extractor::Extractor(const vector<string> &argv, Tracer *tr) {
          * cp filename.x LoopExtractor_data/filename_base.x
          * rm rose_filename.x
          */
-        executeCommand("cp " + argv.back() + space_str + base_file);
+        executeCommand("cp " + filenameVec.back() + space_str + base_file);
         executeCommand("rm rose_" + getOrigFileName() + "." + getFileExtn());
     } else {
         /* Move base file to the LoopExtractor data folder:
@@ -1846,12 +2438,13 @@ Extractor::Extractor(const vector<string> &argv, Tracer *tr) {
     loopExtrIncludeFlag += LoopExtractor_curr_dir_path;
     // loopExtrIncludeFlag += forward_slash_str;
     loopExtrIncludeFlag += LoopExtractor_data_folder;
-    tr->setLoopExtrIncludeFlag(loopExtrIncludeFlag);
+    //tr->setLoopExtrIncludeFlag(loopExtrIncludeFlag);
 
     string baseFileName = LoopExtractor_curr_dir_path +
                           LoopExtractor_data_folder + forward_slash_str +
                           getOrigFileName() + base_str + "_" + relpathcode +
                           "." + getFileExtn();
+    /*
     tr->setBaseFileName(baseFileName);
     for (int i = 0; i < short_loop_names.size(); i++) {
         string shortFileName = short_loop_names[i];
@@ -1861,4 +2454,24 @@ Extractor::Extractor(const vector<string> &argv, Tracer *tr) {
         // loopFileNames[i] =
         tr->addLoopFileName(loopFileName);
     }
+    */
+
+}
+
+/* Extractor constructor, for initiating via driver */
+//Extractor::Extractor(const vector<string> &argv, Tracer *tr) {
+Extractor::Extractor(const vector<string> &argv) {
+    filenameVec = argv;
+    /* Get relative path unique code */
+    if (LoopExtractor_input_file_relpathcode.find(argv.back()) !=
+            LoopExtractor_input_file_relpathcode.end() &&
+        !(LoopExtractor_input_file_relpathcode.find(argv.back())->second)
+             .empty())
+        relpathcode =
+            LoopExtractor_input_file_relpathcode.find(argv.back())->second;
+
+    if (LoopExtractor_enabled_options[STATICANALYSIS]) {
+        // inlineFunctions(argv); // Has bugs bcoz of rose implementation
+    }
+
 }

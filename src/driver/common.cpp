@@ -162,3 +162,44 @@ std::string parseFileName(std::string *fullName) {
     }
     return "";
 }
+
+ParamPassingStyle getPassingStyle(SgType* arg_type, src_lang lang) {
+    if (lang == src_lang_C) {
+        // 'Address Of' for C except when its an array
+        bool isTypedefArray = false;
+        bool isTypedefStruct = false;
+        if (arg_type->variantT() == V_SgTypedefType) {
+            SgTypedefType *type_def_var =
+                dynamic_cast<SgTypedefType *>(arg_type);
+            if ((type_def_var->get_base_type())->variantT() ==
+                V_SgArrayType)
+                isTypedefArray = true;
+            else if (SageInterface::isStructType(
+                        type_def_var->get_base_type()))
+                isTypedefStruct = true;
+        }
+
+        if (arg_type->variantT() == V_SgArrayType ||
+            isTypedefArray) {
+            return ParamPassingStyle::DIRECT;
+        } else if (arg_type->variantT() == V_SgPointerType) {
+            SgType *var_pointer_type = arg_type->stripType(1 << 2);
+            if (var_pointer_type->variantT() == V_SgTypedefType) {
+                SgTypedefType *type_def_var =
+                    dynamic_cast<SgTypedefType *>(var_pointer_type);
+                var_pointer_type = type_def_var->get_base_type();
+            }
+            if (SageInterface::isStructType(var_pointer_type)) {
+                return ParamPassingStyle::POINTER;
+            } else {
+                return ParamPassingStyle::DIRECT;
+            }
+        } else { // typedef struct handled here
+            return ParamPassingStyle::POINTER;
+        }
+    } else if (lang == src_lang_CPP) {
+        // Reference for C++
+        return ParamPassingStyle::REFERENCE;
+    }
+    return ParamPassingStyle::DIRECT;
+}

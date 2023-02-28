@@ -86,9 +86,11 @@ void Driver::initiateExtractor(string file_name) {
 
     /* Initialize the Tracer class which is used later to save codelet data */
     tr = new Tracer();
+    //extr = new Extractor(filename_vec, tr);
+    extr = new Extractor(filename_vec);
     scanLineNumbers(file_name);
-    extr = new Extractor(filename_vec, tr);
-    tr->setFilenameVec(filename_vec);
+    //tr->setFilenameVec(filename_vec);
+    extr->do_extraction();
 
     mainFuncPresent = extr->mainFuncPresent;
     src_type = extr->getSrcType();
@@ -135,8 +137,9 @@ void Driver::scanLineNumbers(string loopFileName) {
         lastLineNum = (unsigned)stoi(lastLineNumStr);
         cout << "RESULT of parsing: " << checkFileName << ";" << firstLineNum
              << "-" << lastLineNum << endl;
-        tr->lineNumbers =
-            std::pair<unsigned, unsigned>(firstLineNum, lastLineNum);
+        //tr->lineNumbers =
+        //    std::pair<unsigned, unsigned>(firstLineNum, lastLineNum);
+        extr->setLineNumbers(firstLineNum, lastLineNum);
         cout << loopFileName << " should be the same as " << checkFileName
              << endl;
         if (loopFileName != checkFileName) {
@@ -179,7 +182,7 @@ int main(int argc, char *argv[]) {
 
     /* Generating TRACE, SAVE, RESTORE source files for tracing, saving, and
      * restoring data */
-    driver->generateCodelets();
+    // driver->generateCodelets();
 
     cout << "In-Vitro extraction completed" << endl;
 
