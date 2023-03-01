@@ -128,23 +128,24 @@ class QAASJobSubmit:
         container_app_oneview_path="/app/oneview_runs"
         container_app_locus_path="/app/locus_runs"
         container_app_base_path="/app/base_runs"
-        #container_compiler_root="/app/compilers"
         # The current load script seems to require the same path
         container_compiler_root=compiler_root
         container_script_root="/app/QAAS_SCRIPT_ROOT"
         app_run_info = self.application["RUN"]
         env_var_map=app_run_info["APP_ENV_MAP"]
         env_var_flags = "".join([f' --var {k}={v}' for k,v in env_var_map.items()])
+        # Check if we need USER_EXTRA_CMAKE_FLAGS
+        user_extra_cmake_flags = self.compiler["USER_EXTRA_CMAKE_FLAGS"] if "USER_EXTRA_CMAKE_FLAGS" in self.compiler.keys() else ""
         # Below used --network=host so script can communicate back to launcher via ssh forwarding.  Can try to restrict to self.provisioner.comm_port if needed
         app_cmd = f"/usr/bin/python3 {container_script_root}/qaas-service/job.py "+ \
                     f' --src-dir {os.path.join(container_app_builder_path, self.provisioner.app_name)}'+ \
                     f' --data_dir {os.path.join(container_app_dataset_path, self.provisioner.git_data_download_path)} --ov_config unused --ov_run_dir {container_app_oneview_path}'+ \
                     f' --base_run_dir {container_app_base_path} --locus_run_dir {container_app_locus_path}' + \
                     f' --compiler-dir {os.path.join(container_compiler_root, compiler_subdir)} --ov_dir {ov_dir}'+ \
-                    f' --orig-user-CC {self.compiler["USER_CC"]} --target-CC {self.compiler["USER_CC"]} --user-c-flags "{self.compiler["USER_C_FLAGS"]}"'+ \
-                    f' --user-cxx-flags "{self.compiler["USER_CXX_FLAGS"]}" --user-fc-flags "{self.compiler["USER_FC_FLAGS"]}"'+ \
-                    f' --user-link-flags "{self.compiler["USER_LINK_FLAGS"]}"'+ \
-                    f' --extra-cmake-flags "{self.compiler["USER_EXTRA_CMAKE_FLAGS"]}"' + \
+                    f' --orig-user-CC {self.compiler["USER_CC"]} --target-CC {self.compiler["USER_CC"]} --user-c-flags="{self.compiler["USER_C_FLAGS"]}"'+ \
+                    f' --user-cxx-flags="{self.compiler["USER_CXX_FLAGS"]}" --user-fc-flags="{self.compiler["USER_FC_FLAGS"]}"'+ \
+                    f' --user-link-flags="{self.compiler["USER_LINK_FLAGS"]}"'+ \
+                    f' --extra-cmake-flags="{user_extra_cmake_flags}"' + \
                     f' --user-target {self.compiler["USER_TARGET"]} --user-target-location {self.compiler["USER_TARGET_LOCATION"]}'+ \
                     f'{env_var_flags}'+ \
                     f' --run-cmd "{app_run_info["APP_RUN_CMD"]}"' + \
