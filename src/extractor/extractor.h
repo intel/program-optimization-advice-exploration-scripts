@@ -197,7 +197,7 @@ class LoopInfo {
     vector<SgStatement *> buildSegmentPtrs() ;
     SgStatement *buildWriteStack(string datafileName);
     SgStatement *buildWriteHeap(string datafileName);
-    SgExprListExp* getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgExpression* funcArgument);
+    SgExprListExp* getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgInitializedName* func_arg_decl, SgExpression* funcArgument);
     vector<SgStatement *> saveLoopFuncParamAddresses(SgExprStatement* call_expr_stmt) ;
     SgBasicBlock* saveLoopFuncParamAddressesInBB(SgExprStatement* call_expr_stmt) ;
     SgBasicBlock* saveGlobalVarsInBB() ;

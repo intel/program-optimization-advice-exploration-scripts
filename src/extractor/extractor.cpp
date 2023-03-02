@@ -901,7 +901,7 @@ SgBasicBlock* LoopInfo::saveLoopFuncParamAddressesInBB(SgExprStatement *call_exp
     return bb;
 }
 
-SgExprListExp* LoopInfo::getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgExpression* funcArgument) {
+SgExprListExp* LoopInfo::getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgInitializedName* func_arg_decl, SgExpression* funcArgument) {
     SgVarRefExp *varArg = isSgVarRefExp(funcArgument);
     // do we really need this check?
     if (!varArg && !isSgAddressOfOp(funcArgument)) {
@@ -911,10 +911,36 @@ SgExprListExp* LoopInfo::getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgEx
                     << std::endl;
         return NULL;
     }
-    std::string varName = "&&";
-    std::string fpline = "#define SAVED_"; 
     SgExprListExp *fprintf_line_args = SageBuilder::buildExprListExp();
     SageInterface::appendExpression(fprintf_line_args, lhs);
+
+    ParamPassingStyle style = getPassingStyle(func_arg_decl->get_type(), extr.getSrcType());
+    /*
+     * Three cases:
+     * Reference: save address of variable
+     * Direct: save the value of the variable (should already be address)
+     * Pointer: save address of variable 
+     * */
+    SgExpression* paramAddress = NULL;
+    switch(style) {
+        case ParamPassingStyle::REFERENCE:
+        case ParamPassingStyle::POINTER:
+            paramAddress = (SageBuilder::buildAddressOfOp(funcArgument));
+            break;
+        case ParamPassingStyle::DIRECT:
+            paramAddress = funcArgument;
+            break;
+    }
+    SgName arg_name = func_arg_decl->get_name();
+    SgPointerType* param_address_type = isSgPointerType(paramAddress->get_type());
+    ROSE_ASSERT(param_address_type != NULL);
+    std::string fpline1 = "#define SAVED_"+arg_name+" ("+param_address_type->unparseToString()+ ") 0x%lx \\n"; 
+    SgStringVal *lineVal1 = SageBuilder::buildStringVal(fpline1);
+    SageInterface::appendExpression(fprintf_line_args, lineVal1);
+
+    #if 0
+    std::string fpline = "#define SAVED_"; 
+    std::string varName = "&";
     if (varArg) {
         /* if the argument is a variable */
         fpline.append(varArg->unparseToString());
@@ -935,7 +961,7 @@ SgExprListExp* LoopInfo::getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgEx
         fpline.append(operand->unparseToString());
         fpline.append(" (");
         fpline.append(type->unparseToString());
-        fpline.append(")%ld \\n");
+        fpline.append(")0x%lx \\n");
         SgStringVal *lineVal =
             SageBuilder::buildStringVal(fpline);
         SageInterface::appendExpression(fprintf_line_args,
@@ -944,6 +970,8 @@ SgExprListExp* LoopInfo::getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgEx
 
     }
     SgExpression* paramAddress =  SageBuilder::buildVarRefExp(SgName(varName));
+    #endif
+
     SageInterface::appendExpression(fprintf_line_args, paramAddress);
     return fprintf_line_args;
 }
@@ -1004,8 +1032,9 @@ vector<SgStatement *> LoopInfo::saveLoopFuncParamAddresses(
                 * For C++ program, pass the dereference (*x) as arguments are passed by reference.
                 */
                 for (int i = 0; i < numOfArgs; i++) {
-                    auto funcArgument = funcArgs[i];
-                    SgExprListExp* fprintf_line_args = this->getSaveCurrentFuncParamAddrArgs(lhs, funcArgument);
+                    auto funcArgument = funcArgs[i]; 
+                    SgInitializedName * func_arg_decl = scope_vars_initName_vec[i];
+                    SgExprListExp* fprintf_line_args = this->getSaveCurrentFuncParamAddrArgs(lhs, func_arg_decl, funcArgument);
                     if (fprintf_line_args) {
                         SgExprStatement *fprintf_funccall = SageBuilder::buildFunctionCallStmt( "fprintf", return_void_type, fprintf_line_args);
                         ret.push_back(fprintf_funccall);
@@ -1360,8 +1389,12 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
 
         //arg_exp = SageBuilder::buildPointerDerefExp(SageBuilder::buildVarRefExp(saved_arg_v));
         arg_exp = SageBuilder::buildPointerDerefExp(SageBuilder::buildVarRefExp("SAVED_"+arg_v->get_name()));
+        // no need to do something special for POINTER because already saved addressofop output
+        // see LoopInfo::getSaveCurrentFuncParamAddrArgs() method.
+        /*
         if (style == ParamPassingStyle::POINTER)
             arg_exp = (SageBuilder::buildAddressOfOp(arg_exp));
+        */
         // no extra work for direct and reference type
 
         ROSE_ASSERT(arg_exp != NULL);
