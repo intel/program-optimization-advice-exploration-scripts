@@ -901,6 +901,52 @@ SgBasicBlock* LoopInfo::saveLoopFuncParamAddressesInBB(SgExprStatement *call_exp
     return bb;
 }
 
+SgExprListExp* LoopInfo::getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgExpression* funcArgument) {
+    SgVarRefExp *varArg = isSgVarRefExp(funcArgument);
+    // do we really need this check?
+    if (!varArg && !isSgAddressOfOp(funcArgument)) {
+        std::cout << "Argument is not a variable expression! \n"
+                    << "funcArgument: "
+                    << funcArgument->unparseToString()
+                    << std::endl;
+        return NULL;
+    }
+    std::string varName = "&&";
+    std::string fpline = "#define SAVED_"; 
+    SgExprListExp *fprintf_line_args = SageBuilder::buildExprListExp();
+    SageInterface::appendExpression(fprintf_line_args, lhs);
+    if (varArg) {
+        /* if the argument is a variable */
+        fpline.append(varArg->unparseToString());
+        fpline.append(" (");
+        fpline.append(varArg->get_type()->unparseToString());
+        fpline.append("*)0x%lx \\n");
+        SgStringVal *lineVal =
+            SageBuilder::buildStringVal(fpline);
+        SageInterface::appendExpression(fprintf_line_args,
+                                        lineVal);
+        varName.append(varArg->unparseToString());
+    } else if (isSgAddressOfOp(funcArgument)) {
+        /* if the argument is a reference */
+        SgAddressOfOp *addrArg = isSgAddressOfOp(funcArgument);
+        SgType *type = addrArg->get_type();
+        auto operand = addrArg->get_operand();
+        SgType *operandType = operand->get_type();
+        fpline.append(operand->unparseToString());
+        fpline.append(" (");
+        fpline.append(type->unparseToString());
+        fpline.append(")%ld \\n");
+        SgStringVal *lineVal =
+            SageBuilder::buildStringVal(fpline);
+        SageInterface::appendExpression(fprintf_line_args,
+                                        lineVal);
+        varName.append(operand->unparseToString());
+
+    }
+    SgExpression* paramAddress =  SageBuilder::buildVarRefExp(SgName(varName));
+    SageInterface::appendExpression(fprintf_line_args, paramAddress);
+    return fprintf_line_args;
+}
 /**
  * @brief Function that generates code lines that saves loop function
  *        parameter addresses in a header file
@@ -950,53 +996,20 @@ vector<SgStatement *> LoopInfo::saveLoopFuncParamAddresses(
                  * &funcArg);' line of a function call for each loop function
                  * parameter
                  */
+                /* Basically two cases
+                * For C program, save the parameters passed to function, which should be argument addresses already
+                * For C++ program, save the address of the parameters because we pass by reference
+                * On replay
+                * For C program, pass the saved address as is
+                * For C++ program, pass the dereference (*x) as arguments are passed by reference.
+                */
                 for (int i = 0; i < numOfArgs; i++) {
                     auto funcArgument = funcArgs[i];
-                    SgVarRefExp *varArg = isSgVarRefExp(funcArgument);
-                    if (!varArg && !isSgAddressOfOp(funcArgument)) {
-                        std::cout << "Argument is not a variable expression! \n"
-                                  << "funcArgument: "
-                                  << funcArgument->unparseToString()
-                                  << std::endl;
-                        continue;
+                    SgExprListExp* fprintf_line_args = this->getSaveCurrentFuncParamAddrArgs(lhs, funcArgument);
+                    if (fprintf_line_args) {
+                        SgExprStatement *fprintf_funccall = SageBuilder::buildFunctionCallStmt( "fprintf", return_void_type, fprintf_line_args);
+                        ret.push_back(fprintf_funccall);
                     }
-
-                    SgExprListExp *fprintf_line_args = SageBuilder::buildExprListExp();
-                    std::string fpline = "#define SAVED_";
-                    SageInterface::appendExpression(fprintf_line_args, lhs);
-                    std::string varName = "&";
-                    if (varArg) {
-                        /* if the argument is a variable */
-                        fpline.append(varArg->unparseToString());
-                        fpline.append(" (");
-                        fpline.append(varArg->get_type()->unparseToString());
-                        fpline.append("*)%ld \\n");
-                        SgStringVal *lineVal =
-                            SageBuilder::buildStringVal(fpline);
-                        SageInterface::appendExpression(fprintf_line_args,
-                                                        lineVal);
-                        varName.append(varArg->unparseToString());
-                    } else if (isSgAddressOfOp(funcArgument)) {
-                        /* if the argument is a reference */
-                        SgAddressOfOp *addrArg = isSgAddressOfOp(funcArgument);
-                        SgType *type = addrArg->get_type();
-                        auto operand = addrArg->get_operand();
-                        SgType *operandType = operand->get_type();
-                        fpline.append(operand->unparseToString());
-                        fpline.append(" (");
-                        fpline.append(type->unparseToString());
-                        fpline.append(")%ld \\n");
-                        SgStringVal *lineVal =
-                            SageBuilder::buildStringVal(fpline);
-                        SageInterface::appendExpression(fprintf_line_args,
-                                                        lineVal);
-                        varName.append(operand->unparseToString());
-
-                    }
-                    SgVarRefExp *varRef = SageBuilder::buildVarRefExp(SgName(varName));
-                    SageInterface::appendExpression(fprintf_line_args, varRef);
-                    SgExprStatement *fprintf_funccall = SageBuilder::buildFunctionCallStmt( "fprintf", return_void_type, fprintf_line_args);
-                    ret.push_back(fprintf_funccall);
                 }
                 /* 'fclose(fp);' line of a function call */
                 SgExprListExp *fclose_arg_list =
