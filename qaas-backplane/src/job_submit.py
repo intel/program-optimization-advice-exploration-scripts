@@ -27,11 +27,12 @@ class QAASJobException(Exception):
 
 class QAASJobSubmit:
     """."""
-    def __init__(self, system_compilers, user_compiler, user_application, provisioner):
+    def __init__(self, system_compilers, user_compiler, user_application, provisioner, logic):
         self.compiler = user_compiler
         self.compilers = system_compilers
         self.provisioner = provisioner
         self.application = user_application
+        self.logic = logic
 
     def run_container(self, app_cmd, mount_map, network_host=False, cap_add=False, debug=False):
         mount_flags = "".join([f' -v {k}:{v}' for k,v in mount_map.items()])
@@ -149,6 +150,7 @@ class QAASJobSubmit:
                     f' --user-target {self.compiler["USER_TARGET"]} --user-target-location {self.compiler["USER_TARGET_LOCATION"]}'+ \
                     f'{env_var_flags}'+ \
                     f' --run-cmd "{app_run_info["APP_RUN_CMD"]}"' + \
+                    f' --logic {self.logic}' + \
                     f" --comm-port {self.provisioner.comm_port}" 
         mount_map = { ov_dir:ov_dir, script_root:container_script_root,
                      self.provisioner.get_workdir("build") :container_app_builder_path, 

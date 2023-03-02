@@ -33,6 +33,9 @@ def parse_cli_args(argv):
     global_parser.add_argument('-ap', '--app-params', type=str, dest='app_params', metavar='<input-file>',
                             help='name the input file (including suffix)', required=True)
 
+    # Specify the type of QaaS logic to run: demo (legacy) vs Stratigizer (multi-phase)
+    global_parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='demo')
+
     # setup mutually exclusive arguments
     global_excl = global_parser.add_mutually_exclusive_group()
     add_exclusive_trace_options(global_excl)
