@@ -145,7 +145,7 @@ if __name__ == '__main__':
     parser.add_argument('--run-cmd', help='Command to run of the form ... <binary> ... where <binary> represent the executable', required=True)
     parser.add_argument('--var', help='Env variable to add', required=False, action='append')
     parser.add_argument('--comm-port', nargs='?', type=int, default=None) 
-    parser.add_argument('--phase', help='Select the QaaS run strategy', choices=['demo', 'multiple'], default='multiple')
+    parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='demo')
     app_builder_builder_argparser(parser, include_binary_path=False, include_mode=False)
     args = parser.parse_args()
     log(QaasComponents.BUSINESS_LOGICS, 'Executing job.py script in a container', mockup=True)
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     
     to_backplane = ServiceMessageSender(args.comm_port)
     to_backplane.send(qm.BeginJob())
-    if args.phase == "demo":
+    if args.logic == "demo":
         run_demo_phase(to_backplane, args.src_dir, args.data_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
                      args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
                      args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags)
