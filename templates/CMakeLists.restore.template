@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.2.0)
+project($binary)
+find_package(OpenMP REQUIRED)
+add_executable($binary 
+        "src/restore.cc"
+        "src/util.c"
+        "src/$loop_src"	)
+target_include_directories($binary PRIVATE include)

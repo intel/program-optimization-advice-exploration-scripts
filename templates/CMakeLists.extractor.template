@@ -1,0 +1,30 @@
+get_target_property(SRC_LIST clover_leaf SOURCES)
+file(GLOB remove_srcs "src/clover.cc")
+list(REMOVE_ITEM SRC_LIST \${remove_srcs})
+
+if (\${BUILD_TRACE})
+    add_library(trace_obj OBJECT) 
+    target_sources(trace_obj
+        PRIVATE
+        "extractor_src/clover_base_localdiskcwong29workingcodelet_extractor_workCloverLeaf_cmakesrc.cc"
+        "extractor_src/clover_clover_exchange_line84_localdiskcwong29workingcodelet_extractor_workCloverLeaf_cmakesrc.cc"
+        "extractor_src/util.c")
+
+
+    target_include_directories(trace_obj PRIVATE src extractor_include)
+    add_executable(trace_clover_leaf \${SRC_LIST})
+    target_link_libraries(trace_clover_leaf \$<TARGET_OBJECTS:trace_obj>)
+endif()
+
+if (DEFINED BUILD_SAVE)
+    add_library(save_obj OBJECT) 
+    target_sources(save_obj
+        PRIVATE
+        "extractor_src/clover_base_localdiskcwong29workingcodelet_extractor_workCloverLeaf_cmakesrc.cc"
+        "extractor_src/clover_clover_exchange_line84_localdiskcwong29workingcodelet_extractor_workCloverLeaf_cmakesrc.cc"
+        "extractor_src/util.c"
+        )
+    target_include_directories(save_obj PRIVATE src extractor_include)
+    add_executable(save_clover_leaf \${SRC_LIST})
+    target_link_libraries(save_clover_leaf \$<TARGET_OBJECTS:save_obj>)
+endif()
