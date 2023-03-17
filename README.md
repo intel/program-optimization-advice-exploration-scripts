@@ -13,6 +13,10 @@ Scripts for QaaS infrastructure
 - Run Demo script
   - `cd ../scripts`
   - `python demo.py`
+  
+## Run QaaS Web Front
+- For security measures, need to enable HTTPS connection.
+  
 ## Container maintance (under `container` directory)
 Generally, there are two special image tags (`qaas:development` and `qaas:production`).
 - `qaas:development` : Most recent image under development
