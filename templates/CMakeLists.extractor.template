@@ -1,30 +1,25 @@
-get_target_property(SRC_LIST clover_leaf SOURCES)
-file(GLOB remove_srcs "src/clover.cc")
+get_target_property(SRC_LIST $binary SOURCES)
+file(GLOB remove_srcs "$orig_src_path")
 list(REMOVE_ITEM SRC_LIST \${remove_srcs})
 
-if (\${BUILD_TRACE})
-    add_library(trace_obj OBJECT) 
-    target_sources(trace_obj
+if (BUILD_TRACE OR BUILD_SAVE)
+    add_library(trace_save_obj OBJECT) 
+    target_sources(trace_save_obj
         PRIVATE
-        "extractor_src/clover_base_localdiskcwong29workingcodelet_extractor_workCloverLeaf_cmakesrc.cc"
-        "extractor_src/clover_clover_exchange_line84_localdiskcwong29workingcodelet_extractor_workCloverLeaf_cmakesrc.cc"
+        "extractor_src/$base_src"
+        "extractor_src/$loop_src"
         "extractor_src/util.c")
-
-
-    target_include_directories(trace_obj PRIVATE src extractor_include)
-    add_executable(trace_clover_leaf \${SRC_LIST})
-    target_link_libraries(trace_clover_leaf \$<TARGET_OBJECTS:trace_obj>)
+    target_include_directories(trace_save_obj PRIVATE $orig_src_folder extractor_include)
 endif()
 
-if (DEFINED BUILD_SAVE)
-    add_library(save_obj OBJECT) 
-    target_sources(save_obj
-        PRIVATE
-        "extractor_src/clover_base_localdiskcwong29workingcodelet_extractor_workCloverLeaf_cmakesrc.cc"
-        "extractor_src/clover_clover_exchange_line84_localdiskcwong29workingcodelet_extractor_workCloverLeaf_cmakesrc.cc"
-        "extractor_src/util.c"
-        )
-    target_include_directories(save_obj PRIVATE src extractor_include)
-    add_executable(save_clover_leaf \${SRC_LIST})
-    target_link_libraries(save_clover_leaf \$<TARGET_OBJECTS:save_obj>)
+# Below building trace and save program.  They have actually the same source but when built with updated 
+# addresses.h file the output will be different.
+if (BUILD_TRACE)
+    add_executable(trace_$binary \${SRC_LIST})
+    target_link_libraries(trace_$binary \$<TARGET_OBJECTS:trace_save_obj>)
+endif()
+
+if (BUILD_SAVE)
+    add_executable(save_$binary \${SRC_LIST})
+    target_link_libraries(save_$binary \$<TARGET_OBJECTS:trace_save_obj>)
 endif()

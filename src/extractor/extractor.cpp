@@ -1170,6 +1170,65 @@ SgStatement *LoopInfo::buildPrintFunc(std::string printStr, SgExpression* exp) {
     return callStmt1;
 }
 
+void TypeDeclTraversal::visit(SgNode * n) {
+    SgClassDeclaration* class_decl = isSgClassDeclaration(n);
+    if (class_decl) {
+        type_decl_ios.insert(class_decl);
+    } 
+    SgInitializedName* in = isSgInitializedName(n);
+    if (in) {
+        // std::cout << "initedname:" <<n->unparseToString() << std::endl;
+        SgType* decl_type = in->get_type();
+        // std::cout << "typedecl type:" <<decl_type->unparseToString() << std::endl;
+        SgNamedType* named_exp_type = isSgNamedType(decl_type);
+        if (named_exp_type) {
+            SgDeclarationStatement* type_decl1 = named_exp_type->get_declaration();
+            type_decl1 = type_decl1->get_definingDeclaration(); // ensure full decl
+            if (type_decl_visited.count(type_decl1) == 0) {
+                type_decl_visited.insert(type_decl1);
+                // be careful.  Need to create new traversal after inserting visited
+                TypeDeclTraversal decl_traversal(*this);
+                decl_traversal.traverse(type_decl1, postorder);
+                std::cout << "typedecl:" <<type_decl1->unparseToString() << std::endl;
+                // copy out the list and set before end of search
+                type_decl_ios = decl_traversal.type_decl_ios;
+                type_decl_visited = decl_traversal.type_decl_visited;
+            }
+            // after traversing all needed declaration, then record this decl
+        }
+    }
+}
+
+void CallTraversal::visit(SgNode * n) {
+    SgFunctionCallExp* fn_call = isSgFunctionCallExp(n);
+    if (fn_call) {
+        std::cout << "call:" <<fn_call->unparseToString() << std::endl;
+        SgFunctionRefExp* fn_ref = isSgFunctionRefExp(fn_call->get_function());
+        SgFunctionDeclaration* fn_decl = fn_ref->getAssociatedFunctionDeclaration();
+        SgFunctionDeclaration* fn_decl_def = isSgFunctionDeclaration(fn_decl->get_definingDeclaration()); // ensure full decl
+        fn_decl_s.insert(fn_decl);
+        if (fn_decl_def != NULL && fn_defn_visited.count(fn_decl_def) == 0) {
+            fn_defn_visited.insert(fn_decl_def); 
+            SgBasicBlock* fn_body = fn_decl_def->get_definition()->get_body(); 
+            CallTraversal call_traversal(*this); 
+            call_traversal.traverse(fn_body, postorder);
+            fn_defn_ios = call_traversal.fn_defn_ios;
+            fn_defn_visited = call_traversal.fn_defn_visited;
+            fn_decl_s = call_traversal.fn_decl_s;
+            fn_defn_ios.insert(fn_decl_def);
+        }
+
+    }
+}
+
+template<class T>
+void InsertOrderSet<T>::insert(T e) {
+    if (! s.count(e)) {
+        // Needed for extracted function extern defn
+        s.insert(e); 
+        v.push_back(e);
+    }
+}
 /*
  * Take cares of print complete loop function and adding func calls
  * and extern loop func to the base file.
@@ -1247,9 +1306,26 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
     Sg_File_Info* file_info = my_file->get_file_info();
     SgGlobal * glb_loop_src = my_file->get_globalScope();
 
+
+    // Check whether calls are called
+    CallTraversal call_traversal;
+    call_traversal.traverse(loop, postorder);
+    /*
+    Rose_STL_Container<SgNode *> callexpList = NodeQuery::querySubTree(loop, V_SgFunctionCallExp);
+    InsertOrderSet<SgFunctionDeclaration*> fn_decls_ios;
+    for (Rose_STL_Container<SgNode*>::iterator iter = callexpList.begin(); iter !=callexpList.end(); iter ++) {
+        SgFunctionCallExp* fn_call = isSgFunctionCallExp(*iter);
+        SgFunctionRefExp* fn_ref = isSgFunctionRefExp(fn_call->get_function());
+        SgFunctionDeclaration* fn_decl = fn_ref->getAssociatedFunctionDeclaration();
+        fn_decl = isSgFunctionDeclaration(fn_decl->get_definingDeclaration()); // ensure full decl
+        ROSE_ASSERT(fn_decl != NULL);
+        fn_decls_ios.insert(fn_decl);
+    }
+    */
+
+    TypeDeclTraversal decl_traversal;
+
     Rose_STL_Container<SgNode *> expList = NodeQuery::querySubTree(loop, V_SgExpression);
-    set<SgDeclarationStatement*> type_decls_s;
-    vector<SgDeclarationStatement*> type_decls_v;
     vector<SgDeclarationStatement*>::iterator type_decls_iter;
     for (Rose_STL_Container<SgNode*>::iterator iter = expList.begin(); iter !=expList.end(); iter ++) {
         SgExpression* exp = isSgExpression(*iter);
@@ -1258,17 +1334,28 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
         if (named_exp_type) {
             SgDeclarationStatement* type_decl = named_exp_type->get_declaration();
             type_decl = type_decl->get_definingDeclaration(); // ensure full decl
-            if (type_decls_s.count(type_decl) == 0) {
-                type_decls_s.insert(type_decl);
-                type_decls_v.push_back(type_decl);
-            }
+            //decl_traversal.traverse(*type_decls_iter, postorder);
+            decl_traversal.traverse(type_decl, postorder);
         }
     }
-    for(type_decls_iter=type_decls_v.begin(); type_decls_iter != type_decls_v.end(); type_decls_iter++) {
+    //for(type_decls_iter=type_decls_v.begin(); type_decls_iter != type_decls_v.end(); type_decls_iter++) {
+    vector<SgDeclarationStatement*> type_decls_v1 = decl_traversal.get_type_decl_v();
+    for(type_decls_iter=type_decls_v1.begin(); type_decls_iter != type_decls_v1.end(); type_decls_iter++) {
         SgDeclarationStatement* type_decl = isSgDeclarationStatement(SageInterface::deepCopy((*type_decls_iter)));
         SageInterface::appendStatement(type_decl, glb_loop_src);
     }
     this->addGlobalVarDecls(glb_loop_src, true);
+
+    for (auto const& fn_decl : call_traversal.get_fn_decl_s()) {
+        auto fn_decl_copy = SageInterface::deepCopy(fn_decl);
+        SageInterface::appendStatement(fn_decl_copy, glb_loop_src);
+    }
+    for (auto const& fn_defn : call_traversal.get_fn_defn_v()) {
+        std::cout << fn_defn->unparseToString() << std::endl;
+        auto fn_defn_copy = SageInterface::deepCopy(fn_defn);
+        SageInterface::guardNode(fn_defn_copy, RESTORE_GUARD_NAME);
+        SageInterface::appendStatement(fn_defn_copy, glb_loop_src);
+    }
     SgFunctionDeclaration *fn_decl = this->addLoopFuncDefnDecl(glb_loop_src);
 
 
@@ -1288,7 +1375,7 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
 
 
     
-    for(type_decls_iter=type_decls_v.begin(); type_decls_iter != type_decls_v.end(); type_decls_iter++) {
+    for(type_decls_iter=type_decls_v1.begin(); type_decls_iter != type_decls_v1.end(); type_decls_iter++) {
         SgDeclarationStatement* type_decl = isSgDeclarationStatement(SageInterface::deepCopy((*type_decls_iter)));
         SageInterface::appendStatement(type_decl, glb_restore_src);
     }
@@ -1301,9 +1388,9 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
     SageInterface::insertHeader("stdio.h", PreprocessingInfo::after, true, glb_restore_src);
     SageInterface::insertHeader("util.h", PreprocessingInfo::after, false, glb_restore_src);
     SageInterface::insertHeader("addresses.h", PreprocessingInfo::after, false, glb_restore_src);
-    SageInterface::insertHeader("saved_pointers.h", PreprocessingInfo::after, false, glb_restore_src);
     SageInterface::insertHeader("unistd.h", PreprocessingInfo::after, true, glb_restore_src);
     SageInterface::insertHeader("alloca.h", PreprocessingInfo::after, true, glb_restore_src);
+    SageInterface::insertHeader("saved_pointers.h", PreprocessingInfo::after, false, glb_restore_src);
 
 
     SgFunctionDeclaration *main_decl = SageBuilder::buildDefiningFunctionDeclaration
@@ -1499,6 +1586,10 @@ SgBasicBlock* LoopInfo::addrPrintingInBB() {
         basicBlockStmts.push_back(brkVec[i]);
     }
     basicBlockStmts.push_back(
+        buildPrintFunc("BP(INSTANCE): %d\\n", "extr_instance"));
+    basicBlockStmts.push_back(
+        buildPrintFunc("BP(OMP_NUM_TH): %d\\n", "omp_get_thread_num()"));
+    basicBlockStmts.push_back(
         buildPrintFunc("BP(STACK END): %09lx\\n", "basepointer"));
     basicBlockStmts.push_back(
         buildPrintFunc("SP(STACK BEGIN): %09lx\\n", "((char*)stackpointer)-1"));
@@ -1653,6 +1744,7 @@ void LoopInfo::addLoopFuncCall() {
     SageInterface::insertHeader("util.h", PreprocessingInfo::after, false, glb_scope);
     SageInterface::insertHeader("addresses.h", PreprocessingInfo::after, false, glb_scope);
     SageInterface::insertHeader("unistd.h", PreprocessingInfo::after, true, glb_scope);
+    SageInterface::insertHeader("omp.h", PreprocessingInfo::after, true, glb_scope);
     string extr_instance_varname = "extr_instance";
     //SgVariableDeclaration* extr_instance_var_decl = SageBuilder::buildVariableDeclaration(
     //    extr_instance_varname, SageBuilder::buildIntType(), NULL, glb_scope);
@@ -1666,12 +1758,24 @@ void LoopInfo::addLoopFuncCall() {
     SgVarRefExp *instVar = SageBuilder::buildVarRefExp(extr_instance_varname, loop_scope);
     // TODO: should be instanceNum instead of 1
     SgIntVal *oneVal = SageBuilder::buildIntVal(1);
+    SgIntVal *zeroVal = SageBuilder::buildIntVal(0);
     //SgIntVal *oneVal1 = SageBuilder::buildIntVal(1);
-    SgEqualityOp *cmp = SageBuilder::buildEqualityOp(instVar, oneVal);
+    SgEqualityOp *instr_cmp = SageBuilder::buildEqualityOp(instVar, oneVal);
     //SgEqualityOp *cmp = SageBuilder::buildEqualityOp(oneVal1, oneVal);
-    SgStatement *cond = SageBuilder::buildExprStatement(cmp);
+    int mpi_target_rank = 0;
+    int omp_target_thread = 0;
+    SgFunctionCallExp *chk_omp_mpi = SageBuilder::buildFunctionCallExp(
+        "check_omp_mpi_id", SageBuilder::buildIntType(), 
+        SageBuilder::buildExprListExp(
+            SageBuilder::buildIntVal(omp_target_thread), 
+            SageBuilder::buildIntVal(mpi_target_rank)), loop_scope);
+    SgStatement *omp_mpi_cond = SageBuilder::buildExprStatement(chk_omp_mpi);
+    //SgAndOp* and_op = SageBuilder::buildAndOp(instr_cmp, chk_omp_mpi);
+    SgStatement *cond = SageBuilder::buildExprStatement(instr_cmp);
 
     //vector<SgStatement *> bb_stmts
+    SgBasicBlock* if_omp_bb = SageBuilder::buildBasicBlock_nfi(loop_scope);
+    SageBuilder::pushScopeStack(if_omp_bb);
 
     SgBasicBlock* if_bb = SageBuilder::buildBasicBlock_nfi(loop_scope);
     SageBuilder::pushScopeStack(if_bb);
@@ -1680,7 +1784,7 @@ void LoopInfo::addLoopFuncCall() {
     if_bb->append_statement(this->saveLoopFuncParamAddressesInBB(call_expr_stmt));
     if_bb->append_statement(this->saveGlobalVarsInBB());
     if_bb->append_statement(this->addrPrintingInBB());
-    SageBuilder::popScopeStack();
+    SageBuilder::popScopeStack(); // if_bb
 
     //SgBasicBlock* if_bb = SageBuilder::buildBasicBlock_nfi(bb_stmts);
 
@@ -1692,8 +1796,18 @@ void LoopInfo::addLoopFuncCall() {
     SgVarRefExp *instVar1 = SageBuilder::buildVarRefExp(extr_instance_varname, loop_scope);
     SgPlusPlusOp *incOp = SageBuilder::buildPlusPlusOp(instVar);
     SgStatement *incStmt = SageBuilder::buildExprStatement(incOp);
-    SageInterface::insertStatementBefore(call_expr_stmt, instCheck);
-    SageInterface::insertStatementAfter(instCheck, incStmt);
+
+    //SageInterface::insertStatementAfter(instCheck, incStmt);
+    if_omp_bb->append_statement(instCheck);
+    if_omp_bb->append_statement(incStmt);
+    SageBuilder::popScopeStack(); // if_omp_bb
+
+    SgIfStmt *ompMpiCheck = SageBuilder::buildIfStmt(omp_mpi_cond, if_omp_bb, nullptr);
+
+    SageInterface::insertStatementBefore(call_expr_stmt, ompMpiCheck);
+
+
+
     #else
 
     // END Add save stuff here
@@ -1760,6 +1874,9 @@ vector<string> LoopInfo::getLoopFuncArgsName() {
 //}
 
 bool Extractor::skipLoop(SgNode *astNode) {
+    // TODO: may need to include filename
+    if (extracted.count(lineNumbers) > 0)
+        return true;
     if (!loopSkipPragma.empty() &&
         loopSkipPragma.find(LoopExtractor_skiplooppragma_str) != string::npos) {
         loopSkipPragma = "";
@@ -1921,6 +2038,8 @@ void Extractor::extractLoops(SgNode *astNode) {
             tr->addLoopFuncInfo(lfi);
         }
         */
+        // set it done after extraction
+        extracted.insert(lineNumbers);
     }
 
     /* Remove preprocessor text, since ROSE preprocessor has already worked */
@@ -1992,7 +2111,8 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
             // cerr << "Found node: " << loop->class_name() << " with depth: "
             // << inh_attr.loop_nest_depth_ << endl;
             // TODO: Upto what loop depth to extract as tool option
-            if (inh_attr.loop_nest_depth_ < 2) {
+            //if (inh_attr.loop_nest_depth_ < 2) {
+            if (inh_attr.loop_nest_depth_ < 20) {
                 // cerr << "Extracting loop now" << endl;
                 // if( SageInterface::getNextStatement(loop)->variantT() != NULL
                 // && SageInterface::getNextStatement(loop)->variantT() ==

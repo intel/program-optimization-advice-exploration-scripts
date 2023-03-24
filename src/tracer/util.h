@@ -3,6 +3,9 @@ enum pointsTo { heapPointerData, stackPointerData, globalPointerData };
 extern "C" {
 #endif
 
+// check whether current thread/mpi process match given omp_thread and mpi_rank
+int check_omp_mpi_id(int omp_thread, int mpi_rank);
+
 static void *alignAddress(void *addr, int align);
 void writeDataRangeToFile(char *addressDataFile, unsigned char *dumpArrayMin,
                           unsigned char *dumpArrayMax, int memoryLocation);

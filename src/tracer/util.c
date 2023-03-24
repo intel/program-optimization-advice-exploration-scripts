@@ -8,9 +8,27 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <omp.h>
+#include <mpi.h>
 
 #include "defs.h"
 #include "util.h"
+
+
+// check whether current thread/mpi process match given omp_thread and mpi_rank
+int check_omp_mpi_id(int omp_thread, int mpi_rank) {
+  int my_mpi_rank = 0;
+  int my_omp_thread = 0;
+#ifdef _OPENMP
+  my_omp_thread = omp_get_thread_num();
+#endif
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_mpi_rank);
+  int answer = (my_mpi_rank == mpi_rank) && (my_omp_thread == omp_thread);
+  if (answer)
+  	printf("my:(mpi=%d, omp=%d); match:(mpi=%d, omp=%d)\n", my_mpi_rank, my_omp_thread, mpi_rank, omp_thread);
+
+  return answer;
+}
 
 /*
  * write heap/stack/global data to disk in binary format

@@ -29,6 +29,19 @@ class SynthesizedAttribute {
     SynthesizedAttribute() {}
 };
 
+template<class T>
+class InsertOrderSet {
+  set<T> s;
+  vector<T> v;
+  public:
+  void insert(T e);
+  const vector<T>& get_vec() { return v; }
+  public:
+  InsertOrderSet() {}
+  InsertOrderSet(const InsertOrderSet& ios) : s(ios.s) , v(ios.v) {  }
+  void operator= (const InsertOrderSet& ios) { s = ios.s; v = ios.v; }
+};
+
 class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     string LoopExtractor_file_path;
     string LoopExtractor_original_file_name;
@@ -62,6 +75,7 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     SgSourceFile* src_file_trace_save;
     SgSourceFile* src_file_restore;
     std::pair<unsigned, unsigned> lineNumbers;
+    std::set<std::pair<unsigned, unsigned>> extracted;
     vector<string> filenameVec;
 
   public:
@@ -131,8 +145,30 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     void do_extraction();
 };
 
+class TypeDeclTraversal : public AstSimpleProcessing {
+  //vector<SgDeclarationStatement*> type_decl_v;
+  //set<SgDeclarationStatement*> type_decl_s;
+  InsertOrderSet<SgDeclarationStatement*> type_decl_ios;
+  set<SgDeclarationStatement*> type_decl_visited;
+  public:
+  TypeDeclTraversal():AstSimpleProcessing() { }
+  TypeDeclTraversal(const TypeDeclTraversal& t):AstSimpleProcessing() { 
+    type_decl_ios = t.type_decl_ios; type_decl_visited = t.type_decl_visited; }
+  virtual void visit (SgNode* n);
+  const vector<SgDeclarationStatement*>& get_type_decl_v() { return type_decl_ios.get_vec(); }
+};
+class CallTraversal : public AstSimpleProcessing {
+  InsertOrderSet<SgFunctionDeclaration*> fn_defn_ios;
+  set<SgFunctionDeclaration*> fn_defn_visited;
+  set<SgFunctionDeclaration*> fn_decl_s;
+  public:
+  virtual void visit (SgNode* n);
+  const vector<SgFunctionDeclaration*>& get_fn_defn_v() { return fn_defn_ios.get_vec(); }
+  const set<SgFunctionDeclaration*>& get_fn_decl_s() { return fn_decl_s; }
+};
 /* Must contain all info regarding the current loop */
 class LoopInfo {
+    const string RESTORE_GUARD_NAME = "__RESTORE_CODELET__";
     Extractor &extr;
     SgNode *astNode;
     SgForStatement *loop;
