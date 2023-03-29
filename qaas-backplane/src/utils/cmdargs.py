@@ -36,6 +36,9 @@ def parse_cli_args(argv):
     # Specify the type of QaaS logic to run: demo (legacy) vs Stratigizer (multi-phase)
     global_parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='demo')
 
+    # Specify whether to disable container mode 
+    global_parser.add_argument('-nc', "--no-container", action="store_true", help="Disable container mode")
+
     # setup mutually exclusive arguments
     global_excl = global_parser.add_mutually_exclusive_group()
     add_exclusive_trace_options(global_excl)
