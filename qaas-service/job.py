@@ -7,8 +7,11 @@ import sys
 import app_builder
 import app_runner
 import lprof_runner
-import app_mutator
 import oneview_runner
+try:
+   import app_mutator
+except ImportError:
+   pass
 from logger import log, QaasComponents
 from app_builder import build_argparser as app_builder_builder_argparser
 from utils.util import parse_env_map 
