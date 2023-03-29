@@ -66,15 +66,14 @@ def launch_qaas(app_params, logic, service_msg_recv_handler, launch_output_dir='
                               params.user["account"]["QAAS_ACCOUNT"], 
                               params.user["application"]["APP_NAME"], 
                               params.user["application"]["GIT"],
-                              params.system["machines"]["QAAS_SSH_PORT"],
-                              params.system["machines"]["QAAS_MACHINES_POOL"],
+                              params.system["machines"],
                               params.system["container"],
                               params.system["compilers"],
                               params.system["compiler_mappings"],
                               int(params.system["global"]["QAAS_COMM_PORT"]),
                               service_msg_recv_handler,
                               launch_output_dir)
-    rc = prov.create_work_dirs()
+    rc = prov.create_work_dirs(container=False)
     if rc != 0:
        return rc
     rc = prov.clone_source_repo()
@@ -92,7 +91,7 @@ def launch_qaas(app_params, logic, service_msg_recv_handler, launch_output_dir='
                         prov,
                         logic)
 
-    rc = job.run_job()
+    rc = job.run_job(container=False)
     #rc = job.build_default()
     #rc = job.run_reference_app()
     if rc != 0:
