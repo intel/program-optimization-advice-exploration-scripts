@@ -34,8 +34,11 @@ def main():
     # parse arguments
     args = utils.cmdargs.parse_cli_args(sys.argv)
 
+    # Check whether to disable container mode
+    container = True if not args.no_container else False
+
     # Command line just print the message for service message, GUI will act on message differently.
-    rc, _ = launch_qaas(args.app_params, args.logic, lambda msg: print(msg.str()))
+    rc, _ = launch_qaas(args.app_params, args.logic, container, lambda msg: print(msg.str()))
 
     exitcode = 1
     if rc == 0:
@@ -44,10 +47,10 @@ def main():
     sys.exit(exitcode)
 
 def launch_qaas_web(qaas_message_queue, app_params, launch_output_dir='/tmp/qaas_out'):
-   launch_qaas(app_params, "demo", lambda msg: qaas_message_queue.put(msg), launch_output_dir)
+   launch_qaas(app_params, "demo", True, lambda msg: qaas_message_queue.put(msg), launch_output_dir)
 
 # Webfront will call this to launch qaas for a submission
-def launch_qaas(app_params, logic, service_msg_recv_handler, launch_output_dir='/tmp/qaas_out'):
+def launch_qaas(app_params, logic, container, service_msg_recv_handler, launch_output_dir='/tmp/qaas_out'):
     # Better api to send back message 
     service_msg_recv_handler(qm.BeginQaas())
     # setup QaaS configuration
@@ -66,15 +69,14 @@ def launch_qaas(app_params, logic, service_msg_recv_handler, launch_output_dir='
                               params.user["account"]["QAAS_ACCOUNT"], 
                               params.user["application"]["APP_NAME"], 
                               params.user["application"]["GIT"],
-                              params.system["machines"]["QAAS_SSH_PORT"],
-                              params.system["machines"]["QAAS_MACHINES_POOL"],
+                              params.system["machines"],
                               params.system["container"],
                               params.system["compilers"],
                               params.system["compiler_mappings"],
                               int(params.system["global"]["QAAS_COMM_PORT"]),
                               service_msg_recv_handler,
                               launch_output_dir)
-    rc = prov.create_work_dirs()
+    rc = prov.create_work_dirs(container)
     if rc != 0:
        return rc
     rc = prov.clone_source_repo()
@@ -92,7 +94,7 @@ def launch_qaas(app_params, logic, service_msg_recv_handler, launch_output_dir='
                         prov,
                         logic)
 
-    rc = job.run_job()
+    rc = job.run_job(container)
     #rc = job.build_default()
     #rc = job.run_reference_app()
     if rc != 0:

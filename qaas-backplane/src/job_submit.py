@@ -63,6 +63,15 @@ class QAASJobSubmit:
             # return original error
             return exp.rc
 
+    def run_native(self, run_cmd):
+        job_cmd = f"'{run_cmd}'"
+        try:
+            rc, _ = self.run_remote_job_cmd(job_cmd)
+            return rc
+        except QAASJobException as exp:
+            # return original error
+            return exp.rc
+
     def create_container_info_tarball(self, app_cmd, mount_map, network_host, cap_add, run_cmd):
         _, tmp_dir=self.run_remote_job_cmd("mktemp -d -t qaas-XXXXXXXX")
         tmp_dir = tmp_dir.strip()
@@ -98,7 +107,7 @@ class QAASJobSubmit:
 
     def copy_remote_file(self, remote_file, local_dir):
         rc = 0
-        rc, cmdout = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine, self.provisioner.ssh_port).copy_remote_file(remote_file, local_dir)
+        rc, cmdout = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine, self.provisioner.ssh_port, self.provisioner.user).copy_remote_file(remote_file, local_dir)
         if rc == 0:
             logging.debug(cmdout)
             return 0, cmdout
@@ -108,14 +117,14 @@ class QAASJobSubmit:
     def run_remote_job_cmd(self, job_cmd):
         logging.debug("job_cmd=%s", job_cmd)
         rc = 0
-        rc, cmdout = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine, self.provisioner.ssh_port).run_remote_cmd(job_cmd)
+        rc, cmdout = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine, self.provisioner.ssh_port, self.provisioner.user).run_remote_cmd(job_cmd)
         if rc == 0:
             logging.debug(cmdout)
             return 0, cmdout
         else:
             raise QAASJobException(rc)
 
-    def run_job(self):
+    def run_job(self, container=True):
         """Run job script itself"""
         script_root = self.provisioner.script_root
         compiler_root = self.provisioner.get_compiler_root()
@@ -123,15 +132,16 @@ class QAASJobSubmit:
         ov_run_dir = self.provisioner.get_workdir("oneview_runs")
         locus_run_dir = self.provisioner.get_workdir("locus_runs")
         base_run_dir = self.provisioner.get_workdir("base_runs")
+        dataset_dir = os.path.join(self.provisioner.get_workdir("dataset"), self.provisioner.app_name)
         ov_dir="/opt/maqao"
-        container_app_builder_path="/app/builder"
-        container_app_dataset_path="/app/dataset"
-        container_app_oneview_path="/app/oneview_runs"
-        container_app_locus_path="/app/locus_runs"
-        container_app_base_path="/app/base_runs"
+        container_app_builder_path = "/app/builder" if container else self.provisioner.get_workdir("build")
+        container_app_dataset_path = "/app/dataset" if container else dataset_dir
+        container_app_oneview_path = "/app/oneview_runs" if container else ov_run_dir
+        container_app_locus_path = "/app/locus_runs" if container else locus_run_dir
+        container_app_base_path = "/app/base_runs" if container else base_run_dir
         # The current load script seems to require the same path
         container_compiler_root=compiler_root
-        container_script_root="/app/QAAS_SCRIPT_ROOT"
+        container_script_root = "/app/QAAS_SCRIPT_ROOT"  if container else script_root
         app_run_info = self.application["RUN"]
         env_var_map=app_run_info["APP_ENV_MAP"]
         env_var_flags = "".join([f' --var {k}={v}' for k,v in env_var_map.items()])
@@ -152,11 +162,17 @@ class QAASJobSubmit:
                     f' --run-cmd "{app_run_info["APP_RUN_CMD"]}"' + \
                     f' --logic {self.logic}' + \
                     f" --comm-port {self.provisioner.comm_port}" 
-        mount_map = { ov_dir:ov_dir, script_root:container_script_root,
+        if container:
+            mount_map = { ov_dir:ov_dir, script_root:container_script_root,
                      self.provisioner.get_workdir("build") :container_app_builder_path, 
                      ov_run_dir:container_app_oneview_path, 
                      base_run_dir:container_app_base_path,
                      locus_run_dir:container_app_locus_path, 
                      compiler_root:container_compiler_root,
-                     os.path.join(self.provisioner.get_workdir("dataset"), self.provisioner.app_name):container_app_dataset_path}
-        return self.run_container(app_cmd, mount_map, network_host=True, cap_add=True, debug=False)
+                     dataset_dir:container_app_dataset_path}
+
+            job_run = self.run_container(app_cmd, mount_map, network_host=True, cap_add=True, debug=False)
+        else:
+            job_run = self.run_native(app_cmd)
+
+        return job_run
