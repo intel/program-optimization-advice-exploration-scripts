@@ -16,6 +16,7 @@ Scripts for QaaS infrastructure
   
 ## Run QaaS Web Front
 - For security measures, need to enable HTTPS connection.
+- Also should enable TLS for further safety in data transfer.
   
 ## Container maintance (under `container` directory)
 Generally, there are two special image tags (`qaas:development` and `qaas:production`).
