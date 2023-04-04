@@ -17,6 +17,7 @@ Scripts for QaaS infrastructure
 ## Run QaaS Web Front
 - For security measures, need to enable HTTPS connection.
 - Also should enable TLS for further safety in data transfer.
+- To limit message size, set maxContentLength variable (e.g. to 10000) on React async() call to receive request.
   
 ## Container maintance (under `container` directory)
 Generally, there are two special image tags (`qaas:development` and `qaas:production`).
