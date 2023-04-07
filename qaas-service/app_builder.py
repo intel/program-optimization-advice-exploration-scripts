@@ -44,7 +44,7 @@ lookup_functions = [
             ({'icc': 'D', 'gcc': 'D', 'icx': 'D'}, simple_replace),
             ({'icc': 'O1', 'gcc': 'O1', 'icx': 'O1'}, simple_replace),
             ({'icc': 'O2', 'gcc': 'O2', 'icx': 'O2'}, simple_replace),
-            ({'icc': 'g', 'gcc': 'g', 'icx': 'g'}, simple_replace),
+            ({'icc': 'O3', 'gcc': 'O3', 'icx': 'O3'}, simple_replace),
             ({'icc': 'fpic', 'gcc': 'fpic', 'icx': 'fpic'}, simple_replace),
             ({'icc': 'qno-offload', 'gcc': 'foffload=disable', 'icx': '-offload=-'}, simple_replace),
             ({'icc': 'fno-alias', 'gcc': '', 'icx': 'fno-alias'}, simple_replace),
@@ -52,9 +52,14 @@ lookup_functions = [
             ({'icc': 'ansi-alias', 'gcc': 'fstrict-aliasing', 'icx': 'ansi-alias'}, simple_replace),
             ({'icc': 'fp-model fast=2', 'gcc': 'ffast-math', 'icx': 'fp-model fast'}, simple_replace),
             ({'icc': 'qoverride-limits', 'gcc': '', 'icx': 'qoverride-limits'}, simple_replace),
-            ({'icc': 'xCore-AVX512', 'gcc': 'mavx512f', 'icx': 'xCore-AVX512'}, simple_replace),
+            ({'icc': 'no-vec', 'gcc': 'fno-tree-vectorize', 'icx': 'no-vec'}, simple_replace),
+            ({'icc': 'no-simd', 'gcc': '', 'icx': 'no-simd'}, simple_replace),
+            ({'icc': 'xCore-AVX2', 'gcc': 'march=haswell', 'icx': 'xCore-AVX2'}, simple_replace),
+            ({'icc': 'xCore-AVX512', 'gcc': 'march=skylake-avx512', 'icx': 'xCore-AVX512'}, simple_replace),
             ({'icc': 'qopt-zmm-usage=high', 'gcc': 'mprefer-vector-width=512', 'icx': 'mprefer-vector-width=512'}, simple_replace),
-            ({'icc': 'O3', 'gcc': 'O3', 'icx': 'O3'}, simple_replace),
+            ({'icc': 'g', 'gcc': 'g', 'icx': 'g'}, simple_replace),
+            ({'icc': 'no-pie', 'gcc': '', 'icx': 'no-pie'}, simple_replace),
+            ({'icc': 'fce-protection=none', 'gcc': '', 'icx': 'fce-protection=none'}, simple_replace),
             ({'icc': 'grecord-gcc-switches', 'gcc': '', 'icx': 'grecord-gcc-switches'}, simple_replace),
             ({'icc': 'fno-omit-frame-pointer', 'gcc': 'fno-omit-frame-pointer', 'icx': 'fno-omit-frame-pointer'}, simple_replace)
             ]
@@ -109,15 +114,15 @@ def add_underlying_flag (flags, flag, compiler):
     
 
 def exec(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, 
-         user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target, user_target_location, mode, extra_cmake_flags=""):
+         user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target, user_target_location, mode, extra_cmake_flags="", relative_build_dir="build"):
     # Assume we can write to parent path to source directory
 
     if mode == 'prepare' or mode == 'both': 
-        build_dir, output_dir, output_name, env = setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, extra_cmake_flags)
+        build_dir, output_dir, output_name, env = setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, extra_cmake_flags, relative_build_dir)
     else:
         # For 'make' get current env for next step
         env = os.environ.copy()
-        build_dir=get_build_dir(src_dir)
+        build_dir=get_build_dir(src_dir, relative_build_dir)
         output_dir=os.path.dirname(output_binary_path)
         output_name=os.path.basename(output_binary_path)
         
@@ -125,8 +130,8 @@ def exec(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_com
         build_binary(user_target, build_dir, user_target_location, env, output_dir, output_name)
     return env
 
-def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, extra_cmake_flags=""):
-    build_dir=get_build_dir(src_dir)
+def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, extra_cmake_flags="", relative_build_dir="build"):
+    build_dir=get_build_dir(src_dir, relative_build_dir)
     output_dir=os.path.dirname(output_binary_path)
     output_name=os.path.basename(output_binary_path)
     user_mpi_compiler, user_CC, user_CXX, user_FC = parse_compiler_combo(user_CC_combo)
@@ -224,8 +229,8 @@ def parse_compiler_combo(CC_combo):
     return mpi_wrapper, CC,CXX,FC
 
 
-def get_build_dir(src_dir):
-    return os.path.join(src_dir, '..', 'build')
+def get_build_dir(src_dir, relative_build_dir):
+    return os.path.join(src_dir, '..', relative_build_dir)
 
 def build_binary(user_target, build_dir, target_location, env, output_dir, output_name):
     cmake_target = user_target if user_target else 'all'
@@ -257,6 +262,7 @@ def build_argparser(parser, include_binary_path=True, include_mode=True):
     if include_mode:
         parser.add_argument('--mode', help='Mode of build', choices=['prepare', 'make', 'both'], required=True)
     parser.add_argument('--extra-cmake-flags', type=str, help='Extra CMAKE Flags for this build', default="\"\"")
+    parser.add_argument('--build-dir', type=str, help='Build directort', default="build")
 
 # For sample inputs: see VSCode launch.json file
 
@@ -266,7 +272,7 @@ def main():
     args = parser.parse_args()
 
     exec(args.src_dir, args.compiler_dir, args.output_binary_path, args.orig_user_CC, args.target_CC,
-         args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target, args.user_target_location, args.mode, args.extra_cmake_flags)
+         args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target, args.user_target_location, args.mode, args.extra_cmake_flags, args.build_dir)
 
 
 if __name__ == "__main__": 
