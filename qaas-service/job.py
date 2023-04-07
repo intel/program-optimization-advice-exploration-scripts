@@ -17,15 +17,8 @@ from app_builder import build_argparser as app_builder_builder_argparser
 from utils.util import parse_env_map 
 from utils import qaas_message as qm
 from utils.comm import ServiceMessageSender
-
-this_script=os.path.realpath(__file__)
-script_dir=os.path.dirname(os.path.realpath(__file__))
-script_name=os.path.basename(os.path.realpath(__file__))
-
-LPROF_WALLTIME_LUA_FILE=os.path.join(script_dir, 'lua_scripts', 'lprof_walltime.lua')
-
-DEFAULT_REPETITIONS = 11
-MAX_ALLOWED_EXEC_TIME = 180
+from qaas_logic_initial_profile import run_initial_profile
+from qaas_logic_unicore import run_qaas_UP
 
 def run_demo_phase(to_backplane, src_dir, data_dir, ov_config, ov_run_dir, locus_run_root, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
@@ -51,87 +44,52 @@ def run_demo_phase(to_backplane, src_dir, data_dir, ov_config, ov_run_dir, locus
     oneview_runner.exec(mutator_env, opt_binary, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, ov_config, 'both')
     to_backplane.send(qm.GeneralStatus("Done Running tuned app"))
 
-def compute_repetitions(stability):
-    print(stability)
-    if stability > 10:
-        print("TODO UNSTABLE: aborting")
-        return -1
-    elif stability > 4:
-        print("AVERAGE STABILITY: using 5 repetitions per run")
-        return 5
-    else:
-        print("GOOD STABILITY: no repetitions")
-        return 1
-
 def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, locus_run_root, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags):
-    base_run_dir_orig = os.path.join(base_run_dir, 'orig')
-    orig_binary = os.path.join(base_run_dir_orig, 'exec')
-    to_backplane.send(qm.GeneralStatus("Start Building orig app"))
-    app_builder_env = app_builder.exec(src_dir, compiler_dir, orig_binary, 
-                                   orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-                                   user_link_flags, user_target, user_target_location, 'both', extra_cmake_flags)
-    to_backplane.send(qm.GeneralStatus("Done Building orig app"))
+    '''QAAS Ruuning Logic/Strategizer Entry Point.''' 
+
+    # Phase 2: Intial profiling and cleaning    
+    to_backplane.send(qm.GeneralStatus("QAAS running logic: Initail Profiling and Cleaning"))
+    #rc,msg = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
+    #                 orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
+    #                 user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags)
+    rc=0
+    if rc != 0: 
+        to_backplane.send(qm.GeneralStatus(msg))
+        return
+    to_backplane.send(qm.GeneralStatus("Done Initail Profiling and Cleaning!"))
+
+
+    # Phase 3.1: Parameter Exploration and Tuning    
+    to_backplane.send(qm.GeneralStatus("QAAS running logic: Unicore Parameters Exploration/Tuning"))
+    rc,msg = run_qaas_UP(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
+                     orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
+                     user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags)
+    if rc != 0: 
+        to_backplane.send(qm.GeneralStatus(msg))
+        return
+    to_backplane.send(qm.GeneralStatus("Done Unicore Parameters Exploration/Tuning!"))
+    return
 
     to_backplane.send(qm.GeneralStatus("Start Phase 2: INITIAL PROFILING"))
     to_backplane.send(qm.GeneralStatus("Start S2.1"))
-    basic_run = app_runner.exec(app_builder_env, orig_binary, data_dir, base_run_dir_orig, run_cmd, 'both', DEFAULT_REPETITIONS, "mpirun")
-    print(basic_run.exec_times)
-    tmp = [str(x) for x in basic_run.exec_times]
-    to_backplane.send(qm.GeneralStatus(f"Exec time: {tmp}"))
-    stability = basic_run.compute_stability_metric()
-    new_repetitions = compute_repetitions(stability)
-    if new_repetitions < 1:
-        return
-    median_value = basic_run.compute_median_exec_time()
-    if median_value > MAX_ALLOWED_EXEC_TIME:
-        to_backplane.send(qm.GeneralStatus(f"ABORT: median execution time {median_value} greater than allowed {MAX_ALLOWED_EXEC_TIME}"))
-        return
     to_backplane.send(qm.GeneralStatus("Done S2.1"))
 
     to_backplane.send(qm.GeneralStatus("Start S2.2"))
-    lprof_run = lprof_runner.exec(app_builder_env, orig_binary, maqao_dir, base_run_dir_orig, data_dir, run_cmd, 'both', "mpirun", 1)
-    lprof_run.compute_lprof_time(LPROF_WALLTIME_LUA_FILE)
-    new_lprof_conf = lprof_run.compute_lprof_overhead(median_value)
-    print(new_lprof_conf)
     to_backplane.send(qm.GeneralStatus("Done S2.2"))
 
     to_backplane.send(qm.GeneralStatus("Start S2.3"))
-    print("add more flags")
-    ov_run_dir_orig = os.path.join(ov_run_dir, 'orig')
-    oneview_runner.exec(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, maqao_dir, ov_config, 'both', level=1, mpi_run_command="mpirun", mpi_num_processes=1)
-    orig_binary = os.path.join(ov_run_dir_orig, 'exec')
-    update_c_flags = f"{user_c_flags} -g -grecord-command-line -fno-omit-frame-pointer" if user_c_flags else "" 
-    update_cxx_flags = f"{user_cxx_flags} -g -grecord-command-line -fno-omit-frame-pointer" if user_cxx_flags else "" 
-    update_fc_flags = f"{user_fc_flags} -g -grecord-command-line -fno-omit-frame-pointer" if user_fc_flags else "" 
-    app_builder_env = app_builder.exec(src_dir, compiler_dir, orig_binary, 
-                                   orig_user_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
-                                   user_link_flags, user_target, user_target_location, 'both', extra_cmake_flags)
     to_backplane.send(qm.GeneralStatus("Done S2.3"))
 
     to_backplane.send(qm.GeneralStatus("Start S2.4"))
-    oneview_runner.exec(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, maqao_dir, ov_config, 'both', level=1, mpi_run_command="mpirun", mpi_num_processes=1)
     to_backplane.send(qm.GeneralStatus("Done S2.4"))
 
     to_backplane.send(qm.GeneralStatus("Start S2.5"))
-    print("Check performance anomalies like I/O time")
     to_backplane.send(qm.GeneralStatus("Done S2.5"))
     to_backplane.send(qm.GeneralStatus("Done Phase 2: INITIAL PROFILING"))
-    return
 
     to_backplane.send(qm.GeneralStatus("Start Phase 3: PARAMETER EXPLORATION/TUNING"))
-    to_backplane.send(qm.GeneralStatus("Start UP1"))
-    to_backplane.send(qm.GeneralStatus("Done UP1"))
-
-    to_backplane.send(qm.GeneralStatus("Start UP2"))
-    to_backplane.send(qm.GeneralStatus("Done UP2"))
-
-    to_backplane.send(qm.GeneralStatus("Start UP3O"))
-    to_backplane.send(qm.GeneralStatus("Done UP3O"))
-
-    to_backplane.send(qm.GeneralStatus("Start UP4O"))
-    to_backplane.send(qm.GeneralStatus("Done UP4O"))
     to_backplane.send(qm.GeneralStatus("Done Phase 3: PARAMETER EXPLORATION/TUNING"))
 
     to_backplane.send(qm.GeneralStatus("Start UP"))
