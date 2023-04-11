@@ -36,18 +36,20 @@ struct Arg : public option::Arg {
 };
 // clang-format off
 const option::Descriptor usage[] = {
-  {UNKNOWN            , 0, ""  , ""              ,Arg::None     , "Usage:  LoopExtractor <input_files> [options] [-o output]\nOptions:" },
-  {HELP               , 0, "h" , "help"          ,Arg::None     , "    -h,--help                Print usage" },
-  {EXTRACT            , 0, ""  , "noextract"     ,Arg::None     , "    --[no]extract            Extract hotspots" },
-  {PARALLEL           , 0, ""  , "parallel"      ,Arg::None     , "    --parallel               Extract hotspots with OpenMP directives\n"
-                                                                  "                             Default: Serial code" },
-  {EXTRACTKERNEL      , 0, ""  , "extractkernel" ,Arg::None     , "    --extractkernel          Extract consecutive loop nests, if possible." },
-  {RESTRICT           , 0, ""  , "restrict"      ,Arg::None     , "    --restrict               Add restrict keyword." },
-  {STATICANALYSIS     , 0, ""  , "static"        ,Arg::None     , "    --static                 Perform static analysis to determine read-only values." },
-  {C99                , 0, ""  , "c99"           ,Arg::None     , "    --c99                    Conforms to ISO C99 standards. Default: C11" },
-  {INCLUDE_PATH       , 0, "I" , "include"       ,Arg::Required , "    -I[<arg>]                Directory to include file search path" },
-  {MACRO_DEFS         , 0, "D" , "DEFS"          ,Arg::Required , "    -D[<arg>]                Macro definition" },
-  {INFO               , 0, ""  , "info"          ,Arg::None     , "    --info                   Print information for LoopExtractor workflow" },
+  {UNKNOWN            , 0, ""  , ""                ,Arg::None     , "Usage:  LoopExtractor <input_files> [options] [-o output]\nOptions:" },
+  {HELP               , 0, "h" , "help"            ,Arg::None     , "    -h,--help                 Print usage" },
+  {EXTRACT            , 0, ""  , "noextract"       ,Arg::None     , "    --[no]extract             Extract hotspots" },
+  {PARALLEL           , 0, ""  , "parallel"        ,Arg::None     , "    --parallel                Extract hotspots with OpenMP directives\n"
+                                                                    "                              Default: Serial code" },
+  {EXTRACTKERNEL      , 0, ""  , "extractkernel"   ,Arg::None     , "    --extractkernel           Extract consecutive loop nests, if possible." },
+  {RESTRICT           , 0, ""  , "restrict"        ,Arg::None     , "    --restrict                Add restrict keyword." },
+  {STATICANALYSIS     , 0, ""  , "static"          ,Arg::None     , "    --static                  Perform static analysis to determine read-only values." },
+  {C99                , 0, ""  , "c99"             ,Arg::None     , "    --c99                     Conforms to ISO C99 standards. Default: C11" },
+  {INCLUDE_PATH       , 0, "I" , "include"         ,Arg::Required , "    -I[<arg>]                 Directory to include file search path" },
+  {MACRO_DEFS         , 0, "D" , "DEFS"            ,Arg::Required , "    -D[<arg>]                 Macro definition" },
+  {INFO               , 0, ""  , "info"            ,Arg::None     , "    --info                    Print information for LoopExtractor workflow" },
+  {WORKDIR            , 0, ""  , "extractwd"       ,Arg::Required , "    --extractwd[<arg>]        Extractor Work directory" },
+  {SRC_PREFIX         , 0, ""  , "extractsrcprefix",Arg::Required , "    --extractsrcprefix[<arg>] Source path prefix to be removed in loop naming" },
   {0, 0, 0, 0, 0, 0}
 };
 // clang-format on
@@ -121,6 +123,12 @@ void set_LoopExtractor_options(int argc, char *argv[]) {
     case INFO:
       LoopExtractor_enabled_options[INFO] = true;
       break;
+    case WORKDIR:
+      LoopExtractor_work_folder = string(opt.arg);
+      break;
+    case SRC_PREFIX:
+      LoopExtractor_src_prefix = string(opt.arg);
+      break;
     }
   }
 
@@ -135,9 +143,19 @@ void set_LoopExtractor_options(int argc, char *argv[]) {
       postSourceFlags = true;
 
       string srcparentdir = str.substr(0, str.find_last_of("/"));
-      if (srcparentdir.compare(str) != 0) {
-        boost::erase_all(srcparentdir, "/");
-        boost::erase_all(srcparentdir, ".");
+      if (srcparentdir.compare(str) != 0) { 
+        // remove the source prefix if matched
+        if (!LoopExtractor_src_prefix.empty() 
+          && srcparentdir.rfind(LoopExtractor_src_prefix, 0) == 0) { 
+            if(srcparentdir.rfind(LoopExtractor_src_prefix+"/", 0) == 0)
+              boost::erase_first(srcparentdir, LoopExtractor_src_prefix+"/");
+            else
+              boost::erase_first(srcparentdir, LoopExtractor_src_prefix);
+        }
+        //boost::erase_all(srcparentdir, "/");
+        //boost::erase_all(srcparentdir, ".");
+        boost::replace_all(srcparentdir, "/", "_");
+        boost::replace_all(srcparentdir, ".", "_");
         LoopExtractor_input_file_relpathcode.insert(
             pair<string, string>(getAbsolutePath(str), srcparentdir));
       } else {

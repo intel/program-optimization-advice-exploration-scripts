@@ -3,7 +3,7 @@
 /* Create data folder in /tmp */
 void Driver::createLoopExtractorDataFolder() {
     LoopExtractor_data_folder_path =
-        "/tmp/" + LoopExtractor_data_folder + forward_slash_str;
+        LoopExtractor_work_folder+forward_slash_str + LoopExtractor_data_folder + forward_slash_str;
     if (!isDirExist(LoopExtractor_data_folder_path)) {
         const int dir_err = mkdir(LoopExtractor_data_folder_path.c_str(),
                                   S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -115,7 +115,7 @@ void Driver::generateCodelets() { tr->initTracing(); }
  */
 void Driver::scanLineNumbers(string loopFileName) {
     cout << "Opening a csv file!" << endl;
-    ifstream csvfile("./LoopExtractor_data/tmpLoop.csv");
+    ifstream csvfile(LoopExtractor_data_folder_path+forward_slash_str+LoopExtractor_extract_src_info_csv);
     string line;
     int firstLineNum = 0, lastLineNum = 0;
     if (csvfile.is_open()) {
@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
 
     /* Moving LoopExtractor_data folder from /tmp to current working directory
      */
-    driver->moveLoopExtractorDataFolder();
+    //driver->moveLoopExtractorDataFolder();
 
     cout << "In-Situ extraction completed" << endl;
 

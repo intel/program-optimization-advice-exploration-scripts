@@ -16,7 +16,8 @@ from Cheetah.Template import Template
 SCRIPT_DIR=os.path.dirname(__file__)
 
 # OneView paths
-prefix = "/host/localdisk/cwong29/working/codelet_extractor_work"
+#prefix = "/host/localdisk/cwong29/working/codelet_extractor_work"
+prefix = "/localdisk/cwong29/working/codelet_extractor_work"
 
 #pathToCodeletExtractorDir = "/host/localdisk/spyankov/codelet-extractor"
 pathToCodeletExtractorDir = f"{prefix}/codelet-extractor"
@@ -146,24 +147,27 @@ class SegmentInfo:
                 var = (line.split(": "))[-1]
                 self.ds_max_addr = "0x"+(var[:len(var)-1])
         traceOutFile.close()
+        self.generate_address_h()
+
+    def generate_address_h(self):
         addressFile = open(self.tracer_out_addresses_h_file, "w")
         minStackLine = "#define min_stack_address ((unsigned char *) "
-        minStackLine += self.stack_min_addr
+        minStackLine += str(self.stack_min_addr)
         minStackLine += ")\n"
         maxStackLine = "#define max_stack_address ((unsigned char *) "
-        maxStackLine += self.stack_max_addr
+        maxStackLine += str(self.stack_max_addr)
         maxStackLine += ")\n"
         minHeapLine = "#define min_heap_address ((unsigned char *) "
-        minHeapLine += self.heap_min_addr
+        minHeapLine += str(self.heap_min_addr)
         minHeapLine += ")\n"
         maxHeapLine = "#define max_heap_address ((unsigned char *) "
-        maxHeapLine += self.heap_max_addr
+        maxHeapLine += str(self.heap_max_addr)
         maxHeapLine += ")\n"
         minDsLine = "#define min_ds_address ((unsigned char *) "
-        minDsLine += self.ds_min_addr
+        minDsLine += str(self.ds_min_addr)
         minDsLine += ")\n"
         maxDsLine = "#define max_ds_address ((unsigned char *) "
-        maxDsLine += self.ds_max_addr
+        maxDsLine += str(self.ds_max_addr)
         maxDsLine += ")\n"
         L = [minStackLine, maxStackLine, minHeapLine, maxHeapLine, minDsLine, maxDsLine]
         addressFile.writelines(L)
@@ -570,16 +574,17 @@ def buildBenchmark():
 # Generate config.h header file and write instance number 0 there
 # Instance number is used during In-Vitro extraction to choose which execution instance of the loop to save (and restore as a codelet)
 def initiateConfig(instanceNum):
-    configFile = open('config.h', 'w')
-    instLine = "int extr_instance = 0;\n"
+    configFile = open('lore_config.h', 'w')
+    instLine = "extern int extr_instance;\n"
     configFile.write(instLine)
     configFile.close()
     myCmd = "mv config.h ./LoopExtractor_data"
     runBashCmd(myCmd)
 
 def initiateConfig1(outdir, instanceNum=0):
-    configFile = open(os.path.join(outdir, 'config.h'), 'w')
-    instLine = f"int extr_instance = {instanceNum};\n"
+    configFile = open(os.path.join(outdir, 'lore_config.h'), 'w')
+    #instLine = f"extern int extr_instance = {instanceNum};\n"
+    instLine = f"extern int extr_instance;\n"
     configFile.write(instLine)
     configFile.close()
 
@@ -666,12 +671,21 @@ def main():
     build_app=True
     timestamp_str = generate_timestamp_str()
 
-    loop_extractor_path="/host/localdisk/cwong29/working/codelet_extractor_work/codelet-extractor/bin/LoopExtractor"
+    loop_extractor_path=os.path.join(prefix, "codelet-extractor/bin/LoopExtractor")
+
+
     binary='clover_leaf'
-    src_dir='/localdisk/cwong29/working/codelet_extractor_work/CloverLeaf_cmake'
-    build_dir=f'{src_dir}-build'
-    run_cmake_dir=os.path.join(src_dir, '..')
+    binary='525.x264_r'
+    cmakelist_dir=os.path.join(prefix,'CloverLeaf_cmake')
+    cmakelist_dir=os.path.join(prefix, 'SPEC2017/llvm-test-suite')
+    src_dir=os.path.join(prefix, 'SPEC2017/benchmark')
+    #src_dir='/localdisk/cwong29/working/codelet_extractor_work/SPEC2017'
+    #build_dir=f'{src_dir}-build'
+    run_cmake_dir=os.path.abspath(os.path.join(cmakelist_dir, '..'))
     extractor_work_dir=os.path.join(run_cmake_dir, 'extractor_work')
+    extractor_work_dir=os.path.join(extractor_work_dir, binary, timestamp_str)
+    build_dir=os.path.join(extractor_work_dir, 'build')
+
     if clean:
         shutil.rmtree(extractor_work_dir, ignore_errors=True)
     os.makedirs(extractor_work_dir, exist_ok=True)
@@ -680,36 +694,52 @@ def main():
 
     # Build app
     # Change original CMakeLists.txt to include extractor code building script if not done before
-
     cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
     cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
     cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-cxx=icpx -DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
+    
+
+    cmake_flags = f'-DTEST_SUITE_SUBDIRS=External/SPEC/CINT2017rate -DTEST_SUITE_SPEC2017_ROOT={src_dir} -DCMAKE_C_COMPILER=icx -DTEST_SUITE_COLLECT_CODE_SIZE=OFF'
+    cmake_flags = f'-DTEST_SUITE_SUBDIRS=External/SPEC/CINT2017rate -DTEST_SUITE_SPEC2017_ROOT={src_dir} -DCMAKE_C_COMPILER=icx -DCMAKE_C_FLAGS="-g" -DCMAKE_CXX_FLAGS="-g" -DTEST_SUITE_COLLECT_CODE_SIZE=OFF'
     #cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
     #cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g"'
+
     if build_app:
         shutil.rmtree(build_dir, ignore_errors=True)
         #run_cmake3(binary, src_dir, build_dir, run_cmake_dir, cmake_flags) 
-        run_cmake(src_dir, build_dir, run_cmake_dir, cmake_flags, binary)
+        run_cmake(cmakelist_dir, build_dir, run_cmake_dir, cmake_flags, binary)
 
 
     profile_data_dir = ensure_dir_exists(extractor_work_dir, 'profile_data')
-    shutil.copy2(os.path.join(build_dir, binary), profile_data_dir)
+    for r, d, fs in os.walk(build_dir):
+        if binary in fs:
+            full_binary_path=os.path.join(r, binary)
+            break
+    #full_binary_path = os.path.join(build_dir, binary)
+    #shutil.copy2(full_binary_path, profile_data_dir)
+    os.symlink(full_binary_path, os.path.join(profile_data_dir, os.path.basename(full_binary_path)))
     # Hardcoded - TODO: make it user input
-    app_data_file = os.path.join(src_dir, 'clover.in')
-    shutil.copy2(app_data_file, profile_data_dir)
+    app_data_file = os.path.join(cmakelist_dir, 'clover.in')
+    app_data_file=os.path.join(prefix, 'SPEC2017/benchmark/benchspec/CPU/525.x264_r/run/run_base_test_myTest.0000/BuckBunny.yuv')
+    os.symlink(app_data_file, os.path.join(profile_data_dir, os.path.basename(app_data_file)))
+    #shutil.copy2(app_data_file, profile_data_dir)
+
 
     adv_proj_dir = os.path.join(profile_data_dir, f'proj_{timestamp_str}')
 
     adv_env = load_advisor_env()
     if False:
-        runCmd(f'advixe-cl --collect survey --project-dir {adv_proj_dir} -- ./{binary}', 
+        #app_cmd = f'./{binary}'
+        app_cmd = f'./{binary} --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720'
+        runCmd(f'advixe-cl --collect survey --project-dir {adv_proj_dir} -- {app_cmd}', 
            cwd=profile_data_dir, env=adv_env, verbose=True)
 
         profile_csv = os.path.join(profile_data_dir, 'profile.csv')
         runCmd(f'advisor --report joined --project-dir={adv_proj_dir} > {profile_csv}',
            cwd=profile_data_dir, env=adv_env, verbose=True)
     #profile_df = pd.read_csv(profile_csv, skiprows=1, delimiter=',')
-    profile_df = pd.read_csv('/tmp/profile.csv', skiprows=1, delimiter=',')
+    #profile_df = pd.read_csv('/tmp/profile.csv', skiprows=1, delimiter=',')
+    profile_df = pd.read_csv('/tmp/profile-525.csv', skiprows=1, delimiter=',')
     # Select loops only
     loop_profile_df = profile_df[profile_df['function_instance_type'] == 2]
     loop_profile_df = loop_profile_df.sort_values(by='self_time', ascending=False)
@@ -719,12 +749,16 @@ def main():
     idx = 16
 
 
-    for idx in range(0, 21):
-        extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, loop_profile_df, idx)
+    n = 21
+    n = 1
+    for idx in range(0, n):
+        extract_codelet(loop_extractor_path, binary, cmakelist_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, 
+                        cmake_flags, loop_profile_df, idx, prefix)
     print("DONE")
 
 
-def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, profile_df, idx):
+def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, profile_df, 
+                    idx, prefix):
     top_row = profile_df.iloc[idx]
     full_source_path = top_row['source_full_path']
     source_location = top_row['source_location']
@@ -755,6 +789,7 @@ def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_d
             if os.path.samefile(cnt_file, source_file):
                 print('match')
                 matched_command = compile_command['command']
+                command_directory = compile_command['directory']
                 print(matched_command)
                 #inc_flags = [part for part in matched_command.split(" ") if part.startswith('-I')]+[f'-I{src_folder}']
                 #non_inc_flags = [part for part in matched_command.split(" ") if not part.startswith('-I') and len(part)>0 ]
@@ -766,9 +801,11 @@ def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_d
                     command_parts = [x for x in command_parts if not x.startswith('-cxx=')]
                     command_parts.insert(1, f"-I{src_folder}")
                     command_parts.insert(1, f"-cxx={loop_extractor_path}")
-                    loop_extractor_command = " ".join(command_parts)
                 else:
-                    pass
+                    # TODO: fix hardcoded
+                    compiler_full_path = shutil.which("icx")
+                    command_parts = [loop_extractor_path if x == compiler_full_path else x for x in command_parts]
+                loop_extractor_command = " ".join(command_parts+['--extractwd', extractor_work_dir, '--extractsrcprefix', prefix])
                     
                 if os.path.basename(compiler).startswith("mpi"):
                     # MPI compilers
@@ -783,7 +820,13 @@ def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_d
     env['LD_LIBRARY_PATH'] = env['LD_LIBRARY_PATH']+':/usr/lib/jvm/java-11-openjdk-amd64/lib/server'
     env['OMP_NUM_THREADS']="1"
     
-    runCmd(loop_extractor_command, cwd=extractor_work_dir, env=env, verbose=True)
+    #runCmd(loop_extractor_command, cwd=extractor_work_dir, env=env, verbose=True)
+
+    #data_dir_symlink = os.path.join(command_directory, os.path.basename(loop_extractor_data_dir))
+    #if os.path.islink(data_dir_symlink):
+    #    os.unlink(data_dir_symlink)
+    #os.symlink(loop_extractor_data_dir, data_dir_symlink)
+    runCmd(loop_extractor_command, cwd=command_directory, env=env, verbose=True)
     basefilename, loopfilename = getLoopFileNames1('/tmp/loopFileNames.txt')
 
 
@@ -792,7 +835,7 @@ def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_d
 
 
     name_map = { "loop_src" : loopfilename, "binary" : binary, 
-                "base_src": basefilename, "orig_src_path": source_path, 
+                "base_src": basefilename, "orig_src_path": full_source_path, 
                 "orig_src_folder": os.path.dirname(source_path)}
     update_app_cmakelists_file(src_dir, name_map)
 
@@ -811,6 +854,10 @@ def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_d
     shutil.copy2(util_c_file, cmake_extractor_src_dir)
     
 
+    segment_info = SegmentInfo(ensure_dir_exists(extractor_work_dir, 'tracer_data'))
+    segment_info.generate_address_h()
+    shutil.copy2(segment_info.tracer_out_addresses_h_file, cmake_extractor_include_dir)
+
     trace_binary=f'trace_{binary}'
     run_cmake(src_dir, build_dir, run_cmake_dir, f'-DBUILD_TRACE=ON {cmake_flags}', trace_binary)
 
@@ -818,10 +865,9 @@ def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_d
     fileName = loopfilename.split('.')
     loop_name = fileName[-2]
 
-    return
+    #return
 
     print("Tracing memory addresses")
-    segment_info = SegmentInfo(ensure_dir_exists(extractor_work_dir, 'tracer_data'))
     segment_info.run_trace(os.path.join(build_dir, trace_binary), src_dir, loop_name)
     print("FINISHED tracing memory addresses!")
 
@@ -903,8 +949,8 @@ def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_d
 #     runCmd(f'cmake {restore_cmake_flags} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {extracted_codelet_dir} -B {extracted_codelet_build_dir}', cwd=restore_work_dir, verbose=True)
 #     runCmd(f'cmake --build {extracted_codelet_build_dir} --target {restore_binary}', cwd=restore_work_dir, verbose=True)
 
-def run_cmake(src_dir, build_dir, run_cmake_dir, cmake_flags, trace_binary):
-    runCmd(f'cmake {cmake_flags} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {src_dir} -B {build_dir}', cwd=run_cmake_dir, verbose=True)
+def run_cmake(cmakelist_dir, build_dir, run_cmake_dir, cmake_flags, trace_binary):
+    runCmd(f'cmake {cmake_flags} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {cmakelist_dir} -B {build_dir}', cwd=run_cmake_dir, verbose=True)
     runCmd(f'cmake --build {build_dir} --target {trace_binary}', cwd=run_cmake_dir, verbose=True)
 
 def update_app_cmakelists_file(src_dir, name_map):

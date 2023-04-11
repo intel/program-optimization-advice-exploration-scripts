@@ -8,8 +8,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <omp.h>
-#include <mpi.h>
+//#include <omp.h>
+//#include <mpi.h>
 
 #include "defs.h"
 #include "util.h"
@@ -22,7 +22,7 @@ int check_omp_mpi_id(int omp_thread, int mpi_rank) {
 #ifdef _OPENMP
   my_omp_thread = omp_get_thread_num();
 #endif
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_mpi_rank);
+  //MPI_Comm_rank(MPI_COMM_WORLD, &my_mpi_rank);
   int answer = (my_mpi_rank == mpi_rank) && (my_omp_thread == omp_thread);
   if (answer)
   	printf("my:(mpi=%d, omp=%d); match:(mpi=%d, omp=%d)\n", my_mpi_rank, my_omp_thread, mpi_rank, omp_thread);

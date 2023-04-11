@@ -46,6 +46,8 @@ typedef enum {
     MACRO_DEFS,
     INFO,
     HELP,
+    WORKDIR,
+    SRC_PREFIX,
     UNKNOWN
 } LoopExtractor_options;
 
@@ -66,9 +68,12 @@ extern string LoopExtractor_skiplooppragma_str;
 
 extern string LoopExtractor_unique_str;
 
+extern string LoopExtractor_work_folder;
 extern string LoopExtractor_data_folder;
 extern string LoopExtractor_data_folder_path;
 extern string LoopExtractor_curr_dir_path;
+extern string LoopExtractor_extract_src_info_csv;
+extern string LoopExtractor_src_prefix;
 
 /* For the extractor */
 extern vector<string> LoopExtractor_input_file;
