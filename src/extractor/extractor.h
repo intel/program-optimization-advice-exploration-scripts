@@ -155,6 +155,8 @@ class TypeDeclTraversal : public AstSimpleProcessing {
   TypeDeclTraversal(const TypeDeclTraversal& t):AstSimpleProcessing() { 
     type_decl_ios = t.type_decl_ios; type_decl_visited = t.type_decl_visited; }
   virtual void visit (SgNode* n);
+  void visit_if_namedtype(SgType* decl_type);
+  void visit_defining_decl(SgDeclarationStatement* decl_type);
   const vector<SgDeclarationStatement*>& get_type_decl_v() { return type_decl_ios.get_vec(); }
 };
 class CallTraversal : public AstSimpleProcessing {

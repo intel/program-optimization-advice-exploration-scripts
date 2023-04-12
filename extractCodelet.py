@@ -59,16 +59,16 @@ class SegmentInfo:
         self.tracer_out_trace_txt_file = os.path.join(self.tracer_data_dir, 'out.trace.txt')
         self.tracer_out_addresses_h_file = os.path.join(self.tracer_data_dir, 'addresses.h')
 
-    def run_trace(self, full_trace_binary, run_dir, loop_name):
-        self.runPin(full_trace_binary, run_dir, loop_name, save_out_txt=True, move_out_trace_txt=False, verbose=True)
+    def run_trace(self, full_trace_binary, run_dir, loop_name, app_flags):
+        self.runPin(full_trace_binary, app_flags, run_dir, loop_name, save_out_txt=True, move_out_trace_txt=False, verbose=True)
         self.getSegmentVars()
-        self.runPin(full_trace_binary, run_dir, loop_name, save_out_txt=False, move_out_trace_txt=True, verbose=True)
+        self.runPin(full_trace_binary, app_flags, run_dir, loop_name, save_out_txt=False, move_out_trace_txt=True, verbose=True)
         self.getMinMaxVars()
 
-    def run_save(self, full_save_binary, run_dir, loop_name):
-        self.runPin(full_save_binary, run_dir, loop_name, save_out_txt=False, move_out_trace_txt=False, verbose=True)
+    def run_save(self, full_save_binary, run_dir, loop_name, app_flags):
+        self.runPin(full_save_binary, app_flags, run_dir, loop_name, save_out_txt=False, move_out_trace_txt=False, verbose=True)
 
-    def runPin(self, binary, run_dir, loop_name, save_out_txt, move_out_trace_txt, verbose=False):
+    def runPin(self, binary, app_flags, run_dir, loop_name, save_out_txt, move_out_trace_txt, verbose=False):
         # Need to ensure directory exist or program will crash
         ensure_dir_exists(run_dir, 'myDataFile')
         myCmd = PATHTOPIN
@@ -93,7 +93,7 @@ class SegmentInfo:
         #This line is used for more modern pintool (HuskyFuncTrace)
         #myCmd += " -path_to_callgraph ./LoopExtractor_data/callgraphResult.extr -- ./clover_leaf |& tee /tmp/out.txt" 
         #myCmd += " -- ./clover_leaf >> /tmp/out.txt"
-        myCmd += f" -- {binary}"
+        myCmd += f" -- {binary}{app_flags}"
         if save_out_txt:
             myCmd += f" > {self.tracer_out_txt_file}"
         runCmd(myCmd, cwd=run_dir, verbose=verbose)
@@ -409,7 +409,8 @@ def getLoopFileNames1(loop_name_file):
         lines = loopFileNames.readlines()
         baseStr = lines[0]
         loopStr = lines[1]
-    return baseStr.strip(), loopStr.strip()
+        restoreStr = lines[2]
+    return baseStr.strip(), loopStr.strip(), restoreStr.strip()
 
 # Generation of a binary out of previously generated object files
 ### THIS WORKS ONLY FOR CLOVERLEAF
@@ -669,18 +670,40 @@ def main():
     ## PREPARE
     clean = True
     build_app=True
-    timestamp_str = generate_timestamp_str()
 
     loop_extractor_path=os.path.join(prefix, "codelet-extractor/bin/LoopExtractor")
 
 
     binary='clover_leaf'
-    binary='525.x264_r'
     cmakelist_dir=os.path.join(prefix,'CloverLeaf_cmake')
-    cmakelist_dir=os.path.join(prefix, 'SPEC2017/llvm-test-suite')
-    src_dir=os.path.join(prefix, 'SPEC2017/benchmark')
+    
+    cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
+    cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
+    cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-cxx=icpx -DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
+
+    app_data_file = os.path.join(cmakelist_dir, 'clover.in')
+
+    app_flags = ''
+    
+
+    if True:
+        binary='525.x264_r'
+        cmakelist_dir=os.path.join(prefix, 'SPEC2017/llvm-test-suite')
+        src_dir=os.path.join(prefix, 'SPEC2017/benchmark')
+        cmake_flags = f'-DTEST_SUITE_SUBDIRS=External/SPEC/CINT2017rate -DTEST_SUITE_SPEC2017_ROOT={src_dir} -DCMAKE_C_COMPILER=icx -DTEST_SUITE_COLLECT_CODE_SIZE=OFF'
+        cmake_flags = f'-DTEST_SUITE_SUBDIRS=External/SPEC/CINT2017rate -DTEST_SUITE_SPEC2017_ROOT={src_dir} -DCMAKE_C_COMPILER=icx -DCMAKE_C_FLAGS="-g -DSPEC" -DCMAKE_CXX_FLAGS="-g -DSPEC" -DTEST_SUITE_COLLECT_CODE_SIZE=OFF'
+        #cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
+        #cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g"'
+
+        app_data_file=os.path.join(prefix, 'SPEC2017/benchmark/benchspec/CPU/525.x264_r/run/run_base_test_myTest.0000/BuckBunny.yuv')
+
+        app_flags = ' --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720'
+
+
     #src_dir='/localdisk/cwong29/working/codelet_extractor_work/SPEC2017'
     #build_dir=f'{src_dir}-build'
+    timestamp_str = generate_timestamp_str()
+
     run_cmake_dir=os.path.abspath(os.path.join(cmakelist_dir, '..'))
     extractor_work_dir=os.path.join(run_cmake_dir, 'extractor_work')
     extractor_work_dir=os.path.join(extractor_work_dir, binary, timestamp_str)
@@ -694,15 +717,6 @@ def main():
 
     # Build app
     # Change original CMakeLists.txt to include extractor code building script if not done before
-    cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
-    cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
-    cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-cxx=icpx -DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
-    
-
-    cmake_flags = f'-DTEST_SUITE_SUBDIRS=External/SPEC/CINT2017rate -DTEST_SUITE_SPEC2017_ROOT={src_dir} -DCMAKE_C_COMPILER=icx -DTEST_SUITE_COLLECT_CODE_SIZE=OFF'
-    cmake_flags = f'-DTEST_SUITE_SUBDIRS=External/SPEC/CINT2017rate -DTEST_SUITE_SPEC2017_ROOT={src_dir} -DCMAKE_C_COMPILER=icx -DCMAKE_C_FLAGS="-g" -DCMAKE_CXX_FLAGS="-g" -DTEST_SUITE_COLLECT_CODE_SIZE=OFF'
-    #cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
-    #cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g"'
 
     if build_app:
         shutil.rmtree(build_dir, ignore_errors=True)
@@ -718,28 +732,26 @@ def main():
     #full_binary_path = os.path.join(build_dir, binary)
     #shutil.copy2(full_binary_path, profile_data_dir)
     os.symlink(full_binary_path, os.path.join(profile_data_dir, os.path.basename(full_binary_path)))
-    # Hardcoded - TODO: make it user input
-    app_data_file = os.path.join(cmakelist_dir, 'clover.in')
-    app_data_file=os.path.join(prefix, 'SPEC2017/benchmark/benchspec/CPU/525.x264_r/run/run_base_test_myTest.0000/BuckBunny.yuv')
-    os.symlink(app_data_file, os.path.join(profile_data_dir, os.path.basename(app_data_file)))
+    link_app_data_file(profile_data_dir, app_data_file)
     #shutil.copy2(app_data_file, profile_data_dir)
 
 
     adv_proj_dir = os.path.join(profile_data_dir, f'proj_{timestamp_str}')
 
     adv_env = load_advisor_env()
-    if False:
-        #app_cmd = f'./{binary}'
-        app_cmd = f'./{binary} --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720'
+    #app_cmd = f'./{binary}'
+    app_cmd = f'./{binary}{app_flags}'
+    if True:
         runCmd(f'advixe-cl --collect survey --project-dir {adv_proj_dir} -- {app_cmd}', 
            cwd=profile_data_dir, env=adv_env, verbose=True)
 
         profile_csv = os.path.join(profile_data_dir, 'profile.csv')
         runCmd(f'advisor --report joined --project-dir={adv_proj_dir} > {profile_csv}',
            cwd=profile_data_dir, env=adv_env, verbose=True)
-    #profile_df = pd.read_csv(profile_csv, skiprows=1, delimiter=',')
+    profile_df = pd.read_csv(profile_csv, skiprows=1, delimiter=',')
     #profile_df = pd.read_csv('/tmp/profile.csv', skiprows=1, delimiter=',')
-    profile_df = pd.read_csv('/tmp/profile-525.csv', skiprows=1, delimiter=',')
+    #profile_df = pd.read_csv('/tmp/profile-525.csv', skiprows=1, delimiter=',')
+    #profile_df = pd.read_csv('/tmp/profile-clover.csv', skiprows=1, delimiter=',')
     # Select loops only
     loop_profile_df = profile_df[profile_df['function_instance_type'] == 2]
     loop_profile_df = loop_profile_df.sort_values(by='self_time', ascending=False)
@@ -753,12 +765,15 @@ def main():
     n = 1
     for idx in range(0, n):
         extract_codelet(loop_extractor_path, binary, cmakelist_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, 
-                        cmake_flags, loop_profile_df, idx, prefix)
+                        cmake_flags, loop_profile_df, idx, prefix, app_flags, app_data_file)
     print("DONE")
+
+def link_app_data_file(profile_data_dir, app_data_file):
+    os.symlink(app_data_file, os.path.join(profile_data_dir, os.path.basename(app_data_file)))
 
 
 def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, profile_df, 
-                    idx, prefix):
+                    idx, prefix, app_flags, app_data_file):
     top_row = profile_df.iloc[idx]
     full_source_path = top_row['source_full_path']
     source_location = top_row['source_location']
@@ -827,69 +842,9 @@ def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_d
     #    os.unlink(data_dir_symlink)
     #os.symlink(loop_extractor_data_dir, data_dir_symlink)
     runCmd(loop_extractor_command, cwd=command_directory, env=env, verbose=True)
-    basefilename, loopfilename = getLoopFileNames1('/tmp/loopFileNames.txt')
+    basefilename, loopfilename, restore_src_file = getLoopFileNames1('/tmp/loopFileNames.txt')
 
-
-    cmake_extractor_src_dir = ensure_dir_exists(src_dir, 'extractor_src')
-    cmake_extractor_include_dir = ensure_dir_exists(src_dir, 'extractor_include')
-
-
-    name_map = { "loop_src" : loopfilename, "binary" : binary, 
-                "base_src": basefilename, "orig_src_path": full_source_path, 
-                "orig_src_folder": os.path.dirname(source_path)}
-    update_app_cmakelists_file(src_dir, name_map)
-
-    #trace_src_file = single_glob(f'{extractor_codelet_src_dir}/trace_*')
-    trace_src_file = os.path.join(loop_extractor_data_dir, basefilename)
-    shutil.copy2(trace_src_file, cmake_extractor_src_dir)
-
-    loop_file = os.path.join(loop_extractor_data_dir, loopfilename)
-    shutil.copy2(loop_file, cmake_extractor_src_dir)
-
-
-    initiateConfig1(cmake_extractor_include_dir)
-    util_h_file = os.path.join(SCRIPT_DIR, 'src', 'tracer', 'util.h')
-    shutil.copy2(util_h_file, cmake_extractor_include_dir)
-    util_c_file = os.path.join(SCRIPT_DIR, 'src', 'tracer', 'util.c')
-    shutil.copy2(util_c_file, cmake_extractor_src_dir)
-    
-
-    segment_info = SegmentInfo(ensure_dir_exists(extractor_work_dir, 'tracer_data'))
-    segment_info.generate_address_h()
-    shutil.copy2(segment_info.tracer_out_addresses_h_file, cmake_extractor_include_dir)
-
-    trace_binary=f'trace_{binary}'
-    run_cmake(src_dir, build_dir, run_cmake_dir, f'-DBUILD_TRACE=ON {cmake_flags}', trace_binary)
-
-    # Run at source directory for CloverLeaf but can be generalized as CLA
-    fileName = loopfilename.split('.')
-    loop_name = fileName[-2]
-
-    #return
-
-    print("Tracing memory addresses")
-    segment_info.run_trace(os.path.join(build_dir, trace_binary), src_dir, loop_name)
-    print("FINISHED tracing memory addresses!")
-
-    #save_src_file = single_glob(f'{extractor_codelet_src_dir}/save_*')
-    #shutil.copy2(save_src_file, cmake_extractor_src_dir)
-    #util_c_file = os.path.join(script_dir, 'src', 'tracer', 'util.c')
-    #shutil.copy2(util_c_file, cmake_extractor_src_dir)
-    #defs_h_file = os.path.join(script_dir, 'src', 'tracer', 'defs.h')
-    #shutil.copy2(defs_h_file, cmake_extractor_include_dir)
-    # Copy updated address.h file to include to rebuild to save right heap and stack data
-    shutil.copy2(segment_info.tracer_out_addresses_h_file, cmake_extractor_include_dir)
-
-    save_binary=f'save_{binary}'
-    run_cmake(src_dir, build_dir, run_cmake_dir, f'-DBUILD_SAVE=ON {cmake_flags}', save_binary)
-
-    segment_info.run_save(os.path.join(build_dir, save_binary), src_dir, loop_name)
-    save_data_dir = ensure_dir_exists(src_dir, 'myDataFile')
-    save_pointers_h_file = os.path.join(src_dir, 'saved_pointers.h')
-    save_work_dir = ensure_dir_exists(extractor_work_dir, 'save_data')
-    save_data_dir=shutil.move(save_data_dir, save_work_dir)
-    save_pointers_h_file=shutil.move(save_pointers_h_file, save_work_dir)
-
+    name_map, loop_file, util_h_file, util_c_file, segment_info, save_data_dir, save_pointers_h_file = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, full_source_path, source_path, basefilename, loopfilename)
     
     restore_binary=f'restore_{binary}'
     restore_work_dir = ensure_dir_exists(extractor_work_dir, 'restore_data')
@@ -899,9 +854,12 @@ def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_d
     restore_include_dir = ensure_dir_exists(extracted_codelet_dir, 'include')
     restore_src_dir = ensure_dir_exists(extracted_codelet_dir, 'src')
     shutil.copy2(util_c_file, restore_src_dir)
-    # TODO: To fix hardcoding to unify with other generated source files.
-    restore_src_file = "/tmp/restore.cc"
-    shutil.copy2(restore_src_file, restore_src_dir)
+
+    loop_ext = os.path.splitext(loopfilename)[-1]
+    #restore_src_file = "/tmp/restore.cc"
+    driver_src_file = f'restore{loop_ext}'
+    name_map['driver_src'] = driver_src_file
+    shutil.copy2(restore_src_file, os.path.join(restore_src_dir, driver_src_file))
     shutil.copy2(loop_file, restore_src_dir)
     # defs.h needed by util.c
     defs_h_file = os.path.join(SCRIPT_DIR, 'src', 'tracer', 'defs.h')
@@ -938,6 +896,74 @@ def extract_codelet(loop_extractor_path, binary, src_dir, build_dir, run_cmake_d
     #runCmd(f"mpiicpc -c -cxx={loop_extractor_path} -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data -DUSE_OPENMP -lm /host/localdisk/cwong29/working/codelet_extractor_work/CloverLeaf/src/clover.cc -o /tmp/test.o
     #", extractor_work_dir, verbose=True)
     return
+
+def capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, full_source_path, source_path, basefilename, loopfilename):
+    cmake_extractor_src_dir = ensure_dir_exists(src_dir, 'extractor_src')
+    cmake_extractor_include_dir = ensure_dir_exists(src_dir, 'extractor_include')
+
+
+    name_map = { "loop_src" : loopfilename, "binary" : binary, 
+                "base_src": basefilename, "orig_src_path": full_source_path, 
+                "orig_src_folder": os.path.dirname(source_path)}
+    update_app_cmakelists_file(src_dir, name_map)
+
+    #trace_src_file = single_glob(f'{extractor_codelet_src_dir}/trace_*')
+    trace_src_file = os.path.join(loop_extractor_data_dir, basefilename)
+    shutil.copy2(trace_src_file, cmake_extractor_src_dir)
+
+    loop_file = os.path.join(loop_extractor_data_dir, loopfilename)
+    shutil.copy2(loop_file, cmake_extractor_src_dir)
+
+
+    initiateConfig1(cmake_extractor_include_dir)
+    util_h_file = os.path.join(SCRIPT_DIR, 'src', 'tracer', 'util.h')
+    shutil.copy2(util_h_file, cmake_extractor_include_dir)
+    util_c_file = os.path.join(SCRIPT_DIR, 'src', 'tracer', 'util.c')
+    shutil.copy2(util_c_file, cmake_extractor_src_dir)
+    
+
+    tracer_dir = ensure_dir_exists(extractor_work_dir, 'tracer_data')
+    tracer_run_dir = ensure_dir_exists(tracer_dir, 'run')
+    link_app_data_file(tracer_run_dir, app_data_file)
+    segment_info = SegmentInfo(tracer_dir)
+    segment_info.generate_address_h()
+    shutil.copy2(segment_info.tracer_out_addresses_h_file, cmake_extractor_include_dir)
+
+    trace_binary=f'trace_{binary}'
+    run_cmake(src_dir, build_dir, run_cmake_dir, f'-DBUILD_TRACE=ON {cmake_flags}', trace_binary)
+
+    # Run at source directory for CloverLeaf but can be generalized as CLA
+    fileName = loopfilename.split('.')
+    loop_name = fileName[-2]
+
+    #return
+
+    print("Tracing memory addresses")
+    segment_info.run_trace(os.path.join(build_dir, trace_binary), tracer_run_dir, loop_name, app_flags)
+    print("FINISHED tracing memory addresses!")
+
+    #save_src_file = single_glob(f'{extractor_codelet_src_dir}/save_*')
+    #shutil.copy2(save_src_file, cmake_extractor_src_dir)
+    #util_c_file = os.path.join(script_dir, 'src', 'tracer', 'util.c')
+    #shutil.copy2(util_c_file, cmake_extractor_src_dir)
+    #defs_h_file = os.path.join(script_dir, 'src', 'tracer', 'defs.h')
+    #shutil.copy2(defs_h_file, cmake_extractor_include_dir)
+    # Copy updated address.h file to include to rebuild to save right heap and stack data
+    shutil.copy2(segment_info.tracer_out_addresses_h_file, cmake_extractor_include_dir)
+
+    save_binary=f'save_{binary}'
+    run_cmake(src_dir, build_dir, run_cmake_dir, f'-DBUILD_SAVE=ON {cmake_flags}', save_binary)
+
+    save_work_dir = ensure_dir_exists(extractor_work_dir, 'save_data')
+    save_run_dir = ensure_dir_exists(save_work_dir, 'run')
+    link_app_data_file(save_run_dir, app_data_file)
+    segment_info.run_save(os.path.join(build_dir, save_binary), save_run_dir, loop_name, app_flags)
+
+    save_data_dir = ensure_dir_exists(save_run_dir, 'myDataFile')
+    save_pointers_h_file = os.path.join(save_run_dir, 'saved_pointers.h')
+    save_data_dir=shutil.move(save_data_dir, save_work_dir)
+    save_pointers_h_file=shutil.move(save_pointers_h_file, save_work_dir)
+    return name_map,loop_file,util_h_file,util_c_file,segment_info,save_data_dir,save_pointers_h_file
 
 #def run_cmake3(binary, src_dir, build_dir, run_cmake_dir, cmake_flags):
 # def run_cmake3(src_dir, build_dir, run_cmake_dir, cmake_flags, binary):

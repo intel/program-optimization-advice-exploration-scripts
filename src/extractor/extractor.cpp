@@ -932,10 +932,12 @@ SgExprListExp* LoopInfo::getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgIn
             paramAddress = funcArgument;
             break;
     }
+    SgUnparse_Info unparse_info ;
+    unparse_info.set_SkipDefinition();
     SgName arg_name = func_arg_decl->get_name();
     SgPointerType* param_address_type = isSgPointerType(paramAddress->get_type());
     ROSE_ASSERT(param_address_type != NULL);
-    std::string fpline1 = "#define SAVED_"+arg_name+" ("+param_address_type->unparseToString()+ ") 0x%lx \\n"; 
+    std::string fpline1 = "#define SAVED_"+arg_name+" ("+param_address_type->unparseToString(&unparse_info)+ ") 0x%lx \\n"; 
     SgStringVal *lineVal1 = SageBuilder::buildStringVal(fpline1);
     SageInterface::appendExpression(fprintf_line_args, lineVal1);
 
@@ -1172,59 +1174,47 @@ SgStatement *LoopInfo::buildPrintFunc(std::string printStr, SgExpression* exp) {
 }
 
 void TypeDeclTraversal::visit(SgNode * n) {
-    SgDeclarationStatement* type_decl = isSgDeclarationStatement(n);
-    SgTypedefDeclaration* type_def_decl = isSgTypedefDeclaration(type_decl);
-    if (type_def_decl) {
-        SgType* base_type = type_def_decl->get_base_type();
-        SgNamedType* named_base_type = isSgNamedType(base_type);
-        if (named_base_type) {
-            SgDeclarationStatement* type_decl1 = named_base_type->get_declaration();
-            if (type_decl_visited.count(type_decl1) == 0) {
-                type_decl_visited.insert(type_decl1);
-                TypeDeclTraversal decl_traversal(*this);
-                decl_traversal.traverse(type_decl1, postorder);
-                type_decl_ios = decl_traversal.type_decl_ios;
-                type_decl_visited = decl_traversal.type_decl_visited;
-            }
-        }
+    if (SgTypedefDeclaration* type_def_decl = isSgTypedefDeclaration(n)) {
+        this->visit_if_namedtype(type_def_decl->get_base_type());
         // add this typedef after the base types are added
         type_decl_ios.insert(type_def_decl);
-    } else {
-        n = type_decl->get_definingDeclaration();
+    } else if (SgClassDeclaration* class_decl = isSgClassDeclaration(n)) {
+        visit_defining_decl(class_decl);
+    } else if (SgInitializedName* in = isSgInitializedName(n)) {
+        // std::cout << "initedname:" <<n->unparseToString() << std::endl;
+        // std::cout << "typedecl type:" <<decl_type->unparseToString() << std::endl;
+        this->visit_if_namedtype(in->get_type());
+    } 
+}
 
-        SgClassDeclaration* class_decl = isSgClassDeclaration(n);
-        if (class_decl) {
-            type_decl_ios.insert(class_decl);
-        } 
-        SgInitializedName* in = isSgInitializedName(n);
-        if (in) {
-            // std::cout << "initedname:" <<n->unparseToString() << std::endl;
-            SgType* decl_type = in->get_type();
-            // std::cout << "typedecl type:" <<decl_type->unparseToString() << std::endl;
-            SgNamedType* named_exp_type = isSgNamedType(decl_type);
-            if (named_exp_type) {
-                SgDeclarationStatement* type_decl1 = named_exp_type->get_declaration();
-                type_decl1 = type_decl1->get_definingDeclaration(); // ensure full decl
-                if (type_decl_visited.count(type_decl1) == 0) {
-                    type_decl_visited.insert(type_decl1);
-                    // be careful.  Need to create new traversal after inserting visited
-                    TypeDeclTraversal decl_traversal(*this);
-                    decl_traversal.traverse(type_decl1, postorder);
-                    std::cout << "typedecl:" <<type_decl1->unparseToString() << std::endl;
-                    // copy out the list and set before end of search
-                    type_decl_ios = decl_traversal.type_decl_ios;
-                    type_decl_visited = decl_traversal.type_decl_visited;
-                }
-                // after traversing all needed declaration, then record this decl
-            }
-        }
+void TypeDeclTraversal::visit_if_namedtype(SgType * decl_type) {
+    SgNamedType* named_exp_type = isSgNamedType(decl_type);
+    if (named_exp_type) {
+        SgDeclarationStatement* type_decl = named_exp_type->get_declaration();
+        //this->visit_defining_decl(type_decl);
+        this->visit(type_decl);
     }
 }
+
+void TypeDeclTraversal::visit_defining_decl (SgDeclarationStatement* type_decl) {
+    type_decl = type_decl->get_definingDeclaration(); // ensure full decl
+    if (type_decl_visited.count(type_decl) == 0) {
+        type_decl_visited.insert(type_decl);
+        // be careful.  Need to create new traversal after inserting visited
+        TypeDeclTraversal decl_traversal(*this);
+        decl_traversal.traverse(type_decl, postorder);
+        // copy out the list and set before end of search
+        type_decl_ios = decl_traversal.type_decl_ios;
+        type_decl_visited = decl_traversal.type_decl_visited;
+        // after traversing all needed declaration, then record this decl
+        type_decl_ios.insert(type_decl);
+    }
+}
+
 
 void CallTraversal::visit(SgNode * n) {
     SgFunctionCallExp* fn_call = isSgFunctionCallExp(n);
     if (fn_call) {
-        std::cout << "call:" <<fn_call->unparseToString() << std::endl;
         SgFunctionRefExp* fn_ref = isSgFunctionRefExp(fn_call->get_function());
         SgFunctionDeclaration* fn_decl = fn_ref->getAssociatedFunctionDeclaration();
         SgFunctionDeclaration* fn_decl_def = isSgFunctionDeclaration(fn_decl->get_definingDeclaration()); // ensure full decl
@@ -1368,6 +1358,8 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
             break;  // done getting rid array and pointer types modifiers
         }
 
+        decl_traversal.visit_if_namedtype(exp_type); 
+        #if 0
         SgNamedType* named_exp_type = isSgNamedType(exp_type);
         if (named_exp_type) {
             SgDeclarationStatement* type_decl = named_exp_type->get_declaration();
@@ -1377,6 +1369,7 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
         } else {
             cout << "Unamed type" << exp_type->unparseToString() << endl;
         }
+        #endif
     }
     //for(type_decls_iter=type_decls_v.begin(); type_decls_iter != type_decls_v.end(); type_decls_iter++) {
     vector<SgDeclarationStatement*> type_decls_v1 = decl_traversal.get_type_decl_v();
@@ -1391,7 +1384,7 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
         SageInterface::appendStatement(fn_decl_copy, glb_loop_src);
     }
     for (auto const& fn_defn : call_traversal.get_fn_defn_v()) {
-        std::cout << fn_defn->unparseToString() << std::endl;
+        // std::cout << fn_defn->unparseToString() << std::endl;
         auto fn_defn_copy = SageInterface::deepCopy(fn_defn);
         SageInterface::guardNode(fn_defn_copy, RESTORE_GUARD_NAME);
         SageInterface::appendStatement(fn_defn_copy, glb_loop_src);
@@ -1457,11 +1450,13 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
     SageInterface::insertHeader("addresses.h", PreprocessingInfo::after, false, glb_restore_src);
     SageInterface::insertHeader("unistd.h", PreprocessingInfo::after, true, glb_restore_src);
     SageInterface::insertHeader("alloca.h", PreprocessingInfo::after, true, glb_restore_src);
-    SageInterface::insertHeader("saved_pointers.h", PreprocessingInfo::after, false, glb_restore_src);
+    //SageInterface::insertHeader("saved_pointers.h", PreprocessingInfo::after, false, glb_restore_src);
 
 
     SgFunctionDeclaration *main_decl = SageBuilder::buildDefiningFunctionDeclaration
         ("main", SageBuilder::buildIntType(), SageBuilder::buildFunctionParameterList(), glb_restore_src);
+
+    SageInterface::insertHeader(main_decl, SageBuilder::buildHeader("saved_pointers.h"), false);
 
     SgBasicBlock* main_fn_bb = main_decl->get_definition()->get_body();
     SgType* void_type = SageBuilder::buildVoidType();
@@ -1542,7 +1537,19 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
         ParamPassingStyle style = getPassingStyle(arg_type, extr.getSrcType());
 
         //arg_exp = SageBuilder::buildPointerDerefExp(SageBuilder::buildVarRefExp(saved_arg_v));
-        arg_exp = SageBuilder::buildPointerDerefExp(SageBuilder::buildVarRefExp("SAVED_"+arg_v->get_name()));
+        // For reference types, saved address, so need to dereference
+        // For pointer and direct, saved values directly so no need to dereference
+        arg_exp = SageBuilder::buildVarRefExp("SAVED_"+arg_v->get_name());
+        switch(style) { 
+            case ParamPassingStyle::REFERENCE: 
+                arg_exp = SageBuilder::buildPointerDerefExp(arg_exp);
+                break;
+            case ParamPassingStyle::POINTER: 
+            case ParamPassingStyle::DIRECT: 
+                // do nothing
+                break;
+        }
+
         // no need to do something special for POINTER because already saved addressofop output
         // see LoopInfo::getSaveCurrentFuncParamAddrArgs() method.
         /*
@@ -1696,7 +1703,6 @@ void LoopInfo::addGlobalVarDecls(SgGlobal* glb, bool as_extern) {
             iter != global_vars_initName_vec.end(); iter++) {
         // Create parameter list
         SgName arg_name = (*iter)->get_name();
-        std::cout << "David deArg:" << arg_name << std::endl;
         //SgInitializedName *arg_init_name;
         SgVariableDeclaration *var_decl;
         var_decl = SageBuilder::buildVariableDeclaration( arg_name, (*iter)->get_type());
@@ -1909,7 +1915,7 @@ vector<string> LoopInfo::getLoopFuncArgsName() {
     vector<SgVariableSymbol *>::iterator iter;
     for (iter = scope_vars_symbol_vec.begin();
          iter != scope_vars_symbol_vec.end(); iter++) {
-        cout << "Loop func arg: " << (*iter)->get_name().str() << endl;
+        // cout << "Loop func arg: " << (*iter)->get_name().str() << endl;
         args_name.push_back((*iter)->get_name().str());
     }
     return args_name;
@@ -2024,11 +2030,14 @@ bool Extractor::skipLoop(SgNode *astNode) {
  */
 void Extractor::extractLoops(SgNode *astNode) {
     int lineNum = astNode->get_file_info()->get_line();
+    /*
     cout << "line number of ast node: " << astNode->unparseToString() << endl;
     cout << "is " << lineNum << endl;
+    */
+
     /* Here we check if loop file number is the one we need */
     if (lineNum >= lineNumbers.first && lineNum <= lineNumbers.second) {
-        cout << "PASSED the lineNum check" << endl;
+        // cout << "PASSED the lineNum check" << endl;
         SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
         updateUniqueCounter(astNode);
         string output_path = getDataFolderPath();
@@ -2051,8 +2060,8 @@ void Extractor::extractLoops(SgNode *astNode) {
              << endl;
         FILE *tmp_fp =
             fopen("/tmp/loopFileNames.txt", "w"); //"./loopFileNames.txt", "w");
-        fprintf(tmp_fp, "%s\n%s\n", parseFileName(&base_file_name).c_str(),
-                parseFileName(&loop_file_name).c_str());
+        fprintf(tmp_fp, "%s\n%s\n%s\n", parseFileName(&base_file_name).c_str(),
+                parseFileName(&loop_file_name).c_str(), "/tmp/restore.cc");
         fclose(tmp_fp);
 
         // Create loop object
