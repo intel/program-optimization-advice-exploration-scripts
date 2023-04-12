@@ -4,7 +4,7 @@
 #include "common.h"
 #include "extractor/extractor.h"
 #include "options.h"
-#include "tracer/tracer.h"
+//#include "tracer/tracer.h"
 
 using namespace std;
 
@@ -17,7 +17,7 @@ class Driver {
 
     // vector<string> filename_vec;
     Extractor *extr;
-    Tracer *tr;
+    // Tracer *tr;
 
 public:
     bool mainFuncPresent = false;
@@ -34,7 +34,7 @@ public:
     void moveLoopExtractorDataFolder();
     void copyInFolderHeaders(string folder_path, bool copysourcefiles);
     void initiateExtractor(string file_name);
-    void generateCodelets();
+    // void generateCodelets();
     // void dumpExtrLoopInfo();
     void scanLineNumbers(string loopFileName);
 };

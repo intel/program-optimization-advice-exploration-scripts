@@ -29,7 +29,7 @@ LE_DATA_FOLDER    = /tmp/LoopExtractor_data
 
 DIRS := $(shell mkdir -p ${CURDIR}/$(OBJS) &&  mkdir -p ${CURDIR}/$(BIN))
   
-all: extractor tracer driver
+all: driver
 
 ##### EXTRACTOR #####
 EXTRACTOR_COMPILE_FLAGS = -I${CURDIR}/src $(ROSE_INCLUDE)
@@ -79,8 +79,12 @@ DRIVER_LD_FLAGS      = -L${JAVA_HOME}/lib/server -ljvm $(EXTRACTOR_LD_FLAGS) -pt
 OBJ_DRIVER = $(OBJS)/driver.o
 SRC_DRIVER = $(DRIVER_PATH)/driver.cpp 
 
-driver: $(OBJ_DRIVER) $(OBJ_EXTRACTOR) $(OBJ_TRACER) $(OBJ_COMMON) 
+#driver: $(OBJ_DRIVER) $(OBJ_EXTRACTOR) $(OBJ_TRACER) $(OBJ_COMMON) 
+#	$(CC) $^ $(DRIVER_LD_FLAGS) -o $(BIN)/LoopExtractor
+
+driver: $(OBJ_DRIVER) $(OBJ_EXTRACTOR) $(OBJ_COMMON) 
 	$(CC) $^ $(DRIVER_LD_FLAGS) -o $(BIN)/LoopExtractor
+
 $(OBJ_DRIVER): $(SRC_DRIVER)
 	$(CC) $(FLAGS) $(DRIVER_COMPILE_FLAGS) $(SRC_DRIVER) -c -o $@
 
