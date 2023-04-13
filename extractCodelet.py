@@ -21,12 +21,12 @@ prefix = "/localdisk/cwong29/working/codelet_extractor_work"
 
 #pathToCodeletExtractorDir = "/host/localdisk/spyankov/codelet-extractor"
 #pathToCodeletExtractorDir = f"{prefix}/codelet-extractor"
-maqaoPath = f'{prefix}/cape-experiment-scripts/utils/MAQAO/maqao_new_2020'
+#maqaoPath = f'{prefix}/cape-experiment-scripts/utils/MAQAO/maqao_new_2020'
 
-PATHTOPIN = f"{prefix}/pin"
+PATHTOPIN = os.path.join(SCRIPT_DIR, "..", "pin")
 ADVISOR_VARS_SH = '/host/opt/intel/oneapi/advisor/2023.0.0/advisor-vars.sh'
 
-LOOP_EXTRACTOR_PATH=os.path.join(prefix, "codelet-extractor/bin/LoopExtractor")
+LOOP_EXTRACTOR_PATH=os.path.join(SCRIPT_DIR, "bin", "LoopExtractor")
 
 # Global variables for segment boundaries and min/max accessed memory addresses
 class SegmentInfo:
