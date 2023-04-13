@@ -14,7 +14,7 @@ if [[ ${USER} != "qaas" ]]; then
   wget https://software.intel.com/sites/landingpage/pintool/downloads/${PIN_TAR_BALL}
   tar xvf ${PIN_TAR_BALL}
   rm ${PIN_TAR_BALL}
-  ln -s $(basename ${PIN_TAR_BALl} .tar.gz) pin
+  ln -s $(basename ${PIN_TAR_BALL} .tar.gz) pin
 
   # Run the script again inside to set up the rest
   popd
