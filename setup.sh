@@ -6,19 +6,21 @@ PIN_TOOL_NAME=HuskyFuncTrace
 if [[ ${USER} != "qaas" ]]; then
   echo "Outside container setting up local image and then resume inside container"
   # Build local image
-  cd container
+  pushd container
   ./build-local-image.sh
 
   # Download pin while outside container
-  cd ..
+  cd ../..
   wget https://software.intel.com/sites/landingpage/pintool/downloads/${PIN_TAR_BALL}
   tar xvf ${PIN_TAR_BALL}
   rm ${PIN_TAR_BALL}
   ln -s $(basename ${PIN_TAR_BALl} .tar.gz) pin
 
   # Run the script again inside to set up the rest
-  cd ..
+  popd
   ./container/run-container.sh ./setup.sh
+  # Done, quit and not the execute code below.
+  exit
 fi
 
 echo "Now setting up rest inside container"
