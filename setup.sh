@@ -16,7 +16,6 @@ export PIN_ROOT=$(readlink -f pin)
 
 pushd ${PIN_ROOT}/source/tools
 ln -s ../../../codelet-extractor/src/pin-trace-memory-accesses ${PIN_TOOL_NAME}
-cd ..
 # Add our pin tool to build list
 sed -i "s/ALL_TEST_DIRS := /ALL_TEST_DIRS := "${PIN_TOOL_NAME}"/g" makefile
 cd ${PIN_TOOL_NAME}
