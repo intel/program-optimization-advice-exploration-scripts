@@ -5,6 +5,7 @@ Installation
 -------------------------
 1. Clone repo
 2. Install Intel Advisor
+   - The extractor right now hardcoded the Advisor so that the env loading script is at `/host/opt/intel/oneapi/advisor/2023.0.0/advisor-vars.sh`
 3. Install compilers (Intel, etc)
 4. Run setup.sh script
     1. Build Local container image
