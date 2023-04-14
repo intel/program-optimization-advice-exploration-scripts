@@ -21,7 +21,7 @@ Run the python script:
 ```
 python extractCodelet.py
 
-Below include some sample steps to try the loop extractor.  Assuming the working directory is `/path/to/working` and the repo is checked out at `/path/to/working/codelet-extractor`.
+Below include some sample steps to try the loop extractor.  Assuming the working directory is {path_to_working} and the repo is checked out at _/path_to_working_/`codelet-extractor`.
 ```
 
 ### Testing using SPEC2017
@@ -33,7 +33,7 @@ Below include some sample steps to try the loop extractor.  Assuming the working
    git clone git@github.com:llvm/llvm-test-suite
    ```
 4. Go to the script directory `/path/to/working/codelet-extractor`.
-5. Ensure `spec_run = Talse` in `extractCodelet.py`   
+5. Ensure `spec_run = True` in `extractCodelet.py`   
 6. Start container `./container/run-container.sh`.
 7. Make sure you source needed compiler scripts to set up the `PATH`, `LD_LIBRARY_PATH` and other variables.
 8. Run the Loop extractor
