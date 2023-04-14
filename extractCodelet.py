@@ -245,7 +245,7 @@ def main():
     clean = True
     build_app=True
     spec_run = True
-    #spec_run = False
+    spec_run = False
 
     # TODO: mark these command line arguments
     if spec_run:
@@ -262,7 +262,7 @@ def main():
         app_flags = ' --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720'
     else:
         binary='clover_leaf'
-        cmakelist_dir=os.path.join(prefix,'CloverLeaf_cmake')
+        cmakelist_dir=os.path.join(prefix,'CloverLeaf')
         
         cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
         cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
@@ -407,7 +407,7 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
     runCmd(loop_extractor_command, cwd=command_directory, env=env, verbose=True)
     basefilename, loopfilename, restore_src_file = getLoopFileNames('/tmp/loopFileNames.txt')
 
-    name_map, loop_file, util_h_file, util_c_file, segment_info, save_data_dir, save_pointers_h_file = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, full_source_path, source_path, basefilename, loopfilename)
+    name_map, loop_file, util_h_file, util_c_file, segment_info, save_data_dir, save_pointers_h_file, defs_h_file = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, full_source_path, source_path, basefilename, loopfilename)
     
     restore_binary=f'restore_{binary}'
     restore_work_dir = ensure_dir_exists(extractor_work_dir, 'restore_data')
@@ -424,8 +424,6 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
     name_map['driver_src'] = driver_src_file
     shutil.copy2(restore_src_file, os.path.join(restore_src_dir, driver_src_file))
     shutil.copy2(loop_file, restore_src_dir)
-    # defs.h needed by util.c
-    defs_h_file = os.path.join(SCRIPT_DIR, 'src', 'tracer', 'defs.h')
     shutil.copy2(defs_h_file, restore_include_dir)
     shutil.copy2(util_h_file, restore_include_dir)
     shutil.copy2(save_pointers_h_file, restore_include_dir)
@@ -483,6 +481,9 @@ def capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, 
     shutil.copy2(util_h_file, cmake_extractor_include_dir)
     util_c_file = os.path.join(SCRIPT_DIR, 'src', 'tracer', 'util.c')
     shutil.copy2(util_c_file, cmake_extractor_src_dir)
+    # defs.h needed by util.c
+    defs_h_file = os.path.join(SCRIPT_DIR, 'src', 'tracer', 'defs.h')
+    shutil.copy2(defs_h_file, cmake_extractor_src_dir)
     
 
     tracer_dir = ensure_dir_exists(extractor_work_dir, 'tracer_data')
@@ -526,7 +527,7 @@ def capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, 
     save_pointers_h_file = os.path.join(save_run_dir, 'saved_pointers.h')
     save_data_dir=shutil.move(save_data_dir, save_work_dir)
     save_pointers_h_file=shutil.move(save_pointers_h_file, save_work_dir)
-    return name_map,loop_file,util_h_file,util_c_file,segment_info,save_data_dir,save_pointers_h_file
+    return name_map,loop_file,util_h_file,util_c_file,segment_info, save_data_dir,save_pointers_h_file, defs_h_file
 
 def run_cmake(cmakelist_dir, build_dir, run_cmake_dir, cmake_flags, trace_binary):
     runCmd(f'cmake {cmake_flags} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {cmakelist_dir} -B {build_dir}', cwd=run_cmake_dir, verbose=True)
