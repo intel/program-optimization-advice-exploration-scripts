@@ -13,11 +13,12 @@ import re
 import datetime
 from Cheetah.Template import Template
 
-SCRIPT_DIR=os.path.dirname(__file__)
+SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
 
 # OneView paths
 #prefix = "/host/localdisk/cwong29/working/codelet_extractor_work"
-prefix = "/localdisk/cwong29/working/codelet_extractor_work"
+#prefix = "/localdisk/cwong29/working/codelet_extractor_work"
+prefix = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 
 #pathToCodeletExtractorDir = "/host/localdisk/spyankov/codelet-extractor"
 #pathToCodeletExtractorDir = f"{prefix}/codelet-extractor"
@@ -244,7 +245,7 @@ def main():
     clean = True
     build_app=True
     spec_run = True
-    spec_run = False
+    #spec_run = False
 
     # TODO: mark these command line arguments
     if spec_run:
