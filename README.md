@@ -31,7 +31,8 @@ Below include some sample steps to try the loop extractor.  Assuming the working
    ```
    git clone git@github.com:llvm/llvm-test-suite
    ```
-4. Run the Loop extractor
+4. Ensure `spec_run = Talse` in extractCodelet.py   
+5. Run the Loop extractor
    * Adapt the prefix variable in script to `/path/to/working`.
    * Run the python script under `/path/to/working/codelet-extractor` directory.
    ```
