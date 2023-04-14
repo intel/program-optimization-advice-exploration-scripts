@@ -34,7 +34,8 @@ Below include some sample steps to try the loop extractor.  Assuming the working
 4. Go to the script directory `/path/to/working/codelet-extractor`.
 5. Ensure `spec_run = Talse` in `extractCodelet.py`   
 6. Start container `./container/run-container.sh`.
-7. Run the Loop extractor
+7. Make sure you source needed compiler scripts to set up the `PATH`, `LD_LIBRARY_PATH` and other variables.
+8. Run the Loop extractor
    * Adapt the prefix variable in script to `/path/to/working`.
    * Run the python script under `/path/to/working/codelet-extractor` directory.
    ```
@@ -50,7 +51,8 @@ Below include some sample steps to try the loop extractor.  Assuming the working
 2. Go to the script directory `/path/to/working/codelet-extractor`.
 3. Ensure `spec_run = False` in `extractCodelet.py`
 4. Start container `./container/run-container.sh`.
-5. Run the Loop extractor
+5. Make sure you source needed compiler scripts to set up the `PATH`, `LD_LIBRARY_PATH` and other variables.
+6. Run the Loop extractor
    * Adapt the prefix variable in script to `/path/to/working`.
    * Run the python script under `/path/to/working/codelet-extractor` directory.
    ```
