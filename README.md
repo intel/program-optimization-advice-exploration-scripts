@@ -20,9 +20,9 @@ Using the Loop Extractor
 Run the python script:
 ```
 python extractCodelet.py
-
-Below include some sample steps to try the loop extractor.  Assuming the working directory is {path_to_working} and the repo is checked out at _/path_to_working_/`codelet-extractor`.
 ```
+Below include some sample steps to try the loop extractor.  Assuming the working directory is _path_to_working_ and the repo is checked out at _path_to_working_/`codelet-extractor`.
+
 
 ### Testing using SPEC2017
 
