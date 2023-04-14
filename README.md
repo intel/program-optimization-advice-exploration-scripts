@@ -26,8 +26,8 @@ Below include some sample steps to try the loop extractor.  Assuming the working
 
 ### Testing using SPEC2017
 
-1. Create SPEC2017 directory at _workdir_`/SPEC2017`
-2. Put the benchmark under _workdir_`/SPEC2017/benchmark` so that _workdir_`/SPEC2017/benchmark/LICENSE.txt` is the SPEC license file
+1. Create SPEC2017 directory at _workdir_ `/SPEC2017`
+2. Put the benchmark under _workdir_<code>/SPEC2017/benchmark</code> so that _workdir_`/SPEC2017/benchmark/LICENSE.txt` is the SPEC license file
 3. Checkout LLVM CMake scripts for SPEC (i.e. perform the following command under _workdir_`/SPEC2017`)
    ```
    git clone git@github.com:llvm/llvm-test-suite
