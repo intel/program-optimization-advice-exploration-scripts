@@ -7,7 +7,7 @@ Installation
 2. Install Intel Advisor
    - The extractor right now hardcoded the Advisor so that the env loading script is at `/host/opt/intel/oneapi/advisor/2023.0.0/advisor-vars.sh`
 3. Install compilers (Intel, etc)
-4. Run setup.sh script
+4. Run setup.sh script.  The script will automatically do the following things:
     1. Build Local container image
     2. Download pin
     3. Build pin tool
