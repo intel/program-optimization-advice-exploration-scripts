@@ -32,12 +32,11 @@ Below include some sample steps to try the loop extractor.  Assuming the working
 git clone git@github.com:llvm/llvm-test-suite
 ```
 4. Run the Loop extractor
-* Adapt the prefix variable in script to `/path/to/working`.
-* Run the python script under `/path/to/working/codelet-extractor` directory.
-```
-python extractCodelet.py
-
-```
+   * Adapt the prefix variable in script to `/path/to/working`.
+   * Run the python script under `/path/to/working/codelet-extractor` directory.
+   ```
+   python extractCodelet.py
+   ```
 
 ### Testing using CloverLeaf application
 
@@ -47,9 +46,8 @@ git clone git@gitlab.com:davidwong/CloverLeaf.git
 ```
 2. Ensure `spec_run = False` in extractCodelet.py
 3. Run the Loop extractor
-* Adapt the prefix variable in script to `/path/to/working`.
-* Run the python script under `/path/to/working/codelet-extractor` directory.
-```
-python extractCodelet.py
-
-```
+   * Adapt the prefix variable in script to `/path/to/working`.
+   * Run the python script under `/path/to/working/codelet-extractor` directory.
+   ```
+   python extractCodelet.py
+   ```
