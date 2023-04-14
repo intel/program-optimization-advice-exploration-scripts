@@ -28,9 +28,9 @@ Below include some sample steps to try the loop extractor.  Assuming the working
 1. Create SPEC2017 directory at `/path/to/working/SPEC2017`
 2. Put the benchmark under `/path/to/working/SPEC2017/benchmark` so that `/path/to/working/SPEC2017/benchmark/LICENSE.txt` is the SPEC license file
 3. Checkout LLVM CMake scripts for SPEC (i.e. perform the following command under `/path/to/working/SPEC2017`)
-```
-git clone git@github.com:llvm/llvm-test-suite
-```
+   ```
+   git clone git@github.com:llvm/llvm-test-suite
+   ```
 4. Run the Loop extractor
    * Adapt the prefix variable in script to `/path/to/working`.
    * Run the python script under `/path/to/working/codelet-extractor` directory.
@@ -41,9 +41,9 @@ git clone git@github.com:llvm/llvm-test-suite
 ### Testing using CloverLeaf application
 
 1. Checkout updated CloverLeaf app 
-```
-git clone git@gitlab.com:davidwong/CloverLeaf.git
-```
+   ```
+   git clone git@gitlab.com:davidwong/CloverLeaf.git
+   ```
 2. Ensure `spec_run = False` in extractCodelet.py
 3. Run the Loop extractor
    * Adapt the prefix variable in script to `/path/to/working`.
