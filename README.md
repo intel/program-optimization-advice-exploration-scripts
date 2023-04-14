@@ -31,8 +31,10 @@ Below include some sample steps to try the loop extractor.  Assuming the working
    ```
    git clone git@github.com:llvm/llvm-test-suite
    ```
-4. Ensure `spec_run = Talse` in extractCodelet.py   
-5. Run the Loop extractor
+4. Go to the script directory `/path/to/working/codelet-extractor`.
+5. Ensure `spec_run = Talse` in `extractCodelet.py`   
+6. Start container `./container/run-container.sh`.
+7. Run the Loop extractor
    * Adapt the prefix variable in script to `/path/to/working`.
    * Run the python script under `/path/to/working/codelet-extractor` directory.
    ```
@@ -45,8 +47,10 @@ Below include some sample steps to try the loop extractor.  Assuming the working
    ```
    git clone git@gitlab.com:davidwong/CloverLeaf.git
    ```
-2. Ensure `spec_run = False` in extractCodelet.py
-3. Run the Loop extractor
+2. Go to the script directory `/path/to/working/codelet-extractor`.
+3. Ensure `spec_run = False` in `extractCodelet.py`
+4. Start container `./container/run-container.sh`.
+5. Run the Loop extractor
    * Adapt the prefix variable in script to `/path/to/working`.
    * Run the python script under `/path/to/working/codelet-extractor` directory.
    ```
