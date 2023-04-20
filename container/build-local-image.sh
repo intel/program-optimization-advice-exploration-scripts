@@ -40,4 +40,8 @@ else
   touch ssh.tar.gz
 fi
 
+rm -rf cere
+git clone git@github.com:benchmark-subsetting/cere.git --config core.autocrlf=input
+
+
 docker build --build-arg IMG_NAME=${img_name} --build-arg http_proxy=$http_proxy_arg --build-arg https_proxy=$https_proxy_arg --build-arg LOCAL_UID=$(id -u ${USER}) --build-arg LOCAL_GID=$(id -g ${USER}) --build-arg LOCAL_GIDS="$local_gids" --build-arg LOCAL_GNAMES="$local_gnames" --build-arg ENABLE_DEVELOPMENT="$ENABLE_DEVELOPMENT" --pull --rm -f ./LocalDockerfile -t local_image_qaas .
