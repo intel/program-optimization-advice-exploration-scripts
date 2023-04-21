@@ -168,6 +168,10 @@ isDebug = False
 
 ##################################################################################################
 ## Utility functions that move files, create or remove directories, and run other commands in bash
+def runCmdGetRst(myCmd, cwd, env=os.environ.copy()):
+    result = subprocess.run(myCmd, shell=True, env=env, cwd=cwd, capture_output=True, text=True)
+    return result.stdout.strip(), result.stderr.strip()
+
 def runCmd(myCmd, cwd, env=os.environ.copy(), verbose=False):
     subprocess.run(myCmd, shell=True, env=env, cwd=cwd, capture_output=not verbose)
     
@@ -191,11 +195,16 @@ def generateLoopLocFile(loopPath, begin_line, end_line, outdir="."):
     #pairOfNumbers = parseLineNumberString(lineNumbers)
     #begin_line = pairOfNumbers[0]
     #end_line = pairOfNumbers[1]
+    # expected format of main src info [ '/host/...', '152' ]
     row = [loopPath, begin_line, end_line]
+    #main_src_info = main_src_info.split(':')
+    #main_row = [main_src_info[0], int(main_src_info[1]), int(main_src_info[1])]
     csvFileName = "tmpLoop.csv"
     with open(os.path.join(outdir, csvFileName), 'w') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(row)
+        #csvwriter.writerow(main_row)
+    pass
     #return ('./'+csvFileName)
 
 def getLoopFileNames(loop_name_file):
@@ -245,7 +254,7 @@ def main():
     clean = True
     build_app=True
     spec_run = True
-    spec_run = False
+    #spec_run = False
 
     # TODO: mark these command line arguments
     if spec_run:
@@ -312,6 +321,7 @@ def perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cma
     adv_proj_dir = os.path.join(profile_data_dir, f'proj_{timestamp_str}')
 
     adv_env = load_advisor_env()
+    main_src_file_info, _ = runCmdGetRst(f'nm -a {binary} | grep " main$" | cut -d " " -f 1 | xargs addr2line -e {binary}', cwd=profile_data_dir, env=adv_env)
     #app_cmd = f'./{binary}'
     app_cmd = f'./{binary}{app_flags}'
     if True:
@@ -331,7 +341,7 @@ def perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cma
 
     for idx in range(0, top_n):
         extract_codelet(binary, cmakelist_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, 
-                        cmake_flags, loop_profile_df, idx, prefix, app_flags, app_data_file)
+                        cmake_flags, loop_profile_df, idx, prefix, app_flags, app_data_file, main_src_file_info)
     print("DONE")
 
 def link_app_data_file(profile_data_dir, app_data_file):
@@ -339,7 +349,7 @@ def link_app_data_file(profile_data_dir, app_data_file):
 
 
 def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, profile_df, 
-                    idx, prefix, app_flags, app_data_file):
+                    idx, prefix, app_flags, app_data_file, main_src_info):
     top_row = profile_df.iloc[idx]
     full_source_path = top_row['source_full_path']
     source_location = top_row['source_location']
@@ -354,58 +364,21 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
 
     source_file = full_source_path
     #source_file = os.path.join(src_dir, "src", "adaptors", "ideal_gas.cpp")
-    src_folder=os.path.dirname(source_file)
     #loop = [ source_file ,81+3, 81+10]
     #loop = [ source_file ,43, 74]
     loop = [ source_file , source_line, source_line]
-
-    compile_command_json_file = os.path.join(build_dir, 'compile_commands.json')
-    with open(compile_command_json_file, 'r') as f:
-        for compile_command in json.load(f):
-            cnt_file = compile_command['file']
-            print(cnt_file)
-            if os.path.samefile(cnt_file, source_file):
-                print('match')
-                matched_command = compile_command['command']
-                command_directory = compile_command['directory']
-                print(matched_command)
-                #inc_flags = [part for part in matched_command.split(" ") if part.startswith('-I')]+[f'-I{src_folder}']
-                #non_inc_flags = [part for part in matched_command.split(" ") if not part.startswith('-I') and len(part)>0 ]
-                command_parts = matched_command.split(" ")
-                compiler = os.path.basename(command_parts[0])
-                if compiler == "mpiicpc": 
-                    # Intel MPI wrapper
-                    # remove existing -cxx flags
-                    command_parts = [x for x in command_parts if not x.startswith('-cxx=')]
-                    command_parts.insert(1, f"-I{src_folder}")
-                    command_parts.insert(1, f"-cxx={LOOP_EXTRACTOR_PATH}")
-                else:
-                    # TODO: fix hardcoded
-                    compiler_full_path = shutil.which("icx")
-                    command_parts = [LOOP_EXTRACTOR_PATH if x == compiler_full_path else x for x in command_parts]
-                loop_extractor_command = " ".join(command_parts+['--extractwd', extractor_work_dir, '--extractsrcprefix', prefix])
-                    
-                if os.path.basename(compiler).startswith("mpi"):
-                    # MPI compilers
-                    pass 
-                else:
-                    pass
-
-
-    # Extractor loop using in-situ extractor
     generateLoopLocFile(loop[0], loop[1], loop[2], loop_extractor_data_dir)
-    env = os.environ.copy()
-    env['LD_LIBRARY_PATH'] = env['LD_LIBRARY_PATH']+':/usr/lib/jvm/java-11-openjdk-amd64/lib/server'
-    env['OMP_NUM_THREADS']="1"
-    
-    #runCmd(loop_extractor_command, cwd=extractor_work_dir, env=env, verbose=True)
+    main_src_info = main_src_info.split(':')
+    main_source_file = main_src_info[0]
 
-    #data_dir_symlink = os.path.join(command_directory, os.path.basename(loop_extractor_data_dir))
-    #if os.path.islink(data_dir_symlink):
-    #    os.unlink(data_dir_symlink)
-    #os.symlink(loop_extractor_data_dir, data_dir_symlink)
-    runCmd(loop_extractor_command, cwd=command_directory, env=env, verbose=True)
-    basefilename, loopfilename, restore_src_file = getLoopFileNames('/tmp/loopFileNames.txt')
+    sources = sorted({source_file, main_source_file})
+
+    source_row_list = []
+    for source_file in sources:
+        row_dict = {'orig_source':source_file}
+        row_dict['base_src'], row_dict['loop_src'], row_dict['replay_src'] = run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file)
+        source_row_list.append(row_dict)
+    extracted_sources = pd.DataFrame(source_row_list, columns=['orig_source', 'base_src', 'loop_src', 'replay_src'])
 
     name_map, loop_file, util_h_file, util_c_file, segment_info, save_data_dir, save_pointers_h_file, defs_h_file = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, full_source_path, source_path, basefilename, loopfilename)
     
@@ -457,6 +430,58 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
     #runCmd(f"mpiicpc -c -cxx={loop_extractor_path} -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data -DUSE_OPENMP -lm /host/localdisk/cwong29/working/codelet_extractor_work/CloverLeaf/src/clover.cc -o /tmp/test.o
     #", extractor_work_dir, verbose=True)
     return
+
+def run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file):
+    src_folder=os.path.dirname(source_file)
+    compile_command_json_file = os.path.join(build_dir, 'compile_commands.json')
+    with open(compile_command_json_file, 'r') as f:
+        for compile_command in json.load(f):
+            cnt_file = compile_command['file']
+            print(cnt_file)
+            if os.path.samefile(cnt_file, source_file):
+                print('match')
+                matched_command = compile_command['command']
+                command_directory = compile_command['directory']
+                print(matched_command)
+                #inc_flags = [part for part in matched_command.split(" ") if part.startswith('-I')]+[f'-I{src_folder}']
+                #non_inc_flags = [part for part in matched_command.split(" ") if not part.startswith('-I') and len(part)>0 ]
+                command_parts = matched_command.split(" ")
+                compiler = os.path.basename(command_parts[0])
+                if compiler == "mpiicpc": 
+                    # Intel MPI wrapper
+                    # remove existing -cxx flags
+                    command_parts = [x for x in command_parts if not x.startswith('-cxx=')]
+                    command_parts.insert(1, f"-I{src_folder}")
+                    command_parts.insert(1, f"-cxx={LOOP_EXTRACTOR_PATH}")
+                else:
+                    # TODO: fix hardcoded
+                    compiler_full_path = shutil.which("icx")
+                    command_parts = [LOOP_EXTRACTOR_PATH if x == compiler_full_path else x for x in command_parts]
+                loop_extractor_command = " ".join(command_parts+['--extractwd', extractor_work_dir, '--extractsrcprefix', prefix])
+                    
+                if os.path.basename(compiler).startswith("mpi"):
+                    # MPI compilers
+                    pass 
+                else:
+                    pass
+
+
+    # Extractor loop using in-situ extractor
+    env = os.environ.copy()
+    env['LD_LIBRARY_PATH'] = env['LD_LIBRARY_PATH']+':/usr/lib/jvm/java-11-openjdk-amd64/lib/server'
+    env['OMP_NUM_THREADS']="1"
+    
+    #runCmd(loop_extractor_command, cwd=extractor_work_dir, env=env, verbose=True)
+
+    #data_dir_symlink = os.path.join(command_directory, os.path.basename(loop_extractor_data_dir))
+    #if os.path.islink(data_dir_symlink):
+    #    os.unlink(data_dir_symlink)
+    #os.symlink(loop_extractor_data_dir, data_dir_symlink)
+    runCmd(loop_extractor_command, cwd=command_directory, env=env, verbose=True)
+    basefilename, loopfilename, restore_src_file = getLoopFileNames(
+        os.path.join(loop_extractor_data_dir, 'loopFileNames.txt'))
+        
+    return basefilename,loopfilename,restore_src_file
 
 def capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, full_source_path, source_path, basefilename, loopfilename):
     cmake_extractor_src_dir = ensure_dir_exists(src_dir, 'extractor_src')

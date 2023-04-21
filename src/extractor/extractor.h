@@ -11,6 +11,8 @@
 
 using namespace std;
 
+#define PIN_METHOD 0
+
 class InheritedAttribute {
   public:
     int loop_nest_depth_;
@@ -74,7 +76,10 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     SgSourceFile* src_file_loop;
     SgSourceFile* src_file_trace_save;
     SgSourceFile* src_file_restore;
+    string targetfilename;
     std::pair<unsigned, unsigned> lineNumbers;
+    // string main_file_name;
+    // std::pair<unsigned, unsigned> mainLineNumbers;
     std::set<std::pair<unsigned, unsigned>> extracted;
     vector<string> filenameVec;
 
@@ -105,8 +110,13 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     SgStatement *getLastIncludeStatement() { return lastIncludeStmt; }
     string getDataFolderPath() { return LoopExtractor_data_folder_path; };
     string getOMPpragma() { return loopOMPpragma; };
-    void setLineNumbers(unsigned first, unsigned second) 
-    { lineNumbers.first = first; lineNumbers.second = second; }
+    void setTargetLineNumbers(const string& filename, unsigned first, unsigned second) 
+    { targetfilename = filename; lineNumbers.first = first; lineNumbers.second = second; }
+    /*
+    void setMainInfo(const string& filename, unsigned first, unsigned second) 
+    { main_file_name = filename;
+      mainLineNumbers.first = first; mainLineNumbers.second = second; }
+    */
 
     string getFilePath() { return LoopExtractor_file_path; };
     string getFileName() { return LoopExtractor_file_name; };
@@ -116,8 +126,12 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     string getFileName(const string &fileNameWithPath);
     string getOrigFileName(const string &fileNameWithPath);
     string getFileExtn(const string &fileNameWithPath);
+    string getBaseFileName() {
+      return getOrigFileName() + base_str + "_" + relpathcode + "." + getFileExtn();
+    }
     int getAstNodeLineNum(SgNode *const &astNode);
     string getExtractionFileName(SgNode *astNode);
+    string getReplayFileName(SgNode *astNode);
     void updateUniqueCounter(SgNode *astNode);
     string getLoopName(SgNode *astNode);
     void set_src_file_loop(SgSourceFile* file) { src_file_loop = file; }
@@ -135,6 +149,7 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     bool skipLoop(SgNode *astNode);
     void extractLoops(SgNode *astNode);
     void extractFunctions(SgNode *astNode);
+    void instrumentMain();
     virtual InheritedAttribute
     evaluateInheritedAttribute(SgNode *astNode, InheritedAttribute inh_attr);
     virtual int
@@ -143,6 +158,8 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     void inlineFunctions(const vector<string> &argv);
 
     void do_extraction();
+    static SgExprStatement* buildSimpleFnCallStmt(string fnName, SgScopeStatement* scope);
+    void reportOutputFiles();
 };
 
 class TypeDeclTraversal : public AstSimpleProcessing {
@@ -202,7 +219,7 @@ class LoopInfo {
     void addScopeGlobalsAsExtern(string &externGlobalsStr);
 
     void printLoopFunc(ofstream &loop_file_buf);
-    void printLoopFunc1(string loop_file_name);
+    void printLoopFunc1(string loop_file_name, string replay_loop_filename);
     void pushPointersToLocalVars(ofstream &loop_file_buf);
     void popLocalVarsToPointers(ofstream &loop_file_buf);
     void analyzeOMPprivateArrays(const string &pragmaStr);
@@ -235,6 +252,7 @@ class LoopInfo {
     vector<SgStatement *> buildSegmentPtrs() ;
     SgStatement *buildWriteStack(string datafileName);
     SgStatement *buildWriteHeap(string datafileName);
+    SgExpression* getFuncParamAddr(SgInitializedName* func_arg_decl, SgExpression* funcArgument);
     SgExprListExp* getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgInitializedName* func_arg_decl, SgExpression* funcArgument);
     vector<SgStatement *> saveLoopFuncParamAddresses(SgExprStatement* call_expr_stmt) ;
     SgBasicBlock* saveLoopFuncParamAddressesInBB(SgExprStatement* call_expr_stmt) ;

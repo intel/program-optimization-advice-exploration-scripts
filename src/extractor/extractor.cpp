@@ -56,6 +56,9 @@ int Extractor::getAstNodeLineNum(SgNode *const &astNode) {
     return astNode->get_file_info()->get_line();
 }
 
+string Extractor::getReplayFileName(SgNode *astNode) {
+    return "replay_"+getExtractionFileName(astNode);
+}
 string Extractor::getExtractionFileName(SgNode *astNode) {
     string fileNameWithPath = (astNode->get_file_info())->get_filenameString();
     LoopExtractor_file_path = getFilePath(fileNameWithPath);
@@ -255,19 +258,7 @@ SgBasicBlock* LoopInfo::saveLoopFuncParamAddressesInBB(SgExprStatement *call_exp
     return bb;
 }
 
-SgExprListExp* LoopInfo::getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgInitializedName* func_arg_decl, SgExpression* funcArgument) {
-    SgVarRefExp *varArg = isSgVarRefExp(funcArgument);
-    // do we really need this check?
-    if (!varArg && !isSgAddressOfOp(funcArgument)) {
-        std::cout << "Argument is not a variable expression! \n"
-                    << "funcArgument: "
-                    << funcArgument->unparseToString()
-                    << std::endl;
-        return NULL;
-    }
-    SgExprListExp *fprintf_line_args = SageBuilder::buildExprListExp();
-    SageInterface::appendExpression(fprintf_line_args, lhs);
-
+SgExpression* LoopInfo::getFuncParamAddr(SgInitializedName* func_arg_decl, SgExpression* funcArgument) {
     ParamPassingStyle style = getPassingStyle(func_arg_decl->get_type(), extr.getSrcType());
     /*
      * Three cases:
@@ -285,6 +276,22 @@ SgExprListExp* LoopInfo::getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgIn
             paramAddress = funcArgument;
             break;
     }
+    return paramAddress;
+}
+SgExprListExp* LoopInfo::getSaveCurrentFuncParamAddrArgs(SgExpression* lhs, SgInitializedName* func_arg_decl, SgExpression* funcArgument) {
+    SgVarRefExp *varArg = isSgVarRefExp(funcArgument);
+    // do we really need this check?
+    if (!varArg && !isSgAddressOfOp(funcArgument)) {
+        std::cout << "Argument is not a variable expression! \n"
+                    << "funcArgument: "
+                    << funcArgument->unparseToString()
+                    << std::endl;
+        return NULL;
+    }
+    SgExprListExp *fprintf_line_args = SageBuilder::buildExprListExp();
+    SageInterface::appendExpression(fprintf_line_args, lhs);
+    SgExpression* paramAddress = this->getFuncParamAddr(func_arg_decl, funcArgument);
+
     SgUnparse_Info unparse_info ;
     unparse_info.set_SkipDefinition();
     SgName arg_name = func_arg_decl->get_name();
@@ -565,7 +572,7 @@ void InsertOrderSet<T>::insert(T e) {
  * Add OMP Timer around the loop. (Not sure)
  * Manages variables that are needed for extracting the loop.
  */
-void LoopInfo::printLoopFunc1(string outfile_name) {
+void LoopInfo::printLoopFunc1(string outfile_name, string replay_file_name) {
 
     /* Scope of loop body contains the variables needed for this loop to compile
      */
@@ -590,8 +597,8 @@ void LoopInfo::printLoopFunc1(string outfile_name) {
     // Function definition
 
 
-    std::remove("/tmp/restore.cc");
-    SgSourceFile* my_restore_src_file = isSgSourceFile(SageBuilder::buildFile("/tmp/restore.cc", "/tmp/restore.cc"));
+    std::remove(replay_file_name.c_str());
+    SgSourceFile* my_restore_src_file = isSgSourceFile(SageBuilder::buildFile(replay_file_name, replay_file_name));
     SgGlobal * glb_restore_src = my_restore_src_file->get_globalScope();
     extr.set_src_file_restore(my_restore_src_file);
 
@@ -1050,13 +1057,13 @@ void LoopInfo::addLoopFuncCall() {
     SgExprStatement *call_expr_stmt =
         SageBuilder::buildExprStatement(call_expr);
 
-    SageInterface::replaceStatement(loop, call_expr_stmt, true);
 
     // BEGIN Add save stuff here
-    #if 1
+    SgGlobal* glb_scope = SageInterface::getGlobalScope(loop);
+    #if PIN_METHOD
+    SageInterface::replaceStatement(loop, call_expr_stmt, true);
 
     //SgBasicBlock = 
-    SgGlobal* glb_scope = SageInterface::getGlobalScope(loop);
     SageInterface::insertHeader("util.h", PreprocessingInfo::after, false, glb_scope);
     SageInterface::insertHeader("addresses.h", PreprocessingInfo::after, false, glb_scope);
     SageInterface::insertHeader("unistd.h", PreprocessingInfo::after, true, glb_scope);
@@ -1124,10 +1131,34 @@ void LoopInfo::addLoopFuncCall() {
 
 
 
-    #else
+    #else // CERE approach
+    // TODO make it parameter
+    int instance_num = 1;
+
+    SageInterface::insertHeader("tracee.h", PreprocessingInfo::before, false, glb_scope);
 
     // END Add save stuff here
     SageInterface::replaceStatement(loop, call_expr_stmt, true);
+
+    int numOfArgs = expr_list.size();
+    SgExprListExp* dump_args = SageBuilder::buildExprListExp(
+        SageBuilder::buildStringVal(func_name.str()), SageBuilder::buildIntVal(instance_num),
+        SageBuilder::buildIntVal(numOfArgs));
+
+    auto funcArgs = call_expr->get_args()->get_expressions();
+    for (int i = 0; i < funcArgs.size(); i++) {
+        SgExpression* funcArgument = funcArgs[i]; 
+        SgInitializedName * func_arg_decl = scope_vars_initName_vec[i];
+        SgExpression* dump_arg = this->getFuncParamAddr(func_arg_decl, funcArgument);
+        dump_args->append_expression(dump_arg);
+    }
+    SgExprStatement *dump_call = SageBuilder::buildExprStatement(SageBuilder::buildFunctionCallExp(
+        "dump", SageBuilder::buildVoidType(), dump_args, loop_scope));
+
+    SgExprStatement *after_dump_call = SageBuilder::buildExprStatement(SageBuilder::buildFunctionCallExp(
+        "after_dump", SageBuilder::buildVoidType(), SageBuilder::buildExprListExp(), loop_scope));
+    SageInterface::insertStatementBefore(call_expr_stmt, dump_call);
+    SageInterface::insertStatementAfter(call_expr_stmt, after_dump_call);
     #endif
 
     loop_func_call = call_expr_stmt;
@@ -1236,6 +1267,39 @@ bool Extractor::skipLoop(SgNode *astNode) {
 
     return false;
 }
+void Extractor::reportOutputFiles() {
+    // parse loop_file_name and do fprintf to tmp/loopFileNames.txt
+    string loop_file_name, base_file_name, restore_file_name;
+    if (src_file_loop) {
+        loop_file_name = src_file_loop->get_file_info()->get_filenameString();
+    }
+    if (src_file_restore) {
+        restore_file_name = src_file_restore->get_file_info()->get_filenameString();
+    }
+
+    base_file_name = getDataFolderPath() + getBaseFileName();
+
+    cout << "LOOP_FILE_NAME: " << loop_file_name << endl;
+    cout << "BASE_FILE_NAME: " << base_file_name << endl;
+    cout << "RESTORE_FILE_NAME: " << restore_file_name << endl;
+    loop_file_name = parseFileName(&loop_file_name);
+    base_file_name = parseFileName(&base_file_name);
+    restore_file_name = parseFileName(&restore_file_name);
+    cout << "PARSED loop_file_name: " << loop_file_name << endl;
+    cout << "PARSED base_file_name: " << base_file_name << endl;
+    cout << "PARSED restore_file_name: " << restore_file_name << endl;
+    string report_file = getDataFolderPath() + "loopFileNames.txt";
+    /*
+    FILE *tmp_fp = fopen(report_file, "w"); //"./loopFileNames.txt", "w");
+    fprintf(tmp_fp, "%s\n%s\n%s\n", base_file_name.c_str(), loop_file_name.c_str(), restore_file_name.c_str());
+    fclose(tmp_fp);
+    */
+    ofstream info_file(report_file);
+    info_file << base_file_name << endl << loop_file_name << endl << restore_file_name << endl;
+    info_file.close();
+    cout << "Output file info: " << report_file << endl;
+
+}
 
 /**
  * @brief Most important function in the extractor, it will extract the loop
@@ -1243,40 +1307,28 @@ bool Extractor::skipLoop(SgNode *astNode) {
  * @param astNode The loop to be extracted
  */
 void Extractor::extractLoops(SgNode *astNode) {
-    int lineNum = astNode->get_file_info()->get_line();
+    Sg_File_Info* file_info = astNode->get_file_info();
+    string file_name = file_info->get_filenameString();
+    int lineNum = file_info->get_line();
     /*
     cout << "line number of ast node: " << astNode->unparseToString() << endl;
     cout << "is " << lineNum << endl;
     */
 
     /* Here we check if loop file number is the one we need */
-    if (lineNum >= lineNumbers.first && lineNum <= lineNumbers.second) {
+    if (file_name == targetfilename && lineNum >= lineNumbers.first && lineNum <= lineNumbers.second) {
         // cout << "PASSED the lineNum check" << endl;
         SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
         updateUniqueCounter(astNode);
         string output_path = getDataFolderPath();
         string loop_file_name = output_path + getExtractionFileName(astNode);
+        string replay_loop_file_name = output_path + getReplayFileName(astNode);
 
         //ofstream loop_file_buf;
         //loop_file_buf.open(loop_file_name.c_str(), ofstream::out);
 
         files_to_compile.insert(loop_file_name);
 
-        // parse loop_file_name and do fprintf to tmp/loopFileNames.txt
-        cout << "LOOP_FILE_NAME: " << loop_file_name << endl;
-        cout << "PARSED loop_file_name: " << parseFileName(&loop_file_name)
-             << endl;
-        string base_file_name = getDataFolderPath() + getOrigFileName() +
-                                base_str + "_" + relpathcode + "." +
-                                getFileExtn();
-        cout << "BASE_FILE_NAME: " << base_file_name << endl;
-        cout << "PARSED base_file_name: " << parseFileName(&base_file_name)
-             << endl;
-        FILE *tmp_fp =
-            fopen("/tmp/loopFileNames.txt", "w"); //"./loopFileNames.txt", "w");
-        fprintf(tmp_fp, "%s\n%s\n%s\n", parseFileName(&base_file_name).c_str(),
-                parseFileName(&loop_file_name).c_str(), "/tmp/restore.cc");
-        fclose(tmp_fp);
 
         // Create loop object
         LoopInfo curr_loop(astNode, loop, getLoopName(astNode), *this);
@@ -1285,7 +1337,7 @@ void Extractor::extractLoops(SgNode *astNode) {
          * Take cares of print complete loop function and adding func calls
          * and extern loop func to the base file.
          */
-        curr_loop.printLoopFunc1(loop_file_name);
+        curr_loop.printLoopFunc1(loop_file_name, replay_loop_file_name);
         curr_loop.addLoopFuncCall();
         curr_loop.addLoopFuncAsExtern();
 
@@ -1771,6 +1823,31 @@ void Extractor::modifyExtractedFileText(const string &base_file) {
 //     checkTransformedFlagsVisitor(project);
 //     backend(project);
 // }
+SgExprStatement* Extractor::buildSimpleFnCallStmt(string fnName, SgScopeStatement* scope) {
+    return SageBuilder::buildExprStatement(SageBuilder::buildFunctionCallExp(
+        fnName, SageBuilder::buildVoidType(), SageBuilder::buildExprListExp(), scope));
+}
+void Extractor::instrumentMain() {
+    if (main_scope) {
+        SgGlobal* glb_scope = SageInterface::getGlobalScope(main_scope);
+        SgFunctionDefinition* main_defn = isSgFunctionDefinition(main_scope->get_parent());
+        assert(main_defn);
+        //SageInterface::insertHeader(main_defn, SageBuilder::buildHeader("tracee.h"), false);
+        SageInterface::insertHeader("tracee.h", PreprocessingInfo::after, false, glb_scope);
+
+        SgExprStatement *dump_init_call = buildSimpleFnCallStmt("dump_init", main_scope);
+        SageInterface::prependStatement(dump_init_call, main_scope);
+        // insertion of dump_close() call is a bit more tricky as we need to insert them before return statements too
+        for (auto n : NodeQuery::querySubTree(main_scope, V_SgReturnStmt)) {
+            SgReturnStmt* retStmt = isSgReturnStmt(n);
+            SgExprStatement *dump_close_call = buildSimpleFnCallStmt("dump_close", main_scope);
+            SageInterface::insertStatementBefore(retStmt, dump_close_call);
+        }
+        SgExprStatement *dump_close_call = buildSimpleFnCallStmt("dump_close", main_scope);
+        SageInterface::appendStatement(dump_close_call, main_scope);
+    }
+
+}
 void Extractor::do_extraction() {
     //this->tr = tr;
 
@@ -1783,14 +1860,15 @@ void Extractor::do_extraction() {
      * and extract loops */
 
     this->traverseInputFiles(ast, inhr_attr);
+    // after traversing, main scope will be found
+    this->instrumentMain();
     // this->generateHeaderFile();
     this->addPostTraversalDefs();
     //SgFile* my_file = SageBuilder::buildFile("/tmp/foo12.cc", "/tmp/foo12.cc");
-    ast->get_fileList().push_back(src_file_loop);
-    ast->get_fileList().push_back(src_file_restore);
-    #if 0
-    //ast->get_fileList().push_back(src_file_trace_save);
-    #endif
+    if (src_file_loop)
+        ast->get_fileList().push_back(src_file_loop);
+    if (src_file_restore)
+        ast->get_fileList().push_back(src_file_restore);
 
     AstPostProcessing(ast);
     AstTests::runAllTests(ast);
@@ -1805,8 +1883,7 @@ void Extractor::do_extraction() {
         LoopExtractor_original_file_name = getOrigFileName(filenameVec.back());
         LoopExtractor_file_extn = getFileExtn(filenameVec.back());
     }
-    string base_file = getDataFolderPath() + getOrigFileName() + base_str +
-                       "_" + relpathcode + "." + getFileExtn();
+    string base_file = getDataFolderPath() + getBaseFileName();
 
     if (LoopExtractor_file_name.empty() && !mainFuncPresent) {
         /* Copy original file to the LoopExtractor data folder:
@@ -1823,6 +1900,7 @@ void Extractor::do_extraction() {
                        space_str + base_file);
     }
     // modifyExtractedFileText(base_file);
+    this->reportOutputFiles();
 
     files_to_compile.insert(base_file);
     /* After in-situ extraction is finished, all files are in the
@@ -1841,8 +1919,7 @@ void Extractor::do_extraction() {
 
     string baseFileName = LoopExtractor_curr_dir_path +
                           LoopExtractor_data_folder + forward_slash_str +
-                          getOrigFileName() + base_str + "_" + relpathcode +
-                          "." + getFileExtn();
+                          getBaseFileName();
 }
 
 /* Extractor constructor, for initiating via driver */
