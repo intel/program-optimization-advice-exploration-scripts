@@ -711,90 +711,73 @@ void LoopInfo::printLoopFunc1(string outfile_name, string replay_file_name) {
     SageInterface::appendStatement(func_decl_restore, glb_restore_src);
 
     // ROSE "hack" or "feature".  header files including can only be inserted after some declaration was done in a src file.
-    SageInterface::insertHeader("stdio.h", PreprocessingInfo::after, true, glb_restore_src);
-    SageInterface::insertHeader("util.h", PreprocessingInfo::after, false, glb_restore_src);
-    SageInterface::insertHeader("addresses.h", PreprocessingInfo::after, false, glb_restore_src);
     SageInterface::insertHeader("unistd.h", PreprocessingInfo::after, true, glb_restore_src);
-    SageInterface::insertHeader("alloca.h", PreprocessingInfo::after, true, glb_restore_src);
+    SageInterface::insertHeader("replay.h", PreprocessingInfo::after, false, glb_restore_src);
     //SageInterface::insertHeader("saved_pointers.h", PreprocessingInfo::after, false, glb_restore_src);
 
 
     SgFunctionDeclaration *main_decl = SageBuilder::buildDefiningFunctionDeclaration
-        ("main", SageBuilder::buildIntType(), SageBuilder::buildFunctionParameterList(), glb_restore_src);
+        ("run_loop", SageBuilder::buildIntType(), 
+        SageBuilder::buildFunctionParameterList(
+            SageBuilder::buildInitializedName("call_count", SageBuilder::buildIntType()),
+            SageBuilder::buildInitializedName("max_seconds", SageBuilder::buildIntType())), glb_restore_src);
 
-    SageInterface::insertHeader(main_decl, SageBuilder::buildHeader("saved_pointers.h"), false);
 
     SgBasicBlock* main_fn_bb = main_decl->get_definition()->get_body();
     SgType* void_type = SageBuilder::buildVoidType();
     SgType* void_ptr_type = SageBuilder::buildPointerType(void_type);
     SageBuilder::pushScopeStack(main_fn_bb);
 
-    auto preRSP_var_decl = SageBuilder::buildVariableDeclaration_nfi(
-        "preRSP __asm__", void_ptr_type, 
-        SageBuilder::buildConstructorInitializer(
-            //SageBuilder::buildNondefiningMemberFunctionDeclaration("__asm__", void_ptr_type, NULL, NULL),
-            NULL,
-            SageBuilder::buildExprListExp(SageBuilder::buildStringVal("sp")),
-            void_ptr_type, false, false, false, true
-        ), 
-        SageBuilder::topScopeStack(), false, SgStorageModifier::e_register);
-    SageInterface::appendStatement(preRSP_var_decl);
     //auto preRSP_init_name = preRSP_var_decl->get_vardefn();
     //preRSP_init_name->set_register_name_code(SgInitializedName::e_register_sp);
+    SgBasicBlock* rep_loop_body = SageBuilder::buildBasicBlock_nfi(main_fn_bb);
 
-    auto size_var_decl = SageBuilder::buildVariableDeclaration(
-        "size", SageBuilder::buildUnsignedLongType(), 
-        SageBuilder::buildAssignInitializer(
-            SageBuilder::buildSubtractOp(
-                SageBuilder::buildCastExp(
-                    SageBuilder::buildVarRefExp("preRSP"), SageBuilder::buildUnsignedLongLongType()), 
-                SageBuilder::buildCastExp(
-                    SageBuilder::buildVarRefExp("min_stack_address"), SageBuilder::buildUnsignedLongLongType()))), 
-        SageBuilder::topScopeStack());
-    SageInterface::appendStatement(size_var_decl);
+    // SgForStatement* rep_loop = SageBuilder::buildForStatement_nfi(
+    //     SageBuilder::buildForInitStatement(SageBuilder::buildAssignInitializer_nfi(
+    //         SageBuilder::buildAssignOp(SageBuilder::buildVarRefExp("i"), SageBuilder::buildIntVal(0)), SageBuilder::buildIntType())), 
+    //     SageBuilder::buildLessThanOp(SageBuilder::buildVarRefExp("i"), SageBuilder::buildVarRefExp("call_count")),
+    //     SageBuilder::buildPlusPlusOp(SageBuilder::buildVarRefExp("i")), rep_loop_body);
 
-    auto ptr_var_decl = SageBuilder::buildVariableDeclaration_nfi(
-        "ptr", void_ptr_type, 
-        SageBuilder::buildAssignInitializer(
-            SageBuilder::buildFunctionCallExp("alloca", 
-            void_ptr_type,
-            SageBuilder::buildExprListExp(SageBuilder::buildVarRefExp("size")))), 
-        SageBuilder::topScopeStack());
-    SageInterface::appendStatement(ptr_var_decl);
+    SgForStatement* rep_loop = SageBuilder::buildForStatement_nfi(
+        SageBuilder::buildForInitStatement(
+            SageBuilder::buildVariableDeclaration("i", SageBuilder::buildIntType(), SageBuilder::buildAssignInitializer_nfi(SageBuilder::buildIntVal(0), SageBuilder::buildIntType()), main_fn_bb)), 
+        SageBuilder::buildExprStatement(SageBuilder::buildLessThanOp(SageBuilder::buildVarRefExp("i"), SageBuilder::buildVarRefExp("call_count"))),
+        SageBuilder::buildPlusPlusOp(SageBuilder::buildVarRefExp("i"), SgUnaryOp::postfix), rep_loop_body);
 
-    auto malloc_heap_call_stmt = SageBuilder::buildFunctionCallStmt(
-        "my_mallocMemoryChunkInclusive", 
+    SageInterface::appendStatement(rep_loop);
+
+    SageBuilder::pushScopeStack(rep_loop_body);
+    auto alarm_call = SageBuilder::buildFunctionCallStmt("alarm", void_type, SageBuilder::buildExprListExp(SageBuilder::buildVarRefExp("max_seconds")));
+    SageInterface::appendStatement(alarm_call);
+    SageInterface::attachComment(alarm_call, "Set timeout for run");
+    int numOfArgs = scope_vars_symbol_vec.size();
+    auto void_star_args_decl = SageBuilder::buildVariableDeclaration("args", SageBuilder::buildArrayType(
+        SageBuilder::buildPointerType(void_type), SageBuilder::buildIntVal(numOfArgs)));
+    SageInterface::appendStatement(void_star_args_decl);
+    SageInterface::attachComment(void_star_args_decl, "This array will contain the loop arguments' addresses.");
+
+
+    int instance_num = 1;
+    auto load_call = SageBuilder::buildFunctionCallStmt(
+        "load", 
         void_type,
         SageBuilder::buildExprListExp(
-            SageBuilder::buildStringVal("myDataFile/test.hd"),
-            SageBuilder::buildVarRefExp("min_heap_address"),
-            SageBuilder::buildVarRefExp("max_heap_address")) 
+            SageBuilder::buildStringVal(getFuncName()),
+            SageBuilder::buildIntVal(instance_num),
+            SageBuilder::buildIntVal(numOfArgs),
+            SageBuilder::buildVarRefExp("args")) 
     );
-    SageInterface::appendStatement(malloc_heap_call_stmt);
-    SageInterface::attachComment(malloc_heap_call_stmt, "After restoring heap, it will be safe to use heap, including fopen(), etc.");
-    SageInterface::attachComment(malloc_heap_call_stmt, "Now is safe to use heap, including fopen(), etc.", PreprocessingInfo::after);
-
-    auto read_stack_call_stmt = SageBuilder::buildFunctionCallStmt(
-        "readDataRangeFromFile", 
-        void_type,
-        SageBuilder::buildExprListExp(
-            SageBuilder::buildStringVal("myDataFile/test.st"),
-            SageBuilder::buildVarRefExp("min_stack_address"),
-            SageBuilder::buildVarRefExp("max_stack_address")) 
-    );
-    SageInterface::appendStatement(read_stack_call_stmt);
-    SageInterface::attachComment(read_stack_call_stmt, "Stack restored.", PreprocessingInfo::after);
-    
+    SageInterface::appendStatement(load_call);
+    SageInterface::attachComment(load_call, "Calling the load function before each call to restore memory to its original state. We are copying the content of the memdump files into our custom ELF sections, and optionally doing some warmup.");
 
 
-    this->restoreGlobalVars();
-
-    //vector<SgVariableSymbol *>::iterator iter;
     vector<SgExpression *> expr_list;
     vector<SgVariableSymbol *> saved_scope_vars_symbol_vec;
-    for (iter = scope_vars_symbol_vec.begin(); iter != scope_vars_symbol_vec.end(); iter++) { 
+    for (int i=0 ; i <numOfArgs; i++) {
+    //for (iter = scope_vars_symbol_vec.begin(); iter != scope_vars_symbol_vec.end(); iter++) { 
         SgExpression *arg_exp = NULL;
-        SgVariableSymbol* arg_v = (*iter);
+        //SgVariableSymbol* arg_v = (*iter);
+        SgVariableSymbol* arg_v = scope_vars_symbol_vec[i];
         // SgVariableSymbol* saved_arg_v = new SgVariableSymbol(
         //     SageBuilder::buildInitializedName(
         //         "SAVED_"+arg_v->get_name(), SageBuilder::buildPointerType(arg_v->get_type())));
@@ -802,10 +785,29 @@ void LoopInfo::printLoopFunc1(string outfile_name, string replay_file_name) {
         SgType *arg_type = arg_v->get_type();
         ParamPassingStyle style = getPassingStyle(arg_type, extr.getSrcType());
 
+        SgType* saved_v_type = arg_type;
+        switch(style) { 
+            case ParamPassingStyle::REFERENCE: 
+            case ParamPassingStyle::POINTER: 
+                saved_v_type = SageBuilder::buildPointerType(saved_v_type);
+                break;
+            case ParamPassingStyle::DIRECT: 
+                // do nothing
+                break;
+        }
+
         //arg_exp = SageBuilder::buildPointerDerefExp(SageBuilder::buildVarRefExp(saved_arg_v));
         // For reference types, saved address, so need to dereference
         // For pointer and direct, saved values directly so no need to dereference
-        arg_exp = SageBuilder::buildVarRefExp("SAVED_"+arg_v->get_name());
+        string saved_v_name = "SAVED_"+arg_v->get_name();
+
+        // add variable assignment declaration here
+        auto saved_v_decl = SageBuilder::buildVariableDeclaration(
+            saved_v_name, saved_v_type, 
+            SageBuilder::buildAssignInitializer_nfi(SageBuilder::buildPntrArrRefExp(SageBuilder::buildVarRefExp("args"), SageBuilder::buildIntVal(i))));
+        SageInterface::appendStatement(saved_v_decl);
+
+        arg_exp = SageBuilder::buildVarRefExp(saved_v_name);
         switch(style) { 
             case ParamPassingStyle::REFERENCE: 
                 arg_exp = SageBuilder::buildPointerDerefExp(arg_exp);
@@ -816,12 +818,6 @@ void LoopInfo::printLoopFunc1(string outfile_name, string replay_file_name) {
                 break;
         }
 
-        // no need to do something special for POINTER because already saved addressofop output
-        // see LoopInfo::getSaveCurrentFuncParamAddrArgs() method.
-        /*
-        if (style == ParamPassingStyle::POINTER)
-            arg_exp = (SageBuilder::buildAddressOfOp(arg_exp));
-        */
         // no extra work for direct and reference type
 
         ROSE_ASSERT(arg_exp != NULL);
@@ -833,8 +829,7 @@ void LoopInfo::printLoopFunc1(string outfile_name, string replay_file_name) {
         SageBuilder::buildExprListExp(expr_list), SageBuilder::topScopeStack());
     SageInterface::appendStatement(SageBuilder::buildExprStatement(call_expr));
 
-    SageInterface::appendStatement
-        (SageBuilder::buildReturnStmt(SageBuilder::buildIntVal(0)), SageBuilder::topScopeStack());
+    SageBuilder::popScopeStack();
 
     SageBuilder::popScopeStack();
     SageInterface::appendStatement(main_decl, glb_restore_src);

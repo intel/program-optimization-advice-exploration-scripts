@@ -324,17 +324,17 @@ def perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cma
     main_src_file_info, _ = runCmdGetRst(f'nm -a {binary} | grep " main$" | cut -d " " -f 1 | xargs addr2line -e {binary}', cwd=profile_data_dir, env=adv_env)
     #app_cmd = f'./{binary}'
     app_cmd = f'./{binary}{app_flags}'
-    if True:
+    mockup_profile_csv = '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/168-238-9156/profile_data/profile.csv'
+    if not mockup_profile_csv:
         runCmd(f'advixe-cl --collect survey --project-dir {adv_proj_dir} -- {app_cmd}', 
            cwd=profile_data_dir, env=adv_env, verbose=True)
 
         profile_csv = os.path.join(profile_data_dir, 'profile.csv')
         runCmd(f'advisor --report joined --project-dir={adv_proj_dir} > {profile_csv}',
            cwd=profile_data_dir, env=adv_env, verbose=True)
+    else:
+        profile_csv = mockup_profile_csv
     profile_df = pd.read_csv(profile_csv, skiprows=1, delimiter=',')
-    #profile_df = pd.read_csv('/tmp/profile.csv', skiprows=1, delimiter=',')
-    #profile_df = pd.read_csv('/tmp/profile-525.csv', skiprows=1, delimiter=',')
-    #profile_df = pd.read_csv('/tmp/profile-clover.csv', skiprows=1, delimiter=',')
     # Select loops only
     loop_profile_df = profile_df[profile_df['function_instance_type'] == 2]
     loop_profile_df = loop_profile_df.sort_values(by='self_time', ascending=False)
@@ -375,61 +375,81 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
 
     source_row_list = []
     for source_file in sources:
-        row_dict = {'orig_source':source_file}
+        row_dict = {'orig_src':source_file}
         row_dict['base_src'], row_dict['loop_src'], row_dict['replay_src'] = run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file)
         source_row_list.append(row_dict)
-    extracted_sources = pd.DataFrame(source_row_list, columns=['orig_source', 'base_src', 'loop_src', 'replay_src'])
+    extracted_sources = pd.DataFrame(source_row_list, columns=['orig_src', 'base_src', 'loop_src', 'replay_src'])
 
-    name_map, loop_file, util_h_file, util_c_file, segment_info, save_data_dir, save_pointers_h_file, defs_h_file = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, full_source_path, source_path, basefilename, loopfilename)
-    
-    restore_binary=f'restore_{binary}'
-    restore_work_dir = ensure_dir_exists(extractor_work_dir, 'restore_data')
-    extracted_codelet_dir = ensure_dir_exists(restore_work_dir, 'codelet')
-    extracted_codelet_build_dir = ensure_dir_exists(restore_work_dir, 'codelet_build')
+    #name_map, loop_file, util_h_file, util_c_file, segment_info, save_data_dir, save_pointers_h_file, defs_h_file = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, full_source_path, source_path, extracted_sources)
+    cere_src_folder = os.path.join(SCRIPT_DIR, 'src', 'cere')
+    cere_out_dir = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, 
+                                app_flags, app_data_file, full_source_path, source_path, extracted_sources, cere_src_folder)
 
-    restore_include_dir = ensure_dir_exists(extracted_codelet_dir, 'include')
-    restore_src_dir = ensure_dir_exists(extracted_codelet_dir, 'src')
-    shutil.copy2(util_c_file, restore_src_dir)
+    instance_num = 1
+    loop_srcs = [f for f in extracted_sources['loop_src'] if f]
 
-    loop_ext = os.path.splitext(loopfilename)[-1]
-    #restore_src_file = "/tmp/restore.cc"
-    driver_src_file = f'restore{loop_ext}'
-    name_map['driver_src'] = driver_src_file
-    shutil.copy2(restore_src_file, os.path.join(restore_src_dir, driver_src_file))
-    shutil.copy2(loop_file, restore_src_dir)
-    shutil.copy2(defs_h_file, restore_include_dir)
-    shutil.copy2(util_h_file, restore_include_dir)
-    shutil.copy2(save_pointers_h_file, restore_include_dir)
-    shutil.copy2(segment_info.tracer_out_addresses_h_file, restore_include_dir)
+    restore_work_dir = ensure_dir_exists(extractor_work_dir, 'replay_data')
+    extracted_codelets_dir = ensure_dir_exists(restore_work_dir, 'codelet')
+    with open(os.path.join(extracted_codelets_dir, 'CMakeLists.txt'), "w") as top_cmakelist:
+        print(f"cmake_minimum_required(VERSION 3.2.0)", file=top_cmakelist)
+        print(f"project({binary})", file=top_cmakelist)
+        for loop_src, replay_loop_src in zip(extracted_sources['loop_src'],extracted_sources['replay_src']):
+            if not loop_src:
+                continue  # Skip empty loop info
+            loop_filename = os.path.basename(loop_src)
+            loop_name = os.path.splitext(loop_filename)[0]
 
-    # Restore/extracted codelet CMakeLists.txt file generation.
-    instantiate_cmakelists_file(name_map, in_template = 'CMakeLists.restore.template', 
-                                out_instantiated_file=os.path.join(extracted_codelet_dir, 'CMakeLists.txt'))
+            restore_binary=f'replay_{loop_name}'
+            extracted_loop_dir = ensure_dir_exists(extracted_codelets_dir, loop_name)
+            print(f"add_subdirectory({loop_name})\n", file=top_cmakelist)
+            restore_include_dir = ensure_dir_exists(extracted_loop_dir, 'include')
+            restore_src_dir = ensure_dir_exists(extracted_loop_dir, 'src')
+            restore_data_dir = ensure_dir_exists(extracted_loop_dir, 'data')
 
-    #shutil.copy2(extracted_cmakelist_txt_template_file, extracted_cmakelist_txt_file)
+            cere_dump_dir = os.path.join(cere_out_dir, "dumps", loop_name, str(instance_num))
+            obj_s_file = "objs.S"
+            restore_linker_section_flags=[]
+            with open(os.path.join(restore_src_dir, obj_s_file), "w") as obj_s_f:
+                data_rel_src_dir = os.path.relpath(restore_data_dir, restore_src_dir)
+                for memdump_file in glob(f'{cere_dump_dir}/*.memdump'):
+                    shutil.copy2(memdump_file, restore_data_dir)
+                    # Drop prefix directory name and also extension
+                    base_memdump_file = os.path.basename(memdump_file)
+                    addr = os.path.splitext(base_memdump_file)[0]
+                    print(f'.section s{addr}, "aw"', file=obj_s_f)
+                    # Use relative path assuming build under directory extracted_loop_dir
+                    print(f'.incbin "{data_rel_src_dir}/{base_memdump_file}"', file=obj_s_f)
+                    restore_linker_section_flags.append(f" -Wl,--section-start=s{addr}=0x{addr}")
+            replay_h_file = os.path.join(cere_src_folder, 'replay.h')
+            replay_c_file = os.path.join(cere_src_folder, 'replay_driver.c')
+            shutil.copy2(replay_c_file, restore_src_dir)
+            shutil.copy2(replay_h_file, restore_include_dir)
+            shutil.copy2(os.path.join(loop_extractor_data_dir, loop_src), restore_src_dir)
+            shutil.copy2(os.path.join(loop_extractor_data_dir, replay_loop_src), restore_src_dir)
+            restore_linker_flags="-Wl,--section-start=.text=0x60004000 -Wl,--section-start=.init=0x60000000"+"".join(restore_linker_section_flags)+" -Wl,-z,now"
+            name_map = { 'restore_binary': restore_binary, 'loop_src': loop_src, 'replay_loop_src': replay_loop_src, 
+                        'obj_s': obj_s_file, 'restore_linker_flags': restore_linker_flags }
+            instantiate_cmakelists_file(name_map, in_template = 'CMakeLists.restore.template', 
+                                    out_instantiated_file=os.path.join(extracted_loop_dir, 'CMakeLists.txt'))
 
-    restore_data_dir = ensure_dir_exists(extracted_codelet_dir, 'data')
-    #shutil.copy2(save_data_dir, restore_data_dir)
-    restore_my_datafile_dir = os.path.join(restore_data_dir, 'myDataFile')
-    shutil.copytree(save_data_dir, restore_my_datafile_dir)
 
+    # Build and run
+    extracted_codelet_build_dir = ensure_dir_exists(restore_work_dir, 'build')
+    extracted_codelets_run_dir = ensure_dir_exists(restore_work_dir, 'run')
+    for loop_src in loop_srcs:
+        # Try to build restore (extracted codelete)
+        loop_filename = os.path.basename(loop_src)
+        loop_name = os.path.splitext(loop_filename)[0]
+        restore_binary=f'replay_{loop_name}'
+        restore_cmake_flags = f'-DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
+        #run_cmake2(restore_binary, restore_work_dir, extracted_codelet_dir, extracted_codelet_build_dir, restore_cmake_flags)
+        run_cmake(extracted_codelets_dir, extracted_codelet_build_dir, restore_work_dir, restore_cmake_flags, restore_binary)
 
-
-    # Try to build restore (extracted codelete)
-    restore_cmake_flags = f'-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
-    #run_cmake2(restore_binary, restore_work_dir, extracted_codelet_dir, extracted_codelet_build_dir, restore_cmake_flags)
-    run_cmake(extracted_codelet_dir, extracted_codelet_build_dir, restore_work_dir, restore_cmake_flags, restore_binary)
-
-    restore_run_dir = ensure_dir_exists(restore_work_dir, 'run')
-    shutil.copytree(restore_my_datafile_dir, os.path.join(restore_run_dir, 'myDataFile'))
-    shutil.copy2(os.path.join(extracted_codelet_build_dir, restore_binary), restore_run_dir)
-    # Now can run built extracted codelet
-    runCmd(f'./{restore_binary}', cwd=restore_run_dir, verbose=True)
-
-    #compilerflags=
-    #runCmd(f"mpiicpc -c -cxx={loop_extractor_path} -I. -I./src -I./src/adaptors -I./src/kernels -I./LoopExtractor_data -DUSE_OPENMP -lm /host/localdisk/cwong29/working/codelet_extractor_work/CloverLeaf/src/clover.cc -o /tmp/test.o
-    #", extractor_work_dir, verbose=True)
-    return
+        # Now can run built extracted codelet
+        codelet_run_dir = ensure_dir_exists(extracted_codelets_run_dir, loop_name)
+        os.symlink(os.path.join(extracted_codelet_build_dir, loop_name, restore_binary), os.path.join(codelet_run_dir, restore_binary))
+        # Should also sofelink cere directory here
+        runCmd(f'./{restore_binary}', cwd=codelet_run_dir, verbose=True)
 
 def run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file):
     src_folder=os.path.dirname(source_file)
@@ -483,25 +503,57 @@ def run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix
         
     return basefilename,loopfilename,restore_src_file
 
-def capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, full_source_path, source_path, basefilename, loopfilename):
+def capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, 
+                 loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, 
+                 full_source_path, source_path, 
+                # basefilename, loopfilename, 
+                 extracted_sources, cere_src_folder):
     cmake_extractor_src_dir = ensure_dir_exists(src_dir, 'extractor_src')
     cmake_extractor_include_dir = ensure_dir_exists(src_dir, 'extractor_include')
+    # Will use extracted_sources
+    def collect_src_for_folder(folder):
+        selected_rows = extracted_sources[extracted_sources['orig_src'].apply(lambda x: os.path.dirname(x) == folder)]
+        return [f for f in selected_rows['loop_src'] if f] + [f for f in selected_rows['base_src'] if f] 
 
 
-    name_map = { "loop_src" : loopfilename, "binary" : binary, 
-                "base_src": basefilename, "orig_src_path": full_source_path, 
-                "orig_src_folder": os.path.dirname(source_path)}
+    # name_map = { "loop_src" : loopfilename, "binary" : binary, 
+    #             "base_src": basefilename, "orig_src_path": full_source_path, 
+    #             "orig_src_folder": os.path.dirname(source_path)}
+    # Need to replace original sources ('orig_src' column) by their base ('base_src')
+    # and loop ('loop_src') source code.  Need to make sure base and loop source
+    # has original source folder in their include path
+    orig_src_folders = sorted({os.path.dirname(s) for s in extracted_sources['orig_src']})
+    src_for_folder_dict = {folder : collect_src_for_folder(folder) for folder in orig_src_folders}
+    
+    trace_binary=f'trace_{binary}'
+
+    name_map = { "orig_src_files" : extracted_sources['orig_src'],
+                 "orig_src_folders" : orig_src_folders,
+                 "srcs_for_folder": src_for_folder_dict,
+                 "binary": binary, "trace_binary": trace_binary }
     update_app_cmakelists_file(src_dir, name_map)
 
     #trace_src_file = single_glob(f'{extractor_codelet_src_dir}/trace_*')
-    trace_src_file = os.path.join(loop_extractor_data_dir, basefilename)
-    shutil.copy2(trace_src_file, cmake_extractor_src_dir)
+    for file in list(extracted_sources['loop_src']) + list(extracted_sources['base_src']):
+        if file: 
+            full_file_path = os.path.join(loop_extractor_data_dir, file)
+            shutil.copy2(full_file_path, cmake_extractor_src_dir)
+            
+    # trace_src_file = os.path.join(loop_extractor_data_dir, basefilename)
+    # shutil.copy2(trace_src_file, cmake_extractor_src_dir)
 
-    loop_file = os.path.join(loop_extractor_data_dir, loopfilename)
-    shutil.copy2(loop_file, cmake_extractor_src_dir)
+    # loop_file = os.path.join(loop_extractor_data_dir, loopfilename)
+    # shutil.copy2(loop_file, cmake_extractor_src_dir)
 
 
     initiateConfig(cmake_extractor_include_dir)
+
+    tracee_h_file = os.path.join(cere_src_folder, 'tracee.h')
+    shutil.copy2(tracee_h_file, cmake_extractor_include_dir)
+
+    types_h_file = os.path.join(cere_src_folder, 'types.h')
+    shutil.copy2(types_h_file, cmake_extractor_include_dir)
+
     util_h_file = os.path.join(SCRIPT_DIR, 'src', 'tracer', 'util.h')
     shutil.copy2(util_h_file, cmake_extractor_include_dir)
     util_c_file = os.path.join(SCRIPT_DIR, 'src', 'tracer', 'util.c')
@@ -518,41 +570,13 @@ def capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, 
     segment_info.generate_address_h()
     shutil.copy2(segment_info.tracer_out_addresses_h_file, cmake_extractor_include_dir)
 
-    trace_binary=f'trace_{binary}'
     run_cmake(src_dir, build_dir, run_cmake_dir, f'-DBUILD_TRACE=ON {cmake_flags}', trace_binary)
 
-    # Run at source directory for CloverLeaf but can be generalized as CLA
-    fileName = loopfilename.split('.')
-    loop_name = fileName[-2]
+    run_trace_binary = f'{os.path.join(build_dir, trace_binary)}{app_flags}'
+    runCmd(run_trace_binary, cwd=tracer_run_dir, verbose=True)
 
-    #return
-
-    print("Tracing memory addresses")
-    segment_info.run_trace(os.path.join(build_dir, trace_binary), tracer_run_dir, loop_name, app_flags)
-    print("FINISHED tracing memory addresses!")
-
-    #save_src_file = single_glob(f'{extractor_codelet_src_dir}/save_*')
-    #shutil.copy2(save_src_file, cmake_extractor_src_dir)
-    #util_c_file = os.path.join(script_dir, 'src', 'tracer', 'util.c')
-    #shutil.copy2(util_c_file, cmake_extractor_src_dir)
-    #defs_h_file = os.path.join(script_dir, 'src', 'tracer', 'defs.h')
-    #shutil.copy2(defs_h_file, cmake_extractor_include_dir)
-    # Copy updated address.h file to include to rebuild to save right heap and stack data
-    shutil.copy2(segment_info.tracer_out_addresses_h_file, cmake_extractor_include_dir)
-
-    save_binary=f'save_{binary}'
-    run_cmake(src_dir, build_dir, run_cmake_dir, f'-DBUILD_SAVE=ON {cmake_flags}', save_binary)
-
-    save_work_dir = ensure_dir_exists(extractor_work_dir, 'save_data')
-    save_run_dir = ensure_dir_exists(save_work_dir, 'run')
-    link_app_data_file(save_run_dir, app_data_file)
-    segment_info.run_save(os.path.join(build_dir, save_binary), save_run_dir, loop_name, app_flags)
-
-    save_data_dir = ensure_dir_exists(save_run_dir, 'myDataFile')
-    save_pointers_h_file = os.path.join(save_run_dir, 'saved_pointers.h')
-    save_data_dir=shutil.move(save_data_dir, save_work_dir)
-    save_pointers_h_file=shutil.move(save_pointers_h_file, save_work_dir)
-    return name_map,loop_file,util_h_file,util_c_file,segment_info, save_data_dir,save_pointers_h_file, defs_h_file
+    cere_out_dir = os.path.join(tracer_run_dir, ".cere")
+    return cere_out_dir
 
 def run_cmake(cmakelist_dir, build_dir, run_cmake_dir, cmake_flags, trace_binary):
     runCmd(f'cmake {cmake_flags} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {cmakelist_dir} -B {build_dir}', cwd=run_cmake_dir, verbose=True)

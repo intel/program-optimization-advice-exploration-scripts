@@ -1,37 +1,87 @@
 get_target_property(SRC_LIST $binary SOURCES)
 get_target_property(INC_LIST $binary INCLUDE_DIRECTORIES)
 
-#message("\${SRC_LIST}")
+
+#for $orig_src_path in $orig_src_files
 file(GLOB remove_srcs "$orig_src_path")
 list(REMOVE_ITEM SRC_LIST \${remove_srcs})
+#end for
+
+message("\${SRC_LIST}")
+\# Below will build some object libraries for each source folder.
+#set $num_obj_libs = len($orig_src_folders)
+#set $zf = len(str($num_obj_libs - 1))
+#set $libnames = [f'lib_{str(i).zfill(zf)}' for i in range(0, $num_obj_libs)]
+
+#for $lib_name, $orig_src_folder in zip($libnames, $orig_src_folders)
+\# $lib_name : $orig_src_folder
+#end for
 
 if (BUILD_TRACE OR BUILD_SAVE)
-    add_library(trace_save_obj OBJECT) 
-    target_sources(trace_save_obj
+#for $lib_name in $libnames
+    add_library($lib_name OBJECT) 
+#end for
+
+#for $lib_name, $orig_src_folder in zip($libnames, $orig_src_folders)
+    target_sources($lib_name
         PRIVATE
-        "extractor_src/$base_src"
-        "extractor_src/$loop_src"
-        "extractor_src/util.c")
-    target_include_directories(trace_save_obj PRIVATE $orig_src_folder extractor_include)
+        #for $src_for_folder in $srcs_for_folder[$orig_src_folder]
+        "extractor_src/$src_for_folder"
+        #end for
+        \#"extractor_src/util.c"
+        )
+#end for
+
+#for $lib_name, $orig_src_folder in zip($libnames, $orig_src_folders)
+    target_include_directories($lib_name PRIVATE $orig_src_folder extractor_include)
+#end for
+
     if (INC_LIST)
-        target_include_directories(trace_save_obj PRIVATE \${INC_LIST})
+#for $lib_name in $libnames
+        target_include_directories($lib_name PRIVATE \${INC_LIST})
+#end for
     endif()
 endif()
 
-# Below building trace and save program.  They have actually the same source but when built with updated 
-# addresses.h file the output will be different.
+\# Below building trace and save program.  They have actually the same source but when built with updated 
+\# addresses.h file the output will be different.
 if (BUILD_TRACE)
-    add_executable(trace_$binary \${SRC_LIST})
+    add_executable($trace_binary \${SRC_LIST})
     if (INC_LIST)
-        target_include_directories(trace_$binary PRIVATE \${INC_LIST})
+        target_include_directories($trace_binary PRIVATE \${INC_LIST})
     endif()
-    target_link_libraries(trace_$binary \$<TARGET_OBJECTS:trace_save_obj>)
+    #set target_list = " ".join([f'$<TARGET_OBJECTS:{lib}>' for lib in $libnames])
+##    target_link_libraries($trace_binary $<TARGET_OBJECTS:trace_save_obj>)
+    target_link_libraries($trace_binary $target_list cere_dump)
 endif()
 
-if (BUILD_SAVE)
-    add_executable(save_$binary \${SRC_LIST})
-    if (INC_LIST)
-        target_include_directories(save_$binary PRIVATE \${INC_LIST})
-    endif()
-    target_link_libraries(save_$binary \$<TARGET_OBJECTS:trace_save_obj>)
-endif()
+##if (BUILD_TRACE OR BUILD_SAVE)
+##    add_library(trace_save_obj OBJECT) 
+##    target_sources(trace_save_obj
+##        PRIVATE
+##        "extractor_src/$base_src"
+##        "extractor_src/$loop_src"
+##        "extractor_src/util.c")
+##    target_include_directories(trace_save_obj PRIVATE $orig_src_folder extractor_include)
+##    if (INC_LIST)
+##        target_include_directories(trace_save_obj PRIVATE \${INC_LIST})
+##    endif()
+##endif()
+
+## Below building trace and save program.  They have actually the same source but when built with updated 
+## addresses.h file the output will be different.
+##if (BUILD_TRACE)
+##    add_executable(trace_$binary \${SRC_LIST})
+##    if (INC_LIST)
+##        target_include_directories(trace_$binary PRIVATE \${INC_LIST})
+##    endif()
+##    target_link_libraries(trace_$binary \$<TARGET_OBJECTS:trace_save_obj>)
+##endif()
+
+##if (BUILD_SAVE)
+##    add_executable(save_$binary \${SRC_LIST})
+##    if (INC_LIST)
+##        target_include_directories(save_$binary PRIVATE \${INC_LIST})
+##    endif()
+##    target_link_libraries(save_$binary \$<TARGET_OBJECTS:trace_save_obj>)
+##endif()
