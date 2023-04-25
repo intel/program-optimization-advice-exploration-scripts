@@ -45,7 +45,7 @@ def create_app(config):
     # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://ov_db_with_speed_up_so:pZrYe942iKd841n@maria4344-lb-fm-in.iglb.intel.com:3307/ov_db_with_speed_up?ssl=true'
     app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI']
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'secret!'
+    app.config['SECRET_KEY'] = config['web']['SECRET_KEY']
 
     db = SQLAlchemy(app)
     db.init_app(app)
