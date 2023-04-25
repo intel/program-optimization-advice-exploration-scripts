@@ -45,7 +45,7 @@ def create_app(config):
     # app.config['SQLALCHEMY_DATABASE_URI'] = '=true'
     app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI']
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'secret!'
+    app.config['SECRET_KEY'] = config['web']['SECRET_KEY']
 
     db = SQLAlchemy(app)
     db.init_app(app)

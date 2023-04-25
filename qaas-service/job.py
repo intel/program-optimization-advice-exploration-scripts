@@ -117,23 +117,6 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     to_backplane.send(qm.GeneralStatus("Done Phase 2: INITIAL PROFILING"))
     return
 
-    to_backplane.send(qm.GeneralStatus("Start Phase 3: PARAMETER EXPLORATION/TUNING"))
-    to_backplane.send(qm.GeneralStatus("Start UP1"))
-    to_backplane.send(qm.GeneralStatus("Done UP1"))
-
-    to_backplane.send(qm.GeneralStatus("Start UP2"))
-    to_backplane.send(qm.GeneralStatus("Done UP2"))
-
-    to_backplane.send(qm.GeneralStatus("Start UP3O"))
-    to_backplane.send(qm.GeneralStatus("Done UP3O"))
-
-    to_backplane.send(qm.GeneralStatus("Start UP4O"))
-    to_backplane.send(qm.GeneralStatus("Done UP4O"))
-    to_backplane.send(qm.GeneralStatus("Done Phase 3: PARAMETER EXPLORATION/TUNING"))
-
-    to_backplane.send(qm.GeneralStatus("Start UP"))
-    to_backplane.send(qm.GeneralStatus("Done UP"))
-
 if __name__ == '__main__':
     parser = ArgumentParser(description='Run a job at the machine in a container.')
     parser.add_argument('--data_dir', nargs='?', required=True) 

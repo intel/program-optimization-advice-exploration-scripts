@@ -21,7 +21,7 @@ class ServiceMessageReceiver(socketserver.TCPServer):
 
 class ServiceMessageHandler(socketserver.BaseRequestHandler):
     DEFAULT_RECV_BUFFSIZEW = 1024
-    DEBUG = True
+    DEBUG = False
     def handle(self):
         data = bytearray()
         # Due to our message sending protocal, we will send 1 message per connection, so read all until end
