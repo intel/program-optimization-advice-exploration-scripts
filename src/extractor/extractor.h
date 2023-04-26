@@ -230,6 +230,7 @@ class LoopInfo {
     void addLoopFuncCall();     // In Base file
     SgFunctionDeclaration* makeLoopFunc(bool defining, SgGlobal* glb) ;
     SgFunctionDeclaration* addLoopFuncDefnDecl(SgGlobal* glb); // In Base file
+    void dumpGlobalVarNames(string data_folder);
     void addGlobalVarDecls(SgGlobal* glb, bool as_extern); // In Base file
 
     SgScopeStatement *getLoopScope() { return loop_scope; }

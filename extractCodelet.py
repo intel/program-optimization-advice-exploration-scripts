@@ -259,7 +259,7 @@ def main():
     # TODO: mark these command line arguments
     binary='525.x264_r'
     #binary='clover_leaf'
-    #binary='bt.c_compute_rhs_line1892_0'
+    binary='bt.c_compute_rhs_line1892_0'
     if binary == '525.x264_r':
         cmakelist_dir=os.path.join(prefix, 'SPEC2017/llvm-test-suite')
         src_dir=os.path.join(prefix, 'SPEC2017/benchmark')
@@ -387,13 +387,13 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
     source_row_list = []
     for source_file in sources:
         row_dict = {'orig_src':source_file}
-        row_dict['base_src'], row_dict['loop_src'], row_dict['replay_src'] = run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file)
+        row_dict['base_src'], row_dict['loop_src'], row_dict['replay_src'], row_dict['global_vars'] = run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file)
         source_row_list.append(row_dict)
-    extracted_sources = pd.DataFrame(source_row_list, columns=['orig_src', 'base_src', 'loop_src', 'replay_src'])
+    extracted_sources = pd.DataFrame(source_row_list, columns=['orig_src', 'base_src', 'loop_src', 'replay_src', 'global_vars'])
 
     #name_map, loop_file, util_h_file, util_c_file, segment_info, save_data_dir, save_pointers_h_file, defs_h_file = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, full_source_path, source_path, extracted_sources)
     cere_src_folder = os.path.join(SCRIPT_DIR, 'src', 'cere')
-    cere_out_dir = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, 
+    cere_out_dir, full_trace_binary = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, 
                                 app_flags, app_data_file, full_source_path, source_path, extracted_sources, cere_src_folder)
 
     instance_num = 1
@@ -404,9 +404,10 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
     with open(os.path.join(extracted_codelets_dir, 'CMakeLists.txt'), "w") as top_cmakelist:
         print(f"cmake_minimum_required(VERSION 3.2.0)", file=top_cmakelist)
         print(f"project({binary})", file=top_cmakelist)
-        for loop_src, replay_loop_src, base_src in zip(extracted_sources['loop_src'],
+        for loop_src, replay_loop_src, base_src, global_vars in zip(extracted_sources['loop_src'],
                                              extracted_sources['replay_src'], 
-                                             extracted_sources['base_src']):
+                                             extracted_sources['base_src'],
+                                             extracted_sources['global_vars']):
             if not loop_src:
                 continue  # Skip empty loop info
             loop_filename = os.path.basename(loop_src)
@@ -445,7 +446,16 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
             shutil.copy2(replay_h_file, restore_include_dir)
             shutil.copy2(os.path.join(loop_extractor_data_dir, loop_src), restore_src_dir)
             shutil.copy2(os.path.join(loop_extractor_data_dir, replay_loop_src), restore_src_dir)
-            restore_linker_flags="-Wl,--section-start=.text=0x60004000 -Wl,--section-start=.init=0x60000000"+"".join(restore_linker_section_flags)+" -Wl,-z,now"
+
+            global_linker_flags = []
+            for global_var in global_vars:
+                addr_cmd = f"objdump -t {full_trace_binary}|grep '{global_var}$'|awk '{{print $1}}'"
+                # cwd should not matter
+                rst,_ = runCmdGetRst(addr_cmd, cwd = extractor_work_dir)
+                global_linker_flags.append(f" -Wl,-defsym,{global_var}=0x{rst}")
+                
+            restore_linker_flags = "-Wl,--section-start=.text=0x60004000 -Wl,--section-start=.init=0x60000000" \
+                +"".join(restore_linker_section_flags)+"".join(global_linker_flags) +" -Wl,-z,now"
             name_map = { 'restore_binary': restore_binary, 'loop_src': loop_src, 'replay_loop_src': replay_loop_src, 
                         'obj_s': obj_s_file, 'restore_linker_flags': restore_linker_flags }
             instantiate_cmakelists_file(name_map, in_template = 'CMakeLists.restore.template', 
@@ -525,8 +535,12 @@ def run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix
     runCmd(loop_extractor_command, cwd=command_directory, env=env, verbose=True)
     basefilename, loopfilename, restore_src_file = getLoopFileNames(
         os.path.join(loop_extractor_data_dir, 'loopFileNames.txt'))
-        
-    return basefilename,loopfilename,restore_src_file
+    global_vars = []
+    if loopfilename:
+        with open(os.path.join(loop_extractor_data_dir, 'globalVarNames.txt')) as gf:
+            lines = gf.readlines()
+            global_vars = [l.replace('"','').strip('\n') for l in lines ] 
+    return basefilename,loopfilename,restore_src_file, global_vars
 
 def capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, 
                  loop_extractor_data_dir, cmake_flags, app_flags, app_data_file, 
@@ -597,11 +611,12 @@ def capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir,
 
     run_cmake(src_dir, build_dir, run_cmake_dir, f'-DBUILD_TRACE=ON {cmake_flags}', trace_binary)
 
-    run_trace_binary = f'{os.path.join(build_dir, trace_binary)}{app_flags}'
+    full_trace_binary = os.path.join(build_dir, trace_binary)
+    run_trace_binary = f'{full_trace_binary}{app_flags}'
     runCmd(run_trace_binary, cwd=tracer_run_dir, verbose=True)
 
     cere_out_dir = os.path.join(tracer_run_dir, ".cere")
-    return cere_out_dir
+    return cere_out_dir, full_trace_binary
 
 def run_cmake(cmakelist_dir, build_dir, run_cmake_dir, cmake_flags, trace_binary):
     runCmd(f'cmake {cmake_flags} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {cmakelist_dir} -B {build_dir}', cwd=run_cmake_dir, verbose=True)

@@ -968,6 +968,15 @@ void Extractor::addExternDefs(SgFunctionDeclaration *func) {
     // SageInterface::getFirstStatement(loopParentFuncScope) ));
 }
 
+void LoopInfo::dumpGlobalVarNames(string data_folder) {
+    string report_file = data_folder + "globalVarNames.txt";
+    ofstream info_file(report_file);
+    for (auto var : global_vars_initName_vec) {
+        SgName name = var->get_name();
+        info_file << name << endl;
+    }
+    info_file.close();
+}
 /* Add loop function call as extern in the base source file */
 void LoopInfo::addGlobalVarDecls(SgGlobal* glb, bool as_extern) {
     vector<SgInitializedName *>::iterator iter;
@@ -1355,6 +1364,7 @@ void Extractor::extractLoops(SgNode *astNode) {
         curr_loop.printLoopFunc1(loop_file_name, replay_loop_file_name);
         curr_loop.addLoopFuncCall();
         curr_loop.addLoopFuncAsExtern();
+        curr_loop.dumpGlobalVarNames(getDataFolderPath());
 
         // to replace remaining consecutive loops with null statements */
         if (consecutiveLoops.size() > 1) {
