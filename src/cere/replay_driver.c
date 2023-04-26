@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <errno.h>
+#include "replay.h"
 
 
 
@@ -37,10 +38,6 @@ static void sigsegv_handler(int sig, siginfo_t *si, void *unused)
 	fprintf(stderr, "==========================\n");
 	raise(SIGKILL);
 }
-
-void run_loop(int call_count, int max_seconds);
-void run_loop_dummy(int call_count, int max_seconds)
-{}
 
 int main()
 {

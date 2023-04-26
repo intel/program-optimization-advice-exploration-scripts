@@ -1,13 +1,25 @@
 get_target_property(SRC_LIST $binary SOURCES)
 get_target_property(INC_LIST $binary INCLUDE_DIRECTORIES)
+get_target_property(LIB_LIST $binary LINK_LIBRARIES)
 
+\# Try to build a list of absolute path if SRC_LIST is not
+\# OUTPUT: SRC_LIST_ABS
+set(SRC_LIST_ABS)
+foreach(src \${SRC_LIST})
+  if (NOT IS_ABSOLUTE \${src})
+    file(GLOB_RECURSE full_s \${src})
+    list(APPEND SRC_LIST_ABS \${full_s})
+  else()
+    list(APPEND SRC_LIST_ABS \${src})
+  endif()
+endforeach()
 
 #for $orig_src_path in $orig_src_files
 file(GLOB remove_srcs "$orig_src_path")
-list(REMOVE_ITEM SRC_LIST \${remove_srcs})
+list(REMOVE_ITEM SRC_LIST_ABS \${remove_srcs})
 #end for
 
-message("\${SRC_LIST}")
+message("\${SRC_LIST_ABS}")
 \# Below will build some object libraries for each source folder.
 #set $num_obj_libs = len($orig_src_folders)
 #set $zf = len(str($num_obj_libs - 1))
@@ -28,7 +40,6 @@ if (BUILD_TRACE OR BUILD_SAVE)
         #for $src_for_folder in $srcs_for_folder[$orig_src_folder]
         "extractor_src/$src_for_folder"
         #end for
-        \#"extractor_src/util.c"
         )
 #end for
 
@@ -46,13 +57,16 @@ endif()
 \# Below building trace and save program.  They have actually the same source but when built with updated 
 \# addresses.h file the output will be different.
 if (BUILD_TRACE)
-    add_executable($trace_binary \${SRC_LIST})
+    \# Include object library here in case SRC_LIST_ABS is empty
+    #set target_list = " ".join([f'$<TARGET_OBJECTS:{lib}>' for lib in $libnames])
+    add_executable($trace_binary \${SRC_LIST_ABS} $target_list)
     if (INC_LIST)
         target_include_directories($trace_binary PRIVATE \${INC_LIST})
     endif()
-    #set target_list = " ".join([f'$<TARGET_OBJECTS:{lib}>' for lib in $libnames])
-##    target_link_libraries($trace_binary $<TARGET_OBJECTS:trace_save_obj>)
-    target_link_libraries($trace_binary $target_list cere_dump)
+    if (LIB_LIST)
+        target_link_libraries($trace_binary \${LIB_LIST})
+    endif()
+    target_link_libraries($trace_binary cere_dump)
 endif()
 
 ##if (BUILD_TRACE OR BUILD_SAVE)

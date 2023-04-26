@@ -118,6 +118,7 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
       mainLineNumbers.first = first; mainLineNumbers.second = second; }
     */
 
+    void cleanupName(string& name, bool remove_dots);
     string getFilePath() { return LoopExtractor_file_path; };
     string getFileName() { return LoopExtractor_file_name; };
     string getOrigFileName() { return LoopExtractor_original_file_name; };

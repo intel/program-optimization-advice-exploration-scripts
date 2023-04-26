@@ -11,17 +11,24 @@ string Extractor::getFilePath(const string &fileNameWithPath) {
     return (fileNameWithPath.substr(0, lastSlashPos + 1));
 }
 
+void Extractor::cleanupName(string& name, bool remove_dots) {
+    /* Since you cannot start Function name with a digit */
+    if (isdigit(name[0]))
+        name.insert(0, 1, '_');
+    /* Since you cannot have '-' in Function name */
+    while (name.find('-') != string::npos)
+        name.replace(name.find('-'), 1, string("X_X"));
+    if (remove_dots) {
+        while (name.find('.') != string::npos)
+         name.replace(name.find('.'), 1, string("Y_Y"));
+    }
+}
 string Extractor::getFileName(const string &fileNameWithPath) {
     int lastSlashPos = fileNameWithPath.find_last_of('/');
     int lastDotPos = fileNameWithPath.find_last_of('.');
     string fileStr = (fileNameWithPath.substr(lastSlashPos + 1,
                                               lastDotPos - lastSlashPos - 1));
-    /* Since you cannot start Function name with a digit */
-    if (isdigit(fileStr[0]))
-        fileStr.insert(0, 1, '_');
-    /* Since you cannot have '-' in Function name */
-    while (fileStr.find('-') != string::npos)
-        fileStr.replace(fileStr.find('-'), 1, string("X_X"));
+    cleanupName(fileStr, false);
     return fileStr;
 }
 
@@ -108,12 +115,8 @@ void Extractor::updateUniqueCounter(SgNode *astNode) {
 string Extractor::getLoopName(SgNode *astNode) {
     string loopName = getExtractionFileName(astNode);
     /* Since you cannot have '-' in Function name */
-    while (loopName.find('-') != string::npos)
-        loopName.replace(loopName.find('-'), 1, string("X_X"));
+    cleanupName(loopName, true);
     //boost::erase_all(loopName, getDataFolderPath());
-    /* Since you cannot start Function name with a digit */
-    if (isdigit(loopName[0]))
-        loopName.insert(0, 1, '_');
     boost::erase_all(loopName, "." + LoopExtractor_file_extn);
     return loopName;
 }
@@ -715,13 +718,28 @@ void LoopInfo::printLoopFunc1(string outfile_name, string replay_file_name) {
     SageInterface::insertHeader("replay.h", PreprocessingInfo::after, false, glb_restore_src);
     //SageInterface::insertHeader("saved_pointers.h", PreprocessingInfo::after, false, glb_restore_src);
 
-
-    SgFunctionDeclaration *main_decl = SageBuilder::buildDefiningFunctionDeclaration
-        ("run_loop", SageBuilder::buildIntType(), 
+    /*
+    // Create a function declaration for run_loop
+    SgFunctionDeclaration *run_loop_decl = SageBuilder::buildNondefiningFunctionDeclaration(
+        "run_loop", SageBuilder::buildIntType(), 
         SageBuilder::buildFunctionParameterList(
             SageBuilder::buildInitializedName("call_count", SageBuilder::buildIntType()),
             SageBuilder::buildInitializedName("max_seconds", SageBuilder::buildIntType())), glb_restore_src);
 
+    run_loop_decl->set_linkage("C");
+    SageInterface::setExtern(run_loop_decl);
+    // Insert the function declaration into the AST
+    SageInterface::appendStatement(run_loop_decl, glb_restore_src);
+    */
+
+
+    SgFunctionDeclaration *main_decl = SageBuilder::buildDefiningFunctionDeclaration
+        ("run_loop", SageBuilder::buildVoidType(), 
+        SageBuilder::buildFunctionParameterList(
+            SageBuilder::buildInitializedName("call_count", SageBuilder::buildIntType()),
+            SageBuilder::buildInitializedName("max_seconds", SageBuilder::buildIntType())), glb_restore_src);
+
+    //main_decl->set_linkage("C");
 
     SgBasicBlock* main_fn_bb = main_decl->get_definition()->get_body();
     SgType* void_type = SageBuilder::buildVoidType();
@@ -804,7 +822,9 @@ void LoopInfo::printLoopFunc1(string outfile_name, string replay_file_name) {
         // add variable assignment declaration here
         auto saved_v_decl = SageBuilder::buildVariableDeclaration(
             saved_v_name, saved_v_type, 
-            SageBuilder::buildAssignInitializer_nfi(SageBuilder::buildPntrArrRefExp(SageBuilder::buildVarRefExp("args"), SageBuilder::buildIntVal(i))));
+            SageBuilder::buildAssignInitializer_nfi(
+                SageBuilder::buildCastExp(SageBuilder::buildPntrArrRefExp(SageBuilder::buildVarRefExp("args"), SageBuilder::buildIntVal(i)),
+                saved_v_type)));
         SageInterface::appendStatement(saved_v_decl);
 
         arg_exp = SageBuilder::buildVarRefExp(saved_v_name);

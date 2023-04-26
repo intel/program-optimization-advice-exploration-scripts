@@ -257,8 +257,10 @@ def main():
     #spec_run = False
 
     # TODO: mark these command line arguments
-    if spec_run:
-        binary='525.x264_r'
+    binary='525.x264_r'
+    #binary='clover_leaf'
+    #binary='bt.c_compute_rhs_line1892_0'
+    if binary == '525.x264_r':
         cmakelist_dir=os.path.join(prefix, 'SPEC2017/llvm-test-suite')
         src_dir=os.path.join(prefix, 'SPEC2017/benchmark')
         cmake_flags = f'-DTEST_SUITE_SUBDIRS=External/SPEC/CINT2017rate -DTEST_SUITE_SPEC2017_ROOT={src_dir} -DCMAKE_C_COMPILER=icx -DTEST_SUITE_COLLECT_CODE_SIZE=OFF'
@@ -269,10 +271,8 @@ def main():
         app_data_file=os.path.join(prefix, 'SPEC2017/benchmark/benchspec/CPU/525.x264_r/run/run_base_test_myTest.0000/BuckBunny.yuv')
 
         app_flags = ' --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720'
-    else:
-        binary='clover_leaf'
+    elif binary == 'clover_leaf':
         cmakelist_dir=os.path.join(prefix,'CloverLeaf')
-        
         cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
         cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
         cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-cxx=icpx -DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
@@ -280,6 +280,13 @@ def main():
         app_data_file = os.path.join(cmakelist_dir, 'clover.in')
 
         app_flags = ''
+    elif binary == 'bt.c_compute_rhs_line1892_0':
+        cmakelist_dir=os.path.join(prefix,'qaas-demo-lore-codelets')
+        cmake_flags = f'-DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g"'
+        app_data_file = os.path.join(cmakelist_dir, 'src','all','NPB_2.3-OpenACC-C','BT','bt.c_compute_rhs_line1892_0','codelet.data')
+        app_flags = ''
+    else:
+        return
 
     top_n = 21
     top_n = 1
@@ -324,7 +331,11 @@ def perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cma
     main_src_file_info, _ = runCmdGetRst(f'nm -a {binary} | grep " main$" | cut -d " " -f 1 | xargs addr2line -e {binary}', cwd=profile_data_dir, env=adv_env)
     #app_cmd = f'./{binary}'
     app_cmd = f'./{binary}{app_flags}'
-    mockup_profile_csv = '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/168-238-9156/profile_data/profile.csv'
+    #mockup_profile_csv = '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/168-238-9156/profile_data/profile.csv'
+    mockup_profile_csvs = {'./clover_leaf': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/clover_leaf/168-245-0832/profile_data/profile.csv', 
+                           './525.x264_r --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720': '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/168-238-9156/profile_data/profile.csv',
+                           './bt.c_compute_rhs_line1892_0':'/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/bt.c_compute_rhs_line1892_0/168-252-4181/profile_data/profile.csv'}
+    mockup_profile_csv = mockup_profile_csvs[app_cmd] if app_cmd in mockup_profile_csvs else None
     if not mockup_profile_csv:
         runCmd(f'advixe-cl --collect survey --project-dir {adv_proj_dir} -- {app_cmd}', 
            cwd=profile_data_dir, env=adv_env, verbose=True)
@@ -393,7 +404,9 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
     with open(os.path.join(extracted_codelets_dir, 'CMakeLists.txt'), "w") as top_cmakelist:
         print(f"cmake_minimum_required(VERSION 3.2.0)", file=top_cmakelist)
         print(f"project({binary})", file=top_cmakelist)
-        for loop_src, replay_loop_src in zip(extracted_sources['loop_src'],extracted_sources['replay_src']):
+        for loop_src, replay_loop_src, base_src in zip(extracted_sources['loop_src'],
+                                             extracted_sources['replay_src'], 
+                                             extracted_sources['base_src']):
             if not loop_src:
                 continue  # Skip empty loop info
             loop_filename = os.path.basename(loop_src)
@@ -404,9 +417,15 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
             print(f"add_subdirectory({loop_name})\n", file=top_cmakelist)
             restore_include_dir = ensure_dir_exists(extracted_loop_dir, 'include')
             restore_src_dir = ensure_dir_exists(extracted_loop_dir, 'src')
-            restore_data_dir = ensure_dir_exists(extracted_loop_dir, 'data')
+            restore_data_root_dir = ensure_dir_exists(extracted_loop_dir, 'data')
 
-            cere_dump_dir = os.path.join(cere_out_dir, "dumps", loop_name, str(instance_num))
+            dump_name = re.search(r"dump\(\"([^\"]*)", 
+                                  open(os.path.join(loop_extractor_data_dir, base_src)).read()).group(1)
+            restore_data_dir = ensure_dir_exists(restore_data_root_dir, f"dumps/{dump_name}/{instance_num}")
+            cere_dump_dir = os.path.join(cere_out_dir, "dumps", dump_name, str(instance_num))
+            # Copy .map files
+            shutil.copy2(os.path.join(cere_dump_dir, "core.map"), restore_data_dir)
+            shutil.copy2(os.path.join(cere_dump_dir, "hotpages.map"), restore_data_dir)
             obj_s_file = "objs.S"
             restore_linker_section_flags=[]
             with open(os.path.join(restore_src_dir, obj_s_file), "w") as obj_s_f:
@@ -448,8 +467,14 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
         # Now can run built extracted codelet
         codelet_run_dir = ensure_dir_exists(extracted_codelets_run_dir, loop_name)
         os.symlink(os.path.join(extracted_codelet_build_dir, loop_name, restore_binary), os.path.join(codelet_run_dir, restore_binary))
+        extracted_loop_dir = ensure_dir_exists(extracted_codelets_dir, loop_name)
+        restore_data_root_dir = ensure_dir_exists(extracted_loop_dir, 'data')
         # Should also sofelink cere directory here
-        runCmd(f'./{restore_binary}', cwd=codelet_run_dir, verbose=True)
+        run_extracted_loop(f'./{restore_binary}', codelet_run_dir, restore_data_root_dir)
+
+def run_extracted_loop(cmd, codelet_run_dir, cere_data_dir, env=os.environ.copy()):
+    env['CERE_WORKING_PATH'] = cere_data_dir
+    runCmd(cmd, cwd=codelet_run_dir, env=env, verbose=True)
 
 def run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file):
     src_folder=os.path.dirname(source_file)
