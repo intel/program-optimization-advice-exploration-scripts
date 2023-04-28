@@ -960,9 +960,9 @@ SgBasicBlock* LoopInfo::addrPrintingInBB() {
     return result;
 }
 
-void Extractor::addExternDefs(SgFunctionDeclaration *func) {
+void Extractor::addExternDefs(SgFunctionDeclaration *func, SgFunctionDefinition* encl_fn) {
     externFuncDef.insert(pair<SgStatement *, SgScopeStatement *>(
-        dynamic_cast<SgStatement *>(func), loopParentFuncScope));
+        dynamic_cast<SgStatement *>(func), encl_fn));
     // externFuncDef.insert(pair<SgStatement*,SgStatement*>(
     // dynamic_cast<SgStatement *>(func),
     // SageInterface::getFirstStatement(loopParentFuncScope) ));
@@ -1035,7 +1035,10 @@ void LoopInfo::addLoopFuncAsExtern() {
         SageInterface::setExtern(func);
         // Insert Function into Global scope
         // SageInterface::prependStatement( func, extr.getGlobalNode() );
-        extr.addExternDefs(func);
+
+        SgFunctionDefinition* encl_fn = SageInterface::getEnclosingFunctionDefinition(loop);
+        extr.addExternDefs(func, encl_fn);
+
     } else {
         ROSE_ASSERT(extr.getGlobalNode() != NULL);
     }
@@ -1471,7 +1474,7 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
             break;
         }
         case V_SgFunctionDefinition: {
-            loopParentFuncScope = dynamic_cast<SgScopeStatement *>(astNode);
+            // loopParentFuncScope = dynamic_cast<SgScopeStatement *>(astNode);
             SgFunctionDefinition *funcDef =
                 dynamic_cast<SgFunctionDefinition *>(astNode);
             if (funcDef != NULL &&
@@ -1884,6 +1887,15 @@ void Extractor::do_extraction() {
     /* Traverse all files and their ASTs in Top Down fashion (Inherited Attr)
      * and extract loops */
 
+    //LoopCollector loop_collect;
+
+    //InheritedAttribute inhr_attr1;
+    //int result = loop_collect.traverseInputFiles(ast, inhr_attr1);
+    //cout << "Result:" << result << endl;
+
+
+    // should do a traverse first to collect all loops before doing transformation
+    // so the input line numbers will be correct
     this->traverseInputFiles(ast, inhr_attr);
     // after traversing, main scope will be found
     this->instrumentMain();

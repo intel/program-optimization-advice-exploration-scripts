@@ -49,9 +49,17 @@ const option::Descriptor usage[] = {
   {MACRO_DEFS         , 0, "D" , "DEFS"            ,Arg::Required , "    -D[<arg>]                 Macro definition" },
   {INFO               , 0, ""  , "info"            ,Arg::None     , "    --info                    Print information for LoopExtractor workflow" },
   {WORKDIR            , 0, ""  , "extractwd"       ,Arg::Required , "    --extractwd[<arg>]        Extractor Work directory" },
+  {MODE               , 0, ""  , "extractmode"     ,Arg::Required , "    --extractmode[<arg>]      Extractor Mode" },
   {SRC_PREFIX         , 0, ""  , "extractsrcprefix",Arg::Required , "    --extractsrcprefix[<arg>] Source path prefix to be removed in loop naming" },
   {0, 0, 0, 0, 0, 0}
 };
+
+LoopExtractorMode str2mode(const string& input) {
+  if (input == "invitro") return INVITRO;
+  if (input == "insitu") return INSITU;
+  if (input == "invivo") return INVIVO;
+  return INVITRO;  // default
+}
 // clang-format on
 void set_LoopExtractor_options(int argc, char *argv[]) {
   LoopExtractor_enabled_options = {
@@ -128,6 +136,9 @@ void set_LoopExtractor_options(int argc, char *argv[]) {
       break;
     case SRC_PREFIX:
       LoopExtractor_src_prefix = string(opt.arg);
+      break;
+    case MODE:
+      LoopExtractor_mode = str2mode(string(opt.arg));
       break;
     }
   }

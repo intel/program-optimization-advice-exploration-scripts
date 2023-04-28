@@ -12,6 +12,7 @@ import csv
 import re
 import datetime
 from Cheetah.Template import Template
+import argparse
 
 SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
 
@@ -251,6 +252,11 @@ def timestamp_str(timestamp):
 
 
 def main():
+    arg_parser = argparse.ArgumentParser(description="Codelet Extractor for different purposes.")
+    arg_parser.add_argument('--mode', default='invitro', choices=['invitro', 'insitu', 'invivo'], help='invitro extraction, insitu extraction, or invivo codelet marking')
+    args = arg_parser.parse_args()
+
+
     clean = True
     build_app=True
     spec_run = True
@@ -259,7 +265,7 @@ def main():
     # TODO: mark these command line arguments
     binary='525.x264_r'
     #binary='clover_leaf'
-    #binary='bt.c_compute_rhs_line1892_0'
+    binary='bt.c_compute_rhs_line1892_0'
     if binary == '525.x264_r':
         cmakelist_dir=os.path.join(prefix, 'SPEC2017/llvm-test-suite')
         src_dir=os.path.join(prefix, 'SPEC2017/benchmark')
@@ -290,9 +296,9 @@ def main():
 
     top_n = 21
     top_n = 1
-    perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cmake_flags, app_data_file, app_flags)
+    perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cmake_flags, app_data_file, app_flags, args.mode)
 
-def perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cmake_flags, app_data_file, app_flags):
+def perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cmake_flags, app_data_file, app_flags, mode):
     timestamp_str = generate_timestamp_str()
 
     run_cmake_dir=os.path.abspath(os.path.join(cmakelist_dir, '..'))
@@ -332,10 +338,10 @@ def perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cma
     #app_cmd = f'./{binary}'
     app_cmd = f'./{binary}{app_flags}'
     #mockup_profile_csv = '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/168-238-9156/profile_data/profile.csv'
-    mockup_profile_csvs = {'./clover_leaf': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/clover_leaf/168-245-0832/profile_data/profile.csv', 
-                           './525.x264_r --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720': '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/168-238-9156/profile_data/profile.csv',
-                           './bt.c_compute_rhs_line1892_0':'/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/bt.c_compute_rhs_line1892_0/168-252-4181/profile_data/profile.csv'}
-    mockup_profile_csvs = {}
+    mockup_profile_csvs = {'./clover_leaf': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-clover_leaf.csv', 
+                           './525.x264_r --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720': '/host/localdisk/cwong29/working/codelet_extractor_work/mockups/profile-525.csv',
+                           './bt.c_compute_rhs_line1892_0':'/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-bt.csv'}
+    #mockup_profile_csvs = {}
     mockup_profile_csv = mockup_profile_csvs[app_cmd] if app_cmd in mockup_profile_csvs else None
     if not mockup_profile_csv:
         runCmd(f'advixe-cl --collect survey --project-dir {adv_proj_dir} -- {app_cmd}', 
@@ -353,7 +359,7 @@ def perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cma
 
     for idx in range(0, top_n):
         extract_codelet(binary, cmakelist_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, 
-                        cmake_flags, loop_profile_df, idx, prefix, app_flags, app_data_file, main_src_file_info)
+                        cmake_flags, loop_profile_df, idx, prefix, app_flags, app_data_file, main_src_file_info, mode)
     print("DONE")
 
 def link_app_data_file(profile_data_dir, app_data_file):
@@ -361,7 +367,7 @@ def link_app_data_file(profile_data_dir, app_data_file):
 
 
 def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, profile_df, 
-                    idx, prefix, app_flags, app_data_file, main_src_info):
+                    idx, prefix, app_flags, app_data_file, main_src_info, mode):
     top_row = profile_df.iloc[idx]
     full_source_path = top_row['source_full_path']
     source_location = top_row['source_location']
@@ -388,7 +394,9 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
     source_row_list = []
     for source_file in sources:
         row_dict = {'orig_src':source_file}
-        row_dict['base_src'], row_dict['loop_src'], row_dict['replay_src'], row_dict['global_vars'] = run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file)
+        row_dict['base_src'], row_dict['loop_src'], \
+            row_dict['replay_src'], row_dict['global_vars'] = \
+                run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file, mode)
         source_row_list.append(row_dict)
     extracted_sources = pd.DataFrame(source_row_list, columns=['orig_src', 'base_src', 'loop_src', 'replay_src', 'global_vars'])
 
@@ -487,7 +495,7 @@ def run_extracted_loop(cmd, codelet_run_dir, cere_data_dir, env=os.environ.copy(
     env['CERE_WORKING_PATH'] = cere_data_dir
     runCmd(cmd, cwd=codelet_run_dir, env=env, verbose=True)
 
-def run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file):
+def run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, source_file, mode):
     src_folder=os.path.dirname(source_file)
     compile_command_json_file = os.path.join(build_dir, 'compile_commands.json')
     with open(compile_command_json_file, 'r') as f:
@@ -513,15 +521,9 @@ def run_extractor(build_dir, extractor_work_dir, loop_extractor_data_dir, prefix
                     # TODO: fix hardcoded
                     compiler_full_path = shutil.which("icx")
                     command_parts = [LOOP_EXTRACTOR_PATH if x == compiler_full_path else x for x in command_parts]
-                loop_extractor_command = " ".join(command_parts+['--extractwd', extractor_work_dir, '--extractsrcprefix', prefix])
+                loop_extractor_command = " ".join(command_parts + \
+                    ['--extractwd', extractor_work_dir, '--extractsrcprefix', prefix, '--extractmode', mode])
                     
-                if os.path.basename(compiler).startswith("mpi"):
-                    # MPI compilers
-                    pass 
-                else:
-                    pass
-
-
     # Extractor loop using in-situ extractor
     env = os.environ.copy()
     env['LD_LIBRARY_PATH'] = env['LD_LIBRARY_PATH']+':/usr/lib/jvm/java-11-openjdk-amd64/lib/server'

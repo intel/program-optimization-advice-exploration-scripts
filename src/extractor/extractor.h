@@ -16,13 +16,14 @@ using namespace std;
 class InheritedAttribute {
   public:
     int loop_nest_depth_;
-    int scope_depth_;
+    //int scope_depth_;
 
-    InheritedAttribute() : loop_nest_depth_(0), scope_depth_(0) {}
+    //InheritedAttribute() : loop_nest_depth_(0), scope_depth_(0) {}
+    InheritedAttribute() : loop_nest_depth_(0)  {}
 
     InheritedAttribute(const InheritedAttribute &other) {
         loop_nest_depth_ = other.loop_nest_depth_;
-        scope_depth_ = other.scope_depth_;
+        //scope_depth_ = other.scope_depth_;
     }
 };
 
@@ -42,6 +43,9 @@ class InsertOrderSet {
   InsertOrderSet() {}
   InsertOrderSet(const InsertOrderSet& ios) : s(ios.s) , v(ios.v) {  }
   void operator= (const InsertOrderSet& ios) { s = ios.s; v = ios.v; }
+};
+
+class LoopCollector : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
 };
 
 class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
@@ -95,7 +99,7 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     string loopOMPpragma = "";
     string loopSkipPragma = "";
     vector<string> func_var_str_vec;
-    SgScopeStatement *loopParentFuncScope = NULL;
+    //SgScopeStatement *loopParentFuncScope = NULL;
     map<SgStatement *, SgScopeStatement *> externFuncDef;
     vector<SgForStatement *>
         consecutiveLoops; // Collection of consecutive loop nests
@@ -141,7 +145,7 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     SgSourceFile* get_src_file() { return src_file_loop; }
     void printHeaders(ofstream &loop_file_buf);
     void printGlobalsAsExtern(ofstream &loop_file_buf);
-    void addExternDefs(SgFunctionDeclaration *func);
+    void addExternDefs(SgFunctionDeclaration *func, SgFunctionDefinition* encl_fn);
     void addPostTraversalDefs();
     void modifyExtractedFileText(const string &base_file);
     void collectAdjoiningLoops(SgStatement *loop);

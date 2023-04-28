@@ -35,6 +35,12 @@ typedef enum {
 } src_lang;
 
 typedef enum {
+    INVITRO,
+    INSITU,
+    INVIVO
+} LoopExtractorMode;
+
+typedef enum {
     EXTRACT,
     PARALLEL,
     EXTRACTKERNEL,
@@ -47,6 +53,7 @@ typedef enum {
     INFO,
     HELP,
     WORKDIR,
+    MODE,
     SRC_PREFIX,
     UNKNOWN
 } LoopExtractor_options;
@@ -74,6 +81,7 @@ extern string LoopExtractor_data_folder_path;
 extern string LoopExtractor_curr_dir_path;
 extern string LoopExtractor_extract_src_info_csv;
 extern string LoopExtractor_src_prefix;
+extern LoopExtractorMode LoopExtractor_mode;
 
 /* For the extractor */
 extern vector<string> LoopExtractor_input_file;
