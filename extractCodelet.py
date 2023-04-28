@@ -259,7 +259,7 @@ def main():
     # TODO: mark these command line arguments
     binary='525.x264_r'
     #binary='clover_leaf'
-    binary='bt.c_compute_rhs_line1892_0'
+    #binary='bt.c_compute_rhs_line1892_0'
     if binary == '525.x264_r':
         cmakelist_dir=os.path.join(prefix, 'SPEC2017/llvm-test-suite')
         src_dir=os.path.join(prefix, 'SPEC2017/benchmark')
@@ -335,6 +335,7 @@ def perform_extraction_steps(top_n, clean, build_app, binary, cmakelist_dir, cma
     mockup_profile_csvs = {'./clover_leaf': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/clover_leaf/168-245-0832/profile_data/profile.csv', 
                            './525.x264_r --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720': '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/168-238-9156/profile_data/profile.csv',
                            './bt.c_compute_rhs_line1892_0':'/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/bt.c_compute_rhs_line1892_0/168-252-4181/profile_data/profile.csv'}
+    mockup_profile_csvs = {}
     mockup_profile_csv = mockup_profile_csvs[app_cmd] if app_cmd in mockup_profile_csvs else None
     if not mockup_profile_csv:
         runCmd(f'advixe-cl --collect survey --project-dir {adv_proj_dir} -- {app_cmd}', 
