@@ -405,6 +405,12 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
     cere_out_dir, full_trace_binary = capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir, loop_extractor_data_dir, cmake_flags, 
                                 app_flags, app_data_file, full_source_path, source_path, extracted_sources, cere_src_folder)
 
+    
+    if (mode == 'invitro'):
+        run_replay_steps(binary, extractor_work_dir, loop_extractor_data_dir, extracted_sources, cere_src_folder, cere_out_dir, full_trace_binary)
+        print('Finished replay runs')
+
+def run_replay_steps(binary, extractor_work_dir, loop_extractor_data_dir, extracted_sources, cere_src_folder, cere_out_dir, full_trace_binary):
     instance_num = 1
     loop_srcs = [f for f in extracted_sources['loop_src'] if f]
 
@@ -440,11 +446,16 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
             restore_linker_section_flags=[]
             with open(os.path.join(restore_src_dir, obj_s_file), "w") as obj_s_f:
                 data_rel_src_dir = os.path.relpath(restore_data_dir, restore_src_dir)
-                for memdump_file in glob(f'{cere_dump_dir}/*.memdump'):
+                addrs = [os.path.splitext(os.path.basename(f))[0] for f in glob(f'{cere_dump_dir}/*.memdump')]
+                # Sort according to their hex values
+                addrs.sort(key=lambda h:int(h,16))
+                for addr in addrs:
+                #for memdump_file in glob(f'{cere_dump_dir}/*.memdump'):
+                    memdump_file = f'{cere_dump_dir}/{addr}.memdump'
                     shutil.copy2(memdump_file, restore_data_dir)
                     # Drop prefix directory name and also extension
                     base_memdump_file = os.path.basename(memdump_file)
-                    addr = os.path.splitext(base_memdump_file)[0]
+                    #addr = os.path.splitext(base_memdump_file)[0]
                     print(f'.section s{addr}, "aw"', file=obj_s_f)
                     # Use relative path assuming build under directory extracted_loop_dir
                     print(f'.incbin "{data_rel_src_dir}/{base_memdump_file}"', file=obj_s_f)
@@ -480,6 +491,8 @@ def extract_codelet(binary, src_dir, build_dir, run_cmake_dir, extractor_work_di
         loop_name = os.path.splitext(loop_filename)[0]
         restore_binary=f'replay_{loop_name}'
         restore_cmake_flags = f'-DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
+        #restore_cmake_flags = f'-DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icpc -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
+        #restore_cmake_flags = f'-DCMAKE_C_COMPILER=clang-7 -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
         #run_cmake2(restore_binary, restore_work_dir, extracted_codelet_dir, extracted_codelet_build_dir, restore_cmake_flags)
         run_cmake(extracted_codelets_dir, extracted_codelet_build_dir, restore_work_dir, restore_cmake_flags, restore_binary)
 
@@ -619,6 +632,7 @@ def capture_data(binary, src_dir, build_dir, run_cmake_dir, extractor_work_dir,
     runCmd(run_trace_binary, cwd=tracer_run_dir, verbose=True)
 
     cere_out_dir = os.path.join(tracer_run_dir, ".cere")
+    print('Finished capture run')
     return cere_out_dir, full_trace_binary
 
 def run_cmake(cmakelist_dir, build_dir, run_cmake_dir, cmake_flags, trace_binary):

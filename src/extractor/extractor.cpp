@@ -1220,6 +1220,12 @@ vector<string> LoopInfo::getLoopFuncArgsName() {
     return args_name;
 }
 
+bool Extractor::skipLoop(SgForStatement *astNode) {
+    return !collected_loops.matches(astNode);
+}
+
+#if 0
+// Lots of logic that may be put in the collection phases if needed
 bool Extractor::skipLoop(SgNode *astNode) {
     // TODO: may need to include filename
     if (extracted.count(lineNumbers) > 0)
@@ -1294,6 +1300,8 @@ bool Extractor::skipLoop(SgNode *astNode) {
 
     return false;
 }
+#endif
+
 void Extractor::reportOutputFiles() {
     // parse loop_file_name and do fprintf to tmp/loopFileNames.txt
     string loop_file_name, base_file_name, restore_file_name;
@@ -1333,7 +1341,7 @@ void Extractor::reportOutputFiles() {
  *        body and create a new function
  * @param astNode The loop to be extracted
  */
-void Extractor::extractLoops(SgNode *astNode) {
+void Extractor::extractLoops(SgForStatement *astNode) {
     Sg_File_Info* file_info = astNode->get_file_info();
     string file_name = file_info->get_filenameString();
     int lineNum = file_info->get_line();
@@ -1343,7 +1351,8 @@ void Extractor::extractLoops(SgNode *astNode) {
     */
 
     /* Here we check if loop file number is the one we need */
-    if (file_name == targetfilename && lineNum >= lineNumbers.first && lineNum <= lineNumbers.second) {
+    //if (file_name == targetfilename && lineNum >= lineNumbers.first && lineNum <= lineNumbers.second) {
+    if (collected_loops.matches(astNode)) {
         // cout << "PASSED the lineNum check" << endl;
         SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
         updateUniqueCounter(astNode);
@@ -1402,6 +1411,62 @@ void Extractor::collectAdjoiningLoops(SgStatement *loop) {
 
 void Extractor::extractFunctions(SgNode *astNode) {}
 
+bool LoopLocations::matches(SgNode* astNode) {
+    Sg_File_Info* file_info = astNode->get_file_info();
+    string file_name = file_info->get_filenameString();
+    int lineNum = file_info->get_line();
+    for(auto matching : locs) {
+        // matching is <filename, lineno>
+        if (matching.first == file_name && matching.second == lineNum) {
+            return true;
+        }
+    }
+    return false;
+}
+
+LoopLocations
+LoopCollector::evaluateInheritedAttribute(SgNode *astNode, LoopLocations locs) { 
+    //LoopLocations ret;
+    //cout << "INH:" << astNode->unparseToString() << endl;
+    // just pass it on
+    if (isSgForStatement(astNode)) { 
+        locs.incLevel();
+    }
+    return locs;
+}
+
+void CollectedLoops::addAll(const CollectedLoops& loops) { 
+    collected.insert(loops.collected.begin(), loops.collected.end()); 
+    deepest_nest = max(deepest_nest, loops.deepest_nest);
+}
+
+void CollectedLoops::set(SgForStatement* loop, int nest_level) { 
+    assert(collected.size() == 0);
+    collected.insert(loop); 
+    deepest_nest = nest_level;
+}
+
+/* Required for Bottom Up parsing virtual function - Will not be used */
+CollectedLoops LoopCollector::evaluateSynthesizedAttribute(SgNode *astNode, LoopLocations locs,
+ SubTreeSynthesizedAttributes syn_attr_list) {
+    CollectedLoops children_loops;
+    for (auto const &child_loops : syn_attr_list) { 
+        children_loops.addAll(child_loops);
+    }
+    if (SgForStatement *for_loop = isSgForStatement(astNode)) { 
+        int children_depth = children_loops.getLoopDepth();
+        if (locs.matches(for_loop) || (!children_loops.isEmpty() && children_depth <= 2)) {
+            CollectedLoops loops;
+            cout << "matched or children matched:" << endl;
+            loops.set(for_loop, children_depth + 1);
+            return loops;
+        } 
+        // fall through to use children nests, this is for loop so increase one level
+        children_loops.incLoopDepth();
+    } 
+    return children_loops;
+}
+
 /* Required for Top Down parsing
  *  This function is called for each node in the AST inside of
  * traverseInputFiles function.
@@ -1415,7 +1480,11 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
         astNodesCollector.insert(astNode);
         switch (astNode->variantT()) {
         case V_SgForStatement: {
-            SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
+            //SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
+            SgForStatement *loop = isSgForStatement(astNode);
+            if (collected_loops.matches(loop)) {
+                cout << "MATCHED" << endl;
+            }
             if (loop == NULL) {
                 // cerr << "Error: incorrect loop node type" << endl;
                 break;
@@ -1431,14 +1500,12 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
                 // && SageInterface::getNextStatement(loop)->variantT() ==
                 // V_SgForStatement
                 // )
-                if (!skipLoop(astNode)) {
+                if (!skipLoop(loop)) {
                     if (LoopExtractor_enabled_options[EXTRACTKERNEL])
-                        collectAdjoiningLoops(
-                            dynamic_cast<SgStatement *>(astNode));
+                        collectAdjoiningLoops(loop);
                     else
-                        consecutiveLoops.push_back(
-                            dynamic_cast<SgForStatement *>(astNode));
-                    extractLoops(astNode);
+                        consecutiveLoops.push_back(loop);
+                    extractLoops(loop);
                 }
                 consecutiveLoops.clear(); // Clear vector for next kernel
                 loopOMPpragma = "";
@@ -1887,10 +1954,10 @@ void Extractor::do_extraction() {
     /* Traverse all files and their ASTs in Top Down fashion (Inherited Attr)
      * and extract loops */
 
-    //LoopCollector loop_collect;
-
-    //InheritedAttribute inhr_attr1;
-    //int result = loop_collect.traverseInputFiles(ast, inhr_attr1);
+    LoopCollector loop_collect;
+    LoopLocations loop_locs;
+    loop_locs.addLoc(targetfilename, lineNumbers.first);
+    collected_loops = loop_collect.traverse(ast, loop_locs);
     //cout << "Result:" << result << endl;
 
 

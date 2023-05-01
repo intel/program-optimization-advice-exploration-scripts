@@ -45,7 +45,40 @@ class InsertOrderSet {
   void operator= (const InsertOrderSet& ios) { s = ios.s; v = ios.v; }
 };
 
-class LoopCollector : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
+class LoopLocations {
+  // list of file name and line number pairs
+  std::set<std::pair<string, unsigned>> locs;
+  int loop_nest_depth_;
+  public:
+  LoopLocations() : loop_nest_depth_(0) {}
+  LoopLocations(const LoopLocations &other) : locs(other.locs), 
+    loop_nest_depth_(other.loop_nest_depth_) { }
+  void addLoc(string filename, unsigned lineNo) { locs.insert(std::make_pair(filename, lineNo)); }
+  bool matches(SgNode* ast);
+  void incLevel() { loop_nest_depth_++; }
+  int getLoopLevel() {return loop_nest_depth_; }
+};
+class CollectedLoops {
+  std::set<SgForStatement*> collected;
+  int deepest_nest;
+  public:
+  CollectedLoops(): deepest_nest(0) {}
+  CollectedLoops(const CollectedLoops &other) : collected(other.collected), 
+    deepest_nest(other.deepest_nest) {}
+  void set(SgForStatement* loop, int nest_level);
+  void addAll(const CollectedLoops& loops) ;
+  bool isEmpty() { return collected.empty(); }
+  bool matches(SgForStatement* ast) { return collected.count(ast) > 0; }
+  int getLoopDepth() {return deepest_nest; }
+  void incLoopDepth() {deepest_nest++;}
+};
+
+class LoopCollector : public SgTopDownBottomUpProcessing<LoopLocations, CollectedLoops> {
+    virtual LoopLocations
+    evaluateInheritedAttribute(SgNode *astNode, LoopLocations inh_attr);
+    virtual CollectedLoops
+    evaluateSynthesizedAttribute(SgNode *astNode, LoopLocations inh_attr,
+                                 SubTreeSynthesizedAttributes syn_attr_list);
 };
 
 class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
@@ -85,6 +118,7 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     // string main_file_name;
     // std::pair<unsigned, unsigned> mainLineNumbers;
     std::set<std::pair<unsigned, unsigned>> extracted;
+    CollectedLoops collected_loops;
     vector<string> filenameVec;
 
   public:
@@ -151,8 +185,8 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     void collectAdjoiningLoops(SgStatement *loop);
     //  void getVarsInFunction();
 
-    bool skipLoop(SgNode *astNode);
-    void extractLoops(SgNode *astNode);
+    bool skipLoop(SgForStatement *astNode);
+    void extractLoops(SgForStatement *astNode);
     void extractFunctions(SgNode *astNode);
     void instrumentMain();
     virtual InheritedAttribute
