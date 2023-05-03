@@ -41,7 +41,6 @@ def compute_repetitions(stability):
 def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags):
-
     ''' Execute QAAS Running Logic: INITIAL PROFILING AND CLEANING'''
 
     # Setup binary
@@ -65,14 +64,14 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     if new_repetitions < 1:
         rc=-1
         error_msg='Stop profiling: execution times instable!'
-        return rc,error_msg
+        return rc,error_msg,0
 
     # Check execution in defined range
     median_value = basic_run.compute_median_exec_time()
     if median_value > MAX_ALLOWED_EXEC_TIME:
         rc=-1
         error_msg=f"ABORT: median execution time {median_value} greater than allowed {MAX_ALLOWED_EXEC_TIME}"
-        return rc,error_msg
+        return rc,error_msg,0
 
     # Check LProf overhead
     lprof_run = lprof_runner.exec(app_builder_env, orig_binary, maqao_dir, base_run_dir_orig, data_dir, run_cmd, 'both', "mpirun", 1)
@@ -94,4 +93,4 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     oneview_runner.exec(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, maqao_dir, ov_config, 'both', level=1, mpi_run_command="mpirun", mpi_num_processes=1)
     
     #print("Check performance anomalies like I/O time")
-    return 0,""
+    return 0,"",median_value
