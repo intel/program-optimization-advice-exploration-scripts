@@ -212,7 +212,7 @@ class QAASEnvProvisioner:
 
         cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
 
-        tar_cmd = f"'cd {ov_run_dir} && tar --ignore-failed-read -czvf {remote_gz_file} ./*/oneview_results*'"
+        tar_cmd = f"'cd {ov_run_dir} && tar --ignore-failed-read -czvf {remote_gz_file} $(find ./ -name \"oneview_results*\")' ../qaas_reports"
         rc, cmdout = cmd_runner.run_remote_cmd(tar_cmd)
         if rc != 0:
             return rc
