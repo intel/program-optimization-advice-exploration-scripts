@@ -47,7 +47,11 @@ mkdir -p gcc/gcc-${gccversion}/Linux/install/
 ln -s $(which gcc-11) gcc/gcc-${gccversion}/Linux/install/gcc
 ln -s $(which g++-11) gcc/gcc-${gccversion}/Linux/install/g++
 ln -s $(which gfortran-11) gcc/gcc-${gccversion}/Linux/install/gfortran
-echo "export PATH=/opt/compilers/gcc/gcc-${gccversion}/Linux/install:$PATH" >  gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "export PATH=/opt/compilers/gcc/gcc-${gccversion}/Linux/install:\$PATH" >  gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "source /opt/intel/oneapi/mkl/2023.1.0/env/vars.sh"                     >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "source /opt/intel/oneapi/mpi/2021.9.0/env/vars.sh"                     >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "source /opt/compilers/gcc/gcc-${gccversion}/Linux/intel64/load.sh"     >> intel/2023/Linux/intel64/load.sh
+echo "source /opt/compilers/gcc/gcc-${gccversion}/Linux/intel64/load.sh"     >> intel/2022/Linux/intel64/load.sh
 
 cd /opt/compilers
 if [[ "${ubuntu_version}" == "jammy" ]]; then
@@ -57,5 +61,9 @@ mkdir -p gcc/gcc-${gccversion}/Linux/install/
 ln -s $(which gcc-12) gcc/gcc-${gccversion}/Linux/install/gcc
 ln -s $(which g++-12) gcc/gcc-${gccversion}/Linux/install/g++
 ln -s $(which gfortran-12) gcc/gcc-${gccversion}/Linux/install/gfortran
-echo "export PATH=/opt/compilers/gcc/gcc-${gccversion}/Linux/install:$PATH" >  gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "export PATH=/opt/compilers/gcc/gcc-${gccversion}/Linux/install:\$PATH" >  gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "source /opt/intel/oneapi/mkl/2023.1.0/env/vars.sh"                     >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "source /opt/intel/oneapi/mpi/2021.9.0/env/vars.sh"                     >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "source /opt/compilers/gcc/gcc-${gccversion}/Linux/intel64/load.sh"     >> intel/2023/Linux/intel64/load.sh
+echo "source /opt/compilers/gcc/gcc-${gccversion}/Linux/intel64/load.sh"     >> intel/2022/Linux/intel64/load.sh
 fi
