@@ -18,6 +18,7 @@ from utils.util import parse_env_map
 from utils import qaas_message as qm
 from utils.comm import ServiceMessageSender
 from qaas_logic_initial_profile import run_initial_profile
+from qaas_logic_compile import compile_binaries as compile_all
 from qaas_logic_unicore import run_qaas_UP
 
 def run_demo_phase(to_backplane, src_dir, data_dir, ov_config, ov_run_dir, locus_run_root, compiler_dir, maqao_dir,
@@ -51,9 +52,9 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
 
     # Phase 2: Intial profiling and cleaning    
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Initail Profiling and Cleaning"))
-    #rc,msg = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
-    #                 orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-    #                 user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags)
+    rc,msg,median_orig = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
+                     orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
+                     user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags)
     rc=0
     if rc != 0: 
         to_backplane.send(qm.GeneralStatus(msg))
@@ -61,39 +62,26 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     to_backplane.send(qm.GeneralStatus("Done Initail Profiling and Cleaning!"))
 
 
-    # Phase 3.1: Parameter Exploration and Tuning    
+    # Phase 3.1: Parameter Exploration and Tuning
+    # Setup QaaS reports dir
+    qaas_reports_dir = os.path.join(os.path.dirname(base_run_dir), 'qaas_reports')
+    os.makedirs(qaas_reports_dir, exist_ok=True)
+
+    # First build all options
+    binaries_dir = os.path.join(os.path.dirname(base_run_dir), 'binaries')
+    compiled_options = compile_all(src_dir, binaries_dir, compiler_dir,
+                orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags,
+                user_link_flags, user_target, user_target_location, extra_cmake_flags)
+
+    # Start unicore runs
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Unicore Parameters Exploration/Tuning"))
-    rc,msg = run_qaas_UP(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
-                     orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-                     user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags)
+    rc,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
+                     orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, median_orig)
     if rc != 0: 
         to_backplane.send(qm.GeneralStatus(msg))
         return
     to_backplane.send(qm.GeneralStatus("Done Unicore Parameters Exploration/Tuning!"))
     return
-
-    to_backplane.send(qm.GeneralStatus("Start Phase 2: INITIAL PROFILING"))
-    to_backplane.send(qm.GeneralStatus("Start S2.1"))
-    to_backplane.send(qm.GeneralStatus("Done S2.1"))
-
-    to_backplane.send(qm.GeneralStatus("Start S2.2"))
-    to_backplane.send(qm.GeneralStatus("Done S2.2"))
-
-    to_backplane.send(qm.GeneralStatus("Start S2.3"))
-    to_backplane.send(qm.GeneralStatus("Done S2.3"))
-
-    to_backplane.send(qm.GeneralStatus("Start S2.4"))
-    to_backplane.send(qm.GeneralStatus("Done S2.4"))
-
-    to_backplane.send(qm.GeneralStatus("Start S2.5"))
-    to_backplane.send(qm.GeneralStatus("Done S2.5"))
-    to_backplane.send(qm.GeneralStatus("Done Phase 2: INITIAL PROFILING"))
-
-    to_backplane.send(qm.GeneralStatus("Start Phase 3: PARAMETER EXPLORATION/TUNING"))
-    to_backplane.send(qm.GeneralStatus("Done Phase 3: PARAMETER EXPLORATION/TUNING"))
-
-    to_backplane.send(qm.GeneralStatus("Start UP"))
-    to_backplane.send(qm.GeneralStatus("Done UP"))
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Run a job at the machine in a container.')
