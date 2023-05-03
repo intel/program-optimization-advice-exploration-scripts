@@ -80,6 +80,7 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
     # Delete original flags varied by QaaS
     qaas_flags = " ".join(set(" ".join(compiler_flags['flags']).split(' ')))
     qaas_flags = app_builder.map_compiler_flags(compiler_flags['reference_compiler'], user_CC, qaas_flags)
+    print(f"qaas_flags={qaas_flags}")
     filtered_c_flags = filter_original_flags(user_c_flags, qaas_flags) if user_c_flags else ""
     filtered_cxx_flags = filter_original_flags(user_cxx_flags, qaas_flags) if user_cxx_flags else ""
     filtered_fc_flags = filter_original_flags(user_fc_flags, qaas_flags) if user_fc_flags else ""
@@ -90,9 +91,11 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
     for compiler in compiler_flags['compilers']:
         app_envs[compiler] = []
         for option in range(len(options)):
-            # Update flags
+            # Set target compiler
             target_CC = f"{mpi_wrapper}-{compiler}" if mpi_wrapper else compiler
+            # Covert QaaS flags with respect to user_CC (user provided)
             mapped_flags = app_builder.map_compiler_flags(compiler_flags['reference_compiler'], user_CC, options[option])
+            # Combine QaaS, debug and user provided flags in one set
             update_c_flags = f"{filtered_c_flags} {mapped_flags} {debug_options}" if filtered_c_flags else ""
             update_cxx_flags = f"{filtered_cxx_flags} {mapped_flags} {debug_options}" if filtered_cxx_flags else ""
             update_fc_flags = f"{update_fc_flags} {mapped_flags} {debug_options}" if filtered_fc_flags else ""
@@ -115,6 +118,7 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
                                        orig_user_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
                                        user_link_flags, user_target, user_target_location, 'make', extra_cmake_flags, f"{compiler}_{index}", app_builder_env)
             # Add current env to list
-            app_envs[compiler].append((orig_binary, app_builder_env, mapped_flags))
+            target_CC_flags = app_builder.map_compiler_flags(user_CC, target_CC, mapped_flags)
+            app_envs[compiler].append((orig_binary, app_builder_env, target_CC_flags))
 
     return app_envs
