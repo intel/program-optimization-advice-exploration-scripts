@@ -118,7 +118,7 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
                                        orig_user_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
                                        user_link_flags, user_target, user_target_location, 'make', extra_cmake_flags, f"{compiler}_{index}", app_builder_env)
             # Add current env to list
-            target_CC_flags = app_builder.map_compiler_flags(user_CC, target_CC, mapped_flags)
+            target_CC_flags = app_builder.map_compiler_flags(user_CC, compiler, mapped_flags)
             app_envs[compiler].append((orig_binary, app_builder_env, target_CC_flags))
 
     return app_envs
