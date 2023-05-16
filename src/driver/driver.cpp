@@ -87,7 +87,7 @@ void Driver::initiateExtractor(string file_name) {
     /* Initialize the Tracer class which is used later to save codelet data */
     // tr = new Tracer();
     //extr = new Extractor(filename_vec, tr);
-    extr = new Extractor(filename_vec);
+    extr = Extractor::createExtractor(LoopExtractor_mode, filename_vec);
     scanLineNumbers(file_name);
     //tr->setFilenameVec(filename_vec);
     extr->do_extraction();
@@ -109,10 +109,8 @@ void Driver::initiateExtractor(string file_name) {
 /* Start codelet generation process */
 //void Driver::generateCodelets() { tr->initTracing(); }
 
-void Driver::scanOneLine(ifstream& csvfile, string& filename, int& firstLineNum, int& lastLineNum) {
-    string line;
-    getline(csvfile, line);
-    cout << line << endl;
+void Driver::scanOneLine(const string& line, string& filename, int& firstLineNum, int& lastLineNum) {
+    // cout << line << endl;
     string::size_type prev_pos = 0, pos = 0;
     string separator = ",";
     pos = line.find(separator, pos);
@@ -133,29 +131,27 @@ void Driver::scanOneLine(ifstream& csvfile, string& filename, int& firstLineNum,
  * Line numbers are saved in Tracer::lineNumbers pair
  */
 void Driver::scanLineNumbers(string loopFileName) {
-    cout << "Opening a csv file!" << endl;
-    ifstream csvfile(LoopExtractor_data_folder_path+forward_slash_str+LoopExtractor_extract_src_info_csv);
-    int firstLineNum = 0, lastLineNum = 0;
+    string csv_filename = LoopExtractor_data_folder_path+forward_slash_str+LoopExtractor_extract_src_info_csv;
+    cout << "Opening csv file ("<< csv_filename <<") for target loop list." << endl;
+    ifstream csvfile(csv_filename);
     if (csvfile.is_open()) {
-        string checkFileName;
-        cout << "csv file is open!" << endl;
-        scanOneLine(csvfile, checkFileName, firstLineNum, lastLineNum);
-        cout << "RESULT of parsing: " << checkFileName << ";" << firstLineNum
-             << "-" << lastLineNum << endl;
-        //tr->lineNumbers =
-        //    std::pair<unsigned, unsigned>(firstLineNum, lastLineNum);
-        extr->setTargetLineNumbers(checkFileName, firstLineNum, lastLineNum);
-        /*
-        string mainFileName;
-        scanOneLine(csvfile, mainFileName, firstLineNum, lastLineNum);
-        cout << "Main file and line numbers:" << mainFileName << ":" << firstLineNum << "," << lastLineNum << endl;
-        extr->setMainInfo(mainFileName, firstLineNum, lastLineNum);
-        */
+        //cout << "csv file is open!" << endl;
+        string line;
+        while(getline(csvfile, line)) {
+            int firstLineNum = 0, lastLineNum = 0;
+            string checkFileName;
+            scanOneLine(line, checkFileName, firstLineNum, lastLineNum);
+            /*
+            cout << "Target loop at: " << checkFileName << ";" << firstLineNum
+                << "-" << lastLineNum << endl;
+            */
+            extr->addTargetLineNumbers(checkFileName, firstLineNum, lastLineNum);
+        }
         csvfile.close();
     } else
         cout << "CSV FILE WASN'T OPENED!!!";
 
-    cout << "Exiting scanLineNumbers" << endl;
+    //cout << "Exiting scanLineNumbers" << endl;
 }
 
 int main(int argc, char *argv[]) {

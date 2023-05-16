@@ -66,7 +66,7 @@ if (BUILD_TRACE)
     if (LIB_LIST)
         target_link_libraries($trace_binary \${LIB_LIST})
     endif()
-    target_link_libraries($trace_binary cere_dump)
+    target_link_libraries($trace_binary $extra_libs)
 endif()
 
 ##if (BUILD_TRACE OR BUILD_SAVE)

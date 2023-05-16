@@ -63,7 +63,7 @@ enum class ParamPassingStyle {
 };
 
 /* For the tracer */
-std::string parseFileName(std::string *fullName);
+std::string parseFileName(const std::string *fullName);
 
 extern string space_str;
 extern string forward_slash_str;

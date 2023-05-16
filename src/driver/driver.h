@@ -37,7 +37,7 @@ public:
     // void generateCodelets();
     // void dumpExtrLoopInfo();
     void scanLineNumbers(string loopFileName);
-    void scanOneLine(ifstream& csvfile, string& filename, int& firstLine, int& lastLine);
+    void scanOneLine(const string& line, string& filename, int& firstLine, int& lastLine);
 };
 
 #endif
