@@ -517,10 +517,8 @@ void TypeDeclTraversal::visit(SgNode * n) {
                 add_decl(SageBuilder::buildTypedefDeclaration(typedef_name.getString(), ct, global_scope));
                 this->visit_if_namedtype(bt);
             } else {
-                cout << "visiting: " << typedef_name.getString() << endl;
                 this->visit_if_namedtype(bt);
                 add_decl(type_def_decl);
-                cout << "visited: " << typedef_name.getString() << endl;
             }
         }
     } else if (SgClassDeclaration* class_decl = isSgClassDeclaration(n)) {
@@ -635,7 +633,7 @@ void CallTraversal::visit(SgNode * n) {
                     }
                 }
             }
-        }
+        } 
     }
 }
 
@@ -863,65 +861,17 @@ void LoopInfo::printLoopFunc(string outfile_name) {
     for (SgType* type : call_traversal.get_type_v()) {
         decl_traversal.visit_if_namedtype(type); 
     }
-
-    /*
-    Rose_STL_Container<SgNode *> expList = NodeQuery::querySubTree(loop, V_SgExpression);
-    for (Rose_STL_Container<SgNode*>::iterator iter = expList.begin(); iter !=expList.end(); iter ++) {
-        SgExpression* exp = isSgExpression(*iter);
-        decl_traversal.visit_if_namedtype(exp->get_type()); 
-    }
-    /*/
-    // also consider initializer in static global variables
-    /*
-    for (SgVariableDeclaration* var_decl : call_traversal.get_global_decl_v()) {
-        if (!SageInterface::isStatic(var_decl))
-            continue;  // skip if not static
-        for (SgInitializedName* in : var_decl->get_variables()) {
-            assert (in->get_name() == gvar->get_name());
-            for (SgNode* n : NodeQuery::querySubTree(in->get_initializer(), V_SgExpression)) {
-                decl_traversal.visit_if_namedtype(isSgExpression(n)->get_type()); 
-            }
-        }
-    }
-    */
-    /*
-    for (SgInitializedName* gvar : global_vars_initName_vec) {
-        SgVariableDeclaration* var_decl = isSgVariableDeclaration(gvar->get_declaration());
-        if (!SageInterface::isStatic(var_decl))
-            continue;  // skip if not static
-        for (SgInitializedName* in : var_decl->get_variables()) {
-            assert (in->get_name() == gvar->get_name());
-            for (SgNode* n : NodeQuery::querySubTree(in->get_initializer(), V_SgExpression)) {
-                decl_traversal.visit_if_namedtype(isSgExpression(n)->get_type()); 
-            }
-        }
-    }
-    */
-    
-    //for(type_decls_iter=type_decls_v.begin(); type_decls_iter != type_decls_v.end(); type_decls_iter++) {
     type_decls_needed = decl_traversal.get_type_decl_v();
 
     vector<SgDeclarationStatement*>::iterator type_decls_iter;
     //for(type_decls_iter=type_decls_needed.begin(); type_decls_iter != type_decls_needed.end(); type_decls_iter++) {
-    int ii=0;
     for(auto decl : type_decls_needed) {
-        ii ++;
-        /*
-        if (ii < 88)
-            continue;
-        if (ii >= 90)
-            break;
-        */
         SgDeclarationStatement* type_decl = isSgDeclarationStatement(SageInterface::deepCopy(decl));
 
         // Don't want the extra #include from original file
         //cout << decl->unparseToString() << endl;
         type_decl->set_attachedPreprocessingInfoPtr(NULL);
 
-        if(SgTypedefDeclaration* typedef_decl = isSgTypedefDeclaration(type_decl)) {
-            cout << "ADD TYPE:" << typedef_decl->get_name().getString() << "("<< typedef_decl<<")" << endl;
-            cout << "ADD TYPE0:" << isSgTypedefDeclaration(decl)->get_name().getString() << "("<< decl<<")" << endl;
-        }
         for (SgNode* tn : NodeQuery::querySubTree(type_decl, V_SgClassDefinition)) {
             SgClassDefinition* class_defn = isSgClassDefinition(tn);
             cout << "FIXING: " << class_defn->get_mangled_name().getString() << "(" << class_defn<<")"<< endl;
@@ -959,104 +909,8 @@ void LoopInfo::printLoopFunc(string outfile_name) {
                 decl_stmt->get_declarationModifier().get_typeModifier().set_gnu_attribute_alignment(alignment);
         }
 
-
-	#if 0
-        if(SgTypedefDeclaration* typedef_decl = isSgTypedefDeclaration(type_decl)) {
-          //if (typedef_decl->get_name().getString()== "x264_param_t") {
-          if (true) {
-            //SgDeclarationStatement* debug_type_decl = isSgDeclarationStatement(SageInterface::deepCopy(decl));
-            SgTypedefDeclaration *td = isSgTypedefDeclaration(decl);
-            SgTypedefDeclaration *ctd = isSgTypedefDeclaration(type_decl);
-            if (SgClassDeclaration* bclass_decl = isSgClassDeclaration(td->get_baseTypeDefiningDeclaration())) {
-                SgSymbolTable::BaseHashType* internalTable = bclass_decl->get_definition()->get_symbol_table()->get_table();
-                SgSymbolTable::hash_iterator i = internalTable->begin();
-                while (i != internalTable->end()) {
-                    SgSymbol* symbol = isSgSymbol((*i).second);
-                    cout << "SYM:" << symbol->get_name().getString() << endl;
-                    i++;
-                }
-
-                for (SgDeclarationStatement* mdecl : bclass_decl->get_definition()->get_members()) {
-                    if (SgVariableDeclaration* vdecl = isSgVariableDeclaration(mdecl)) {
-                        for (SgInitializedName* in : vdecl->get_variables()) {
-                            if (SgNamedType* nt = isSgNamedType(in->get_type())) {
-                                if (SgClassDeclaration* ctd = isSgClassDeclaration(nt->get_declaration())) {
-                                    in->unparseToString();
-                                }
-                            }
-                        }
-
-                    }
-
-                }
-
-                SgClassDeclaration* bclass_decl1 = isSgClassDeclaration(ctd->get_baseTypeDefiningDeclaration());
-
-
-                SgSymbolTable* the_symtable = bclass_decl1->get_definition()->get_symbol_table();
-                SgSymbolTable::BaseHashType* internalTable1 = the_symtable->get_table();
-                SgSymbolTable::hash_iterator i1 = internalTable1->begin();
-                vector<SgSymbol*> syms_to_remove;
-                while (i1 != internalTable1->end()) {
-                    SgSymbol* symbol = isSgSymbol((*i1).second);
-                    if (symbol->get_name().getString().substr(0,14) == "__anonymous_0x") {
-                        // fix the symbol tble as deepcopy somehow added extra anonymous class symbols
-                        syms_to_remove.push_back(symbol);
-                    }
-                    i1++;
-                }
-                for (SgSymbol* rs : syms_to_remove) { 
-                    cout << "Removing ANONYMOUS SYM:" << rs->get_name().getString() << endl;
-                    the_symtable->remove(rs);
-                    delete rs;
-                }
-
-                for (SgDeclarationStatement* mdecl : bclass_decl1->get_definition()->get_members()) {
-                    if (SgVariableDeclaration* vdecl = isSgVariableDeclaration(mdecl)) {
-                        for (SgInitializedName* in : vdecl->get_variables()) {
-                            if (SgNamedType* nt = isSgNamedType(in->get_type())) {
-                                if (SgClassDeclaration* ctd = isSgClassDeclaration(nt->get_declaration())) {
-                                    in->unparseToString();
-                                }
-                            }
-                        }
-
-                    }
-                }
-            }
-          }
-          //if (typedef_decl->get_name().getString()== "x264_weight_t") {
-            SgTypedefDeclaration *td = isSgTypedefDeclaration(decl);
-            if (SgClassDeclaration* bclass_decl = isSgClassDeclaration(td->get_baseTypeDefiningDeclaration())) {
-                std::map<SgName,int> name_to_gnu_attribute_alignment;
-
-                for (SgDeclarationStatement* mdecl : bclass_decl->get_definition()->get_members()) {
-                    name_to_gnu_attribute_alignment[mdecl->get_mangled_name()] = 
-                        mdecl->get_declarationModifier().get_typeModifier().get_gnu_attribute_alignment();
-                }
-
-                SgTypedefDeclaration *ctd = isSgTypedefDeclaration(type_decl);
-                SgClassDeclaration* bclass_decl1 = isSgClassDeclaration(ctd->get_baseTypeDefiningDeclaration());
-                for (SgDeclarationStatement* mdecl : bclass_decl1->get_definition()->get_members()) {
-                    SgName name = mdecl->get_mangled_name();
-                    int alignment = name_to_gnu_attribute_alignment[name];
-                    if (alignment> -1) {
-                        mdecl->get_declarationModifier().get_typeModifier().set_gnu_attribute_alignment(alignment);
-                    }
-                }
-                type_decl->get_declarationModifier().get_typeModifier().set_gnu_attribute_alignment
-                    (decl->get_declarationModifier().get_typeModifier().get_gnu_attribute_alignment());
-
-
-                SgClassType* bt = isSgClassType(typedef_decl->get_base_type());
-                cout << "BT: " << bt->unparseToString() << endl;
-                cout << "TBT: " << typedef_decl->unparseToString() << endl;
-            }
-          //}
-        }
-    #endif
-
         SgSymbol* type_decl_sym = type_decl->get_symbol_from_symbol_table();
+        static int iii=0;
         if (type_decl_sym == NULL) {
             SgSymbol* decl_sym = decl->get_symbol_from_symbol_table();
             SgSymbol* type_decl_sym1 = type_decl->get_symbol_from_symbol_table();
@@ -1069,7 +923,17 @@ void LoopInfo::printLoopFunc(string outfile_name) {
                     nondefdecl->set_scope(glb_loop_src);
                     glb_loop_src->insert_symbol(class_decl->get_name(), new SgClassSymbol(nondefdecl));
                 } else if (SgEnumDeclaration* enum_decl = isSgEnumDeclaration(type_decl)) {
-                    glb_loop_src->insert_symbol(enum_decl->get_name(), new SgEnumSymbol(enum_decl));
+                    iii++;
+                    //glb_loop_src->insert_symbol(enum_decl->get_name(), new SgEnumSymbol(enum_decl));
+                    //glb_loop_src->insert_symbol("foo"+iii, new SgEnumSymbol(enum_decl));
+                    SgEnumDeclaration* new_type_decl = SageBuilder::buildEnumDeclaration(enum_decl->get_name(), glb_loop_src);
+                    for (SgInitializedName* in : enum_decl->get_enumerators()) {
+                        in->unparseToString();
+                        SgInitializedName* new_in = SageInterface::deepCopy(in);
+                        new_in->set_scope(glb_loop_src);
+                        new_type_decl->append_enumerator(new_in);
+                    }
+                    type_decl = new_type_decl;
                 } else {
                     assert(false);  // unexpected case
                 }
@@ -1083,17 +947,76 @@ void LoopInfo::printLoopFunc(string outfile_name) {
     }
 
     for (auto const& fn_decl : call_traversal.get_fn_decl_s()) {
-        auto fn_decl_copy = SageInterface::deepCopy(fn_decl);
+        SgFunctionDeclaration* fn_decl_copy = NULL;
+        if (fn_decl->get_name().getString () == "__builtin_assume_aligned") {
+            continue;
+            SgType* ret_type = fn_decl->get_orig_return_type();
+            auto args = fn_decl->get_args();
+            SgType* void_star_type = SageBuilder::buildPointerType(SageBuilder::buildVoidType()); // void* type
+            SgFunctionParameterList *paramList = SageBuilder::buildFunctionParameterList(
+                SageBuilder::buildInitializedName("ptr", SageBuilder::buildPointerType(SageBuilder::buildConstType(SageBuilder::buildVoidType()))),
+                SageBuilder::buildInitializedName("N", SageInterface::lookupNamedTypeInParentScopes("size_t", glb_loop_src))
+            );
+            SgType* new_ret_type = void_star_type;
+            fn_decl_copy = SageBuilder::buildNondefiningFunctionDeclaration(fn_decl->get_name(), new_ret_type, paramList, glb_loop_src);  
+        } else {
+            fn_decl_copy = SageInterface::deepCopy(fn_decl);
+        }
+        /*
+            continue; // skip builtin function.
+        }
+        */
         SageInterface::appendStatement(fn_decl_copy, glb_loop_src);
     }
     for (auto const& fn_defn : call_traversal.get_fn_defn_v()) {
         // std::cout << fn_defn->unparseToString() << std::endl;
         auto fn_defn_copy = SageInterface::deepCopy(fn_defn);
+        #if 0
+        for (SgNode* n : NodeQuery::querySubTree(fn_defn_copy, V_SgFunctionRefExp)) {
+            if(SgFunctionRefExp* fn_ref = isSgFunctionRefExp(n)) {
+                SgFunctionDeclaration* fn_decl = fn_ref->getAssociatedFunctionDeclaration();
+                if (fn_decl->get_name().getString() == "__builtin_assume_aligned") {
+                    // replace this by new decl
+                    SgFunctionRefExp* new_fn_ref = SageBuilder::buildFunctionRefExp
+                        ("__builtin_assume_aligned", glb_loop_src);
+                    SageInterface::replaceExpression(fn_ref, new_fn_ref);
+                    fn_decl->unparseToString();
+
+                }
+            }
+        }
+        #endif
+        for (SgNode* n : NodeQuery::querySubTree(fn_defn_copy, V_SgFunctionCallExp)) {
+            if(SgFunctionCallExp* fn_call = isSgFunctionCallExp(n)) {
+                SgFunctionDeclaration* fn_decl = fn_call->getAssociatedFunctionDeclaration();
+                if (!fn_decl) 
+                    continue; // call cannot be determined, skip
+                if (fn_decl->get_name().getString() == "__builtin_assume_aligned") {
+                    // replace this by new decl
+                    SgExprListExp* expr_list = SageBuilder::buildExprListExp();
+                    for(SgExpression* arg : fn_call->get_args()->get_expressions()) {
+                        //cout << "ARG:"  << arg->unparseToString() << end;
+                        expr_list->append_expression(SageInterface::deepCopy(arg));
+                    }
+                    SgType* void_star_type = SageBuilder::buildPointerType(SageBuilder::buildVoidType()); // void* type
+                    SgFunctionCallExp* new_fn_call = SageBuilder::buildFunctionCallExp
+                        ("__builtin_assume_aligned", void_star_type, expr_list, glb_loop_src);
+                    SageInterface::replaceExpression(fn_call, new_fn_call);
+                    fn_decl->unparseToString();
+
+                }
+            }
+        }
+
+
+        // remove extra preprocessing info first before putting the guard which is preprocessing info
+        fn_defn_copy->set_attachedPreprocessingInfoPtr(NULL);
         // only guard for those non-static function (where they are imported from outside)
         if (!SageInterface::isStatic(fn_defn_copy)) {
             SageInterface::guardNode(fn_defn_copy, RESTORE_GUARD_NAME);
+        } else {
+            cout << "NO GUARD" << fn_defn_copy << endl;
         }
-        fn_defn_copy->set_attachedPreprocessingInfoPtr(NULL);
         SageInterface::appendStatement(fn_defn_copy, glb_loop_src);
     }
     SgFunctionDeclaration *fn_decl = this->addLoopFuncDefnDecl(glb_loop_src);
@@ -1389,24 +1312,57 @@ void InvitroExtractor::generateBasePostLoop(SgScopeStatement* loop_scope, SgExpr
 /* Replaces the loop subtree with a function call to corresponding loop function
  */
 void LoopInfo::addLoopFuncCall() {
-    vector<SgVariableSymbol *>::iterator iter;
+
+
+    SgName func_name = getFuncName();
+    vector<SgExprStatement*> copy_reg_stmts;
+    vector<SgExprStatement*> update_reg_stmts;
     vector<SgExpression *> expr_list;
-    for (iter = scope_vars_symbol_vec.begin();
-         iter != scope_vars_symbol_vec.end(); iter++) {
+    for (SgVariableSymbol* arg_sym : scope_vars_symbol_vec) {
         SgExpression *arg_exp = NULL;
-        SgType *arg_type = (*iter)->get_type();
+        SgType *arg_type = arg_sym->get_type();
+        SgInitializedName* arg_in = arg_sym->get_declaration();
+
 
         ParamPassingStyle style = getPassingStyle(arg_type, extr->getSrcType());
 
-        arg_exp = (SageBuilder::buildVarRefExp((*iter)));
-        if (style == ParamPassingStyle::POINTER)
-            arg_exp = (SageBuilder::buildAddressOfOp(arg_exp));
-        // no extra work for direct and reference type
+
+        if (style == ParamPassingStyle::POINTER || style == ParamPassingStyle::REFERENCE) {
+
+            if (arg_in->get_declaration()->get_declarationModifier().get_storageModifier().isRegister()) {
+                // register variable, need to copy to regular variable first
+                SgName new_var_name (arg_in->get_name().getString() + "_"+func_name); 
+
+                SageInterface::prependStatement(
+                    SageBuilder::buildVariableDeclaration_nfi(new_var_name, arg_in->get_type(), NULL, arg_in->get_scope()), 
+                    arg_in->get_scope());
+
+                copy_reg_stmts.push_back(SageBuilder::buildExprStatement(
+                    SageBuilder::buildAssignOp(
+                        SageBuilder::buildVarRefExp(new_var_name, arg_in->get_scope()),
+                        SageBuilder::buildVarRefExp(arg_in->get_name(), arg_in->get_scope()))));
+
+                update_reg_stmts.push_back(SageBuilder::buildExprStatement(
+                    SageBuilder::buildAssignOp(
+                        SageBuilder::buildVarRefExp(arg_in->get_name(), arg_in->get_scope()), 
+                        SageBuilder::buildVarRefExp(new_var_name, arg_in->get_scope()))));
+
+                // use new copied variable
+                arg_exp = (SageBuilder::buildVarRefExp(new_var_name, arg_in->get_scope()));
+            } else {
+                arg_exp = (SageBuilder::buildVarRefExp(arg_sym));
+            }
+            if (style == ParamPassingStyle::POINTER)
+                arg_exp = (SageBuilder::buildAddressOfOp(arg_exp));
+            // no extra work for reference type
+        } else {
+            // no extra work for direct 
+            arg_exp = (SageBuilder::buildVarRefExp(arg_sym));
+        }
 
         ROSE_ASSERT(arg_exp != NULL);
         expr_list.push_back(arg_exp);
     }
-    SgName func_name = getFuncName();
     SgFunctionCallExp *call_expr = SageBuilder::buildFunctionCallExp(
         func_name, SageBuilder::buildVoidType(),
         SageBuilder::buildExprListExp(expr_list), loop_scope);
@@ -1507,6 +1463,38 @@ void LoopInfo::addLoopFuncCall() {
 
     // END Add save stuff here
     SageInterface::replaceStatement(loop, call_expr_stmt, true);
+
+
+    for (SgExprStatement* copy_reg_stmt : copy_reg_stmts) {
+        SageInterface::insertStatementBefore(call_expr_stmt, copy_reg_stmt);
+    }
+    for (SgExprStatement* update_reg_stmt : update_reg_stmts) {
+        SageInterface::insertStatementAfter(call_expr_stmt, update_reg_stmt);
+    }
+    #if 0
+    for (SgInitializedName* in : scope_vars_initName_vec) {
+        if (in->get_declaration()->get_declarationModifier().get_storageModifier().isRegister()) {
+            // register operands, need to copy in and copy out
+            SgName new_var_name (in->get_name().getString() + "_"+func_name); 
+
+            SageInterface::prependStatement(
+                SageBuilder::buildVariableDeclaration_nfi(new_var_name, in->get_type(), NULL, in->get_scope()), 
+                in->get_scope());
+
+            SgExprStatement* save_reg_stmt = SageBuilder::buildExprStatement(
+                SageBuilder::buildAssignOp(
+                    SageBuilder::buildVarRefExp(new_var_name, in->get_scope()),
+                    SageBuilder::buildVarRefExp(in->get_name(), in->get_scope())));
+
+            SgExprStatement* update_reg_stmt = SageBuilder::buildExprStatement(
+                SageBuilder::buildAssignOp(
+                    SageBuilder::buildVarRefExp(in->get_name(), in->get_scope()), 
+                    SageBuilder::buildVarRefExp(new_var_name, in->get_scope())));
+            SageInterface::insertStatementBefore(call_expr_stmt, save_reg_stmt);
+            SageInterface::insertStatementAfter(call_expr_stmt, update_reg_stmt);
+        }
+    }
+    #endif
 
 
     extr->generateBasePreLoop(loop_scope, call_expr_stmt, this, scope_vars_initName_vec);

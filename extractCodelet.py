@@ -207,6 +207,8 @@ class Extraction(ABC):
         #source_file = os.path.join(src_dir, source_path)
         nullMask = profile_df['source_full_path'].isnull() | profile_df['line'].isnull()
         profile_df = profile_df[~nullMask]
+        profile_df = profile_df[['source_full_path','line','self_time']].groupby(['source_full_path', 'line'],as_index=False).sum()
+        profile_df = profile_df.sort_values(by='self_time', ascending=False)
 
         # Exclude some rows
         if False:
@@ -337,6 +339,7 @@ class Extraction(ABC):
         #mockup_profile_csv = '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/168-238-9156/profile_data/profile.csv'
         mockup_profile_csvs = {'./clover_leaf': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-clover_leaf.csv', 
                             './525.x264_r --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-525.csv',
+                            './538.imagick_r -limit disk 0 train_input.tga -resize 320x240 -shear 31 -edge 140 -negate -flop -resize 900x900 -edge 10 train_output.tga': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-538.csv',
                             './bt.c_compute_rhs_line1892_0':'/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-bt.csv'}
         #mockup_profile_csvs = {}
         adv_env = load_advisor_env()
@@ -531,6 +534,8 @@ def main():
 
     # TODO: mark these command line arguments
     binary='525.x264_r'
+    binary='538.imagick_r'
+    binary='519.lbm_r'
     #binary='clover_leaf'
     #binary='bt.c_compute_rhs_line1892_0'
     if binary == '525.x264_r':
@@ -544,6 +549,26 @@ def main():
         app_data_file=os.path.join(prefix, 'SPEC2017/benchmark/benchspec/CPU/525.x264_r/run/run_base_test_myTest.0000/BuckBunny.yuv')
 
         app_flags = ' --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720'
+    elif binary == '538.imagick_r':
+        cmakelist_dir=os.path.join(prefix, 'SPEC2017/llvm-test-suite')
+        src_dir=os.path.join(prefix, 'SPEC2017/benchmark')
+        cmake_flags = f'-DTEST_SUITE_SUBDIRS=External/SPEC/CFP2017rate -DTEST_SUITE_SPEC2017_ROOT={src_dir} -DCMAKE_C_COMPILER=icx -DCMAKE_C_FLAGS="-g -DSPEC" -DCMAKE_CXX_FLAGS="-g -DSPEC" -DTEST_SUITE_COLLECT_CODE_SIZE=OFF'
+        #cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
+        #cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g"'
+
+        app_data_file=os.path.join(prefix, 'SPEC2017/benchmark/benchspec/CPU/538.imagick_r/run/run_base_train_myTest.0000/train_input.tga')
+
+        app_flags = ' -limit disk 0 train_input.tga -resize 320x240 -shear 31 -edge 140 -negate -flop -resize 900x900 -edge 10 train_output.tga'
+    elif binary == '519.lbm_r':
+        cmakelist_dir=os.path.join(prefix, 'SPEC2017/llvm-test-suite')
+        src_dir=os.path.join(prefix, 'SPEC2017/benchmark')
+        cmake_flags = f'-DTEST_SUITE_SUBDIRS=External/SPEC/CFP2017rate -DTEST_SUITE_SPEC2017_ROOT={src_dir} -DCMAKE_C_COMPILER=icx -DCMAKE_C_FLAGS="-g -DSPEC" -DCMAKE_CXX_FLAGS="-g -DSPEC" -DTEST_SUITE_COLLECT_CODE_SIZE=OFF'
+        #cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
+        #cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g"'
+
+        app_data_file=os.path.join(prefix, 'SPEC2017/benchmark/benchspec/CPU/519.lbm_r/run/run_base_train_myTest.0000/100_100_130_cf_b.of')
+
+        app_flags = ' 300 reference.dat 0 1 100_100_130_cf_b.of'
     elif binary == 'clover_leaf':
         cmakelist_dir=os.path.join(prefix,'CloverLeaf')
         cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
