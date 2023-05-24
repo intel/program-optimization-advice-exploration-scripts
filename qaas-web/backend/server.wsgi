@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, "/var/www/html/backend")
+sys.path.insert(0, '/var/www/html/backend')
 
 from server import create_app
 import configparser
