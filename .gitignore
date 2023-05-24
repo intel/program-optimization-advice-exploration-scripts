@@ -5,3 +5,6 @@
 container/pocc*
 qaas-web/backend/venv
 qaas-web/frontend/public/otter_html
+qaas-web/frontend/node_modules/
+qaas-web/frontend/package-lock.json
+qaas-web/frontend/dist/

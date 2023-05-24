@@ -1,55 +1,44 @@
 {
-  "name": "ov-app",
-  "version": "0.1.0",
-  "private": true,
+  "name": "ov_frontend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack-dev-server .",
+    "build": "webpack ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.21.0",
+    "@babel/core": "^7.21.4",
+    "@babel/preset-env": "^7.21.4",
+    "@babel/preset-react": "^7.18.6",
+    "babel-loader": "^9.1.2",
+    "copy-webpack-plugin": "^11.0.0",
+    "css-loader": "^6.7.3",
+    "dotenv": "^16.0.3",
+    "dotenv-webpack": "^8.0.1",
+    "html-webpack-plugin": "^5.5.1",
+    "style-loader": "^3.3.2",
+    "webpack": "^5.80.0",
+    "webpack-cli": "^5.0.2",
+    "webpack-dev-server": "^4.13.3"
+  },
   "dependencies": {
-    "@emotion/react": "^11.10.4",
-    "@emotion/styled": "^11.10.4",
-    "@mui/icons-material": "^5.10.14",
-    "@mui/material": "^5.10.3",
-    "@mui/styled-engine": "^5.10.3",
-    "@mui/x-data-grid": "^5.17.7",
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.3.0",
-    "@testing-library/user-event": "^13.5.0",
-    "await": "^0.2.6",
-    "axios": "^0.27.2",
-    "colormap": "^2.3.2",
+    "@emotion/react": "^11.10.6",
+    "@emotion/styled": "^11.10.6",
+    "@mui/material": "^5.12.2",
+    "@mui/styled-engine": "^5.12.0",
+    "axios": "^1.3.6",
+    "fs": "^0.0.1-security",
+    "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-iframe": "^1.8.0",
-    "react-listbox": "^1.2.13",
-    "react-router-dom": "^6.4.3",
-    "react-scripts": "5.0.1",
-    "react-split-pane": "^0.1.92",
-    "react-step-progress-bar": "^1.0.3",
-    "socket.io-client": "^4.5.3",
-    "web-vitals": "^2.1.4"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "proxy": "http://127.0.0.1:5002",
-  "homepage": "http://localhost:3000"
+    "react-icons": "^4.8.0",
+    "react-router-dom": "^6.10.0",
+    "react-table": "^7.8.0",
+    "react-table-6": "^6.11.0"
+  }
 }
