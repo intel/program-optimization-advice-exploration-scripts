@@ -19,17 +19,17 @@ file(GLOB remove_srcs "$orig_src_path")
 list(REMOVE_ITEM SRC_LIST_ABS \${remove_srcs})
 #end for
 
-message("\${SRC_LIST_ABS}")
+\# message("\${SRC_LIST_ABS}")
 \# Below will build some object libraries for each source folder.
 #set $num_obj_libs = len($orig_src_folders)
 #set $zf = len(str($num_obj_libs - 1))
-#set $libnames = [f'lib_{str(i).zfill(zf)}' for i in range(0, $num_obj_libs)]
+#set $libnames = [$trace_binary+f'_lib_{str(i).zfill(zf)}' for i in range(0, $num_obj_libs)]
 
 #for $lib_name, $orig_src_folder in zip($libnames, $orig_src_folders)
 \# $lib_name : $orig_src_folder
 #end for
 
-if (BUILD_TRACE OR BUILD_SAVE)
+if (BUILD_TRACE_$trace_binary OR BUILD_SAVE_$trace_binary)
 #for $lib_name in $libnames
     add_library($lib_name OBJECT) 
 #end for
@@ -44,7 +44,7 @@ if (BUILD_TRACE OR BUILD_SAVE)
 #end for
 
 #for $lib_name, $orig_src_folder in zip($libnames, $orig_src_folders)
-    target_include_directories($lib_name PRIVATE $orig_src_folder extractor_include)
+    target_include_directories($lib_name BEFORE PRIVATE $orig_src_folder extractor_include)
 #end for
 
     if (INC_LIST)
@@ -52,11 +52,16 @@ if (BUILD_TRACE OR BUILD_SAVE)
         target_include_directories($lib_name PRIVATE \${INC_LIST})
 #end for
     endif()
+    if (COMPILER_FLAGS)
+#for $lib_name in $libnames
+        set_target_properties($lib_name \${COMPILER_FLAGS})
+#end for
+    endif()
 endif()
 
 \# Below building trace and save program.  They have actually the same source but when built with updated 
 \# addresses.h file the output will be different.
-if (BUILD_TRACE)
+if (BUILD_TRACE_$trace_binary)
     \# Include object library here in case SRC_LIST_ABS is empty
     #set target_list = " ".join([f'$<TARGET_OBJECTS:{lib}>' for lib in $libnames])
     add_executable($trace_binary \${SRC_LIST_ABS} $target_list)
@@ -65,6 +70,9 @@ if (BUILD_TRACE)
     endif()
     if (LIB_LIST)
         target_link_libraries($trace_binary \${LIB_LIST})
+    endif()
+    if (COMPILER_FLAGS)
+        set_target_properties($trace_binary \${COMPILER_FLAGS})
     endif()
     target_link_libraries($trace_binary $extra_libs)
 endif()
