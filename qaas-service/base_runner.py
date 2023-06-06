@@ -23,7 +23,7 @@ class BaseRunner(ABC):
             else:
                 assert os.path.isdir(data_path)
                 for file in os.listdir(data_path): 
-                    shutil.copy(os.path.join(data_path, file), self.run_dir)
+                    shutil.copy(os.path.join(data_path, file), self.run_dir, follow_symlinks=False)
         except:
             pass
 
