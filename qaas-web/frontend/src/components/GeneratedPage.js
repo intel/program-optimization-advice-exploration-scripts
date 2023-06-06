@@ -3,7 +3,7 @@ import './css/main.css'
 import { useLocation } from "react-router-dom";
 
 const GeneratedPage = () => {
-    const iframeSrc = `http://10.241.129.38/otter_html/index.html`;
+    const iframeSrc = `http://localhost/otter_html/index.html`;
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const loading = queryParams.get("loading") === "true";
