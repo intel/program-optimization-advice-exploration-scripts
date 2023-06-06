@@ -30,6 +30,7 @@ GIT_DATA_BRANCH = "DATA_BRANCH"
 GIT_DATA_URL = "DATA_URL"
 GIT_DATA_BRANCH = "DATA_BRANCH"
 GIT_DATA_DOWNLOAD_PATH = "DATA_DOWNLOAD_PATH"
+GIT_DATA_COPY_FROM_FS  = "DATA_COPY_FROM_FS"
 
 # define directory structure constants
 WORKDIR_ROOT_INDEX  = 0
@@ -70,14 +71,13 @@ class QAASEnvProvisioner:
         self.git_token = git_params[GIT_TOKEN]
         self.git_branch = git_params[GIT_BRANCH]
         self.git_src_url = git_params[GIT_SRC_URL]
-        #self.git_get_extra_modules = git_params[GIT_GET_EXTRA_MODULES]
-
 
         self.git_data_user = git_params[GIT_DATA_USER]
         self.git_data_token = git_params[GIT_DATA_TOKEN]
         self.git_data_branch = git_params[GIT_DATA_BRANCH]
         self.git_data_url = git_params[GIT_DATA_URL]
         self.git_data_download_path = git_params[GIT_DATA_DOWNLOAD_PATH]
+        self.git_data_copy_from_fs = git_params[GIT_DATA_COPY_FROM_FS] if GIT_DATA_COPY_FROM_FS in git_params.keys() else ""
         # save target machine access parameters
         self.user = access_params["QAAS_USER"]
         self.ssh_port = access_params["QAAS_SSH_PORT"]
@@ -165,11 +165,10 @@ class QAASEnvProvisioner:
                   " && if [[ ! -d " + self.app_name + " ]]; then" + \
                   " git clone -b " + target_branch + \
                   " " + git_url + " " + self.app_name + \
+                  " && cd " + self.app_name + \
+                  f" && if [[ -f .gitmodules ]]; then git submodule update --init --recursive; fi" + \
+                  " && cd .." + \
                   " && rm -rf " + self.app_name + "/.git; fi'"
-#                  " && cd " + self.app_name
-#        if self.git_get_extra_modules:
-#            cmdline = cmdline + " && git " + self.git_get_extra_modules
-#        cmdline = cmdline + " && rm -rf .git; fi'"
         rc, cmdout = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user).run_remote_cmd(cmdline)
         return rc
 
@@ -193,6 +192,23 @@ class QAASEnvProvisioner:
                 " && if [[ ! -d " + self.app_name + " ]]; then" + \
                f" mkdir {self.app_name}; fi'" 
         rc, cmdout = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user).run_remote_cmd(cmdline)
+        return rc
+
+    def copy_data_from_fs(self):
+        """Copy extra data from local FS."""
+        rc = 0
+        if self.git_data_copy_from_fs:
+            logging.info("Copying extra data from local FS on %s", self.machine)
+            data_dir = self.get_workdir("dataset") + "/" + self.app_name
+            cmdline = "'cd " + data_dir
+            if self.git_data_download_path:
+                cmdline += " && if [[ -f " + self.git_data_download_path + " ]]; then" + \
+                           " cp -rf " + self.git_data_copy_from_fs + "/* $(dirname " + self.git_data_download_path + "\);" \
+                           " else  cp -rf " + self.git_data_copy_from_fs + "/*" + self.git_data_download_path + ";fi'"
+            else:
+                cmdline += " && cp -rf " + self.git_data_copy_from_fs + "/* ./'"
+                self.git_data_download_path = "./"
+            rc, cmdout = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user).run_remote_cmd(cmdline)
         return rc
 
     def generate_git_url_branch(self, branch, url, user, token):
