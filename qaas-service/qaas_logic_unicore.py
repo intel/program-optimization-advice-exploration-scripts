@@ -50,9 +50,12 @@ def compute_unicore_speedups(t_unicore, orig_time, i_time):
             # Compare to
             row.append(float(t_unicore[list(t_unicore.keys())[0]][0][i_time])/float(row[i_time]))
 
-def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options):
+def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir):
     '''Measure Application-wide execution times'''
 
+    # Add extra OV runs
+    ov_run_dir_root = os.path.join(os.path.dirname(base_run_dir), 'other_ov_runs')
+    os.makedirs(ov_run_dir_root, exist_ok=True)
     # Compare options
     run_log=""
     qaas_best_opt = dict()
@@ -73,6 +76,11 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
             time_values.append(median_value)
             t_compiler.append([app_name, compiler, option, flags, median_value])
 
+            # Add extra OV runs: to be removed soon as not sustainable in production
+            print("Run Extra OV")
+            ov_run_dir_opt = os.path.join(ov_run_dir_root, f"{compiler}_{option}")
+            oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, None, 'both', level=1, mpi_run_command="mpirun", mpi_num_processes=1, ov_of="xlsx")
+
         # Add the local table to dict
         qaas_table[compiler] = t_compiler
         # Find best option for current compiler
@@ -82,20 +90,23 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
         qaas_min_opt =  qaas_best_opt[compiler] + 1  # option indexing starts at 1.
         run_log += f"[Compiler Options] Fastest compilation {compiler} variant is {qaas_min_opt} with {qaas_min_val} seconds\n"
 
+
     return (qaas_table, qaas_best_opt, run_log)
 
 def run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options):
     '''Run and generate OneView reports on best options'''
 
     for compiler, best_opt in qaas_best_opt.items():
+        # keep option directories consistent with build naming convention
+        option = best_opt + 1
         # Setup experiment directory on oneview run directory
-        ov_run_dir_orig = os.path.join(ov_run_dir, "unicore", f"{compiler}_{best_opt}")
+        ov_run_dir_opt = os.path.join(ov_run_dir, "unicore", f"{compiler}_{option}")
         # Extract the binary path of the best option
         binary_path = compiled_options[compiler][best_opt][0]
         # Retrieve the execution environment
         app_env = compiled_options[compiler][best_opt][1]
         # Make the oneview run
-        oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_orig, run_cmd, maqao_dir, ov_config, 'both', level=1, mpi_run_command="mpirun", mpi_num_processes=1)
+        oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, ov_config, 'both', level=2, mpi_run_command="mpirun", mpi_num_processes=1)
 
 def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                 orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, orig_time=1.0):
@@ -104,7 +115,7 @@ def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir
     # Init status
     rc=0
     # Compare options
-    qaas_table, qaas_best_opt, log = measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options)
+    qaas_table, qaas_best_opt, log = measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir)
 
     # Print log to file
     dump_unicore_log_file(qaas_reports_dir, 'qaas_unicore.log', log)
