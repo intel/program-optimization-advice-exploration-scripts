@@ -19,7 +19,7 @@ def populate_database(qaas_data_dir, qaas_timestamp, version,
     #######################populate database tables######################
     initializer = OneViewModelInitializer(session, qaas_data_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id)
     
-    qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'],version)
+    qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
     os.makedirs(qaas_output_folder, exist_ok=True)
 
     qaas_database = QaaSDatabase()
