@@ -72,6 +72,9 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
         rc=-1
         error_msg=f"ABORT: median execution time {median_value} greater than allowed {MAX_ALLOWED_EXEC_TIME}"
         return rc,error_msg,0
+    # Dump median exec time to file
+    cmd = "echo 'base_median_time;" + str(median_value) + "' > initial_profile.csv"
+    subprocess.run(cmd, shell=True, cwd=basic_run.run_dir)
 
     # Check LProf overhead
     lprof_run = lprof_runner.exec(app_builder_env, orig_binary, maqao_dir, base_run_dir_orig, data_dir, run_cmd, 'both', "mpirun", 1)

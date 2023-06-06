@@ -10,7 +10,7 @@ import app_builder
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
-debug_options="-g -fno-omit-frame-pointer -fcf-protection=none -grecord-gcc-switches"
+debug_options="-g -fno-omit-frame-pointer -fcf-protection=none -no-pie"
 
 def read_compiler_flags(vendor, target):
     '''Read the list of compiler flags for a CPU vendor and a target processor.'''
@@ -80,7 +80,6 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
     # Delete original flags varied by QaaS
     qaas_flags = " ".join(set(" ".join(compiler_flags['flags']).split(' ')))
     qaas_flags = app_builder.map_compiler_flags(compiler_flags['reference_compiler'], user_CC, qaas_flags)
-    print(f"qaas_flags={qaas_flags}")
     filtered_c_flags = filter_original_flags(user_c_flags, qaas_flags) if user_c_flags else ""
     filtered_cxx_flags = filter_original_flags(user_cxx_flags, qaas_flags) if user_cxx_flags else ""
     filtered_fc_flags = filter_original_flags(user_fc_flags, qaas_flags) if user_fc_flags else ""
@@ -95,14 +94,22 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
             target_CC = f"{mpi_wrapper}-{compiler}" if mpi_wrapper else compiler
             # Covert QaaS flags with respect to user_CC (user provided)
             mapped_flags = app_builder.map_compiler_flags(compiler_flags['reference_compiler'], user_CC, options[option])
+            # Add aggressive optimization if target compiler is gcc
+            if compiler == 'gcc':
+                mapped_flags += " " + app_builder.map_compiler_flags("gcc", compiler_flags['reference_compiler'], "-funroll-loops -ffast-math")
             # Combine QaaS, debug and user provided flags in one set
             update_c_flags = f"{filtered_c_flags} {mapped_flags} {debug_options}" if filtered_c_flags else ""
             update_cxx_flags = f"{filtered_cxx_flags} {mapped_flags} {debug_options}" if filtered_cxx_flags else ""
-            update_fc_flags = f"{update_fc_flags} {mapped_flags} {debug_options}" if filtered_fc_flags else ""
+            update_fc_flags = f"{filtered_fc_flags} {mapped_flags} {debug_options}" if filtered_fc_flags else ""
 
             # Setup binary
             index = option + 1
             orig_binary = os.path.join(os.path.join(binaries_dir, f"{compiler}_{index}"), 'exec')
+
+            # Add cmake's -DBUILD_SHARED_LIBS=ON if -flto is needed
+            flags_set = set((update_c_flags  + " " + update_cxx_flags  + " " + update_fc_flags).split(' '))
+            if '-flto' in flags_set:
+                extra_cmake_flags += " -DBUILD_SHARED_LIBS=ON"
 
             # Build originl app using user-provided compilation options
             app_builder_env = app_builder.exec(src_dir, compiler_dir, orig_binary,

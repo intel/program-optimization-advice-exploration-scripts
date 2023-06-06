@@ -55,12 +55,10 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     rc,msg,median_orig = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags)
-    rc=0
     if rc != 0: 
         to_backplane.send(qm.GeneralStatus(msg))
         return
     to_backplane.send(qm.GeneralStatus("Done Initail Profiling and Cleaning!"))
-
 
     # Phase 3.1: Parameter Exploration and Tuning
     # Setup QaaS reports dir
@@ -72,6 +70,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     compiled_options = compile_all(src_dir, binaries_dir, compiler_dir,
                 orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                 user_link_flags, user_target, user_target_location, extra_cmake_flags)
+    to_backplane.send(qm.GeneralStatus("Done compile all binaries!"))
 
     # Start unicore runs
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Unicore Parameters Exploration/Tuning"))
