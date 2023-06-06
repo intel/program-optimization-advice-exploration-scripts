@@ -42,28 +42,35 @@ def simple_replace(compiler_flag_map, compiler, flag, new_compiler):
 
 lookup_functions = [ 
             ({'icc': 'D', 'gcc': 'D', 'icx': 'D'}, simple_replace),
+            ({'icc': 'std=gnu89', 'gcc': 'std=gnu90', 'icx': 'std=gnu90'}, simple_replace),
             ({'icc': 'O1', 'gcc': 'O1', 'icx': 'O1'}, simple_replace),
             ({'icc': 'O2', 'gcc': 'O2', 'icx': 'O2'}, simple_replace),
             ({'icc': 'O3', 'gcc': 'O3', 'icx': 'O3'}, simple_replace),
+            ({'icc': 'funroll-loops', 'gcc': 'funroll-loops', 'icx': 'funroll-loops'}, simple_replace),
             ({'icc': 'fpic', 'gcc': 'fpic', 'icx': 'fpic'}, simple_replace),
+            ({'icc': 'flto', 'gcc': 'flto', 'icx': 'flto'}, simple_replace),
             ({'icc': 'qno-offload', 'gcc': 'foffload=disable', 'icx': '-offload=-'}, simple_replace),
             ({'icc': 'fno-alias', 'gcc': '', 'icx': 'fno-alias'}, simple_replace),
             # See http://wwwpub.zih.tu-dresden.de/~mlieber/practical_performance/05_gcc_intel_flags.pdf
             ({'icc': 'ansi-alias', 'gcc': 'fstrict-aliasing', 'icx': 'ansi-alias'}, simple_replace),
             ({'icc': 'fp-model fast=2', 'gcc': 'ffast-math', 'icx': 'fp-model fast'}, simple_replace),
+            ({'icc': 'mfpmath=sse', 'gcc': 'mfpmath=sse', 'icx': 'mfpmath=sse'}, simple_replace),
             ({'icc': 'qoverride-limits', 'gcc': '', 'icx': 'qoverride-limits'}, simple_replace),
-            ({'icc': 'no-vec', 'gcc': 'fno-tree-vectorize', 'icx': 'no-vec'}, simple_replace),
+            ({'icc': 'no-vec', 'gcc': 'fno-tree-vectorize', 'icx': 'fno-vectorize'}, simple_replace),
             ({'icc': 'no-simd', 'gcc': '', 'icx': 'no-simd'}, simple_replace),
+            ({'icc': 'qno-openmp-simd', 'gcc': '', 'icx': 'fno-openmp-simd'}, simple_replace),
             ({'icc': 'march=native', 'gcc': 'march=native', 'icx': 'march=native'}, simple_replace),
             ({'icc': 'xSSE4.2', 'gcc': 'march=core2', 'icx': 'xSSE4.2'}, simple_replace),
             ({'icc': 'xCORE-AVX2', 'gcc': 'march=haswell', 'icx': 'xCORE-AVX2'}, simple_replace),
-            ({'icc': 'xCore-AVX512', 'gcc': 'march=skylake-avx512', 'icx': 'xCore-AVX512'}, simple_replace),
+            ({'icc': 'xCORE-AVX512', 'gcc': 'march=skylake-avx512', 'icx': 'xCORE-AVX512'}, simple_replace),
             ({'icc': 'xICELAKE-SERVER', 'gcc': 'march=icelake-server', 'icx': 'xICELAKE-SERVER'}, simple_replace),
             ({'icc': 'xSAPPHIRERAPIDS', 'gcc': 'march=sapphirerapids', 'icx': 'xSAPPHIRERAPIDS'}, simple_replace),
             ({'icc': 'qopt-zmm-usage=high', 'gcc': 'mprefer-vector-width=512', 'icx': 'mprefer-vector-width=512'}, simple_replace),
+            ({'icc': 'qopt-mem-layout-trans=4', 'gcc': '', 'icx': 'qopt-mem-layout-trans=4'}, simple_replace),
+            ({'icc': 'qopt-report=5', 'gcc': 'fsave-optimization-record', 'icx': 'qopt-report=3'}, simple_replace),
             ({'icc': 'g', 'gcc': 'g', 'icx': 'g'}, simple_replace),
-            ({'icc': 'no-pie', 'gcc': '', 'icx': 'no-pie'}, simple_replace),
-            ({'icc': 'fcf-protection=none', 'gcc': '', 'icx': 'fcf-protection=none'}, simple_replace),
+            ({'icc': 'no-pie', 'gcc': 'no-pie', 'icx': 'no-pie'}, simple_replace),
+            ({'icc': 'fcf-protection=none', 'gcc': 'fcf-protection=none', 'icx': 'fcf-protection=none'}, simple_replace),
             ({'icc': 'grecord-gcc-switches', 'gcc': '', 'icx': 'grecord-gcc-switches'}, simple_replace),
             ({'icc': 'fno-omit-frame-pointer', 'gcc': 'fno-omit-frame-pointer', 'icx': 'fno-omit-frame-pointer'}, simple_replace)
             ]
@@ -183,7 +190,7 @@ def compute_cmake_variables(user_mpi_compiler, target_mpi_compiler, user_CC, tar
             # Intel wrapper 
             cmake_c_compiler = 'mpiicc' 
             cmake_cxx_compiler = 'mpiicpc' 
-            cmake_fortran_compiler = 'mpiifort'
+            cmake_fortran_compiler = 'mpif90' if target_FC == 'gfortran' else 'mpiifort'
             user_c_flags, removed_c_flags = remove_underlying_flag (user_c_flags, "cc")
             user_cxx_flags, removed_cxx_flags = remove_underlying_flag (user_cxx_flags, "cxx")
             user_fc_flags, removed_fc_flags = remove_underlying_flag (user_fc_flags, "fc")
@@ -214,7 +221,8 @@ def compute_cmake_variables(user_mpi_compiler, target_mpi_compiler, user_CC, tar
     if target_mpi_compiler == 'mpiicc':
         cmake_c_flags = add_underlying_flag (cmake_c_flags, "cc", target_CC)
         cmake_cxx_flags = add_underlying_flag (cmake_cxx_flags, "cxx", target_CXX)
-        cmake_fortran_flags = add_underlying_flag (cmake_fortran_flags, "fc", target_FC)
+        if cmake_fortran_compiler == 'mpiifort':
+            cmake_fortran_flags = add_underlying_flag (cmake_fortran_flags, "fc", target_FC)
 
 
     return cmake_c_compiler, cmake_cxx_compiler, cmake_fortran_compiler, \
