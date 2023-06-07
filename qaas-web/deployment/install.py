@@ -100,38 +100,6 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
         print("Error installing frontend dependencies:", e)
         sys.exit(1)
 
-def create_wsgi_file(backend_dir, apache_backend_dir):
-    try:
-        print("Creating WSGI file...")
-        wsgi_content = f"""
-import sys
-sys.path.insert(0, '{apache_backend_dir}')
-
-from server import create_app
-import configparser
-import os
-
-script_dir=os.path.dirname(os.path.realpath(__file__))
-config_path = os.path.join(script_dir, "../config/qaas-web.conf")
-config = configparser.ConfigParser()
-config.read(config_path)
-application = create_app(config)
-
-if __name__ == "__main__":
-    application.run()
-"""
-        print(wsgi_content)
-        with open(f"{backend_dir}/server.wsgi", 'w') as f:
-            f.write(wsgi_content.strip())
-
-        # command = f"sudo cp {backend_dir}/server.wsgi {apache_backend_dir}"
-        # process = subprocess.run(command, shell=True, check=True)
-        
-        print("WSGI file created successfully.")
- 
-    except Exception as e:
-        print("Error creating WSGI file:", e)
-        sys.exit(1)
 
 def create_apache_config(apache_frontend_dir, apache_backend_dir, apache_dir):
     otter_dir = os.path.join(apache_dir, 'private', 'otter_html')
@@ -240,7 +208,7 @@ def delete_index_html(apache_dir):
 if __name__ == "__main__":
     script_dir=os.path.dirname(os.path.realpath(__file__))
     apache_dir = f"/var/www/html"
-    set_proxy('proxy-chain.intel.com', 911)
+    # set_proxy('proxy-chain.intel.com', 911)
 
 
     database_url = 'mysql://qaas:qaas-password@localhost/test'
@@ -264,11 +232,9 @@ if __name__ == "__main__":
     install_packages()
 
 
-    # #create wsgi config
-    #create_wsgi_file(backend_dir, apache_backend_dir)
 
     install_backend_dependencies(backend_dir, apache_dir)
-    set_node_proxy('proxy-chain.intel.com', 911)
+    # set_node_proxy('proxy-chain.intel.com', 911)
     install_frontend_dependencies(frontend_dir, apache_dir)
 
     
