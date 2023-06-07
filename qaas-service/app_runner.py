@@ -25,6 +25,7 @@ class AppRunner(BaseRunner):
         print(f"run_dir is: {run_dir}")
         print(base_run_cmd)
         for i in range(self.meta_repetitions):
+            subprocess.run(f"echo run:{i} > runs.log", shell=True, cwd=self.run_dir)
             start = time.time_ns()
             result = subprocess.run(base_run_cmd, shell=True, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stop = time.time_ns()

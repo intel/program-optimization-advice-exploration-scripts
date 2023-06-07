@@ -87,6 +87,10 @@ def launch_qaas(app_params, logic, container, service_msg_recv_handler, launch_o
     if rc != 0:
        return rc
 
+    rc = prov.copy_data_from_fs()
+    if rc != 0:
+       return rc
+
     # setup job submission
     job = QAASJobSubmit(params.system["compilers"],
                         params.user["compiler"],
