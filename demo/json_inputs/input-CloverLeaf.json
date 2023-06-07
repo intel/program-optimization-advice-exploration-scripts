@@ -23,12 +23,12 @@
     }, 
     "compiler": {
         "USER_CC": "mpiicc-icx", 
-        "USER_CC_VERSION": "2021", 
+        "USER_CC_VERSION": "2023", 
         "USER_C_FLAGS": "", 
-        "USER_CXX_FLAGS": "-cxx=icpx -DUSE_OPENMP=1 -mprefer-vector-width=512 -std=c++17 -g -fno-omit-frame-pointer -DENABLE_OFFLOAD=0", 
+        "USER_CXX_FLAGS": "-cxx=icpx -DUSE_OPENMP=1 -O3 -march=native -fno-alias", 
         "USER_FC_FLAGS": "", 
         "USER_LINK_FLAGS": "",
-        "USER_TARGET": "MYCLOVER",
-        "USER_TARGET_LOCATION": "MYCLOVER"
+        "USER_TARGET": "clover_leaf",
+        "USER_TARGET_LOCATION": "clover_leaf"
     }
 }
