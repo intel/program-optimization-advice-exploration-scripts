@@ -17,15 +17,15 @@
         },
         "RUN": {
             "APP_DATA_ARGS": "-g \"2 2 2\" -b",
-            "APP_RUN_CMD": "<binary> -g \\\"2 1 1\\\" -b",
+            "APP_RUN_CMD": "<binary> -g \\\"4 2 2\\\" -b",
             "APP_ENV_MAP": { }
         }
     }, 
     "compiler": {
         "USER_CC": "mpiicc-icx", 
-        "USER_CC_VERSION": "2022",
+        "USER_CC_VERSION": "2023",
         "USER_C_FLAGS": "", 
-        "USER_CXX_FLAGS": "-cxx=icpx",
+        "USER_CXX_FLAGS": "-cxx=icpx -O3 -march=native",
         "USER_FC_FLAGS": "", 
         "USER_LINK_FLAGS": "",
         "USER_EXTRA_CMAKE_FLAGS": "-DENABLE_OFFLOAD=0 -DQMC_MPI=1",
