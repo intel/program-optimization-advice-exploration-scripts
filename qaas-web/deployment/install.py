@@ -80,7 +80,8 @@ def install_backend_dependencies(backend_dir, apache_html_dir):
         #also copy the config
         print("Backend dependencies installed successfully.")
        
-        os.system(f"sudo cp -r {backend_dir} {apache_html_dir}/backend")
+        os.system(f"sudo rm -rf {apache_html_dir}/backend")
+        os.system(f"sudo cp -r {backend_dir} {apache_html_dir}/")
       
     except Exception as e:
         print("Error installing backend dependencies:", e)
@@ -92,7 +93,8 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
         os.system(f"cd {frontend_dir} && npm i --legacy-peer-deps")
         os.system(f"cd {frontend_dir} && npm run build")
       
-        os.system(f"sudo cp -r {frontend_dir}/dist {apache_html_dir}/dist")
+        os.system(f"sudo rm -rf {apache_html_dir}/dist")
+        os.system(f"sudo cp -r {frontend_dir}/dist {apache_html_dir}/") 
         print("Frontend dependencies installed successfully.")
 
         
