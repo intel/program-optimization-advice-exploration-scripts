@@ -215,7 +215,7 @@ def run_ovdb(exp_dir):
                     copyDir(full_path, new_path)
             elif path_type == "file": 
                 create_table_from_file(full_path, new_path, timestamp, engine)
-
+    connection.close()
     
 
 def populate_database(exp_dir):
