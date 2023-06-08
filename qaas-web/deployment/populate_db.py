@@ -22,11 +22,11 @@ def main():
 
     #deploymet dir
     # Get the path of the Python executable in the venv
-    # venv_python_path = os.path.join(script_dir, '..', 'backend', 'venv', 'bin', 'python3')
-    # # Check if the current Python executable is not the one in the venv
-    # if sys.executable != venv_python_path:
-    #     # If not, rerun this script with the Python executable from the venv
-    #     os.execl(venv_python_path, venv_python_path, *sys.argv)
+    venv_python_path = os.path.join(script_dir, '..', 'backend', 'venv', 'bin', 'python3')
+    # Check if the current Python executable is not the one in the venv
+    if sys.executable != venv_python_path:
+        # If not, rerun this script with the Python executable from the venv
+        os.execl(venv_python_path, venv_python_path, *sys.argv)
         
     # print(sys.executable)
         
