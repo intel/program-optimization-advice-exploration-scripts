@@ -185,6 +185,7 @@ ParamPassingStyle getPassingStyle(SgType* arg_type, src_lang lang) {
 
         if (arg_type->variantT() == V_SgArrayType ||
             isTypedefArray) {
+            //return ParamPassingStyle::POINTER;
             return ParamPassingStyle::DIRECT;
         } else if (arg_type->variantT() == V_SgPointerType) {
             SgType *var_pointer_type = arg_type->stripType(1 << 2);

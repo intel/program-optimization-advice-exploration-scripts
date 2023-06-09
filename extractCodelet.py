@@ -13,6 +13,8 @@ import csv
 import re
 import datetime
 from Cheetah.Template import Template
+import tempfile
+import tarfile
 import argparse
 
 SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
@@ -44,6 +46,7 @@ def runCmdGetRst(myCmd, cwd, env=os.environ.copy()):
     return result.stdout.strip(), result.stderr.strip()
 
 def runCmd(myCmd, cwd, env=os.environ.copy(), verbose=False, throwException=False):
+    print(f'Running command (CMD:{myCmd}) under directory ({cwd})')
     run_subprocess_run(myCmd, cwd, env, capture_output = not verbose, text=False, throwException = throwException)
 
 def run_subprocess_run(myCmd, cwd, env, capture_output, text=False, throwException=False):
@@ -205,9 +208,9 @@ class Extraction(ABC):
         self.loop_extractor_data_dir = ensure_dir_exists(self.extractor_work_dir, 'LoopExtractor_data')
         top_row = profile_df.iloc[idx]
         #full_source_path = top_row['source_full_path']
-        source_location = top_row['source_location']
-        compilation_flags = top_row['compilation_flags']
-        source_line = int(top_row['line'])
+        #source_location = top_row['source_location']
+        #compilation_flags = top_row['compilation_flags']
+        #source_line = int(top_row['line'])
 
         #source_file = os.path.join(src_dir, source_path)
         nullMask = profile_df['source_full_path'].isnull() | profile_df['line'].isnull()
@@ -553,23 +556,26 @@ def main():
         binary='502.gcc_r'
         binary='520.omnetpp_r'
         binary='557.xz_r'
-    binary='508.namd_r'
-    binary='511.povray_r'
-    binary='507.cactuBSSN_r'
-    binary='510.parest_r'
-    binary='554.roms_r'
-    binary='526.blender_r'
-    binary='549.fotonik3d_r'
-    binary='531.deepsjeng_r'
-    binary='500.perlbench_r'
-    binary='502.gcc_r'
-    binary='544.nab_r'
-    binary='505.mcf_r'
-    binary='520.omnetpp_r'
-    binary='523.xalancbmk_r'
-    binary='541.leela_r'
+        binary='508.namd_r'
+        binary='511.povray_r'
+        binary='507.cactuBSSN_r'
+        binary='510.parest_r'
+        binary='554.roms_r'
+        binary='526.blender_r'
+        binary='549.fotonik3d_r'
+        binary='531.deepsjeng_r'
+        binary='500.perlbench_r'
+        binary='502.gcc_r'
+        binary='544.nab_r'
+        binary='505.mcf_r'
+        binary='520.omnetpp_r'
+        binary='523.xalancbmk_r'
+        binary='541.leela_r'
+        binary='bt.c_compute_rhs_line1892_0'
+        binary='519.lbm_r'
+    #binary='538.imagick_r'
+    #binary='500.perlbench_r'
     #binary='clover_leaf'
-    #binary='bt.c_compute_rhs_line1892_0'
     # TODO: for SPEC, do "grep workload 1 result/*.log file multi workload situation"
     if binary == '525.x264_r':
         cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['BuckBunny.yuv'], is_int=True)
@@ -672,7 +678,7 @@ def main():
     elif binary == 'bt.c_compute_rhs_line1892_0':
         cmakelist_dir=os.path.join(PREFIX,'qaas-demo-lore-codelets')
         cmake_flags = f'-DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g"'
-        app_data_files = os.path.join(cmakelist_dir, 'src','all','NPB_2.3-OpenACC-C','BT','bt.c_compute_rhs_line1892_0','codelet.data')
+        app_data_files = [os.path.join(cmakelist_dir, 'src','all','NPB_2.3-OpenACC-C','BT','bt.c_compute_rhs_line1892_0','codelet.data')]
         app_flags = ''
     else:
         return
@@ -724,7 +730,8 @@ def run_replay_steps(binary, extractor_work_dir, loop_extractor_data_dir, extrac
     loop_srcs = [f for f in extracted_sources['loop_src'] if f]
 
     restore_work_dir = ensure_dir_exists(extractor_work_dir, 'replay_data')
-    extracted_codelets_dir = ensure_dir_exists(restore_work_dir, 'codelet')
+    codelet_folder_name = 'codelet'
+    extracted_codelets_dir = ensure_dir_exists(restore_work_dir, codelet_folder_name)
     with open(os.path.join(extracted_codelets_dir, 'CMakeLists.txt'), "w") as top_cmakelist:
         print(f"cmake_minimum_required(VERSION 3.2.0)", file=top_cmakelist)
         print(f"project({binary})", file=top_cmakelist)
@@ -794,24 +801,55 @@ def run_replay_steps(binary, extractor_work_dir, loop_extractor_data_dir, extrac
     # Build and run
     extracted_codelet_build_dir = ensure_dir_exists(restore_work_dir, 'build')
     extracted_codelets_run_dir = ensure_dir_exists(restore_work_dir, 'run')
+    successful_loops = []
+    failed_loops = []
+    successful_build_loops = []
+    failed_build_loops = []
     for loop_src in loop_srcs:
         # Try to build restore (extracted codelete)
-        loop_filename = os.path.basename(loop_src)
-        loop_name = os.path.splitext(loop_filename)[0]
-        restore_binary=f'replay_{loop_name}'
-        restore_cmake_flags = f'-DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
-        #restore_cmake_flags = f'-DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icpc -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
-        #restore_cmake_flags = f'-DCMAKE_C_COMPILER=clang-7 -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
-        #run_cmake2(restore_binary, restore_work_dir, extracted_codelet_dir, extracted_codelet_build_dir, restore_cmake_flags)
-        run_cmake(extracted_codelets_dir, extracted_codelet_build_dir, restore_work_dir, restore_cmake_flags, restore_binary)
+        try:
+            loop_filename = os.path.basename(loop_src)
+            loop_name = os.path.splitext(loop_filename)[0]
+            restore_binary=f'replay_{loop_name}'
+            restore_cmake_flags = f'-DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
+            #restore_cmake_flags = f'-DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icpc -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
+            #restore_cmake_flags = f'-DCMAKE_C_COMPILER=clang-7 -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_CXX_FLAGS="-g -D__RESTORE_CODELET__" -DCMAKE_C_FLAGS="-g -D__RESTORE_CODELET__"'
+            #run_cmake2(restore_binary, restore_work_dir, extracted_codelet_dir, extracted_codelet_build_dir, restore_cmake_flags)
+            try:
+                run_cmake(extracted_codelets_dir, extracted_codelet_build_dir, restore_work_dir, restore_cmake_flags, restore_binary)
+                successful_build_loops.append(loop_name)
+            except:
+                failed_build_loops.append(loop_name)
+                failed_loops.append(loop_name)
+                continue
 
-        # Now can run built extracted codelet
-        codelet_run_dir = ensure_dir_exists(extracted_codelets_run_dir, loop_name)
-        os.symlink(os.path.join(extracted_codelet_build_dir, loop_name, restore_binary), os.path.join(codelet_run_dir, restore_binary))
-        extracted_loop_dir = ensure_dir_exists(extracted_codelets_dir, loop_name)
-        restore_data_root_dir = ensure_dir_exists(extracted_loop_dir, 'data')
-        # Should also sofelink cere directory here
-        run_extracted_loop(f'./{restore_binary}', codelet_run_dir, restore_data_root_dir)
+            # Now can run built extracted codelet
+            codelet_run_dir = ensure_dir_exists(extracted_codelets_run_dir, loop_name)
+            os.symlink(os.path.join(extracted_codelet_build_dir, loop_name, restore_binary), os.path.join(codelet_run_dir, restore_binary))
+            extracted_loop_dir = ensure_dir_exists(extracted_codelets_dir, loop_name)
+            restore_data_root_dir = ensure_dir_exists(extracted_loop_dir, 'data')
+            # Should also sofelink cere directory here
+            print(f"Running restored binary: {restore_binary}")
+            run_extracted_loop(f'./{restore_binary}', codelet_run_dir, restore_data_root_dir)
+            print(f"Finish Running restored binary: {restore_binary}")
+            successful_loops.append(loop_name)
+        except:
+            failed_loops.append(loop_name)
+    print(f'{len(successful_build_loops)} Successfully built extraction and {len(failed_build_loops)} Failed to build extractions')
+    print(f'    Successfully built loops: {", ".join(successful_build_loops)}')
+    print(f'    Failed to build loops: {", ".join(failed_build_loops)}')
+    print(f'{len(successful_loops)} Successful extraction and {len(failed_loops)} Failed extractions')
+    print(f'    Successful loops: {", ".join(successful_loops)}')
+    print(f'    Failed loops: {", ".join(failed_loops)}')
+    extracted_tarball = os.path.join(restore_work_dir, "extracted_codelets.tar.gz")
+    with tarfile.open(extracted_tarball, "w:gz") as tarball:
+        with tempfile.NamedTemporaryFile(mode="w") as temp_file:
+            temp_file.write("".join([f'replay_{l}\n' for l in successful_loops]))
+            temp_file.flush()
+            tarball.add(temp_file.name, arcname='success.txt')
+        for successfull_loop in ['CMakeLists.txt']+successful_loops+failed_loops:
+            tarball.add(os.path.join(extracted_codelets_dir, successfull_loop), arcname=os.path.join(codelet_folder_name, successfull_loop))
+    print(f'Extracted loops tarball at: {extracted_tarball}')
 
 def run_extracted_loop(cmd, codelet_run_dir, cere_data_dir, env=os.environ.copy()):
     env['CERE_WORKING_PATH'] = cere_data_dir
@@ -820,10 +858,10 @@ def run_extracted_loop(cmd, codelet_run_dir, cere_data_dir, env=os.environ.copy(
 
 
 def run_cmake(cmakelist_dir, build_dir, run_cmake_dir, cmake_flags, trace_binary):
-    runCmd(f'cmake {cmake_flags} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {cmakelist_dir} -B {build_dir}', 
-           cwd=run_cmake_dir, verbose=True, throwException=True)
-    runCmd(f'cmake --build {build_dir} --target {trace_binary}', cwd=run_cmake_dir, verbose=True,
-           throwException=True)
+    cmake_first_cmd = f'cmake {cmake_flags} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {cmakelist_dir} -B {build_dir}'
+    runCmd(cmake_first_cmd, cwd=run_cmake_dir, verbose=True, throwException=True)
+    cmake_build_cmd = f'cmake --build {build_dir} --target {trace_binary}'
+    runCmd(cmake_build_cmd, cwd=run_cmake_dir, verbose=True, throwException=True)
 
 def update_app_cmakelists_file(src_dir, name_map, added_cmakelists_txt, in_template):
     orig_cmakelist_txt_file = os.path.join(src_dir, 'CMakeLists.txt')

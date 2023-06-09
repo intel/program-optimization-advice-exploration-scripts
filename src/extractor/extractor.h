@@ -229,12 +229,14 @@ class OutliningExtractor : public Extractor {
 };
 
 class InvitroExtractor : public OutliningExtractor {
+    int instance_num ;
   public:
-    InvitroExtractor(const vector<string> &argv):OutliningExtractor(argv) {}
+    InvitroExtractor(const vector<string> &argv):OutliningExtractor(argv),instance_num(1) {}
     void generateBaseHeaders(SgGlobal* glb_scope);
     void generateBasePreLoop(SgScopeStatement* loop_scope, SgExprStatement* call_expr_stmt, 
       LoopInfo* loop_info, vector<SgInitializedName *> scope_vars_initName_vec);
     void generateBasePostLoop(SgScopeStatement* loop_scope, SgExprStatement* call_expr_stmt);
+    SgExprListExp* generateDumpArgs(SgFunctionCallExp* call_expr);
     void instrumentMain();
     void extractLoop(SgForStatement* loop, LoopInfo& curr_loop);
 };
@@ -365,7 +367,7 @@ class LoopInfo {
 
     //void printLoopFunc(ofstream &loop_file_buf);
     void printLoopFunc(string loop_file_name) ;
-    void printLoopReplay(string replay_loop_filename);
+    void printLoopReplay(string replay_loop_filename, int instance_num);
     void pushPointersToLocalVars(ofstream &loop_file_buf);
     void popLocalVarsToPointers(ofstream &loop_file_buf);
     void analyzeOMPprivateArrays(const string &pragmaStr);

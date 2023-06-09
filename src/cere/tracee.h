@@ -28,10 +28,18 @@ extern "C"
 {
 #endif
 
+   // only invcation will be dumped and internally a counter is associated with loop
+   //void rose_dump(char *loop_name, int invocation, int arg_count, ...);
+   //void rose_after_dump(void);
+
    /* dump_init: initialises the memory tracer. Must be called at the very begin
     * of the tracee execution. Ideally it should be the first thing done in tha
     * tracee main() */
+   void dump_preinit(void);
+   void multi_dump_preinit(void);
+
    void dump_init(void);
+   void multi_dump_init(void);
 
    /* dump_close: cleans-up the memory tracer. Must be called before exiting the
     * tracee. */
@@ -46,9 +54,10 @@ extern "C"
     */
    void dump(char *loop_name, int invocation, int arg_count, ...);
 
+
    /* after_dump: terminates capture of a region of interest. must be called
       at the end of the function to be captured */
-   void after_dump(void);
+   void after_dump(char* loop_name, int invocation);
 #ifdef __cplusplus
 }
 #endif

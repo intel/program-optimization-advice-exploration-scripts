@@ -646,7 +646,7 @@ void InsertOrderSet<T>::insert(T e) {
     }
 }
 
-void LoopInfo::printLoopReplay(string replay_file_name) {
+void LoopInfo::printLoopReplay(string replay_file_name, int instance_num) {
     std::remove(replay_file_name.c_str());
     SgSourceFile* my_restore_src_file = isSgSourceFile(SageBuilder::buildFile(replay_file_name, replay_file_name));
     SgGlobal * glb_restore_src = my_restore_src_file->get_globalScope();
@@ -723,8 +723,6 @@ void LoopInfo::printLoopReplay(string replay_file_name) {
     SageInterface::appendStatement(void_star_args_decl);
     SageInterface::attachComment(void_star_args_decl, "This array will contain the loop arguments' addresses.");
 
-
-    int instance_num = 1;
     auto load_call = SageBuilder::buildFunctionCallStmt(
         "load", 
         void_type,
@@ -760,8 +758,14 @@ void LoopInfo::printLoopReplay(string replay_file_name) {
                 break;
             case ParamPassingStyle::DIRECT: 
                 // do nothing
+                if (SgArrayType* arr_type = isSgArrayType(saved_v_type)) {
+                    // for array type, make it a pointer to base type instead because we 
+                    // cannot assign array type to array type
+                    saved_v_type = SageBuilder::buildPointerType(arr_type->get_base_type());
+                }
                 break;
         }
+        //saved_v_type = SageBuilder::buildPointerType(saved_v_type);
 
         //arg_exp = SageBuilder::buildPointerDerefExp(SageBuilder::buildVarRefExp(saved_arg_v));
         // For reference types, saved address, so need to dereference
@@ -786,6 +790,7 @@ void LoopInfo::printLoopReplay(string replay_file_name) {
                 // do nothing
                 break;
         }
+        //arg_exp = SageBuilder::buildPointerDerefExp(arg_exp);
 
         // no extra work for direct and reference type
 
@@ -864,6 +869,8 @@ void LoopInfo::printLoopFunc(string outfile_name) {
     type_decls_needed = decl_traversal.get_type_decl_v();
 
     vector<SgDeclarationStatement*>::iterator type_decls_iter;
+    map<SgDeclarationStatement*,SgDeclarationStatement*> old_new_decl;
+    map<SgType*,SgType*> old_new_type;
     //for(type_decls_iter=type_decls_needed.begin(); type_decls_iter != type_decls_needed.end(); type_decls_iter++) {
     for(auto decl : type_decls_needed) {
         SgDeclarationStatement* type_decl = isSgDeclarationStatement(SageInterface::deepCopy(decl));
@@ -917,6 +924,7 @@ void LoopInfo::printLoopFunc(string outfile_name) {
             if (type_decl->get_scope() != glb_loop_src) {
                 type_decl->set_scope(glb_loop_src);
                 if (SgTypedefDeclaration* typedef_decl = isSgTypedefDeclaration(type_decl)) {
+                    int count = old_new_type.count(typedef_decl->get_base_type());
                     glb_loop_src->insert_symbol(typedef_decl->get_name(), new SgTypedefSymbol(typedef_decl));
                 } else if (SgClassDeclaration* class_decl = isSgClassDeclaration(type_decl)) {
                     SgClassDeclaration* nondefdecl = isSgClassDeclaration(class_decl->get_firstNondefiningDeclaration());
@@ -933,6 +941,8 @@ void LoopInfo::printLoopFunc(string outfile_name) {
                         new_in->set_scope(glb_loop_src);
                         new_type_decl->append_enumerator(new_in);
                     }
+                    old_new_decl[enum_decl] = new_type_decl;
+                    old_new_type[enum_decl->get_type()] = new_type_decl->get_type();
                     type_decl = new_type_decl;
                 } else {
                     assert(false);  // unexpected case
@@ -1279,34 +1289,43 @@ void InvitroExtractor::generateBaseHeaders(SgGlobal* glb_scope) {
     SageInterface::insertHeader("tracee.h", PreprocessingInfo::before, false, glb_scope);
 }
 
+SgExprListExp* InvitroExtractor::generateDumpArgs(SgFunctionCallExp * call_expr) {
+    assert(call_expr != NULL);
+    SgName func_name = call_expr->getAssociatedFunctionSymbol()->get_name();
+    SgExprListExp* dump_args = SageBuilder::buildExprListExp(
+        SageBuilder::buildStringVal(func_name.str()), SageBuilder::buildIntVal(instance_num));
+    return dump_args;
+}
 void InvitroExtractor::generateBasePreLoop(SgScopeStatement* loop_scope, 
     SgExprStatement * call_expr_stmt, LoopInfo* loop_info, vector<SgInitializedName *> scope_vars_initName_vec) {
-    int instance_num = 1;
-
     SgFunctionCallExp* call_expr = isSgFunctionCallExp(call_expr_stmt->get_expression());
-    assert(call_expr != NULL);
+
+    SgExprListExp* dump_args = generateDumpArgs(call_expr);
+
     auto funcArgs = call_expr->get_args()->get_expressions();
-    SgName func_name = call_expr->getAssociatedFunctionSymbol()->get_name();
-
     int numOfArgs = funcArgs.size();
-    SgExprListExp* dump_args = SageBuilder::buildExprListExp(
-        SageBuilder::buildStringVal(func_name.str()), SageBuilder::buildIntVal(instance_num),
-        SageBuilder::buildIntVal(numOfArgs));
 
+    dump_args->append_expression(SageBuilder::buildIntVal(numOfArgs));
     for (int i = 0; i < numOfArgs; i++) {
         SgExpression* funcArgument = funcArgs[i]; 
         SgInitializedName * func_arg_decl = scope_vars_initName_vec[i];
         SgExpression* dump_arg = loop_info->getFuncParamAddr(func_arg_decl, funcArgument);
         dump_args->append_expression(dump_arg);
     }
+
+    //SgExprStatement *multi_dump_init_call = buildSimpleFnCallStmt("multi_dump_init", loop_scope);
     SgExprStatement *dump_call = SageBuilder::buildExprStatement(SageBuilder::buildFunctionCallExp(
         "dump", SageBuilder::buildVoidType(), dump_args, loop_scope));
     SageInterface::insertStatementBefore(call_expr_stmt, dump_call);
+    // insert multi_dump_init just before the dump call
+    //SageInterface::insertStatementBefore(dump_call, multi_dump_init_call);
 }
 
 void InvitroExtractor::generateBasePostLoop(SgScopeStatement* loop_scope, SgExprStatement * call_expr_stmt) {
+    SgFunctionCallExp* call_expr = isSgFunctionCallExp(call_expr_stmt->get_expression());
+    SgExprListExp* dump_args = generateDumpArgs(call_expr);
     SgExprStatement *after_dump_call = SageBuilder::buildExprStatement(SageBuilder::buildFunctionCallExp(
-        "after_dump", SageBuilder::buildVoidType(), SageBuilder::buildExprListExp(), loop_scope));
+        "after_dump", SageBuilder::buildVoidType(), dump_args, loop_scope));
     SageInterface::insertStatementAfter(call_expr_stmt, after_dump_call);
 }
 /* Replaces the loop subtree with a function call to corresponding loop function
@@ -1675,7 +1694,7 @@ void InvitroExtractor::extractLoop(SgForStatement* loop, LoopInfo& curr_loop) {
     string output_path = getDataFolderPath();
     OutliningExtractor::extractLoop(loop, curr_loop);
     string replay_loop_file_name = output_path + getReplayFileName(loop);
-    curr_loop.printLoopReplay(replay_loop_file_name);
+    curr_loop.printLoopReplay(replay_loop_file_name, instance_num);
 }
 
 void InvivoExtractor::extractLoop(SgForStatement* loop) {
@@ -2277,7 +2296,7 @@ void InvitroExtractor::instrumentMain() {
         //SageInterface::insertHeader(main_defn, SageBuilder::buildHeader("tracee.h"), false);
         SageInterface::insertHeader("tracee.h", PreprocessingInfo::after, false, glb_scope);
 
-        SgExprStatement *dump_init_call = buildSimpleFnCallStmt("dump_init", main_scope);
+        SgExprStatement *dump_init_call = buildSimpleFnCallStmt("multi_dump_preinit", main_scope);
         SageInterface::prependStatement(dump_init_call, main_scope);
         // insertion of dump_close() call is a bit more tricky as we need to insert them before return statements too
         for (auto n : NodeQuery::querySubTree(main_scope, V_SgReturnStmt)) {
