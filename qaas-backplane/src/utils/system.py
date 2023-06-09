@@ -29,6 +29,8 @@ def get_intel_processor_name():
             CPU = 'SPR'
         if model == 106:
             CPU = 'ICX'
+        elif model == 85:
+            CPU = 'SKL'
         elif model == 63 or model == 79:
             CPU = 'HSW'
         else:
