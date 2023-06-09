@@ -63,6 +63,7 @@ lookup_functions = [
             ({'icc': 'xSSE4.2', 'gcc': 'march=core2', 'icx': 'xSSE4.2'}, simple_replace),
             ({'icc': 'xCORE-AVX2', 'gcc': 'march=haswell', 'icx': 'xCORE-AVX2'}, simple_replace),
             ({'icc': 'xCORE-AVX512', 'gcc': 'march=skylake-avx512', 'icx': 'xCORE-AVX512'}, simple_replace),
+            ({'icc': 'xSKYLAKE-AVX512', 'gcc': 'march=skylake-avx512', 'icx': 'xSKYLAKE-AVX512'}, simple_replace),
             ({'icc': 'xICELAKE-SERVER', 'gcc': 'march=icelake-server', 'icx': 'xICELAKE-SERVER'}, simple_replace),
             ({'icc': 'xSAPPHIRERAPIDS', 'gcc': 'march=sapphirerapids', 'icx': 'xSAPPHIRERAPIDS'}, simple_replace),
             ({'icc': 'qopt-zmm-usage=high', 'gcc': 'mprefer-vector-width=512', 'icx': 'mprefer-vector-width=512'}, simple_replace),
