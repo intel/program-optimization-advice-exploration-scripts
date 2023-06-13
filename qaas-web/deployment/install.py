@@ -21,7 +21,6 @@ def install_packages():
 
         os.system("sudo apt-get install -y nodejs")
         os.system("sudo apt-get install -y git libapache2-mod-wsgi-py3")
-        os.system("sudo apt-get install -y python3.8-venv")
         os.system("sudo a2enmod proxy")
         os.system("sudo a2enmod proxy_http")
         
@@ -126,7 +125,7 @@ def create_apache_config(apache_frontend_dir, apache_backend_dir, apache_dir):
            ErrorLog /var/log/apache2/error.log
        CustomLog /var/log/apache2/access.log combined
 
-        WSGIDaemonProcess flaskapp user=www-data group=www-data threads=5 python-home={apache_backend_dir}/venv
+        WSGIDaemonProcess flaskapp user=www-data group=www-data threads=5 
         WSGIScriptAlias /api {apache_backend_dir}/server.wsgi
 
         <Directory {apache_backend_dir}>
