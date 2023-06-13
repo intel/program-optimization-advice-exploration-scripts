@@ -21,6 +21,8 @@ from qaas import launch_qaas
 import configparser
 from ovdb import populate_database, generate_manifest_csv
 from flask_cors import CORS
+from getpass import getpass
+
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../config/qaas-web.conf")
 # more initializations in main()
@@ -35,6 +37,7 @@ class QaaSThread(threading.Thread):
 
     def run(self):
         self.rc, self.output_ov_dir = launch_qaas (self.json_file, lambda msg: self.qaas_message_queue.put(msg), self.qaas_data_folder)
+        
 
 #can move to startup script
 # See: https://flask.palletsprojects.com/en/1.1.x/tutorial/factory/
@@ -43,9 +46,10 @@ def create_app(config):
     qaas_message_queue = queue.Queue()
     CORS(app)
     # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://ov_db_with_speed_up_so:pZrYe942iKd841n@maria4344-lb-fm-in.iglb.intel.com:3307/ov_db_with_speed_up?ssl=true'
-    app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI']
+    print('Enter SQLALCHEMY_DATABASE_URI:')
+    db_uri = getpass()
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = config['web']['SECRET_KEY']
 
     db = SQLAlchemy(app)
     db.init_app(app)
@@ -73,18 +77,22 @@ def create_app(config):
 
     def get_df_from_tablename_by_time(tablename, query_time):
         table = db.metadata.tables[tablename]
+        if table is None or 'timestamp' not in table.columns:
+            return pd.DataFrame()
         query = db.session.query(table).filter_by(timestamp = query_time)
         df = pd.read_sql_query(query.statement, query.session.bind)
         return df
 
     def get_filename(column_names, file_extension):
+        if column_names is None or file_extension is None:
+            return None
         filename = "_".join(column_names)
         return filename + file_extension
 
 
 
     ########################### http request ################################
-    @app.route('/get_all_timestamps', methods=['GET','POST'])
+    @app.route('/get_all_timestamps', methods=['GET'])
     def get_all_timestamps():
         get_timestamp_table = db.metadata.tables['test.local_vars']
         query = db.session.query(get_timestamp_table.c.timestamp.distinct())
@@ -120,7 +128,7 @@ def create_app(config):
                     statusCode= 200,
                     )
 
-    @app.route('/create_new_timestamp', methods=['GET','POST'])
+    @app.route('/create_new_timestamp', methods=['POST'])
     def create_new_timestamp():
         qaas_request = request.get_json()
         print(json.dumps(qaas_request))
@@ -130,29 +138,38 @@ def create_app(config):
         json_file = config['web']['INPUT_JSON_FILE']
         
         #call backplane and wait to finish
-        t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
-        t.start()
-        t.join()
+        # t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
+        # t.start()
+        # t.join()
         
-        output_ov_dir = t.output_ov_dir
-        #output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-61-437"
-        ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
-        for version in ['opt','orig']:
-            ov_version_output_dir = os.path.join(ov_output_dir, version)
-            result_folders = os.listdir(ov_version_output_dir)
-            # Should have only one folder
-            assert len(result_folders) == 1
-            result_folder = result_folders[0]
-            print(result_folder)
-            current_ov_dir = os.path.join(ov_version_output_dir, result_folder)
-            print(f'Selected folder : {current_ov_dir}')
-            query_time = populate_database(current_ov_dir)
-            update_html(query_time, version)
+        # output_ov_dir = t.output_ov_dir
+        output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-80-124"
+        if not os.path.exists(output_ov_dir):
+            print(f"Error: The directory '{output_ov_dir}' does not exist")
+            return jsonify(isError= False,
+                    message= "Success",
+                    statusCode= 200,
+                    timestamp="",
+                    )
+        else:
+            ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
+            for version in ['opt','orig']:
+                ov_version_output_dir = os.path.join(ov_output_dir, version)
+                result_folders = os.listdir(ov_version_output_dir)
+                # Should have only one folder
+                assert len(result_folders) == 1
+                result_folder = result_folders[0]
+                print(result_folder)
+                current_ov_dir = os.path.join(ov_version_output_dir, result_folder)
+                print(f'Selected folder : {current_ov_dir}')
+                query_time = populate_database(current_ov_dir)
+                update_html(query_time, version)
         
         #if True:
         yellow = '\033[93m'
         reset = '\033[39;49m'
         print(f"{yellow}Finished job and html generation.{reset}")
+
 
 
         return jsonify(isError= False,
@@ -162,7 +179,7 @@ def create_app(config):
                     )
 
 
-    @app.route('/get_html_by_timestamp', methods=['GET','POST'])
+    @app.route('/get_html_by_timestamp', methods=['POST'])
     def get_html_by_timestamp():
         #place to put files
         query_time = request.get_json()['timestamp'] 
@@ -184,18 +201,20 @@ def create_app(config):
         manifest_path = generate_manifest_csv(storage_path)
         #find manifest file that contains querytime in permanet storage 
         manifest_df = pd.read_csv(manifest_path, sep=';')
-        # get local_vars out
-        local_vars_df = get_df_from_tablename_by_time('test.local_vars', query_time)
-
-        for table in db.metadata.tables:
-            tablename = table.split(".")[1]
-            table_type = manifest_df[manifest_df['path'].str.contains(tablename)]['type'].values[0]
-            #convert all file table to file
-            if table_type == "file":
-                file_df = get_df_from_tablename_by_time(table, query_time).iloc[:,:-2]#none and timestamps col
-                file_absolute_path = os.path.join(storage_path, manifest_df[manifest_df['path'].str.contains(tablename)]['path'].values[0])
-                file_df.to_csv(file_absolute_path, sep=';', index=False)
-                to_delete.append(file_absolute_path)
+  
+        if not manifest_df.empty:
+            for table in db.metadata.tables:
+                tablename = table.split(".")[1]
+                table_type = manifest_df[manifest_df['path'].str.contains(tablename)]['type'].values[0] if manifest_df['path'].str.contains(tablename).any() else None
+                #convert all file table to file
+                if table_type == "file":
+                    file_df = get_df_from_tablename_by_time(table, query_time)
+                    if not file_df.empty:
+                        #none and timestamps col
+                        file_df = file_df.iloc[:,:-2]
+                        file_absolute_path = os.path.join(storage_path, manifest_df[manifest_df['path'].str.contains(tablename)]['path'].values[0])
+                        file_df.to_csv(file_absolute_path, sep=';', index=False)
+                        to_delete.append(file_absolute_path)
 
             
         #get asm out
@@ -207,28 +226,29 @@ def create_app(config):
 
         #create and delete
         #create asm folder files
-        asm_header = ['address','source_location','insn','indent']
-        unique_run = asm_df['loop_id'].unique()
-        for run in unique_run:
-            cur_asm_loop_df = asm_df.loc[asm_df['loop_id'] == run]
-            filename_parts = []
-            if cur_asm_loop_df['type'].iloc[0] == "fct":
-                filename_parts.append("fct")
-            if cur_asm_loop_df['decan'].iloc[0] != None:
-                filename_parts.append(cur_asm_loop_df['decan'].iloc[0])
-            filename_parts.append(cur_asm_loop_df['module'].iloc[0])
-            filename_parts.append(cur_asm_loop_df['identifier'].iloc[0])
-            cur_asm_loop_path =  asm_path + "/"+ get_filename(filename_parts, ".csv")
-            # print(cur_asm_loop_path)
-            cur_asm_loop_df.to_csv(cur_asm_loop_path, sep=';', index=False, columns=asm_header)
-        
-        run_otter_command(manifest_path, version)
+        if not asm_df.empty:
+            asm_header = ['address','source_location','insn','indent']
+            unique_run = asm_df['loop_id'].unique()
+            for run in unique_run:
+                cur_asm_loop_df = asm_df.loc[asm_df['loop_id'] == run]
+                filename_parts = []
+                if cur_asm_loop_df['type'].iloc[0] == "fct":
+                    filename_parts.append("fct")
+                if cur_asm_loop_df['decan'].iloc[0] != None:
+                    filename_parts.append(cur_asm_loop_df['decan'].iloc[0])
+                filename_parts.append(cur_asm_loop_df['module'].iloc[0])
+                filename_parts.append(cur_asm_loop_df['identifier'].iloc[0])
+                cur_asm_loop_path =  asm_path + "/"+ get_filename(filename_parts, ".csv")
+                # print(cur_asm_loop_path)
+                cur_asm_loop_df.to_csv(cur_asm_loop_path, sep=';', index=False, columns=asm_header)
+            
+            run_otter_command(manifest_path, version)
 
         to_delete.append(asm_path)
         to_delete.append(manifest_path)
-        # delete_created_path(to_delete)
+        delete_created_path(to_delete)
 
-    @app.route('/get_data_table_rows', methods=['GET','POST'])
+    @app.route('/get_data_table_rows', methods=['POST'])
     def get_data_table_rows():
         #get application, machine, and dataset
         #TODO: hardcode path
@@ -236,22 +256,22 @@ def create_app(config):
         #machine in local_var
         #get all timestamps, for each time stamp, get machine
         get_timestamp_table = db.metadata.tables['test.local_vars']
-        query = db.session.query(get_timestamp_table.c.timestamp.distinct())
-        timestamps = pd.read_sql_query(query.statement, query.session.bind).values
-        machines=[]
-        #TODO get all machine instead of just 1
-        exp_dir = config['web']['EXPR_FOLDER']
-        local_vars = db.metadata.tables['test.local_vars']
-        machine_query = db.session.query(local_vars.c.hostname.distinct())
-        machines = pd.read_sql_query(machine_query.statement, query.session.bind).values
+        # query = db.session.query(get_timestamp_table.c.timestamp.distinct())
+        # timestamps = pd.read_sql_query(query.statement, query.session.bind).values
+        # machines=[]
+        # #TODO get all machine instead of just 1
+        # exp_dir = config['web']['EXPR_FOLDER']
+        # local_vars = db.metadata.tables['test.local_vars']
+        # machine_query = db.session.query(local_vars.c.hostname.distinct())
+        # machines = pd.read_sql_query(machine_query.statement, query.session.bind).values
 
-        machine =  machines[0][0] if len(machines) == 1 else ''
-        config_path = f"{exp_dir}/config.lua"
-        config_file = open(config_path, 'r')
-        lines = config_file.readlines()
-        application = str(lines[0].split("=")[1][2:-2])
-        dataset = str(lines[1].split("=")[1][:-4])
-        data={"Application":application, "Machine":machine, "Dataset":dataset}
+        # machine =  machines[0][0] if len(machines) == 1 else ''
+        # config_path = f"{exp_dir}/config.lua"
+        # config_file = open(config_path, 'r')
+        # lines = config_file.readlines()
+        # application = str(lines[0].split("=")[1][2:-2])
+        # dataset = str(lines[1].split("=")[1][:-4])
+        data={"Application":"application", "Machine":"machine", "Dataset":"dataset"}
         print(json.dumps(data) )
         return jsonify(isError= False,
                         data= json.dumps(data),
@@ -259,6 +279,16 @@ def create_app(config):
                         statusCode= 200,
                         )
 
+    @app.after_request
+    def apply_caching(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+    
+    @app.after_request
+    def apply_hsts(response):
+        response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
+        return response
+    
     return app
 
 def main():
