@@ -6,6 +6,7 @@ import pathlib
 from pathlib import Path
 import re
 import sys
+from getpass import getpass
 
 #functions to append to dataframe
 def clear_dataframe(df):
@@ -164,10 +165,10 @@ def run_ovdb(exp_dir):
     config = configparser.ConfigParser()
     config.read(config_path)
     print("config ",config.sections())
-    #dialect+driver://username:password@host:port/database
-    #mysql+pymysql://moon:Jy459616!@localhost/test
-    # engine = create_engine(f'=true')
-    engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI'])
+
+    print('Enter SQLALCHEMY_DATABASE_URI:')
+    db_uri = getpass()
+    engine = create_engine(db_uri)
     connection = engine.connect()
 
     print("this experiment is run in ",exp_dir)
