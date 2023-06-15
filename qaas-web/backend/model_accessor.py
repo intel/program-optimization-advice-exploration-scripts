@@ -762,13 +762,9 @@ class OneViewModelInitializer(OneviewModelAccessor):
         cqa_dir_path, expert_loop_path = self.get_cqa_path()
         cqa_paths = get_files_with_extension(cqa_dir_path, ['.csv'])
         for cqa_path in cqa_paths:
-            _, module, identifier = parse_file_name_no_variant(os.path.basename(cqa_path))
+            type, variant, module, identifier = parse_file_name(os.path.basename(cqa_path))
+
             current_loop = get_loop_by_maqao_id(self.get_current_execution(), int(identifier))
-            
-            #analysis column for loop
-            loop_analysis_lua_file_name = '{}_{}_text.lua'.format(module, identifier)
-            analysis_json_data = convert_lua_to_python(os.path.join(cqa_dir_path,loop_analysis_lua_file_name))
-            current_cqa_analysis = CqaAnalysis.add_analysis(self.session, analysis_json_data)
 
             cqa_df = read_file(cqa_path)
             cqa_measures = []
@@ -778,17 +774,24 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 cqa_measure_obj = CqaMeasure(self)
                 cqa_measure_obj.path_id = path_id
                 cqa_measure_obj.loop = current_loop
+                cqa_measure_obj.decan_variant = DecanVariant.get_or_create_by_name(variant, self)
                 #cqa metrics
                 row.pop('path ID')
                 cqa_meatrics = cqa_measure_obj.add_metrics(self.session, row)
                 cqa_measures.append(cqa_measure_obj)
                 cqa_collection.add_obj(cqa_measure_obj)
-            current_cqa_analysis.cqa_measures = cqa_measures
+
+             #analysis column for loop
+            if not variant:
+                loop_analysis_lua_file_name = '{}_{}_text.lua'.format(module, identifier)
+                analysis_json_data = convert_lua_to_python(os.path.join(cqa_dir_path,loop_analysis_lua_file_name))
+                current_cqa_analysis = CqaAnalysis.add_analysis(self.session, analysis_json_data)
+                current_cqa_analysis.cqa_measures = cqa_measures
 
         #for the all fct cqa analysis create a cqa measure in the table
         cqa_fct_paths = get_files_starting_with_and_ending_with(cqa_dir_path, 'fct','text.lua')
         for cqa_path in cqa_fct_paths:
-            _, module, identifier = parse_file_name_no_variant(os.path.basename(cqa_path))
+            type, variant, module, identifier = parse_file_name(os.path.basename(cqa_path))
             current_function = get_function_by_maqao_id(self.get_current_execution(), int(identifier))
             
              #create analysis col
@@ -810,12 +813,14 @@ class OneViewModelInitializer(OneviewModelAccessor):
         asm_dir_path = self.get_asm_path()
         asm_paths = get_files_with_extension(asm_dir_path, ['.csv'])
         for asm_path in asm_paths:
-            type, module, identifier = parse_file_name_no_variant(os.path.basename(asm_path))
+            type, variant, module, identifier = parse_file_name(os.path.basename(asm_path))
             asm_content = compress_file(asm_path)
             asm_hash = get_file_sha256(asm_path)
             asm_obj = Asm(self)
             asm_obj.content = asm_content
             asm_obj.hash = asm_hash
+            asm_obj.decan_variant = DecanVariant.get_or_create_by_name(variant, self)
+
 
             if type == 0:
                 loop_obj = get_loop_by_maqao_id(self.get_current_execution(), int(identifier))
@@ -830,7 +835,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         group_dir_path = self.get_group_path()
         group_paths = get_files_with_extension(group_dir_path,['.csv'])
         for group_path in group_paths:
-            type, module, identifier = parse_file_name_no_variant(os.path.basename(group_path))
+            type, variant, module, identifier = parse_file_name(os.path.basename(group_path))
             loop_obj = get_loop_by_maqao_id(self.get_current_execution(), int(identifier))
             group_data = get_data_from_csv(group_path)
 
@@ -863,7 +868,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         source_dir_path = self.get_source_path()
         source_paths = get_files_with_extension(source_dir_path,['txt'])
         for source_path in source_paths:
-            type, module, identifier = parse_file_name_no_variant(os.path.basename(source_path))
+            type, variant, module, identifier = parse_file_name(os.path.basename(source_path))
             source_obj = Source(self)
             source_obj.content = compress_file(source_path)
             source_obj.hash = get_file_sha256(source_path)
@@ -1253,14 +1258,16 @@ class OneViewModelExporter(OneviewModelAccessor):
         expert_df['CQA cycles if fully vectorized'] = [cqa.lookup_metric_unique('cycles L1 if fully vectorized') for cqa in avg_loop_cqas]
         expert_df['CQA cycles if FP only'] = [cqa.lookup_metric_unique('cycles L1 if only FP') for cqa in avg_loop_cqas]
     
+        print(expert_df)
+        print(expert_loop_path)
         accumulate_df(expert_df, ['ID'], expert_loop_path)
 
         files = {}
 
         for cqa in loop_cqas:
             module_name = os.path.basename(cqa.loop.function.module.name)
-            file_name = '{}_{}_{}_cqa.csv'.format(cqa.fk_decan_variant_id, module_name, cqa.loop.maqao_loop_id) if \
-                    cqa.fk_decan_variant_id is not None else '{}_{}_cqa.csv'.format(module_name, cqa.loop.maqao_loop_id)
+            file_name = '{}_{}_{}_cqa.csv'.format(cqa.decan_variant.variant_name, module_name, cqa.loop.maqao_loop_id) if \
+                    cqa.decan_variant is not None else '{}_{}_cqa.csv'.format(module_name, cqa.loop.maqao_loop_id)
             cqa_path = os.path.join(cqa_dir_path, file_name)
 
             #create the analysis lua file
@@ -1312,7 +1319,8 @@ class OneViewModelExporter(OneviewModelAccessor):
                 module_name = os.path.basename(asm.loops[0].function.module.name)
 
                 content = asm.content
-                file_name = '{}_{}.csv'.format(module_name, asm.loops[0].maqao_loop_id)
+                file_name = '{}_{}_{}.csv'.format(asm.decan_variant.variant_name, module_name, asm.loops[0].loop.maqao_loop_id) if \
+                    asm.decan_variant is not None else '{}_{}.csv'.format(module_name, asm.loops[0].maqao_loop_id)
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:
                     f.write(decompress_file(content))
