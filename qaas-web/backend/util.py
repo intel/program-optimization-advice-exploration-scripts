@@ -50,7 +50,25 @@ def parse_file_name_no_variant(file_name):
         return type, module, identifier
     else:
         return None
-    
+
+def parse_file_name(file_name):
+    match = re.match(r'^(?:(fct)_)?(?:([A-Z0-9]+)_)?(.*?_(\d+))(?:_cqa)?(?:_text)?(?:\.csv)?(?:\.txt)?(?:\.lua)?$', file_name)
+    if match:
+        fct = match.group(1)
+        variant = match.group(2)
+        module_and_id = match.group(3)
+        # Separate module and id from the combined string
+        module, identifier = module_and_id.rsplit('_', 1)
+        type = 1 if fct is not None else 0
+        return type, variant, module, identifier
+    else:
+        return None
+
+
+
+
+
+
 ####get files functions
 def get_files_with_extension(directory, extensions):
     files = []

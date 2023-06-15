@@ -688,6 +688,7 @@ class DecanRun(QaaSBase):
     decan_variant = relationship("DecanVariant", back_populates="decan_runs")
     def __init__(self, initializer):
         super().__init__(initializer.session)
+
 class DecanVariant(QaaSBase):
     __tablename__ = "decan_variant"
     variant_name = Column(String(50), nullable = True)
@@ -697,6 +698,17 @@ class DecanVariant(QaaSBase):
     cqa_measures = relationship("CqaMeasure", back_populates="decan_variant")
     def __init__(self, initializer):
         super().__init__(initializer.session)
+
+    @classmethod
+    def get_or_create_by_name(cls, variant_name, initializer):
+        result = initializer.session.query(cls).filter_by(variant_name=variant_name).first()
+        if result:
+            return result
+        else:
+            new_string_obj = cls(initializer)
+            new_string_obj.variant_name = variant_name
+            return new_string_obj
+
 class DecanMetric(QaaSBase):
     __tablename__ = "decan_metric"
     metric_name = Column(String(50), nullable = True)
@@ -708,6 +720,7 @@ class DecanMetric(QaaSBase):
     decan_run = relationship("DecanRun", back_populates="decan_metrics")
     def __init__(self, initializer):
         super().__init__(initializer.session)
+
 class VprofMeasure(QaaSBase):
     __tablename__ = "vprof_measure"
 
