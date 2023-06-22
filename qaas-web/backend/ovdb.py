@@ -35,5 +35,8 @@ def populate_database(qaas_data_dir, qaas_timestamp, version,
 def export_data(timestamp, qaas_output_folder, session):
     qaas_database = QaaSDatabase.find_database(timestamp, session)
     exporter = OneViewModelExporter(session, qaas_output_folder)
+    print("start export data")
     qaas_database.export(exporter)
+    print("finish export data")
+
 

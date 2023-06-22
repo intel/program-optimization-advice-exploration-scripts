@@ -34,6 +34,12 @@ class ModelAccessor(ABC):
     def visitMaqao(self, maqao):
         pass
     @abstractmethod
+    def visitDecanCollection(self, decan_collection):
+        pass
+    @abstractmethod
+    def visitVprofCollection(self, vprof_collection):
+        pass
+    @abstractmethod
     def visitLprofCategorizationCollection(self, lprof_categorization_collection):
         pass
     @abstractmethod
@@ -199,6 +205,10 @@ class LoreMigrator(LoreModelAccessor):
         pass
     def visitSourceCollection(self, source_collection):
         pass
+    def visitDecanCollection(self, decan_collection):
+        pass
+    def visitVprofCollection(self, vprof_collection):
+        pass
 
 
 class OneviewModelAccessor(ModelAccessor):
@@ -218,6 +228,8 @@ class OneviewModelAccessor(ModelAccessor):
         self.local_vars_path1 = os.path.join(self.static_dir_path, 'local_vars.csv')
         self.local_vars_path2 = os.path.join(self.run_dir_path, 'local_vars.csv')
         self.expert_loop_path = os.path.join(self.run_dir_path, "expert_loops.csv")
+        self.vprof_bucket_range = ["0.00-2.00", "2.00-4.00", "4.00-8.00", "8.00-16.00", "16.00-32.00", "32.00-64.00", "64.00-128.00", "128.00-256.00", "256.00-512.00", "512.00-1024.00", "1024.00-2048.00", "2048.00+"]
+
 
 
     def get_run_name(self):
@@ -263,6 +275,11 @@ class OneviewModelAccessor(ModelAccessor):
     def get_maqao_path(self):
         return self.local_vars_path1, self.local_vars_path2
     
+    def get_decan_path(self):
+        return os.path.join(self.run_dir_path, "decan.csv")
+    
+    def get_vprof_path(self):
+        return os.path.join(self.run_dir_path, "vprof.csv")
     def get_lprof_categorization_path(self):
         lprof_categorization_path1 = os.path.join(self.run_dir_path, 'lprof_categorization.csv')
         lprof_categorization_path2 = os.path.join(self.lprof_dir_path, 'lprof_categorization.csv')
@@ -343,6 +360,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
         current_os.environment = current_environment
         qaas_database.add_to_data_list(current_environment)
 
+  
+
         #########lprof categorization table and lprof categorization metrics
         current_lprof_categorization_collection = LprofCategorizationCollection()
         current_lprof_categorization_collection.accept(self)
@@ -397,7 +416,16 @@ class OneViewModelInitializer(OneviewModelAccessor):
         source_collection = SourceCollection()        
         source_collection.accept(self)
         qaas_database.add_to_data_list(source_collection)
-    
+
+        ##### decan collection 
+        current_decan_collection = DecanCollection()
+        current_decan_collection.accept(self)
+        qaas_database.add_to_data_list(current_decan_collection)
+
+        ##### vprof collection 
+        current_vprof_collection = VprofCollection()
+        current_vprof_collection.accept(self)
+        qaas_database.add_to_data_list(current_vprof_collection)
         
 
     def visitEnvironment(self, environment):
@@ -499,6 +527,64 @@ class OneViewModelInitializer(OneviewModelAccessor):
         maqao.maqao_version = local_vars_dict['maqao_version']
         maqao.exp_version = local_vars_dict['exp_version']
 
+    def visitDecanCollection(self, decan_collection):
+        decan_path = self.get_decan_path()
+        decan_data = read_file(decan_path).to_dict(orient='records')
+        for dic in decan_data:
+            current_decan = DecanRun(self)
+            current_decan.bucket = int(dic['bucket'])
+            current_decan.frequency = float(dic['frequency'])
+            current_decan.type = dic['type']
+            current_decan.mpi_process = dic['mpi_process']
+            current_decan.thread = dic['thread']
+
+            current_decan.add_metric(self, dic['metric'], float(dic['value']), dic['value_type'])
+
+            current_loop = get_loop_by_maqao_id(self.get_current_execution(), int(dic['id']))
+            current_decan.loop = current_loop
+            current_variant = DecanVariant.get_or_create_by_name(dic['variant'], self)
+            current_decan.decan_variant = current_variant 
+            decan_collection.add_obj(current_decan)
+
+
+    def visitVprofCollection(self, vprof_collection):
+        vprof_path = self.get_vprof_path()
+
+        vprof_data = read_file(vprof_path, delimiter=',')
+        print(vprof_data)
+        vprof_data = vprof_data.to_dict(orient='records')
+
+        for dic in vprof_data:
+            dic = delete_nan_from_dict(dic)
+            current_vprof = VprofMeasure(self)
+            
+            current_vprof.instance_count = get_value(dic, 'instance_count', int)
+            current_vprof.invalid_count = get_value(dic, 'invalid_count', int)
+            current_vprof.iteration_total = get_value(dic, 'iteration_total', float)
+            current_vprof.iteration_min = get_value(dic, 'iteration_min', float)
+            current_vprof.iteration_max = get_value(dic, 'iteration_max', float)
+            current_vprof.iteration_mean = get_value(dic, 'iteration_mean', float)
+            current_vprof.cycle_total = get_value(dic, 'cycle_total', float)
+            current_vprof.cycle_min = get_value(dic, 'cycle_min', float)
+            current_vprof.cycle_max = get_value(dic, 'cycle_max', float)
+            current_vprof.cycle_mean = get_value(dic, 'cycle_mean', float)
+            current_vprof.cycles_per_iteration_min = get_value(dic, 'cycles_per_iteration_min', float)
+            current_vprof.cycles_per_iteration_max = get_value(dic, 'cycles_per_iteration_max', float)
+            current_vprof.cycles_per_iteration_mean = get_value(dic, 'cycles_per_iteration_mean', float)
+
+            current_loop = get_loop_by_maqao_id(self.get_current_execution(), get_value(dic, 'loop_id', int))
+            current_vprof.loop = current_loop
+
+            for bucket_range in self.vprof_bucket_range:
+                bucket_measure = VprofBucketMeasure(self)
+                bucket_measure.range_value = bucket_range
+                bucket_measure.bucket_instance_percent = dic.get('bucket_instance_percent_' + bucket_range, None)
+                bucket_measure.bucket_cycle_percent = dic.get('bucket_cycle_percent_' + bucket_range, None)
+                bucket_measure.bucket_instances = dic.get('bucket_instances_' + bucket_range, None)
+
+                current_vprof.vprof_bucket_measures.append(bucket_measure)
+                
+            vprof_collection.add_obj(current_vprof)
     def visitLprofCategorizationCollection(self, lprof_categorization_collection):
         lprof_categorization_path1, lprof_categorization_path2 = self.get_lprof_categorization_path()
         lprof_categorization_csv_df = read_file(lprof_categorization_path1)
@@ -523,8 +609,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         module_data_list = get_table_data_from_df(lprof_df, Module)
         for data in module_data_list:
             data = delete_nan_from_dict(data)
-            module = Module(self)
-            module.name = data.get('name', None)
+            module = Module.get_or_create_by_name(data.get('name', None), self.get_current_execution(), self)
             module.time_p = data.get('time_p',None)
             module.time_s = data.get('time_s',None)
             module.cpi_ratio = data.get('cpi_ratio', None)
@@ -814,6 +899,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         asm_paths = get_files_with_extension(asm_dir_path, ['.csv'])
         for asm_path in asm_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(asm_path))
+            print(type, variant, module, identifier)
             asm_content = compress_file(asm_path)
             asm_hash = get_file_sha256(asm_path)
             asm_obj = Asm(self)
@@ -830,6 +916,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 function_obj.asm = asm_obj
 
             asm_collection.add_obj(asm_obj)
+        print(len(asm_collection.get_objs()), "after populateion")
 
     def visitGroupCollection(self, group_collection):
         group_dir_path = self.get_group_path()
@@ -1009,12 +1096,70 @@ class OneViewModelExporter(OneviewModelAccessor):
         # env_name = 'env_{}-{}.txt'.format(environment.execution.machine, environment.execution.os.hostname.tid)
         # create_file_from_metric_table(environment.environment_metrics, env_path)
 
+    def visitDecanCollection(self, decan_collection):
+        decan_path = self.get_decan_path()
+        decan_data = []
+
+        for decan in decan_collection.get_objs():
+            metric = DecanMetric.get_metric_by_decan(decan, self)
+            decan_dict = {
+                'id' : decan.loop.maqao_loop_id,
+                'module' : os.path.basename(decan.loop.function.module.name),
+                'type' : decan.type,
+                'variant' : decan.decan_variant.variant_name,
+                'frequency' : decan.frequency,
+                'bucket': decan.bucket,
+                'mpi_process': decan.mpi_process,
+                'thread' : decan.thread,
+                'metric' : metric.metric_name,
+                'value_type' : metric.metric_type,
+                'value' : metric.metric_value
+            }
+            decan_data.append(decan_dict)
+
+        decan_df = pd.DataFrame(decan_data)
+        write_file(decan_df, decan_path)
+
+    def visitVprofCollection(self, vprof_collection):
+        vprof_path = self.get_vprof_path()
+        vprof_data = []
+
+        for vprof in vprof_collection.get_objs():
+            vprof_dict = {
+                'loop_id' : vprof.loop.maqao_loop_id,
+                'module' : os.path.basename(vprof.loop.function.module.name),
+                'instance_count' : vprof.instance_count,
+                'invalid_count' : vprof.invalid_count,
+                'iteration_total' : vprof.iteration_total,
+                'iteration_min' : vprof.iteration_min,
+                'iteration_max' : vprof.iteration_max,
+                'iteration_mean' : vprof.iteration_mean,
+                'cycle_total' : vprof.cycle_total,
+                'cycle_min' : vprof.cycle_min,
+                'cycle_max' : vprof.cycle_max,
+                'cycle_mean' : vprof.cycle_mean,
+                'cycles_per_iteration_min' : vprof.cycles_per_iteration_min,
+                'cycles_per_iteration_max' : vprof.cycles_per_iteration_max,
+                'cycles_per_iteration_mean' : vprof.cycles_per_iteration_mean,
+            }
+            for vprof_bucket_measure in vprof.vprof_bucket_measures:
+                bucket_range = vprof_bucket_measure.range_value
+                vprof_dict['bucket_instance_percent_' + bucket_range] = vprof_bucket_measure.bucket_instance_percent
+                vprof_dict['bucket_cycle_percent_' + bucket_range] = vprof_bucket_measure.bucket_cycle_percent
+                vprof_dict['bucket_instances_' + bucket_range] = vprof_bucket_measure.bucket_instances
+            vprof_data.append(vprof_dict)
+            
+        vprof_df = pd.DataFrame(vprof_data)
+        write_file(vprof_df, vprof_path, delimiter=',')
+
+
+
     def visitLprofCategorizationCollection(self, lprof_categorization_collection):
         lprof_categorization_path1, lprof_categorization_path2 = self.get_lprof_categorization_path()
         os.makedirs(os.path.dirname(lprof_categorization_path1), exist_ok=True)
         os.makedirs(os.path.dirname(lprof_categorization_path2), exist_ok=True)
 
-        lprof_categorization_df = pd.DataFrame()
+        lprof_categorization_list = []
         for lprof_categorization in lprof_categorization_collection.get_objs():
             lprof_categorization_dict = {
                 'Node': lprof_categorization.node,
@@ -1028,15 +1173,18 @@ class OneViewModelExporter(OneviewModelAccessor):
             lprof_categorization_metrics = lprof_categorization.lprof_categorization_metrics
             names_and_values_data = get_names_and_values_data_for_metric_table(lprof_categorization_metrics)
             lprof_categorization_dict = {**lprof_categorization_dict, **names_and_values_data}
-            lprof_categorization_df = lprof_categorization_df.append(lprof_categorization_dict, ignore_index=True)
+            lprof_categorization_list.append(lprof_categorization_dict)
+
+        lprof_categorization_df = pd.DataFrame(lprof_categorization_list)
         write_file(lprof_categorization_df, lprof_categorization_path1)
         write_file(lprof_categorization_df, lprof_categorization_path2)
+
 
     def visitModuleCollection(self, module_collection):
         lprof_modules_path = self.get_module_path()
         os.makedirs(os.path.dirname(lprof_modules_path), exist_ok=True)
 
-        lprof_df = pd.DataFrame()
+        lprof_list = []
         for module in module_collection.get_objs():
             module_dict = {
                 'name' : module.name,
@@ -1044,8 +1192,11 @@ class OneViewModelExporter(OneviewModelAccessor):
                 'time_s' : module.time_s,
                 'cpi_ratio' : module.cpi_ratio,
             }
-            lprof_df = lprof_df.append(module_dict, ignore_index=True)
-        write_file(lprof_df,lprof_modules_path)
+            lprof_list.append(module_dict)
+        
+        lprof_df = pd.DataFrame(lprof_list)
+        write_file(lprof_df, lprof_modules_path)
+
     
     def visitBlockCollection(self, block_collection):
         pass
@@ -1258,28 +1409,26 @@ class OneViewModelExporter(OneviewModelAccessor):
         expert_df['CQA cycles if fully vectorized'] = [cqa.lookup_metric_unique('cycles L1 if fully vectorized') for cqa in avg_loop_cqas]
         expert_df['CQA cycles if FP only'] = [cqa.lookup_metric_unique('cycles L1 if only FP') for cqa in avg_loop_cqas]
     
-        print(expert_df)
-        print(expert_loop_path)
         accumulate_df(expert_df, ['ID'], expert_loop_path)
 
         files = {}
-
         for cqa in loop_cqas:
             module_name = os.path.basename(cqa.loop.function.module.name)
             file_name = '{}_{}_{}_cqa.csv'.format(cqa.decan_variant.variant_name, module_name, cqa.loop.maqao_loop_id) if \
                     cqa.decan_variant is not None else '{}_{}_cqa.csv'.format(module_name, cqa.loop.maqao_loop_id)
             cqa_path = os.path.join(cqa_dir_path, file_name)
 
-            #create the analysis lua file
-            analysis_lua_file_name =  '{}_{}_text.lua'.format(module_name, cqa.loop.maqao_loop_id)
-            analysis_path = os.path.join(cqa_dir_path, analysis_lua_file_name)
-            if not os.path.exists(analysis_path):
-                analysis_python_data = cqa.cqa_analysis.analysis
-                convert_python_to_lua(analysis_python_data, analysis_path)
-                ##html lua files
-                analysis_html_lua_file_name = '{}_{}_html.lua'.format(module_name, cqa.loop.maqao_loop_id)
-                analysis_html_lua_path = os.path.join(cqa_dir_path, analysis_html_lua_file_name)
-                create_html_lua_by_text_python(analysis_python_data, analysis_html_lua_path) 
+            if not cqa.decan_variant:
+                #create the analysis lua file
+                analysis_lua_file_name =  '{}_{}_text.lua'.format(module_name, cqa.loop.maqao_loop_id)
+                analysis_path = os.path.join(cqa_dir_path, analysis_lua_file_name)
+                if not os.path.exists(analysis_path):
+                    analysis_python_data = cqa.cqa_analysis.analysis
+                    convert_python_to_lua(analysis_python_data, analysis_path)
+                    ##html lua files
+                    analysis_html_lua_file_name = '{}_{}_html.lua'.format(module_name, cqa.loop.maqao_loop_id)
+                    analysis_html_lua_path = os.path.join(cqa_dir_path, analysis_html_lua_file_name)
+                    create_html_lua_by_text_python(analysis_python_data, analysis_html_lua_path) 
 
             ##create the cqa file for loop csv   
             if file_name not in files:
@@ -1310,7 +1459,7 @@ class OneViewModelExporter(OneviewModelAccessor):
     def visitAsmCollection(self, asm_collection):
         asm_dir_path = self.get_asm_path()
         os.makedirs(asm_dir_path, exist_ok=True)
-
+        print(len(asm_collection.get_objs()), " total")
         for asm in asm_collection.get_objs():
 
             #check if asm is function or loop
@@ -1319,8 +1468,9 @@ class OneViewModelExporter(OneviewModelAccessor):
                 module_name = os.path.basename(asm.loops[0].function.module.name)
 
                 content = asm.content
-                file_name = '{}_{}_{}.csv'.format(asm.decan_variant.variant_name, module_name, asm.loops[0].loop.maqao_loop_id) if \
+                file_name = '{}_{}_{}.csv'.format(asm.decan_variant.variant_name, module_name, asm.loops[0].maqao_loop_id) if \
                     asm.decan_variant is not None else '{}_{}.csv'.format(module_name, asm.loops[0].maqao_loop_id)
+                print(file_name,"loop")
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:
                     f.write(decompress_file(content))
@@ -1328,6 +1478,8 @@ class OneViewModelExporter(OneviewModelAccessor):
                 module_name = os.path.basename(asm.functions[0].module.name)
                 content = asm.content
                 file_name = 'fct_{}_{}.csv'.format(module_name, asm.functions[0].maqao_function_id)
+                print(file_name,"function")
+
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:
                     f.write(decompress_file(content))
@@ -1386,14 +1538,11 @@ class OneViewModelExporter(OneviewModelAccessor):
                 'unroll_factor': group.unroll_factor,
             }
 
-
             if file_name not in files:
-                files[file_name] = pd.DataFrame()
+                files[file_name] = []
 
-            files[file_name] = files[file_name].append(group_dict,ignore_index=True)
-            
+            files[file_name].append(group_dict)
+
         for file in files:
-            write_file(files[file],os.path.join(group_dir_path, file))
-
-            
-            
+            group_df = pd.DataFrame(files[file])
+            write_file(group_df, os.path.join(group_dir_path, file))

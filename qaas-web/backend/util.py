@@ -12,7 +12,7 @@ from datetime import datetime
 import configparser
 from sqlalchemy import distinct, func
 from sqlalchemy.sql import and_
-
+import csv
 
 level_map = {0: 'Single', 1: 'Innermost', 2: 'Inbetween', 3: 'Outermost'}
 reverse_level_map = {v: k for k, v in level_map.items()}
@@ -96,11 +96,13 @@ def is_df_empty(df):
         
 
 def read_file(path, delimiter=';'):
-    return pd.read_csv(path, sep=delimiter, index_col=None, skipinitialspace=True)
+    return pd.read_csv(path, sep=delimiter, index_col=False, skipinitialspace=True)
+def get_value(dic, key, type):
+    value = dic.get(key, None)
+    return type(value) if value is not None else None
 
-
-def write_file(df, path):
-    df.to_csv(path, sep=';', index=False, header=True)
+def write_file(df, path, delimiter=';'):
+    df.to_csv(path, sep=delimiter, index=False, header=True)
 
 def get_or_create_df(path):
     if os.path.exists(path):
@@ -606,7 +608,7 @@ def merge_df(to_df, from_df, cols, keys):
         to_df[key] = to_df[key].astype(str)
         from_df[key] = from_df[key].astype(str)
     merged = pd.merge(left=to_df, right=from_df[keys+list(cols)], on=keys, how='left')      
-    merged = merged.set_index(to_df.index)
+    # merged = merged.set_index(to_df.index)
     for col in cols:
         if col + "_y" in merged.columns and col + "_x" in merged.columns:
             # _y is incoming df data so use it and fill in _x (original) if missing

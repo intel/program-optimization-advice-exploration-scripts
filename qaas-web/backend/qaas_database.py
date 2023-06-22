@@ -21,6 +21,7 @@ class QaaSDatabase:
         current_module_collection = ModuleCollection(current_modules)
         qaas_database.add_to_data_list(current_module_collection)
 
+
         current_blocks = current_execution.blocks
         current_block_collection = BlockCollection(current_blocks)
         qaas_database.add_to_data_list(current_block_collection)
@@ -32,6 +33,20 @@ class QaaSDatabase:
         current_loops = get_all_loops_for_run(current_functions)
         current_loop_collection = LoopCollection(current_loops)
         qaas_database.add_to_data_list(current_loop_collection)
+
+        decan_runs = []
+        for loop in current_loops:
+            decan_runs.extend(loop.decan_runs)
+        current_decan_collection = DecanCollection(decan_runs)
+        qaas_database.add_to_data_list(current_decan_collection)
+
+        vprof_measures = []
+        for loop in current_loops:
+            vprof_measures.extend(loop.vprof_measures)
+        current_vprof_collection = VprofCollection(vprof_measures)
+        qaas_database.add_to_data_list(current_vprof_collection)
+        print(vprof_measures)
+
 
         current_lprof_measurments = get_all_lprof_measure_for_run(current_blocks, current_functions, current_loops)
         qaas_database.add_to_data_list(LprofMeasurementCollection(current_block_collection, current_function_collection, current_loop_collection, current_lprof_measurments))
@@ -62,4 +77,5 @@ class QaaSDatabase:
     # # export
     def export(self, exporter):
         for data in self.data_list:
+            print(data)
             data.accept(exporter)
