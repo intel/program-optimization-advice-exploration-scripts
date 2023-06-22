@@ -343,8 +343,20 @@ class Module(QaaSBase):
     blocks = relationship("Block", back_populates="module")
     execution  = relationship("Execution", back_populates="modules")
     compiler = relationship("Compiler", back_populates="modules")
+
     def __init__(self, initializer):
         super().__init__(initializer.session)
+
+    @classmethod
+    def get_or_create_by_name(cls, name, current_execution, initializer):
+        result = initializer.session.query(cls).filter(cls.name.like('%'+name), cls.execution == current_execution).first()
+        if result:
+            return result
+        else:
+            new_obj = cls(initializer)
+            new_obj.name = name
+            new_obj.execution = current_execution
+            return new_obj
 
     
 class Block(QaaSBase):
@@ -427,6 +439,8 @@ class Loop(QaaSBase):
     groups = relationship("Group", back_populates="loop")
     cqa_measures = relationship("CqaMeasure", back_populates="loop")
     lore_loop_measures = relationship("LoreLoopMeasure", back_populates="loop")
+    vprof_measures = relationship("VprofMeasure", back_populates="loop")
+    decan_runs = relationship("DecanRun", back_populates="loop")
 
     def __init__(self, initializer):
         super().__init__(initializer.session)
@@ -677,17 +691,31 @@ class Group(QaaSBase):
 class DecanRun(QaaSBase):
     #TODO will it connect to block run and loop run
     __tablename__ = "decan_run"
-    freq = Column(Text, nullable = True)
-    bucket = Column(Text, nullable = True)
+    maqao_decan_id = Column(Integer, nullable = True)
+    type = Column(String(50), nullable = True)
+    frequency = Column(Float, nullable = True)
+    bucket = Column(Integer, nullable = True)
     mpi_process = Column(Text, nullable = True)
     thread = Column(Text, nullable = True)
 
     fk_variant_id = Column(Integer, ForeignKey('decan_variant.table_id'))
+    fk_loop_id = Column(Integer, ForeignKey('loop.table_id'))
 
     decan_metrics = relationship("DecanMetric", back_populates="decan_run")
     decan_variant = relationship("DecanVariant", back_populates="decan_runs")
+    loop = relationship("Loop", back_populates="decan_runs")
+
     def __init__(self, initializer):
         super().__init__(initializer.session)
+
+    def add_metric(self, initializer, metric_name, metric_value, metric_type):
+        metric = DecanMetric(initializer)
+        metric.metric_name = metric_name
+        metric.metric_value = metric_value
+        metric.metric_type = metric_type
+        self.decan_metrics.append(metric) 
+        return metric
+
 
 class DecanVariant(QaaSBase):
     __tablename__ = "decan_variant"
@@ -701,18 +729,19 @@ class DecanVariant(QaaSBase):
 
     @classmethod
     def get_or_create_by_name(cls, variant_name, initializer):
-        result = initializer.session.query(cls).filter_by(variant_name=variant_name).first()
-        if result:
-            return result
-        else:
-            new_string_obj = cls(initializer)
-            new_string_obj.variant_name = variant_name
-            return new_string_obj
+        if variant_name:
+            result = initializer.session.query(cls).filter_by(variant_name=variant_name).first()
+            if result:
+                return result
+            else:
+                new_obj = cls(initializer)
+                new_obj.variant_name = variant_name
+                return new_obj
 
 class DecanMetric(QaaSBase):
     __tablename__ = "decan_metric"
     metric_name = Column(String(50), nullable = True)
-    metric_value = Column(Text, nullable = True)
+    metric_value = Column(Float, nullable = True)
     metric_type = Column(String(50), nullable = True)
 
     fk_decan_run_id = Column(Integer, ForeignKey('decan_run.table_id'))
@@ -720,15 +749,48 @@ class DecanMetric(QaaSBase):
     decan_run = relationship("DecanRun", back_populates="decan_metrics")
     def __init__(self, initializer):
         super().__init__(initializer.session)
+    
+    @classmethod
+    def get_metric_by_decan(cls, decan_run, initializer):
+        result = initializer.session.query(cls).filter_by(decan_run=decan_run).first()
+        assert result is not None, "No matching record found for the provided decan_run."
+        return result
+        
+
+
 
 class VprofMeasure(QaaSBase):
     __tablename__ = "vprof_measure"
 
+    instance_count = Column(Integer, nullable=True)
+    invalid_count = Column(Integer, nullable=True)
+    iteration_total = Column(Float, nullable=True)
+    iteration_min = Column(Float, nullable=True)
+    iteration_max = Column(Float, nullable=True)
+    iteration_mean = Column(Float, nullable=True)
+    cycle_total = Column(Float, nullable=True)
+    cycle_min = Column(Float, nullable=True)
+    cycle_max = Column(Float, nullable=True)
+    cycle_mean = Column(Float, nullable=True)
+    cycles_per_iteration_min = Column(Float, nullable=True)
+    cycles_per_iteration_max = Column(Float, nullable=True)
+    cycles_per_iteration_mean = Column(Float, nullable=True)
+
+    fk_loop_id = Column(Integer, ForeignKey('loop.table_id'))
+
+    loop = relationship("Loop", back_populates="vprof_measures")
+    
     vprof_bucket_measures = relationship("VprofBucketMeasure", back_populates="vprof_measure")
+
     def __init__(self, initializer):
         super().__init__(initializer.session)
 class VprofBucketMeasure(QaaSBase):
     __tablename__ = "vprof_bucket_measure"
+
+    range_value  = Column(Text, nullable=True)
+    bucket_instance_percent = Column(Text, nullable=True)
+    bucket_cycle_percent = Column(Text, nullable=True)
+    bucket_instances = Column(Text, nullable=True)
 
     fk_vprof_measure = Column(Integer, ForeignKey('vprof_measure.table_id'))
 

@@ -323,7 +323,13 @@ file;{run_id};categorization;{output_data_dir}/shared/run_0/lprof_categorization
 dir;{run_id};callchains_dir;{output_data_dir}/shared/lprof_npsu_run_0/callchains;
 file;{run_id};log;{output_data_dir}/logs/log.txt;
 file;{run_id};logs_subdir;{output_data_dir}/logs/run_0;
-dir;{run_id};env_dir;{output_data_dir}/shared/run_0;"""
+dir;{run_id};env_dir;{output_data_dir}/shared/run_0;
+"""
+    if os.path.exists(f'{output_data_dir}/shared/run_0/decan.csv'):
+        higher_level_content = f"""file;{run_id};decan;{output_data_dir}/shared/run_0/decan.csv;
+        file;{run_id};vprof;{output_data_dir}/shared/run_0/vprof.csv;"""
+        content += higher_level_content
+
     write_string_to_file(manifest_path, content)
 
 def write_string_to_file(file_path, string):

@@ -14,13 +14,32 @@ class Collection:
     
     def add_obj_list(self, obj_list):
         self.objs.extend(obj_list)
+
+
+class DecanCollection(Collection):
+    def __init__(self, objs=None):
+        super().__init__(objs)
+    
+    def export(self, exporter):
+        self.accept(exporter)
+
+    def accept(self, accessor):
+        accessor.visitDecanCollection(self)
+
+class VprofCollection(Collection):
+    def __init__(self, objs=None):
+        super().__init__(objs)
+    
+    def export(self, exporter):
+        self.accept(exporter)
+
+    def accept(self, accessor):
+        accessor.visitVprofCollection(self)
+
 class LprofCategorizationCollection(Collection):
     def __init__(self, objs=None):
         super().__init__(objs)
     
-   
-        
-
     def export(self, exporter):
         self.accept(exporter)
 
