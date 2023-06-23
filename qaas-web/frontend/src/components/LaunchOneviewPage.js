@@ -22,7 +22,7 @@ export default function LaunchOneviewPage() {
 
     }, [])
 
-  
+
     const handleLaunchRunClick = (e) => {
         // setIsRunning(true)
         // setShouldShowLoading(true)
@@ -34,16 +34,15 @@ export default function LaunchOneviewPage() {
                 // ])
                 // setIsRunning(false)
                 // setShouldShowLoading(false)
-                console.log(JSON.parse(response.data['timestamp']))
             })
 
     }
 
     return (
-        <div style={{marginTop:80}}>
-            <UserInput/>
-            <Button  variant="contained" type="button" onClick={() => handleLaunchRunClick()}>Launch run button</Button >
-            
+        <div style={{ marginTop: 80 }}>
+            <UserInput />
+            <Button variant="contained" type="button" onClick={() => handleLaunchRunClick()}>Launch run button</Button >
+
             {/* {isRunning && shouldShowLoading && <LoadingAlert text="Running..." />} */}
 
             {/* {timestamps.length > 0 && <DataTable columns_raw={["timestamps"]} rows_raw={timestamps} />}

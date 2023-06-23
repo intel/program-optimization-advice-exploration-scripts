@@ -116,7 +116,6 @@ export default function UserInput({ setTimestamps }) {
         let endPoint = "http://localhost:5002/";
         // let namespace = "/test"
         if (buttonStatus === true) {
-            console.log("try connect socket")
 
             // const socket = io("localhost:5000/", {
             //     transports: ["websocket"],
@@ -125,7 +124,6 @@ export default function UserInput({ setTimestamps }) {
             //     },
             //   });
             const path = endPoint
-            console.log("path to connect", path)
             // const socket = io.connect(`${endPoint}`, {
             //     // 'autoConnect': false
             // })
@@ -133,7 +131,6 @@ export default function UserInput({ setTimestamps }) {
 
             // const socket = io.of(endPoint+namespace)
 
-            console.log("endpoint is ", `${endPoint}`)
             // socket.on("connect", (data) => {
             //     console.log(data);
             // });
@@ -247,7 +244,7 @@ export default function UserInput({ setTimestamps }) {
                     >
                         <div style={titleStyle}>Build</div>
                         <div style={divStyle}>
-                        <div style={subtitleStyle}>App Name</div>
+                            <div style={subtitleStyle}>App Name</div>
                             <TextField sx={{ width: '55ch', pr: '5px' }} label="App Name" variant="outlined"
                                 onChange={
                                     (event) => {
