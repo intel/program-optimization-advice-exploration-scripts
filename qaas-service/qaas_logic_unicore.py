@@ -162,4 +162,4 @@ def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir
     # Run oneview on best options
     run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options)
 
-    return rc,""
+    return rc,qaas_best_opt,""
