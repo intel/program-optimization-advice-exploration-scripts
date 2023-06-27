@@ -49,6 +49,7 @@ from utils.comm import ServiceMessageSender
 from qaas_logic_initial_profile import run_initial_profile
 from qaas_logic_compile import compile_binaries as compile_all
 from qaas_logic_unicore import run_qaas_UP
+from qaas_logic_multicore import run_qaas_MP
 
 def run_demo_phase(to_backplane, src_dir, data_dir, ov_config, ov_run_dir, locus_run_root, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
@@ -103,9 +104,18 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
 
     # Start unicore runs
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Unicore Parameters Exploration/Tuning"))
-    rc,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
+    rc,qaas_best_opt,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                      orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, median_orig)
     if rc != 0: 
+        to_backplane.send(qm.GeneralStatus(msg))
+        return
+    to_backplane.send(qm.GeneralStatus("Done Unicore Parameters Exploration/Tuning!"))
+
+    # Start multicore runs
+    to_backplane.send(qm.GeneralStatus("QAAS running logic: Multicore Parameters Exploration/Tuning"))
+    rc,qaas_best_opt,msg = run_qaas_MP(user_target, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
+                     orig_user_CC, run_cmd, compiled_options, qaas_best_opt, qaas_reports_dir)
+    if rc != 0:
         to_backplane.send(qm.GeneralStatus(msg))
         return
     to_backplane.send(qm.GeneralStatus("Done Unicore Parameters Exploration/Tuning!"))
