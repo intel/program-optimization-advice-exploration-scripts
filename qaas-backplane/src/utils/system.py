@@ -30,6 +30,7 @@
 
 import os
 import sys
+import subprocess
 import cpuinfo
 
 def get_vendor_name():
@@ -67,3 +68,22 @@ def get_intel_processor_name():
 
     return CPU
 
+def get_number_of_cpus():
+    '''Retrieve the number of logical CPUs from lscpu command'''
+    count = int(subprocess.check_output('lscpu --extended=CPU | tail -n +2 | sort -u | wc -l', shell=True))
+    return count
+
+def get_number_of_cores():
+    '''Retrieve the number of physical cores from lscpu command'''
+    count = int(subprocess.check_output('lscpu --extended=CORE | tail -n +2 | sort -u | wc -l', shell=True))
+    return count
+
+def get_number_of_sockets():
+    '''Retrieve the number of sockets from lscpu command'''
+    count = int(subprocess.check_output('lscpu --extended=SOCKET | tail -n +2 | sort -u | wc -l', shell=True))
+    return count
+
+def get_number_of_nodes():
+    '''Retrieve the number of sockets from lscpu command'''
+    count = int(subprocess.check_output('lscpu --extended=NODE | tail -n +2 | sort -u | wc -l', shell=True))
+    return count
