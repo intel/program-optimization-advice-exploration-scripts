@@ -130,6 +130,8 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
             update_c_flags = f"{filtered_c_flags} {mapped_flags} {debug_options}" if filtered_c_flags else ""
             update_cxx_flags = f"{filtered_cxx_flags} {mapped_flags} {debug_options}" if filtered_cxx_flags else ""
             update_fc_flags = f"{filtered_fc_flags} {mapped_flags} {debug_options}" if filtered_fc_flags else ""
+            # Update extra CMAKE flags
+            update_extra_cmake_flags = extra_cmake_flags if extra_cmake_flags else ""
 
             # Setup binary
             index = option + 1
@@ -138,12 +140,12 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
             # Add cmake's -DBUILD_SHARED_LIBS=ON if -flto is needed
             flags_set = set((update_c_flags  + " " + update_cxx_flags  + " " + update_fc_flags).split(' '))
             if '-flto' in flags_set:
-                extra_cmake_flags += " -DBUILD_SHARED_LIBS=ON"
+                update_extra_cmake_flags += " -DBUILD_SHARED_LIBS=ON"
 
             # Build originl app using user-provided compilation options
             app_builder_env = app_builder.exec(src_dir, compiler_dir, orig_binary,
                                        orig_user_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
-                                       user_link_flags, user_target, user_target_location, 'prepare', extra_cmake_flags, f"{compiler}_{index}")
+                                       user_link_flags, user_target, user_target_location, 'prepare', update_extra_cmake_flags, f"{compiler}_{index}")
 
             # Delete all QaaS manipulated flags frm Ninja build list
             ninja_file = os.path.join(os.path.join(src_dir, '..', f"{compiler}_{index}"), 'build.ninja')
@@ -152,7 +154,7 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
             # Rerun the make with updated list of flags
             app_builder.exec(src_dir, compiler_dir, orig_binary,
                                        orig_user_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
-                                       user_link_flags, user_target, user_target_location, 'make', extra_cmake_flags, f"{compiler}_{index}", app_builder_env)
+                                       user_link_flags, user_target, user_target_location, 'make', update_extra_cmake_flags, f"{compiler}_{index}", app_builder_env)
             # Add current env to list
             target_CC_flags = app_builder.map_compiler_flags(user_CC, compiler, mapped_flags)
             app_envs[compiler].append((orig_binary, app_builder_env, target_CC_flags))

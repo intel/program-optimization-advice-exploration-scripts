@@ -273,7 +273,7 @@ def get_build_dir(src_dir, relative_build_dir):
 
 def build_binary(user_target, build_dir, target_location, env, output_dir, output_name):
     cmake_target = user_target if user_target else 'all'
-    cmake_build_cmd=f'time cmake --build {build_dir} --target {cmake_target}'
+    cmake_build_cmd=f'time cmake --build {build_dir} --target {cmake_target} > {build_dir}/qaas_build.log'
     print(cmake_build_cmd)
     subprocess.run(cmake_build_cmd, shell=True, env=env)
     built_bin = os.path.join(build_dir, target_location)
