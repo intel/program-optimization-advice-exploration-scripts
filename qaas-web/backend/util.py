@@ -821,7 +821,7 @@ def read_callsite(callsites_count, f, strings, session):
             'function_identifier' : function_identifier,
             'module_index' : module_index
         }
-        callsite_data.append(callsite_data)
+        callsites.append(callsite_data)
     return callsites
 
 def read_callchain(callchains_count, f, strings, session):

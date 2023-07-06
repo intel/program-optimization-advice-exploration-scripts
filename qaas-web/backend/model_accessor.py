@@ -451,8 +451,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
             fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
         local_vars_dict = read_file(local_vars_path1).to_dict(orient='records')[0]
 
-        execution.is_src_code = local_vars_dict['is_src_code']
-        execution.universal_timestamp = local_vars_dict['universal_timestamp']
+        execution.is_src_code = local_vars_dict.get('is_src_code', None)
+        execution.universal_timestamp = local_vars_dict.get('universal_timestamp', None)
 
         #add additional cols
         execution.is_orig = 1 if execution.version == 'orig' else 0
@@ -462,9 +462,9 @@ class OneViewModelInitializer(OneviewModelAccessor):
         
         # #get time, profiled time, and max_nb_threads from expert loops
         expert_run_data = get_data_from_csv(expert_run_path)[0]
-        execution.time = expert_run_data['time']
-        execution.profiled_time = expert_run_data['profiled_time']
-        execution.max_nb_threads = expert_run_data['max_nb_threads']
+        execution.time = expert_run_data.get('time', None)
+        execution.profiled_time = expert_run_data.get('profiled_time', None)
+        execution.max_nb_threads = expert_run_data.get('max_nb_threads', None)
 
         # #get log files
         execution.log = compress_file(log_path)
@@ -495,54 +495,53 @@ class OneViewModelInitializer(OneviewModelAccessor):
     def visitOs(self, os):
         local_vars_path1, local_vars_path2=self.get_os_path()
         local_vars_dict = read_file(local_vars_path1).to_dict(orient='records')[0]
-        os.os_version = local_vars_dict['os_version']
-        os.hostname = local_vars_dict['hostname']
-        
+        os.os_version = local_vars_dict.get('os_version', None)
+        os.hostname = local_vars_dict.get('hostname', None)
 
     def visitHwSystem(self, hwsystem):
         local_vars_path1, local_vars_path2=self.get_os_path()
         local_vars_dict = read_file(local_vars_path1).to_dict(orient='records')[0]
-        hwsystem.cpui_model_name =  local_vars_dict['cpui_model_name']
-        hwsystem.cpui_cpu_cores = local_vars_dict['cpui_cpu_cores']
-        hwsystem.cpui_cache_size =  local_vars_dict['cpui_cache_size']
-        hwsystem.cur_frequency =  local_vars_dict['cur_frequency']
-        hwsystem.max_frequency = local_vars_dict['max_frequency']
-        hwsystem.architecture =  local_vars_dict['architecture']
-        hwsystem.uarchitecture =  local_vars_dict['uarchitecture']
-        hwsystem.proc_name =  local_vars_dict['proc_name']
+        hwsystem.cpui_model_name =  local_vars_dict.get('cpui_model_name', None)
+        hwsystem.cpui_cpu_cores = local_vars_dict.get('cpui_cpu_cores', None)
+        hwsystem.cpui_cache_size =  local_vars_dict.get('cpui_cache_size', None)
+        hwsystem.cur_frequency =  local_vars_dict.get('cur_frequency', None)
+        hwsystem.max_frequency = local_vars_dict.get('max_frequency', None)
+        hwsystem.architecture =  local_vars_dict.get('architecture', None)
+        hwsystem.uarchitecture =  local_vars_dict.get('uarchitecture', None)
+        hwsystem.proc_name =  local_vars_dict.get('proc_name', None)
 
     def visitMaqao(self, maqao):
         local_vars_path1, local_vars_path2=self.get_os_path()
         local_vars_dict = read_file(local_vars_path1).to_dict(orient='records')[0]
-        maqao.global_instances_per_bucket = local_vars_dict['global_instances_per_bucket']
-        maqao.instances_per_bucket = local_vars_dict['instances_per_bucket']
-        maqao.architecture_code = local_vars_dict['architecture_code']
-        maqao.uarchitecture_code = local_vars_dict['uarchitecture_code']
-        maqao.min_time_obj =local_vars_dict['min_time_obj']
-        maqao.cqa_uarch = local_vars_dict['cqa_uarch']
-        maqao.cqa_arch = local_vars_dict['cqa_arch']
-        maqao.lprof_suffix = local_vars_dict['lprof_suffix']
-        maqao.last_html_path = local_vars_dict['last_html_path']
-        maqao.maqao_build = local_vars_dict['maqao_build']
-        maqao.maqao_version = local_vars_dict['maqao_version']
-        maqao.exp_version = local_vars_dict['exp_version']
+        maqao.global_instances_per_bucket = local_vars_dict.get('global_instances_per_bucket', None)
+        maqao.instances_per_bucket = local_vars_dict.get('instances_per_bucket', None)
+        maqao.architecture_code = local_vars_dict.get('architecture_code', None)
+        maqao.uarchitecture_code = local_vars_dict.get('uarchitecture_code', None)
+        maqao.min_time_obj = local_vars_dict.get('min_time_obj', None)
+        maqao.cqa_uarch = local_vars_dict.get('cqa_uarch', None)
+        maqao.cqa_arch = local_vars_dict.get('cqa_arch', None)
+        maqao.lprof_suffix = local_vars_dict.get('lprof_suffix', None)
+        maqao.last_html_path = local_vars_dict.get('last_html_path', None)
+        maqao.maqao_build = local_vars_dict.get('maqao_build', None)
+        maqao.maqao_version = local_vars_dict.get('maqao_version', None)
+        maqao.exp_version = local_vars_dict.get('exp_version', None)
 
     def visitDecanCollection(self, decan_collection):
         decan_path = self.get_decan_path()
         decan_data = read_file(decan_path).to_dict(orient='records')
         for dic in decan_data:
             current_decan = DecanRun(self)
-            current_decan.bucket = int(dic['bucket'])
-            current_decan.frequency = float(dic['frequency'])
-            current_decan.type = dic['type']
-            current_decan.mpi_process = dic['mpi_process']
-            current_decan.thread = dic['thread']
+            current_decan.bucket = int(dic.get('bucket', 0))
+            current_decan.frequency = float(dic.get('frequency', 0.0))
+            current_decan.type = dic.get('type', None)
+            current_decan.mpi_process = dic.get('mpi_process', None)
+            current_decan.thread = dic.get('thread', None)
 
-            current_decan.add_metric(self, dic['metric'], float(dic['value']), dic['value_type'])
+            current_decan.add_metric(self, dic.get('metric', None), float(dic.get('value', 0.0)), dic.get('value_type', None))
 
-            current_loop = get_loop_by_maqao_id(self.get_current_execution(), int(dic['id']))
+            current_loop = get_loop_by_maqao_id(self.get_current_execution(), int(dic.get('id', 0)))
             current_decan.loop = current_loop
-            current_variant = DecanVariant.get_or_create_by_name(dic['variant'], self)
+            current_variant = DecanVariant.get_or_create_by_name(dic.get('variant', None), self)
             current_decan.decan_variant = current_variant 
             decan_collection.add_obj(current_decan)
 
@@ -639,6 +638,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 for d_dict in data:
                     module_name = d_dict['module']
                     current_module = get_module_by_name(self.get_current_execution().modules, module_name)
+                    print(d_dict['source_info'].split(':'))
                     source_name, line_number = d_dict['source_info'].split(':')
                     current_block = Block(self)
                     current_block.maqao_block_id = d_dict['block_id']

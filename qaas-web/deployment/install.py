@@ -209,7 +209,6 @@ def delete_index_html(apache_dir):
 if __name__ == "__main__":
     script_dir=os.path.dirname(os.path.realpath(__file__))
     apache_dir = f"/var/www/html"
-    # set_proxy('proxy-chain.intel.com', 911)
 
 
     # git_repo_url = "git@gitlab.com:davidwong/qaas.git"
@@ -234,7 +233,6 @@ if __name__ == "__main__":
 
 
     install_backend_dependencies(backend_dir, apache_dir)
-    # set_node_proxy('proxy-chain.intel.com', 911)
     install_frontend_dependencies(frontend_dir, apache_dir)
 
     
