@@ -14,7 +14,7 @@ from sqlalchemy import distinct, func
 from sqlalchemy.sql import and_
 import csv
 
-level_map = {0: 'Single', 1: 'Innermost', 2: 'Inbetween', 3: 'Outermost'}
+level_map = {0: 'Single', 1: 'Innermost', 2: 'InBetween', 3: 'Outermost'}
 reverse_level_map = {v: k for k, v in level_map.items()}
 
 SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
@@ -64,10 +64,34 @@ def parse_file_name(file_name):
     else:
         return None
 
+def parse_source_info(source_info):
+    if is_nan(source_info):
+        return None, None
+    source_files = []
+    line_numbers = []
+
+    split_info = source_info.split(',')
+    for info in split_info:
+        source_name, line_number = info.split(':')
+        source_files.append(source_name.strip())
+        line_numbers.append(line_number.strip())
+
+    source_files = ','.join(source_files)
+    line_numbers = ','.join(line_numbers)
+
+    return source_files, line_numbers
 
 
+def combine_source_info(source_name, line_number):
+    source_files = source_name.split(',')
+    line_numbers = line_number.split(',')
 
+    if len(source_files) != len(line_numbers):
+        raise ValueError("The number of source files must match the number of line numbers.")
 
+    combined = [f'{file.strip()}:{line.strip()}' for file, line in zip(source_files, line_numbers)]
+    
+    return ','.join(combined)
 
 ####get files functions
 def get_files_with_extension(directory, extensions):
@@ -110,6 +134,18 @@ def get_or_create_df(path):
     else:
         df = pd.DataFrame()
     return df
+
+def create_or_update_localvar_df(metric, value, file_path):
+    try:
+        df = pd.read_csv(file_path, sep=';', index_col=None)
+    except FileNotFoundError:
+        df = pd.DataFrame(columns=['metric', 'value'])
+
+ 
+    df = df.append({'metric': metric, 'value': value}, ignore_index=True)
+
+    df.to_csv(file_path, sep=';', index=False)
+
 ##### convert file
 
 def convert_text_to_dict(text_file):
@@ -406,7 +442,7 @@ def get_obj_by_tid_and_pid(objs, pid, tid):
 def get_function(functions, function_id,pid, tid, module, function_name):
     res = None
     for function in  functions:
-        cur_module = os.path.basename(function.module.name)
+        cur_module = os.path.basename(function.module.name) if function.module else None
         cur_function_name = function.function_name
         if function.maqao_function_id == function_id and function.pid == pid and function.tid == tid and module == cur_module and function_name == cur_function_name:
             return function

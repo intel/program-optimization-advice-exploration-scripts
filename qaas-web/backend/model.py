@@ -363,7 +363,7 @@ class Block(QaaSBase):
     __tablename__ = "block"
     maqao_block_id = Column(Integer, nullable = True)
     file = Column(Text, nullable=True)
-    line_number = Column(String(50), nullable = True)
+    line_number = Column(Text, nullable = True)
     pid = Column(Integer, nullable=True)
     tid = Column(Integer, nullable=True)
 
@@ -382,8 +382,8 @@ class Block(QaaSBase):
 
 class Function(QaaSBase):
     __tablename__ = "function"
-    function_name = Column(String(50), nullable = True)
-    label_name = Column(String(50), nullable = True)
+    function_name = Column(Text, nullable = True)
+    label_name = Column(Text, nullable = True)
     maqao_function_id = Column(Integer, nullable = True)
     cats = Column(String(50), nullable = True)
     pid = Column(Integer, nullable=True)
@@ -407,7 +407,7 @@ class Function(QaaSBase):
 class SrcFunction(QaaSBase):
     __tablename__ = "src_function"
     file = Column(Text, nullable = True)
-    line_number = Column(String(50), nullable = True)
+    line_number = Column(Text, nullable = True)
 
     fk_source_id = Column(Integer, ForeignKey('source.table_id'))
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
@@ -447,7 +447,7 @@ class Loop(QaaSBase):
 class SrcLoop(QaaSBase):
     __tablename__ = "src_loop"
     file = Column(Text, nullable=True)
-    line_number = Column(String(50), nullable = True)
+    line_number = Column(Text, nullable = True)
 
     fk_source_id = Column(Integer, ForeignKey('source.table_id'))
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
