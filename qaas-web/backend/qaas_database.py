@@ -45,7 +45,6 @@ class QaaSDatabase:
             vprof_measures.extend(loop.vprof_measures)
         current_vprof_collection = VprofCollection(vprof_measures)
         qaas_database.add_to_data_list(current_vprof_collection)
-        print(vprof_measures)
 
 
         current_lprof_measurments = get_all_lprof_measure_for_run(current_blocks, current_functions, current_loops)
@@ -77,5 +76,4 @@ class QaaSDatabase:
     # # export
     def export(self, exporter):
         for data in self.data_list:
-            print(data)
             data.accept(exporter)

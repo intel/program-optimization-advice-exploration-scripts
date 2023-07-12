@@ -333,7 +333,6 @@ dir;{run_id};env_dir;{output_data_dir}/shared/run_0;
     write_string_to_file(manifest_path, content)
 
 def write_string_to_file(file_path, string):
-    print(f"write to path ***** {file_path}")
     with open(file_path, 'a') as file:
         file.write(f'{string}\n')
 

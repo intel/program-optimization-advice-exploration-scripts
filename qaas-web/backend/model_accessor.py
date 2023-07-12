@@ -555,7 +555,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
         vprof_path = self.get_vprof_path()
 
         vprof_data = read_file(vprof_path, delimiter=',')
-        print(vprof_data)
         vprof_data = vprof_data.to_dict(orient='records')
 
         for dic in vprof_data:
@@ -621,7 +620,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitBlockCollection(self, block_collection):
         lprof_dir_path = self.get_block_path()
-        lprof_pattern = r'lprof_blocks_(\w+)_(\d+)_(\d+).csv'
+        lprof_pattern = r'lprof_blocks_([\w\.]+)_(\d+)_(\d+).csv'
         #pid and tid null means overall measurement
         files = get_files_starting_with_and_ending_with(lprof_dir_path, 'lprof_blocks', '.csv')
         for file in files:
@@ -657,7 +656,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitFunctionCollection(self, function_collection):
         lprof_dir_path = self.get_function_path()
-        lprof_pattern = r'lprof_functions_(\w+)_(\d+)_(\d+).csv'
+        lprof_pattern = r'lprof_functions_([\w\.]+)_(\d+)_(\d+).csv'
         files = get_files_starting_with_and_ending_with(lprof_dir_path, 'lprof_functions', '.csv')
         for file in files:
             data = read_file(file).to_dict(orient='records')
@@ -702,7 +701,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitLoopCollection(self, loop_collection):
         lprof_dir_path, hierarchy_dir_path = self.get_loop_path()
-        lprof_pattern = r'lprof_loops_(\w+)_(\d+)_(\d+).csv'
+        lprof_pattern = r'lprof_loops_([\w\.]+)_(\d+)_(\d+).csv'
         files = get_files_starting_with_and_ending_with(lprof_dir_path, 'lprof_loops', '.csv')
         for file in files:
             data = read_file(file).to_dict(orient='records')
@@ -762,7 +761,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         loop_files = get_files_starting_with_and_ending_with(lprof_dir_path, 'lprof_loops', '.csv')
         #TODO read pid tid file and lprof_blocks.cs separately
         for file in block_files:
-            lprof_pattern = r'lprof_blocks_(\w+)_(\d+)_(\d+).csv'
+            lprof_pattern = r'lprof_blocks_([\w\.]+)_(\d+)_(\d+).csv'
             data = read_file(file).to_dict(orient='records')
             match = re.match(lprof_pattern, os.path.basename(file))
             if match:
@@ -791,7 +790,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 lprof_measurement_collection.add_obj(measure)
 
         for file in function_files:
-            lprof_pattern = r'lprof_functions_(\w+)_(\d+)_(\d+).csv'
+            lprof_pattern = r'lprof_functions_([\w\.]+)_(\d+)_(\d+).csv'
             data = read_file(file).to_dict(orient='records')
             match = re.match(lprof_pattern, os.path.basename(file))
             if match:
@@ -822,7 +821,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 measure.function = current_function
                 lprof_measurement_collection.add_obj(measure)
         for file in loop_files:
-            lprof_pattern = r'lprof_loops_(\w+)_(\d+)_(\d+).csv'
+            lprof_pattern = r'lprof_loops_([\w\.]+)_(\d+)_(\d+).csv'
             data = read_file(file).to_dict(orient='records')
             match = re.match(lprof_pattern, os.path.basename(file))
             if match:
@@ -1268,7 +1267,7 @@ class OneViewModelExporter(OneviewModelAccessor):
             machine_name = block.execution.os.hostname
             pid, tid = block.pid, block.tid
             pid_tid_paris.add((pid, tid))
-            source_info = f'{block.file}:{block.line_number}' if block.file and block.line_number else None
+            source_info = combine_source_info(block.file, block.line_number) if block.file and block.line_number else None
             if not pid and not tid:
                 file_name = 'lprof_blocks.csv'
             else:
@@ -1281,6 +1280,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                 'source_info':source_info 
             }
             measure = get_lprof_measure(lprof_measurement_collection.get_objs(), block = block)
+            print("block dict", block_dict, "measure", measure)
             measure_dict = self.get_measure_dict_by_measure_obj(measure)
             merged_dict = {**block_dict, **measure_dict}
             files[file_name] = add_dict_to_df(merged_dict, files[file_name])
@@ -1289,7 +1289,7 @@ class OneViewModelExporter(OneviewModelAccessor):
         not_created_pid_tid_pairs = pid_tid_paris.copy()
         for function in functions:
             pid, tid = function.pid, function.tid
-            source_info = f'{function.src_function.file}:{function.src_function.line_number}' if function.src_function else None
+            source_info = combine_source_info(function.src_function.file, function.src_function.line_number)  if function.src_function else None
             if not pid and not tid:
                 file_name = 'lprof_functions.csv'
             else:
@@ -1331,7 +1331,7 @@ class OneViewModelExporter(OneviewModelAccessor):
         not_created_pid_tid_pairs = pid_tid_paris.copy()
         for loop in loops:
             pid, tid = loop.pid, loop.tid
-            source_info = '{}:{}'.format(loop.src_loop.file, loop.src_loop.line_number) if loop.src_loop else None
+            source_info = combine_source_info(loop.src_loop.file, loop.src_loop.line_number) if loop.src_loop else None
             if not pid and not tid:
                 file_name = 'lprof_loops.csv'
             else:
@@ -1458,7 +1458,6 @@ class OneViewModelExporter(OneviewModelAccessor):
     def visitAsmCollection(self, asm_collection):
         asm_dir_path = self.get_asm_path()
         os.makedirs(asm_dir_path, exist_ok=True)
-        print(len(asm_collection.get_objs()), " total")
         for asm in asm_collection.get_objs():
 
             #check if asm is function or loop
@@ -1469,7 +1468,6 @@ class OneViewModelExporter(OneviewModelAccessor):
                 content = asm.content
                 file_name = '{}_{}_{}.csv'.format(asm.decan_variant.variant_name, module_name, asm.loops[0].maqao_loop_id) if \
                     asm.decan_variant is not None else '{}_{}.csv'.format(module_name, asm.loops[0].maqao_loop_id)
-                print(file_name,"loop")
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:
                     f.write(decompress_file(content))
@@ -1477,7 +1475,6 @@ class OneViewModelExporter(OneviewModelAccessor):
                 module_name = os.path.basename(asm.functions[0].module.name)
                 content = asm.content
                 file_name = 'fct_{}_{}.csv'.format(module_name, asm.functions[0].maqao_function_id)
-                print(file_name,"function")
 
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:

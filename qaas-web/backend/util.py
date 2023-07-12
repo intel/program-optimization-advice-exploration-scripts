@@ -83,6 +83,8 @@ def parse_source_info(source_info):
 
 
 def combine_source_info(source_name, line_number):
+    if not source_name and not line_number:
+        return None
     source_files = source_name.split(',')
     line_numbers = line_number.split(',')
 
@@ -142,7 +144,8 @@ def create_or_update_localvar_df(metric, value, file_path):
         df = pd.DataFrame(columns=['metric', 'value'])
 
  
-    df = df.append({'metric': metric, 'value': value}, ignore_index=True)
+    new_data = pd.DataFrame({'metric': [metric], 'value': [value]})
+    df = pd.concat([df, new_data], ignore_index=True)
 
     df.to_csv(file_path, sep=';', index=False)
 
