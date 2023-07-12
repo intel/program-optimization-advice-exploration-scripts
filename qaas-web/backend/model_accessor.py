@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from model import *
 from model_collection import *
-
+import shutil
 # qaas_database = QaaSDatabase()
 # qaas_database.accept(ov_initilizer)
 
@@ -417,15 +417,15 @@ class OneViewModelInitializer(OneviewModelAccessor):
         source_collection.accept(self)
         qaas_database.add_to_data_list(source_collection)
 
-        ##### decan collection 
-        current_decan_collection = DecanCollection()
-        current_decan_collection.accept(self)
-        qaas_database.add_to_data_list(current_decan_collection)
+        # ##### decan collection 
+        # current_decan_collection = DecanCollection()
+        # current_decan_collection.accept(self)
+        # qaas_database.add_to_data_list(current_decan_collection)
 
-        ##### vprof collection 
-        current_vprof_collection = VprofCollection()
-        current_vprof_collection.accept(self)
-        qaas_database.add_to_data_list(current_vprof_collection)
+        # ##### vprof collection 
+        # current_vprof_collection = VprofCollection()
+        # current_vprof_collection.accept(self)
+        # qaas_database.add_to_data_list(current_vprof_collection)
         
 
     def visitEnvironment(self, environment):
@@ -449,9 +449,11 @@ class OneViewModelInitializer(OneviewModelAccessor):
         execution.version = self.version
         local_vars_path1, local_vars_path2, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
             fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
-        local_vars_dict = read_file(local_vars_path1).to_dict(orient='records')[0]
+        local_vars_df = read_file(local_vars_path1)
+        local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
 
-        execution.is_src_code = local_vars_dict.get('is_src_code', None)
+
+        execution.is_src_code = local_vars_dict.get('is_src_code', 'false').lower() == 'true'
         execution.universal_timestamp = local_vars_dict.get('universal_timestamp', None)
 
         #add additional cols
@@ -494,13 +496,15 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitOs(self, os):
         local_vars_path1, local_vars_path2=self.get_os_path()
-        local_vars_dict = read_file(local_vars_path1).to_dict(orient='records')[0]
+        local_vars_df = read_file(local_vars_path1)
+        local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         os.os_version = local_vars_dict.get('os_version', None)
         os.hostname = local_vars_dict.get('hostname', None)
 
     def visitHwSystem(self, hwsystem):
         local_vars_path1, local_vars_path2=self.get_os_path()
-        local_vars_dict = read_file(local_vars_path1).to_dict(orient='records')[0]
+        local_vars_df = read_file(local_vars_path1)
+        local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         hwsystem.cpui_model_name =  local_vars_dict.get('cpui_model_name', None)
         hwsystem.cpui_cpu_cores = local_vars_dict.get('cpui_cpu_cores', None)
         hwsystem.cpui_cache_size =  local_vars_dict.get('cpui_cache_size', None)
@@ -512,7 +516,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitMaqao(self, maqao):
         local_vars_path1, local_vars_path2=self.get_os_path()
-        local_vars_dict = read_file(local_vars_path1).to_dict(orient='records')[0]
+        local_vars_df = read_file(local_vars_path1)
+        local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         maqao.global_instances_per_bucket = local_vars_dict.get('global_instances_per_bucket', None)
         maqao.instances_per_bucket = local_vars_dict.get('instances_per_bucket', None)
         maqao.architecture_code = local_vars_dict.get('architecture_code', None)
@@ -638,8 +643,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 for d_dict in data:
                     module_name = d_dict['module']
                     current_module = get_module_by_name(self.get_current_execution().modules, module_name)
-                    print(d_dict['source_info'].split(':'))
-                    source_name, line_number = d_dict['source_info'].split(':')
+                    source_name, line_number = parse_source_info(d_dict['source_info'])
                     current_block = Block(self)
                     current_block.maqao_block_id = d_dict['block_id']
                     current_block.file=source_name
@@ -673,12 +677,14 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 for d_dict in data:
                     #src_function
                     src_function = None
+
+                    src_function = SrcFunction(self)
+                    src_function.execution = self.get_current_execution()
+
                     if not is_nan(d_dict['source_info']): 
-                        source_file, line_number = d_dict['source_info'].split(':')
-                        src_function = SrcFunction(self)
+                        source_file, line_number = parse_source_info(d_dict['source_info'])
                         src_function.file = source_file
                         src_function.line_number = line_number
-                        src_function.execution = self.get_current_execution()
 
                     #function
                     module_name = d_dict['module']
@@ -686,7 +692,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
                     current_function = Function(self)
                     current_function.function_name = d_dict['function_name']
                     current_function.label_name=d_dict['label_name']
-                    current_function.maqao_function_id = d_dict['function_id']
+                    current_function.maqao_function_id = int(d_dict['function_id'])
                     current_function.cats = d_dict['cats']
                     current_function.pid = pid
                     current_function.tid = tid 
@@ -714,12 +720,14 @@ class OneViewModelInitializer(OneviewModelAccessor):
             for d_dict in data:
                 #src_loop
                 src_loop = None
+
+                src_loop = SrcLoop(self)
+                src_loop.execution = self.get_current_execution()
+
                 if not is_nan(d_dict['source_info']): 
-                    source_file, line_number = d_dict['source_info'].split(':')
-                    src_loop = SrcLoop(self)
+                    source_file, line_number = parse_source_info(d_dict['source_info'])
                     src_loop.file = source_file
                     src_loop.line_number = line_number
-                    src_loop.execution = self.get_current_execution()
 
                 #loop
                 d_dict['level'] = reverse_level_map[d_dict['level']]
@@ -792,7 +800,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 pid, tid = None, None
              #empty file
             if not data:
-                current_function = get_function(lprof_measurement_collection.function_collection.get_objs(), None, pid, tid) 
+                current_function = get_function(lprof_measurement_collection.function_collection.get_objs(), None, pid, tid, None, None) 
                 measure = LprofMeasurement(self)
                 measure.function = current_function
                 lprof_measurement_collection.add_obj(measure)
@@ -899,7 +907,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
         asm_paths = get_files_with_extension(asm_dir_path, ['.csv'])
         for asm_path in asm_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(asm_path))
-            print(type, variant, module, identifier)
             asm_content = compress_file(asm_path)
             asm_hash = get_file_sha256(asm_path)
             asm_obj = Asm(self)
@@ -916,7 +923,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 function_obj.asm = asm_obj
 
             asm_collection.add_obj(asm_obj)
-        print(len(asm_collection.get_objs()), "after populateion")
 
     def visitGroupCollection(self, group_collection):
         group_dir_path = self.get_group_path()
@@ -947,7 +953,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
                     group_collection.add_obj(group_obj)
 
             else:
-                group_obj = Group()
+                group_obj = Group(self)
                 group_obj.loop = loop_obj
                 group_collection.add_obj(group_obj)
 
@@ -996,12 +1002,12 @@ class OneViewModelExporter(OneviewModelAccessor):
         os.makedirs(os.path.dirname(fct_callchain_path), exist_ok=True)
         os.makedirs(os.path.dirname(loop_callchain_path), exist_ok=True)
         #localvars csv
-        local_vars_df = get_or_create_df(local_vars_path1)
-        local_vars_df.loc[0, 'is_src_code'] = execution.is_src_code
-        local_vars_df.loc[0, 'universal_timestamp'] = execution.universal_timestamp
-        local_vars_df.loc[0, 'timestamp'] = universal_timestamp_to_datetime(execution.universal_timestamp)
-        write_file(local_vars_df, local_vars_path1)
-        write_file(local_vars_df, local_vars_path2)
+        create_or_update_localvar_df('is_src_code', str(execution.is_src_code).lower(), local_vars_path1)
+        create_or_update_localvar_df('universal_timestamp', execution.universal_timestamp, local_vars_path1)
+        create_or_update_localvar_df('timestamp', universal_timestamp_to_datetime(execution.universal_timestamp), local_vars_path1)
+
+        # Make a copy of the file
+        shutil.copy(local_vars_path1, local_vars_path2)
 
         # config lua file and cqa_context lua
         lua_string = execution.config
@@ -1037,60 +1043,49 @@ class OneViewModelExporter(OneviewModelAccessor):
     def visitOs(self, os_obj):
         local_vars_path1, local_vars_path2=self.get_os_path()
         # Read existing data
-        local_vars_df = get_or_create_df(local_vars_path1)
-        # Update the data
-        #use pd.merge
-        local_vars_df.loc[0,'os_version'] = os_obj.os_version
-        local_vars_df.loc[0,'hostname'] = os_obj.hostname
+        # update local_vars_path1
+        create_or_update_localvar_df('os_version', os_obj.os_version, local_vars_path1)
+        create_or_update_localvar_df('hostname', os_obj.hostname, local_vars_path1)
 
-        # Write the data back to the file
-        write_file(local_vars_df, local_vars_path1)
-        write_file(local_vars_df, local_vars_path2)
+        # copy updates to local_vars_path2
+        shutil.copy(local_vars_path1, local_vars_path2)
 
     def visitMaqao(self, maqao):
         local_vars_path1, local_vars_path2=self.get_maqao_path()
         # Read existing data
-        local_vars_df = get_or_create_df(local_vars_path1)
+        # update local_vars_path1
+        create_or_update_localvar_df('global_instances_per_bucket', maqao.global_instances_per_bucket, local_vars_path1)
+        create_or_update_localvar_df('instances_per_bucket', maqao.instances_per_bucket, local_vars_path1)
+        create_or_update_localvar_df('architecture_code', maqao.architecture_code, local_vars_path1)
+        create_or_update_localvar_df('uarchitecture_code', maqao.uarchitecture_code, local_vars_path1)
+        create_or_update_localvar_df('min_time_obj', maqao.min_time_obj, local_vars_path1)
+        create_or_update_localvar_df('cqa_uarch', maqao.cqa_uarch, local_vars_path1)
+        create_or_update_localvar_df('cqa_arch', maqao.cqa_arch, local_vars_path1)
+        create_or_update_localvar_df('lprof_suffix', maqao.lprof_suffix, local_vars_path1)
+        create_or_update_localvar_df('last_html_path', maqao.last_html_path, local_vars_path1)
+        create_or_update_localvar_df('maqao_build', maqao.maqao_build, local_vars_path1)
+        create_or_update_localvar_df('maqao_version', maqao.maqao_version, local_vars_path1)
+        create_or_update_localvar_df('exp_version', maqao.exp_version, local_vars_path1)
 
+        # copy updates to local_vars_path2
+        shutil.copy(local_vars_path1, local_vars_path2)
 
-        # Update the data
-        #use pd.merge
-        local_vars_df.loc[0, 'global_instances_per_bucket'] = maqao.global_instances_per_bucket
-        local_vars_df.loc[0, 'instances_per_bucket'] = maqao.instances_per_bucket
-        local_vars_df.loc[0, 'architecture_code'] = maqao.architecture_code
-        local_vars_df.loc[0, 'uarchitecture_code'] = maqao.uarchitecture_code
-        local_vars_df.loc[0, 'min_time_obj'] = maqao.min_time_obj
-        local_vars_df.loc[0, 'cqa_uarch'] = maqao.cqa_uarch
-        local_vars_df.loc[0, 'cqa_arch'] = maqao.cqa_arch
-        local_vars_df.loc[0, 'lprof_suffix'] = maqao.lprof_suffix
-        local_vars_df.loc[0, 'last_html_path'] = maqao.last_html_path
-        local_vars_df.loc[0, 'maqao_build'] = maqao.maqao_build
-        local_vars_df.loc[0, 'maqao_version'] = maqao.maqao_version
-        local_vars_df.loc[0, 'exp_version'] = maqao.exp_version
-
-        # Write the data back to the file
-        write_file(local_vars_df, local_vars_path1)
-        write_file(local_vars_df, local_vars_path2)
     def visitHwSystem(self, hwsystem):
         local_vars_path1, local_vars_path2=self.get_os_path()
         # Read existing data
-        local_vars_df = get_or_create_df(local_vars_path1)
+        # update local_vars_path1
+        create_or_update_localvar_df('cpui_model_name', hwsystem.cpui_model_name, local_vars_path1)
+        create_or_update_localvar_df('cpui_cpu_cores', hwsystem.cpui_cpu_cores, local_vars_path1)
+        create_or_update_localvar_df('cpui_cache_size', hwsystem.cpui_cache_size, local_vars_path1)
+        create_or_update_localvar_df('cur_frequency', hwsystem.cur_frequency, local_vars_path1)
+        create_or_update_localvar_df('max_frequency', hwsystem.max_frequency, local_vars_path1)
+        create_or_update_localvar_df('architecture', hwsystem.architecture, local_vars_path1)
+        create_or_update_localvar_df('uarchitecture', hwsystem.uarchitecture, local_vars_path1)
+        create_or_update_localvar_df('proc_name', hwsystem.proc_name, local_vars_path1)
 
+        # copy updates to local_vars_path2
+        shutil.copy(local_vars_path1, local_vars_path2)
 
-        # Update the data
-        #use pd.merge
-        local_vars_df.loc[0, 'cpui_model_name'] = hwsystem.cpui_model_name
-        local_vars_df.loc[0, 'cpui_cpu_cores'] = hwsystem.cpui_cpu_cores
-        local_vars_df.loc[0, 'cpui_cache_size'] = hwsystem.cpui_cache_size
-        local_vars_df.loc[0, 'cur_frequency'] = hwsystem.cur_frequency
-        local_vars_df.loc[0, 'max_frequency'] = hwsystem.max_frequency
-        local_vars_df.loc[0, 'architecture'] = hwsystem.architecture
-        local_vars_df.loc[0, 'uarchitecture'] = hwsystem.uarchitecture
-        local_vars_df.loc[0, 'proc_name'] = hwsystem.proc_name
-
-        # Write the data back to the file
-        write_file(local_vars_df, local_vars_path1)
-        write_file(local_vars_df, local_vars_path2)
     def visitEnvironment(self, environment):
         self.run_dir_path=self.get_env_path()
         # env_name = 'env_{}-{}.txt'.format(environment.execution.machine, environment.execution.os.hostname.tid)
@@ -1245,12 +1240,16 @@ class OneViewModelExporter(OneviewModelAccessor):
         loops = lprof_measurement_collection.loop_collection.get_objs()
 
         overall_loop_info = [l for l in loops if l.pid == None and l.tid == None]
-        loop_measurements = [get_lprof_measure(lprof_measurement_collection.get_objs(), loop = l) for l in overall_loop_info ]
-
+        loop_measurements = []
+        for l in overall_loop_info:
+            measurement = get_lprof_measure(lprof_measurement_collection.get_objs(), loop = l)
+            if measurement is not None:
+                loop_measurements.append(measurement)
+        
         #expert loop.csv
         expert_df = pd.DataFrame()
         expert_df['ID'] = [f'Loop {m.loop.maqao_loop_id}' for m in loop_measurements]
-        expert_df['Level'] = [level_map[l.level]  for l in overall_loop_info]
+        expert_df['Level'] = [level_map[m.loop.level]  for m in loop_measurements]
         expert_df['Module'] = [os.path.basename(m.loop.function.module.name) for m in loop_measurements]
         expert_df['Source Location'] = [f'{m.loop.src_loop.file}:{m.loop.src_loop.line_number}' for m in loop_measurements]
         expert_df['Source Function'] = [m.loop.function.function_name for m in loop_measurements]
