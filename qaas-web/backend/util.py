@@ -13,13 +13,17 @@ import configparser
 from sqlalchemy import distinct, func
 from sqlalchemy.sql import and_
 import csv
-
+import numpy as np
 level_map = {0: 'Single', 1: 'Innermost', 2: 'InBetween', 3: 'Outermost'}
 reverse_level_map = {v: k for k, v in level_map.items()}
 
 SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH=os.path.join(SCRIPT_DIR, "..", "config", "qaas-web.conf")
 
+def safe_division(n, d):
+    if n is None or d is None:
+        return None
+    return n / d
 
 #get the config
 def get_config():
@@ -65,7 +69,7 @@ def parse_file_name(file_name):
         return None
 
 def parse_source_info(source_info):
-    if is_nan(source_info):
+    if not source_info:
         return None, None
     source_files = []
     line_numbers = []
@@ -122,7 +126,10 @@ def is_df_empty(df):
         
 
 def read_file(path, delimiter=';'):
-    return pd.read_csv(path, sep=delimiter, index_col=False, skipinitialspace=True)
+    df = pd.read_csv(path, sep=delimiter, keep_default_na=False, index_col=False, skipinitialspace=True, na_values=[''])
+    df = df.replace({np.nan: None})
+    return df
+
 def get_value(dic, key, type):
     value = dic.get(key, None)
     return type(value) if value is not None else None
@@ -184,15 +191,18 @@ def add_commas_inside_brackets(lua_code):
     return result
 
 def convert_python_to_lua(python_object,lua_file_path):
-    lua_code = luadata.serialize(python_object, encoding="utf-8", indent="")
-    lua_code = lua_code[1:-1]  
-    lua_code = lua_code.replace('\\\\', '\\')
-    lua_code = lua_code.lstrip()
-    lua_code = lua_code.replace(',', '')
-    lua_code = add_commas_inside_brackets(lua_code)
+    with open(lua_file_path, 'wb') as f:
+        f.write(decompress_file(python_object))
+    #TODO use json instead of string
+    # lua_code = luadata.serialize(python_object, encoding="utf-8", indent="")
+    # lua_code = lua_code[1:-1]  
+    # lua_code = lua_code.replace('\\\\', '\\')
+    # lua_code = lua_code.lstrip()
+    # lua_code = lua_code.replace(',', '')
+    # lua_code = add_commas_inside_brackets(lua_code)
 
-    with open(lua_file_path, 'w', encoding="utf-8") as f:
-        f.write(lua_code)
+    # with open(lua_file_path, 'w', encoding="utf-8") as f:
+    #     f.write(lua_code)
 
 
 def file_is_lua_table(lua_code):
@@ -254,21 +264,24 @@ def convert_non_table_lua_to_python(lua_file):
 
     return config
 def convert_lua_to_python(lua_file):
-    with open(lua_file, 'r', encoding="utf-8") as f:
-        lua_code = f.read()
+    if os.path.exists(lua_file):
+        return compress_file(lua_file)
+    #TODO use json instead of string
+    # with open(lua_file, 'r', encoding="utf-8") as f:
+    #     lua_code = f.read()
 
-    if not file_is_lua_table(lua_code):
-        with open(lua_file, 'r') as file:
-            lua_string = file.read()
-            return lua_string
-    else:
-        # Wrap the Lua code in a table
-        wrapped_lua_code = "return {" + lua_code + "}"
+    # if not file_is_lua_table(lua_code):
+    #     with open(lua_file, 'r') as file:
+    #         lua_string = file.read()
+    #         return lua_string
+    # else:
+    #     # Wrap the Lua code in a table
+    #     wrapped_lua_code = "return {" + lua_code + "}"
 
-        python_object = luadata.unserialize(wrapped_lua_code)
+    #     python_object = luadata.unserialize(wrapped_lua_code)
 
-        # Extract the outermost dictionary
-        return python_object
+    #     # Extract the outermost dictionary
+    #     return python_object
 
 
 
@@ -307,9 +320,8 @@ def write_dict_to_file(my_dict, filename):
 def get_names_and_values_data_for_metric_table(metrics):
     data = {}
     for metric in metrics:
-        data[metric.metric_name] = metric.metric_value
+        data[metric.metric_name] = metric.metric_value 
     return data
-
 
 
 def text_to_list(text):
@@ -375,8 +387,11 @@ def process_nested_dict(input_dict):
     return output_dict
 
 def create_html_lua_by_text_python(analysis_python_data, analysis_html_lua_path):
-    output_dict = process_nested_dict(analysis_python_data)
-    convert_python_to_lua(output_dict,analysis_html_lua_path)
+    convert_python_to_lua(analysis_python_data,analysis_html_lua_path)
+
+    #TODO change to process instead of just writeing the same data
+    # output_dict = process_nested_dict(analysis_python_data)
+    # convert_python_to_lua(output_dict,analysis_html_lua_path)
 
 
 
@@ -576,9 +591,6 @@ def get_extra_columns(table):
     return [column.name for column in table.__table__.columns if column.primary_key or column.foreign_keys ]
 
 
-def is_nan(value):
-    return isinstance(value, float) and math.isnan(value)
-
 def delete_nan_from_dict(dict):
     return {k: v for k, v in dict.items() if not (isinstance(v, float) and math.isnan(v))}
 
@@ -750,7 +762,7 @@ def read_header(f):
     }
 
 def convert_location_binary_to_python(binary_file_path, session):
-
+    if not os.path.exists(binary_file_path): return None
     with open(binary_file_path, 'rb') as f:
         headers = read_header(f)
         # Read the first section of the file, which contains strings.
@@ -840,11 +852,12 @@ def map_and_write_strings_location(f, objects, session):
         
 
 def convert_python_to_location_binary(data, binary_file_path, session):
-    with open(binary_file_path, 'wb') as f:
-        write_header(f, data['headers'],'OV_SRCLO')
-        strings, objects = map_and_write_strings_location(f, data['objects'], session)
-        write_strings(f, strings)
-        write_objects(f, objects, session)
+    if os.path.exists(binary_file_path):
+        with open(binary_file_path, 'wb') as f:
+            write_header(f, data['headers'],'OV_SRCLO')
+            strings, objects = map_and_write_strings_location(f, data['objects'], session)
+            write_strings(f, strings)
+            write_objects(f, objects, session)
 
 ##for call chain binary
 def read_callsite(callsites_count, f, strings, session):
@@ -878,6 +891,8 @@ def read_callchain(callchains_count, f, strings, session):
     return callchains
 
 def convert_callchain_binary_to_python(binary_file_path, session):
+    if not os.path.exists(binary_file_path): return None
+
     with open(binary_file_path, 'rb') as f:
         headers = read_header(f)
         strings_count = read_int(f)
@@ -915,8 +930,10 @@ def map_and_write_strings_callchain(f, callchains, session):
     return strings, callchains
 
 def convert_callchain_python_to_binary(data, binary_file_path, session):
-    with open(binary_file_path, 'wb') as f:
-        write_header(f, data['headers'], "OV_CALLC")
-        strings, objects = map_and_write_strings_callchain(f, data['callchains'], session)
-        write_strings(f, strings)
-        write_callchains(f, objects)
+    if os.path.exists(binary_file_path):
+
+        with open(binary_file_path, 'wb') as f:
+            write_header(f, data['headers'], "OV_CALLC")
+            strings, objects = map_and_write_strings_callchain(f, data['callchains'], session)
+            write_strings(f, strings)
+            write_callchains(f, objects)

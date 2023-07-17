@@ -417,15 +417,15 @@ class OneViewModelInitializer(OneviewModelAccessor):
         source_collection.accept(self)
         qaas_database.add_to_data_list(source_collection)
 
-        # ##### decan collection 
-        # current_decan_collection = DecanCollection()
-        # current_decan_collection.accept(self)
-        # qaas_database.add_to_data_list(current_decan_collection)
+        ##### decan collection 
+        current_decan_collection = DecanCollection()
+        current_decan_collection.accept(self)
+        qaas_database.add_to_data_list(current_decan_collection)
 
-        # ##### vprof collection 
-        # current_vprof_collection = VprofCollection()
-        # current_vprof_collection.accept(self)
-        # qaas_database.add_to_data_list(current_vprof_collection)
+        ##### vprof collection 
+        current_vprof_collection = VprofCollection()
+        current_vprof_collection.accept(self)
+        qaas_database.add_to_data_list(current_vprof_collection)
         
 
     def visitEnvironment(self, environment):
@@ -533,6 +533,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitDecanCollection(self, decan_collection):
         decan_path = self.get_decan_path()
+        if not os.path.exists(decan_path):
+            return
         decan_data = read_file(decan_path).to_dict(orient='records')
         for dic in decan_data:
             current_decan = DecanRun(self)
@@ -553,6 +555,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitVprofCollection(self, vprof_collection):
         vprof_path = self.get_vprof_path()
+        if not os.path.exists(vprof_path):
+            return
 
         vprof_data = read_file(vprof_path, delimiter=',')
         vprof_data = vprof_data.to_dict(orient='records')
@@ -884,7 +888,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         cqa_fct_paths = get_files_starting_with_and_ending_with(cqa_dir_path, 'fct','text.lua')
         for cqa_path in cqa_fct_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(cqa_path))
-            current_function = get_function_by_maqao_id(self.get_current_execution(), int(identifier))
+            current_function = get_function_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
             
              #create analysis col
             function_analysis_lua_file_name = 'fct_{}_{}_text.lua'.format(module, identifier)
@@ -907,6 +911,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         for asm_path in asm_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(asm_path))
             asm_content = compress_file(asm_path)
+
             asm_hash = get_file_sha256(asm_path)
             asm_obj = Asm(self)
             asm_obj.content = asm_content
@@ -918,10 +923,11 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 loop_obj = get_loop_by_maqao_id(self.get_current_execution(), int(identifier))
                 loop_obj.asm = asm_obj
             else:
-                function_obj = get_function_by_maqao_id(self.get_current_execution(), int(identifier))
+                function_obj = get_function_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
                 function_obj.asm = asm_obj
 
             asm_collection.add_obj(asm_obj)
+            self.session.flush()
 
     def visitGroupCollection(self, group_collection):
         group_dir_path = self.get_group_path()
@@ -969,7 +975,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 src_loop_obj = loop_obj.src_loop
                 src_loop_obj.source = source_obj
             else:
-                function_obj = get_function_by_maqao_id(self.get_current_execution(), int(identifier))
+                function_obj = get_function_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
                 src_function_obj = function_obj.src_function
                 src_function_obj.source = source_obj
 
@@ -1009,10 +1015,7 @@ class OneViewModelExporter(OneviewModelAccessor):
         shutil.copy(local_vars_path1, local_vars_path2)
 
         # config lua file and cqa_context lua
-        lua_string = execution.config
-        with open(config_path, 'w') as file:
-            file.write(lua_string)
-        # convert_python_to_lua(execution.config, config_path) 
+        convert_python_to_lua(execution.config, config_path) 
         convert_python_to_lua(execution.cqa_context, cqa_context_path) 
         #expert run csv
         expert_run_df = pd.DataFrame({'time': [execution.time],\
@@ -1166,6 +1169,7 @@ class OneViewModelExporter(OneviewModelAccessor):
             #metric data
             lprof_categorization_metrics = lprof_categorization.lprof_categorization_metrics
             names_and_values_data = get_names_and_values_data_for_metric_table(lprof_categorization_metrics)
+
             lprof_categorization_dict = {**lprof_categorization_dict, **names_and_values_data}
             lprof_categorization_list.append(lprof_categorization_dict)
 
@@ -1280,7 +1284,6 @@ class OneViewModelExporter(OneviewModelAccessor):
                 'source_info':source_info 
             }
             measure = get_lprof_measure(lprof_measurement_collection.get_objs(), block = block)
-            print("block dict", block_dict, "measure", measure)
             measure_dict = self.get_measure_dict_by_measure_obj(measure)
             merged_dict = {**block_dict, **measure_dict}
             files[file_name] = add_dict_to_df(merged_dict, files[file_name])
@@ -1369,7 +1372,7 @@ class OneViewModelExporter(OneviewModelAccessor):
         for file in files:
             file_path = os.path.join(lprof_dir_path, file)
             if is_df_empty(files[file]):
-                files[file].head(0).to_csv(file_path, sep=';', index=False)
+                write_file(files[file].head(0),file_path)
             else:
                 write_file(files[file],file_path)
 
@@ -1397,7 +1400,7 @@ class OneViewModelExporter(OneviewModelAccessor):
         expert_df['ID'] = [f'Loop {cqa.loop.maqao_loop_id}' for cqa in avg_loop_cqas]
         expert_df['CQA cycles'] = [cqa.lookup_metric_unique('cycles L1') for cqa in avg_loop_cqas]
         expert_df['CQA cycles if no scalar integer'] = [cqa.lookup_metric_unique('cycles L1 if clean') for cqa in avg_loop_cqas]
-        expert_df['Speedup if no scalar integer'] = expert_df['CQA cycles'] / expert_df['CQA cycles if no scalar integer'] 
+        expert_df['Speedup if no scalar integer'] = expert_df.apply(lambda row: safe_division(row['CQA cycles'], row['CQA cycles if no scalar integer']), axis=1)
         expert_df['Vectorization Ratio (%)'] = [cqa.lookup_metric_unique('packed ratio all') for cqa in avg_loop_cqas]
         expert_df['Vectorization Efficiency (%)'] = [cqa.lookup_metric_unique('vec eff ratio all') for cqa in avg_loop_cqas]
         expert_df['Speedup if FP arith vectorized'] = [cqa.lookup_metric_unique('cycles L1 if FP arith vectorized') for cqa in avg_loop_cqas]
@@ -1426,6 +1429,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                     convert_python_to_lua(analysis_python_data, analysis_path)
                     ##html lua files
                     analysis_html_lua_file_name = '{}_{}_html.lua'.format(module_name, cqa.loop.maqao_loop_id)
+           
                     analysis_html_lua_path = os.path.join(cqa_dir_path, analysis_html_lua_file_name)
                     create_html_lua_by_text_python(analysis_python_data, analysis_html_lua_path) 
 
@@ -1440,8 +1444,6 @@ class OneViewModelExporter(OneviewModelAccessor):
         for file in files:
             write_file(files[file], os.path.join(cqa_dir_path, file))
 
-
-       
 
         for cqa in function_cqas:
             module_name = os.path.basename(cqa.function.module.name)
@@ -1541,4 +1543,8 @@ class OneViewModelExporter(OneviewModelAccessor):
 
         for file in files:
             group_df = pd.DataFrame(files[file])
-            write_file(group_df, os.path.join(group_dir_path, file))
+            file_path = os.path.join(group_dir_path, file)
+            if is_df_empty(group_df):
+                write_file(group_df.head(0),file_path)
+            else:
+                write_file(group_df,file_path)
