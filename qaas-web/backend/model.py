@@ -12,10 +12,10 @@ from sqlalchemy import (
     ForeignKey,
     PickleType,
     JSON,
-    LargeBinary
+    LargeBinary,
 )
 import sqlalchemy
-
+from sqlalchemy.dialects.mysql import LONGBLOB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship,registry
 import inspect
@@ -98,9 +98,13 @@ class Execution(QaaSBase):
     lprof_log = Column(PickleType(pickler=CompressedPickler), nullable = True)
 
     #TODO temp columns
-    cqa_context = Column(JSON, nullable = True)
-    config = Column(Text, nullable = True)
-    global_metrics = Column(JSON, nullable = True)
+    # cqa_context = Column(JSON, nullable = True)
+    cqa_context = Column(PickleType(pickler=CompressedPickler), nullable = True)
+
+    config = Column(PickleType(pickler=CompressedPickler), nullable = True)
+    # global_metrics = Column(JSON, nullable = True)
+    global_metrics = Column(PickleType(pickler=CompressedPickler), nullable = True)
+
     #added column by qaas
     qaas_timestamp = Column(String(50))
     is_orig = Column(Boolean)
@@ -262,7 +266,7 @@ class Environment(QaaSBase):
         for metric_name, metric_value in dic.items():
             metric = EnvironmentMetric(session)
             metric.metric_name = metric_name
-            metric.metric_value = None if is_nan(metric_value) else metric_value
+            metric.metric_value = metric_value
             metrics.append(metric)
         self.environment_metrics = metrics
         return metrics
@@ -312,7 +316,7 @@ class LprofCategorization(QaaSBase):
         for metric_name, metric_value in dic.items():
             metric = LprofCategorizationMetric(session)
             metric.metric_name = metric_name
-            metric.metric_value =  None if is_nan(metric_value) else metric_value
+            metric.metric_value =  metric_value
             metrics.append(metric)
         self.lprof_categorization_metrics = metrics
         return metrics
@@ -321,7 +325,7 @@ class LprofCategorization(QaaSBase):
 class LprofCategorizationMetric(QaaSBase):
     __tablename__ = "lprof_categorization_metric"
     metric_name = Column(String(50), nullable = True)
-    metric_value = Column(Float, nullable = True)
+    metric_value = Column(Text, nullable = True)
 
     fk_lprof_categorization_id = Column(Integer, ForeignKey('lprof_categorization.table_id'))
 
@@ -388,7 +392,8 @@ class Function(QaaSBase):
     cats = Column(String(50), nullable = True)
     pid = Column(Integer, nullable=True)
     tid = Column(Integer, nullable=True)
-    hierarchy = Column(JSON, nullable = True)
+    # hierarchy = Column(JSON, nullable = True)
+    hierarchy = Column(PickleType(pickler=CompressedPickler), nullable = True)
 
     fk_asm_id = Column(Integer, ForeignKey('asm.table_id'))
     fk_module_id = Column(Integer, ForeignKey('module.table_id'))
@@ -479,7 +484,7 @@ class LoreLoopMeasure(QaaSBase):
         for metric_name, metric_value in dic.items():
             metric = LoreLoopMeasureMetric(session)
             metric.metric_name = metric_name
-            metric.metric_value = None if is_nan(metric_value) else metric_value
+            metric.metric_value = metric_value
             metrics.append(metric)
 
         self.lore_loop_measure_metrics = metrics
@@ -575,13 +580,14 @@ class CqaMeasure(QaaSBase):
         for metric_name, metric_value in dic.items():
             metric = CqaMetric(session)
             metric.metric_name = metric_name
-            metric.metric_value = None if is_nan(metric_value) else metric_value
+            metric.metric_value = metric_value
             metrics.append(metric)
         self.cqa_metrics = metrics
         return metrics
 
     def lookup_metric(self, name):
-        return [float(m.metric_value) for m in self.cqa_metrics if m.metric_name == name]
+        return [float(m.metric_value) if m.metric_value != "NA" else None for m in self.cqa_metrics if m.metric_name == name]
+
 
     def lookup_metric_unique(self, name):
         rst = self.lookup_metric(name)
@@ -591,7 +597,9 @@ class CqaMeasure(QaaSBase):
 
 class CqaAnalysis(QaaSBase):
     __tablename__ = "cqa_analysis"
-    analysis = Column(JSON, nullable = True)
+    #TODO use JSON
+    # analysis = Column(JSON, nullable = True)
+    analysis = Column(PickleType(pickler=CompressedPickler), nullable = True)
 
     cqa_measures = relationship("CqaMeasure", back_populates="cqa_analysis")
 
@@ -619,7 +627,7 @@ class CqaMetric(QaaSBase):
 
 class Asm(QaaSBase):
     __tablename__ = "asm"
-    content = Column(PickleType(pickler=CompressedPickler), nullable = True)
+    content = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
     hash = Column(String(64), nullable = True)
     fk_decan_variant_id = Column(Integer, ForeignKey('decan_variant.table_id'))
 
@@ -647,7 +655,7 @@ class Source(QaaSBase):
         for metric_name, metric_value in dic.items():
             metric = SourceMetric(session)
             metric.metric_name = metric_name
-            metric.metric_value = None if is_nan(metric_value) else metric_value
+            metric.metric_value = metric_value
             metrics.append(metric)
         self.source_metrics = metrics
         return metrics
@@ -741,7 +749,7 @@ class DecanVariant(QaaSBase):
 class DecanMetric(QaaSBase):
     __tablename__ = "decan_metric"
     metric_name = Column(String(50), nullable = True)
-    metric_value = Column(Float, nullable = True)
+    metric_value = Column(Text, nullable = True)
     metric_type = Column(String(50), nullable = True)
 
     fk_decan_run_id = Column(Integer, ForeignKey('decan_run.table_id'))
@@ -834,11 +842,11 @@ def get_table_data_from_df(df, Table):
 def get_module_by_name(modules, module_name):
     return [m for m in modules if os.path.basename(m.name) == module_name][0]
 
-def get_function_by_maqao_id(current_execution, maqao_id):
+def get_function_by_maqao_id_module(current_execution, maqao_id, module):
     res = None
     for src_function in current_execution.src_functions:
         for f in src_function.functions:
-            if f.maqao_function_id == maqao_id:
+            if f.maqao_function_id == maqao_id and os.path.basename(f.module.name) == module:
                 return f
     return res
 def get_loop_by_maqao_id(current_execution, maqao_id):
