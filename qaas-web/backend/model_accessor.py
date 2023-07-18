@@ -1236,7 +1236,7 @@ class OneViewModelExporter(OneviewModelAccessor):
     def visitLprofMeasurementCollection(self, lprof_measurement_collection):
         lprof_dir_path, expert_loop_path, hierarchy_dir_path = self.get_lprof_measurement_path()
         os.makedirs(os.path.dirname(expert_loop_path), exist_ok=True)
-        os.makedirs(os.path.dirname(hierarchy_dir_path), exist_ok=True)
+        os.makedirs(hierarchy_dir_path, exist_ok=True)
 
         blocks = lprof_measurement_collection.block_collection.get_objs()
         functions = lprof_measurement_collection.function_collection.get_objs()
@@ -1336,8 +1336,10 @@ class OneViewModelExporter(OneviewModelAccessor):
             pid, tid = loop.pid, loop.tid
             source_info = combine_source_info(loop.src_loop.file, loop.src_loop.line_number) if loop.src_loop else None
             if not pid and not tid:
+                print("file name should be here ", loop.table_id)
                 file_name = 'lprof_loops.csv'
             else:
+                print("maybe here ", loop.table_id)
                 file_name = 'lprof_loops_{}_{}_{}.csv'.format(machine_name, pid, tid)
             if file_name not in files:
                 files[file_name] = pd.DataFrame()
@@ -1358,7 +1360,10 @@ class OneViewModelExporter(OneviewModelAccessor):
         #add left over empty pud and tid loop that cannot be got from any other objs    
         if not_created_pid_tid_pairs:
             for pid, tid in not_created_pid_tid_pairs:
-                file_name = f'lprof_loops_{machine_name}_{pid}_{tid}.csv'
+                if not pid and not tid:
+                    file_name = 'lprof_loops.csv'
+                else:
+                    file_name = f'lprof_loops_{machine_name}_{pid}_{tid}.csv'
                 function_dict = {
                     'loop_id': None,
                     'module': None,
@@ -1400,7 +1405,7 @@ class OneViewModelExporter(OneviewModelAccessor):
         expert_df['ID'] = [f'Loop {cqa.loop.maqao_loop_id}' for cqa in avg_loop_cqas]
         expert_df['CQA cycles'] = [cqa.lookup_metric_unique('cycles L1') for cqa in avg_loop_cqas]
         expert_df['CQA cycles if no scalar integer'] = [cqa.lookup_metric_unique('cycles L1 if clean') for cqa in avg_loop_cqas]
-        expert_df['Speedup if no scalar integer'] = expert_df.apply(lambda row: safe_division(row['CQA cycles'], row['CQA cycles if no scalar integer']), axis=1)
+        expert_df['Speedup if no scalar integer'] =[safe_division(cqa.lookup_metric_unique('CQA cycles'), cqa.lookup_metric_unique('CQA cycles if no scalar integer')) for cqa in avg_loop_cqas]
         expert_df['Vectorization Ratio (%)'] = [cqa.lookup_metric_unique('packed ratio all') for cqa in avg_loop_cqas]
         expert_df['Vectorization Efficiency (%)'] = [cqa.lookup_metric_unique('vec eff ratio all') for cqa in avg_loop_cqas]
         expert_df['Speedup if FP arith vectorized'] = [cqa.lookup_metric_unique('cycles L1 if FP arith vectorized') for cqa in avg_loop_cqas]

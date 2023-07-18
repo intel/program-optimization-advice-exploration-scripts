@@ -94,16 +94,16 @@ class Execution(QaaSBase):
     profiled_time = Column(Float, nullable = True)
     max_nb_threads = Column(Integer, nullable = True)
     #logs
-    log = Column(PickleType(pickler=CompressedPickler), nullable = True)
-    lprof_log = Column(PickleType(pickler=CompressedPickler), nullable = True)
+    log = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
+    lprof_log = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
 
     #TODO temp columns
     # cqa_context = Column(JSON, nullable = True)
-    cqa_context = Column(PickleType(pickler=CompressedPickler), nullable = True)
+    cqa_context = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
 
-    config = Column(PickleType(pickler=CompressedPickler), nullable = True)
+    config = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
     # global_metrics = Column(JSON, nullable = True)
-    global_metrics = Column(PickleType(pickler=CompressedPickler), nullable = True)
+    global_metrics = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
 
     #added column by qaas
     qaas_timestamp = Column(String(50))
@@ -393,7 +393,7 @@ class Function(QaaSBase):
     pid = Column(Integer, nullable=True)
     tid = Column(Integer, nullable=True)
     # hierarchy = Column(JSON, nullable = True)
-    hierarchy = Column(PickleType(pickler=CompressedPickler), nullable = True)
+    hierarchy = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
 
     fk_asm_id = Column(Integer, ForeignKey('asm.table_id'))
     fk_module_id = Column(Integer, ForeignKey('module.table_id'))
@@ -591,15 +591,19 @@ class CqaMeasure(QaaSBase):
 
     def lookup_metric_unique(self, name):
         rst = self.lookup_metric(name)
+        #metric does not exist
+        if len(rst) == 0: return None
+        #should not return multiple
         assert len(rst) == 1
         return rst[0]
+    
     
 
 class CqaAnalysis(QaaSBase):
     __tablename__ = "cqa_analysis"
     #TODO use JSON
     # analysis = Column(JSON, nullable = True)
-    analysis = Column(PickleType(pickler=CompressedPickler), nullable = True)
+    analysis = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
 
     cqa_measures = relationship("CqaMeasure", back_populates="cqa_analysis")
 
@@ -640,7 +644,7 @@ class Asm(QaaSBase):
 
 class Source(QaaSBase):
     __tablename__ = "source"
-    content = Column(PickleType(pickler=CompressedPickler), nullable = True)
+    content = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
     hash = Column(String(64), nullable = True)
 
     src_functions = relationship("SrcFunction", back_populates="source")
