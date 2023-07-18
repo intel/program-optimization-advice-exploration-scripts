@@ -191,8 +191,9 @@ def add_commas_inside_brackets(lua_code):
     return result
 
 def convert_python_to_lua(python_object,lua_file_path):
-    with open(lua_file_path, 'wb') as f:
-        f.write(decompress_file(python_object))
+    if python_object:
+        with open(lua_file_path, 'wb') as f:
+            f.write(decompress_file(python_object))
     #TODO use json instead of string
     # lua_code = luadata.serialize(python_object, encoding="utf-8", indent="")
     # lua_code = lua_code[1:-1]  
@@ -671,12 +672,13 @@ def merge_df(to_df, from_df, cols, keys):
 def read_int(file):
     data = file.read(4)
     if len(data) != 4:
-        raise IOError("Unexpected end of file")
+        #could be end of the file
+        return -1
     return struct.unpack("<i", data)[0]
 def read_double(file):
     data = file.read(8)
     if len(data) != 8:
-        raise IOError("Unexpected end of file")
+        return -1
     return struct.unpack("<d", data)[0]
 def decode_string(data):
     return data.decode('utf-8')
@@ -762,7 +764,8 @@ def read_header(f):
     }
 
 def convert_location_binary_to_python(binary_file_path, session):
-    if not os.path.exists(binary_file_path): return None
+    if not os.path.exists(binary_file_path):
+        return {'headers':None, 'objects': None}
     with open(binary_file_path, 'rb') as f:
         headers = read_header(f)
         # Read the first section of the file, which contains strings.
@@ -852,12 +855,15 @@ def map_and_write_strings_location(f, objects, session):
         
 
 def convert_python_to_location_binary(data, binary_file_path, session):
-    if os.path.exists(binary_file_path):
+    #don't write files if data is empty
+    if data['headers'] and data['objects']:
         with open(binary_file_path, 'wb') as f:
+            #still write headers even when binary is empty
             write_header(f, data['headers'],'OV_SRCLO')
             strings, objects = map_and_write_strings_location(f, data['objects'], session)
             write_strings(f, strings)
-            write_objects(f, objects, session)
+            if len(objects) > 0:
+                write_objects(f, objects, session)
 
 ##for call chain binary
 def read_callsite(callsites_count, f, strings, session):
@@ -891,8 +897,8 @@ def read_callchain(callchains_count, f, strings, session):
     return callchains
 
 def convert_callchain_binary_to_python(binary_file_path, session):
-    if not os.path.exists(binary_file_path): return None
-
+    if not os.path.exists(binary_file_path):
+        return  {'headers':None, 'callchains': None}
     with open(binary_file_path, 'rb') as f:
         headers = read_header(f)
         strings_count = read_int(f)
@@ -930,10 +936,11 @@ def map_and_write_strings_callchain(f, callchains, session):
     return strings, callchains
 
 def convert_callchain_python_to_binary(data, binary_file_path, session):
-    if os.path.exists(binary_file_path):
-
         with open(binary_file_path, 'wb') as f:
+            #still write headers even if the binary is empty
             write_header(f, data['headers'], "OV_CALLC")
             strings, objects = map_and_write_strings_callchain(f, data['callchains'], session)
             write_strings(f, strings)
-            write_callchains(f, objects)
+            #only write if there are objects to write 
+            if len(objects) > 0:
+                write_callchains(f, objects)
