@@ -109,9 +109,10 @@ def eval_parallel_stability(app_env, binary_path, data_dir, base_run_bin_dir, ru
         # Stability for pure OMP mode
         mpi_ranks = 1 
         omp_threads = nb_cores
-        basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 11, None, 
+        basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 11, "mpirun",
                                     mpi_num_processes=mpi_ranks, omp_num_threads=omp_threads,
-                                    mpi_envs={}, omp_envs={"OMP_PLACES":"threads", "OMP_PROC_BIND":"spread"})
+                                    mpi_envs={"I_MPI_PIN_DOMAIN":"auto:scatter"},
+                                    omp_envs={"OMP_PLACES":"threads", "OMP_PROC_BIND":"spread"})
 
     # Compute median execution time and check stability
     median_time = basic_run.compute_median_exec_time()
