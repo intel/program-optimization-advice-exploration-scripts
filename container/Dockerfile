@@ -36,6 +36,7 @@ RUN apt-get update && \
 RUN gem install ronn-ng
 
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
 
 RUN apt-get install --no-install-recommends -y \
