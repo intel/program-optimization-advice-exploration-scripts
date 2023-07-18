@@ -11,14 +11,16 @@ ARG ENABLE_DEVELOPMENT
 ARG SEP_DIR
 
 # Use bash for more scripting features
-SHELL ["/bin/bash", "-c"]
+#SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 
 USER root
 # Install more packages for experiments/local needs
 # Uncomment follow line and add more packages
 #RUN apt-get install -y libssl-dev
 # Install sudo, netcat (git behind proxy) for development needs
-RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then apt-get update && apt-get install -y sudo netcat && apt-get clean && rm -rf /var/lib/apt/lists/*; fi
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then apt-get update && apt-get install --no-install-recommends -y sudo netcat && apt-get clean && rm -rf /var/lib/apt/lists/*; fi
 WORKDIR /root
 # Copy in ssh tarball (could be empty if ENABLE_DEVELOPMENT != 1)
 COPY ssh.tar.gz /root
@@ -28,16 +30,17 @@ RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then tar xvfz ssh.tar.gz && chown -R root
 #RUN groupadd -g $LOCAL_GID runner 
 RUN groupmod -g $LOCAL_GID qaas
 # Create /tmp/groups to store the group names to add to runner
-RUN echo -n "" > /tmp/groups
-RUN LOCAL_GNAME_ARRAY=($LOCAL_GNAMES) \
+#RUN echo -n "" > /tmp/groups
+RUN echo -n "" > /tmp/groups \
+    && LOCAL_GNAME_ARRAY=($LOCAL_GNAMES) \
     && LOCAL_GID_ARRAY=($LOCAL_GIDS) \
     && for index in ${!LOCAL_GID_ARRAY[@]}; do \
-        if [[ ${LOCAL_GID_ARRAY[$index]} != $LOCAL_GID ]]; then \
-          echo groupadd -g ${LOCAL_GID_ARRAY[$index]} ${LOCAL_GNAME_ARRAY[$index]}; \
-          groupadd -g ${LOCAL_GID_ARRAY[$index]} ${LOCAL_GNAME_ARRAY[$index]}; \
-          echo ${LOCAL_GNAME_ARRAY[$index]} >> /tmp/groups; \
+        if [[ "${LOCAL_GID_ARRAY[$index]}" != "$LOCAL_GID" ]]; then \
+          echo groupadd -g "${LOCAL_GID_ARRAY[$index]}" "${LOCAL_GNAME_ARRAY[$index]}"; \
+          groupadd -g "${LOCAL_GID_ARRAY[$index]}" "${LOCAL_GNAME_ARRAY[$index]}"; \
+          echo "${LOCAL_GNAME_ARRAY[$index]}" >> /tmp/groups; \
         else \
-          echo Skip ${LOCAL_GID_ARRAY[$index]}; \
+          echo Skip "${LOCAL_GID_ARRAY[$index]}"; \
         fi \
     done
 
@@ -46,7 +49,7 @@ RUN LOCAL_GNAME_ARRAY=($LOCAL_GNAMES) \
 # The tr command will output a trailing ',' being used to be a delimiter just before sudo
 #RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g runner -G $(tr '\n' ',' < /tmp/groups)sudo runner 
 #RUN usermod -m -d /app/runner -s /bin/bash -u $LOCAL_UID -g qaas -G $(tr '\n' ',' < /tmp/groups)sudo qaas 
-RUN usermod -m -d /home/qaas -s /bin/bash -u $LOCAL_UID -g qaas -G $(tr '\n' ',' < /tmp/groups)sudo qaas 
+RUN usermod -m -d /home/qaas -s /bin/bash -u "$LOCAL_UID" -g qaas -G "$(tr '\n' ',' < /tmp/groups)"sudo qaas 
 
 RUN echo "qaas:qaas" | chpasswd
 
