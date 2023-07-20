@@ -9,6 +9,7 @@ ARG LOCAL_GIDS
 ARG LOCAL_GNAMES
 ARG ENABLE_DEVELOPMENT
 ARG SEP_DIR
+ARG QAAS_PASSWORD
 
 # Use bash for more scripting features
 #SHELL ["/bin/bash", "-c"]
@@ -51,7 +52,7 @@ RUN echo -n "" > /tmp/groups \
 #RUN usermod -m -d /app/runner -s /bin/bash -u $LOCAL_UID -g qaas -G $(tr '\n' ',' < /tmp/groups)sudo qaas 
 RUN usermod -m -d /home/qaas -s /bin/bash -u "$LOCAL_UID" -g qaas -G "$(tr '\n' ',' < /tmp/groups)"sudo qaas 
 
-RUN echo "qaas:qaas" | chpasswd
+RUN echo "qaas:${QAAS_PASSWORD}" | chpasswd
 
 RUN chgrp -R qaas /home/qaas
 #RUN chown -R runner /share/* && chgrp -R runner /share/*
