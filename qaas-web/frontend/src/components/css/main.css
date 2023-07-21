@@ -13,7 +13,6 @@ body {
 
 #ttl1 {
     font-size: 30px;
-    float: left;
     color: #2f889a;
     margin-left: 5px;
 }
@@ -26,4 +25,10 @@ body {
     width: 100%;
     height: 100%;
     border: none;
+}
+
+.page-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 3rem;
 }
