@@ -25,6 +25,7 @@ from model import *
 from sqlalchemy import select, join
 import luadata
 import re
+from filters import FilterContext
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../config/qaas-web.conf")
 # more initializations in main()
@@ -60,7 +61,7 @@ def create_app(config):
         db_name = os.path.basename(config['web']['SQLALCHEMY_DATABASE_URI'])
     #create all tables in the model
     ########################### http request ################################
-    @app.route('/get_all_timestamps', methods=['GET','POST'])
+    @app.route('/api/get_all_timestamps', methods=['GET','POST'])
     def get_all_timestamps():
         get_timestamp_table = db.metadata.tables[f'{db_name}.execution']
         query = db.session.query(get_timestamp_table.c.qaas_timestamp.distinct())
@@ -72,7 +73,7 @@ def create_app(config):
                         timestamps= time_list,
                         statusCode= 200,
                         )
-    @app.route('/stream')
+    @app.route('/api/stream')
     def stream():
 
         def get_data():
@@ -88,18 +89,31 @@ def create_app(config):
 
         return Response(get_data(), mimetype='text/event-stream')
 
-    @app.route('/get_application_table_info_ov', methods=['GET'])
+    @app.route('/api/get_application_table_info_ov', methods=['POST'])
     def get_application_table_info_ov():
+        request_data = request.get_json()
+        filters = filters = request_data.get('filters', []) 
+        print(filters)
+        filter_context = FilterContext(filters, db.session)
+
         data = []
         applications = db.session.query(Application).all()
         for application in applications:
-            skip_application = False
 
             run_data = []
-            for execution in application.executions:
+
+
+# All(...), Any(...), And(f1,f2), Or(f1, f2)...
+# LessThan(metric, value), Equal(metric, value)
+# MetricGetter(metric)
+# ProfileTimeMetricGetter(),   LoopTimeMetricGetter(), VectorizationReatioGetter(maqaoID)
+
+# getter = MetricGetter('vectorization ragio', lambda v : v > 10)
+# database.accept(getter)
+# getter.data is avaialble (data can be list, map or scalar depending of metric)
+            for execution in filter_context.apply_all_filters(application.executions):
                 if len(execution.maqaos) == 0:
-                    skip_application = True
-                    break  
+                    continue  
 
                 #TODO data needs to be read from config column
                 execution_data = {
@@ -108,8 +122,7 @@ def create_app(config):
                     'data': ''
                 }
                 run_data.append(execution_data)
-            if skip_application:
-                continue
+  
 
             application_data = {
              'program': application.program,
@@ -119,13 +132,14 @@ def create_app(config):
              'run_data': run_data
 
             }
-            data.append(application_data)
+            if len(run_data) > 0:
+                data.append(application_data)
         return jsonify(isError= False,
                     message= "Success",
                     statusCode= 200,
                     data=data,
                     )
-    @app.route('/get_application_table_info_lore', methods=['GET'])
+    @app.route('/api/get_application_table_info_lore', methods=['GET'])
     def get_application_table_info_lore():
         data = []
         applications = db.session.query(Application).all()
@@ -171,7 +185,7 @@ def create_app(config):
                     statusCode= 200,
                     data=data,
                     )
-    @app.route('/run_comparative_view_for_selected_runs', methods=['POST'])
+    @app.route('/api/run_comparative_view_for_selected_runs', methods=['POST'])
     def run_comparative_view_for_selected_runs():
         selected_runs = request.get_json()
         data_folder_list = []
@@ -191,7 +205,7 @@ def create_app(config):
                     message= "Success",
                     statusCode= 200,
                     )
-    @app.route('/create_new_timestamp', methods=['GET','POST'])
+    @app.route('/api/create_new_timestamp', methods=['GET','POST'])
     def create_new_timestamp():
         #real user input data  unused for now
         qaas_request = request.get_json()
@@ -232,7 +246,7 @@ def create_app(config):
                     )
 
 
-    @app.route('/get_html_by_timestamp', methods=['GET','POST'])
+    @app.route('/api/get_html_by_timestamp', methods=['GET','POST'])
     def get_html_by_timestamp():
         #place to put files
         query_time = request.get_json()['timestamp'] 
@@ -257,7 +271,7 @@ def create_app(config):
 
 
 
-    @app.route('/get_data_table_rows', methods=['GET','POST'])
+    @app.route('/api/get_data_table_rows', methods=['GET','POST'])
     def get_data_table_rows():
         #get application, machine, and dataset
         #dataset and application in config.lua

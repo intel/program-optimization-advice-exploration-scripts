@@ -1336,10 +1336,8 @@ class OneViewModelExporter(OneviewModelAccessor):
             pid, tid = loop.pid, loop.tid
             source_info = combine_source_info(loop.src_loop.file, loop.src_loop.line_number) if loop.src_loop else None
             if not pid and not tid:
-                print("file name should be here ", loop.table_id)
                 file_name = 'lprof_loops.csv'
             else:
-                print("maybe here ", loop.table_id)
                 file_name = 'lprof_loops_{}_{}_{}.csv'.format(machine_name, pid, tid)
             if file_name not in files:
                 files[file_name] = pd.DataFrame()
@@ -1553,3 +1551,75 @@ class OneViewModelExporter(OneviewModelAccessor):
                 write_file(group_df.head(0),file_path)
             else:
                 write_file(group_df,file_path)
+
+
+#this class is used to find a specfic metrc throught the execution
+class MetricGetter(ModelAccessor):
+    def __init__(self, session, metric_type):
+        super().__init__(session)
+        self.metric_type = metric_type
+        self.data = None 
+
+    #get value for execution
+    def get_value(self, model_obj):
+        model_obj.accept(self)  
+        return self.data
+
+    def visitExecution(self, execution):
+        if self.metric_type == 'total time':
+            self.data = [execution.time]
+        if self.metric_type == 'array efficiency':
+            global_metrics_json_str = execution.global_metrics['global_metrics']
+            df = pd.read_json(global_metrics_json_str, orient='split')
+            filtered_df  = df[(df['metric'] == 'array_access_efficiency') & (df['value'] != 'Not Available')]
+            if not filtered_df.empty:
+                self.data = [filtered_df['value'].item()]
+          
+
+
+    def visitCqaCollection(self, cqa_collection):
+        if self.metric_type == "vectorization ratio":
+            loop_cqas = [cqa for cqa in cqa_collection.get_objs() if cqa.loop is not None]
+            res = []
+            for cqa in loop_cqas:
+                cqa_metrics = get_names_and_values_data_for_metric_table(cqa.cqa_metrics)
+                ratio_metric_name = 'packed ratio all'
+                vectorization_ratio = cqa_metrics[ratio_metric_name] if ratio_metric_name in cqa_metrics else None
+                if vectorization_ratio:
+                    res.append(vectorization_ratio)
+            self.data = res 
+
+    def visitQaaSDataBase(self, qaas_database):
+        pass
+    def visitApplication(self, application):
+        pass
+    def visitEnvironment(self, environment):
+        pass
+    def visitOs(self, os):
+        pass
+    def visitHwSystem(self, hwsystem):
+        pass
+    def visitMaqao(self, maqao):
+        pass
+    def visitDecanCollection(self, decan_collection):
+        pass
+    def visitVprofCollection(self, vprof_collection):
+        pass
+    def visitLprofCategorizationCollection(self, lprof_categorization_collection):
+        pass
+    def visitModuleCollection(self, module_collection):
+        pass
+    def visitBlockCollection(self, block_collection):
+        pass
+    def visitFunctionCollection(self, function_collection):
+        pass
+    def visitLoopCollection(self, loop_collection):
+        pass
+    def visitLprofMeasurementCollection(self, lprof_measurement_collection):
+        pass
+    def visitAsmCollection(self, asm_collection):
+        pass
+    def visitGroupCollection(self, group_collection):
+        pass
+    def visitSourceCollection(self, source_collection):
+        pass

@@ -69,6 +69,11 @@ class QaaSDatabase:
     def add_to_data_list(self,obj):
         self.data_list.append(obj)
         
+    #get the obj or collection obj from data list
+    def get_data_from_data_list(self,target_obj):
+        for obj in self.data_list:
+            if isinstance(obj, target_obj):
+                return obj
 
     def accept(self, accessor):
         accessor.visitQaaSDataBase(self)

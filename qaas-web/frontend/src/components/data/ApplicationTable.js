@@ -4,27 +4,9 @@ import '../css/table.css'
 import ApplicationSubTable from './ApplicationSubTable';
 import axios from 'axios';
 
-function ApplicationTable({ selectedRows, setSelectedRows }) {
+function ApplicationTable({ data, isLoading, selectedRows, setSelectedRows }) {
 
-    const [data, setData] = useState([]);
     const [expanded, setExpanded] = useState({});
-
-    useEffect(() => {
-        //get the data
-        const fetchData = async () => {
-            try {
-                console.log(process.env.REACT_APP_API_BASE_URL)
-                const result = await axios.get(`/api/get_application_table_info_ov`);
-                setData(result.data.data);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-
-        };
-        fetchData();
-    }, []);
-
-    //called when the select box is clicked or unclicked
 
 
     //called when the data row is clicked
