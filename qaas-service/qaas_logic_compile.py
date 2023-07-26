@@ -89,7 +89,7 @@ def delete_qaas_flags_from_ninja(ninja_file, compiler, user_CC, flags):
 
 def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
                     user_c_flags, user_cxx_flags, user_fc_flags,
-                    user_link_flags, user_target, user_target_location, extra_cmake_flags):
+                    user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map):
     '''Compile the app using all available compilers.'''
 
     # Get the vendor name of target processor
@@ -146,6 +146,8 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
             app_builder_env = app_builder.exec(src_dir, compiler_dir, orig_binary,
                                        orig_user_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
                                        user_link_flags, user_target, user_target_location, 'prepare', update_extra_cmake_flags, f"{compiler}_{index}")
+            # Add any user-provided environment variables
+            app_builder_env.update(env_var_map)
 
             # Delete all QaaS manipulated flags frm Ninja build list
             ninja_file = os.path.join(os.path.join(src_dir, '..', f"{compiler}_{index}"), 'build.ninja')
