@@ -98,7 +98,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     binaries_dir = os.path.join(os.path.dirname(base_run_dir), 'binaries')
     compiled_options = compile_all(src_dir, binaries_dir, compiler_dir,
                 orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-                user_link_flags, user_target, user_target_location, extra_cmake_flags)
+                user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map)
     to_backplane.send(qm.GeneralStatus("Done compile all binaries!"))
 
     # Start unicore runs
