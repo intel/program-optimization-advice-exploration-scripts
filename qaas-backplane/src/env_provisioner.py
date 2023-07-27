@@ -106,6 +106,8 @@ class QAASEnvProvisioner:
         self.comm_port = comm_port
         self.msg_server = ServiceMessageReceiver(("localhost", self.comm_port), service_msg_recv_handler=service_msg_recv_handler) 
         self.compiler_root = compilers["QAAS_COMPILERS_ROOT_DIRECTORY"]
+        self.intel_compiler_root = compilers["QAAS_INTEL_COMPILERS_DIRECTORY"] if compilers["QAAS_INTEL_COMPILERS_DIRECTORY"] else ""
+        self.gnu_compiler_root = compilers["QAAS_GNU_COMPILERS_DIRECTORY"] if compilers["QAAS_GNU_COMPILERS_DIRECTORY"] else ""
         self.compiler_mappings = compiler_mappings
         self._launch_output_dir = launch_output_dir
 
@@ -132,6 +134,12 @@ class QAASEnvProvisioner:
 
     def get_compiler_root(self):
         return self.compiler_root
+
+    def get_intel_compiler_root(self):
+        return self.intel_compiler_root
+
+    def get_gnu_compiler_root(self):
+        return self.gnu_compiler_root
 
     def get_compilerdir(self):
         return "/nfs/site/proj/openmp/compilers/intel/2022"
