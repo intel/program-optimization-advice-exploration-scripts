@@ -147,6 +147,8 @@ class QAASJobSubmit:
         """Run job script itself"""
         script_root = self.provisioner.script_root
         compiler_root = self.provisioner.get_compiler_root()
+        intel_compiler_root = self.provisioner.get_intel_compiler_root()
+        gnu_compiler_root = self.provisioner.get_gnu_compiler_root()
         compiler_subdir = self.provisioner.get_compiler_subdir(self.compiler["USER_CC"], self.compiler["USER_CC_VERSION"])
         ov_run_dir = self.provisioner.get_workdir("oneview_runs")
         locus_run_dir = self.provisioner.get_workdir("locus_runs")
@@ -189,6 +191,12 @@ class QAASJobSubmit:
                      locus_run_dir:container_app_locus_path, 
                      compiler_root:container_compiler_root,
                      dataset_dir:container_app_dataset_path}
+
+            if intel_compiler_root:
+                mount_map[intel_compiler_root] = intel_compiler_root
+
+            if gnu_compiler_root:
+                mount_map[gnu_compiler_root] = gnu_compiler_root
 
             job_run = self.run_container(app_cmd, mount_map, network_host=True, cap_add=True, debug=False)
         else:
