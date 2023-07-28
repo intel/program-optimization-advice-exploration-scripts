@@ -53,9 +53,9 @@ class QAASJobSubmit:
         self.application = user_application
         self.logic = logic
 
-    def run_container(self, app_cmd, mount_map, network_host=False, cap_add=False, debug=False):
+    def run_container(self, app_cmd, mount_map, user_ns_root, network_host=False, cap_add=False, debug=False):
         mount_flags = "".join([f' -v {k}:{v}' for k,v in mount_map.items()])
-        start_container_flags, run_cmd = self.build_podman_run_command(app_cmd, network_host, cap_add, mount_flags) 
+        start_container_flags, run_cmd = self.build_podman_run_command(app_cmd, network_host, cap_add, mount_flags, user_ns_root)
         print(f'Container cmd: {run_cmd}')
         try:
             if debug:
@@ -96,7 +96,7 @@ class QAASJobSubmit:
         tmp_dir = tmp_dir.strip()
         self.run_remote_job_cmd(f"'echo {run_cmd} > {tmp_dir}/runcmd_orig.sh'")
         tarball_mount_flags = "".join([f' -v \$\(pwd\)/{k}:{v}' for k,v in mount_map.items()])
-        _, tarball_run_cmd = self.build_podman_run_command(app_cmd, network_host, cap_add, tarball_mount_flags) 
+        _, tarball_run_cmd = self.build_podman_run_command(app_cmd, network_host, cap_add, tarball_mount_flags, user_ns_root)
         self.run_remote_job_cmd(f"'echo {tarball_run_cmd} > {tmp_dir}/runcmd_tarball.sh'")
         for host_dir, container_dir in mount_map.items():
             _, mount_type=self.run_remote_job_cmd(f"stat -f -c %T {host_dir}")
@@ -114,10 +114,12 @@ class QAASJobSubmit:
         self.copy_remote_file(remote_tarball, download_dir)
         print(f"Container tarball in: {os.path.join(download_dir, os.path.basename(remote_tarball))}")
 
-    def build_podman_run_command(self, app_cmd, network_host, cap_add, mount_flags):
+    def build_podman_run_command(self, app_cmd, network_host, cap_add, mount_flags, user_ns_root):
         network_host_flag = " --network=host " if network_host else ""
         cap_add_flag = " --cap-add  SYS_ADMIN,SYS_PTRACE" if cap_add else ""
+        user_ns_root_flag = " --user=root " if user_ns_root else ""
         start_container_flags = "--rm --name " + self.provisioner.app_name + \
+                     user_ns_root_flag + \
                      network_host_flag + mount_flags + \
                      cap_add_flag + \
                      " " + self.provisioner.image_name
@@ -143,7 +145,7 @@ class QAASJobSubmit:
         else:
             raise QAASJobException(rc)
 
-    def run_job(self, container=True):
+    def run_job(self, container=True, user_ns_root=False):
         """Run job script itself"""
         script_root = self.provisioner.script_root
         compiler_root = self.provisioner.get_compiler_root()
@@ -198,7 +200,7 @@ class QAASJobSubmit:
             if gnu_compiler_root:
                 mount_map[gnu_compiler_root] = gnu_compiler_root
 
-            job_run = self.run_container(app_cmd, mount_map, network_host=True, cap_add=True, debug=False)
+            job_run = self.run_container(app_cmd, mount_map, user_ns_root, network_host=True, cap_add=True, debug=False)
         else:
             job_run = self.run_native(app_cmd)
 
