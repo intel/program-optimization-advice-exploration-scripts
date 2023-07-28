@@ -56,8 +56,11 @@ def main():
     # Check whether to disable container mode
     container = True if not args.no_container else False
 
+    # Check whether to map root user in container to host user user (preserves name space)
+    user_ns_root = False if not args.as_root_in_container else True
+
     # Command line just print the message for service message, GUI will act on message differently.
-    rc, _ = launch_qaas(args.app_params, args.logic, container, lambda msg: print(msg.str()))
+    rc, _ = launch_qaas(args.app_params, args.logic, container, user_ns_root, lambda msg: print(msg.str()))
 
     exitcode = 1
     if rc == 0:
@@ -69,7 +72,7 @@ def launch_qaas_web(qaas_message_queue, app_params, launch_output_dir='/tmp/qaas
    launch_qaas(app_params, "demo", True, lambda msg: qaas_message_queue.put(msg), launch_output_dir)
 
 # Webfront will call this to launch qaas for a submission
-def launch_qaas(app_params, logic, container, service_msg_recv_handler, launch_output_dir='/tmp/qaas_out'):
+def launch_qaas(app_params, logic, container, user_ns_root, service_msg_recv_handler, launch_output_dir='/tmp/qaas_out'):
     # Better api to send back message 
     service_msg_recv_handler(qm.BeginQaas())
     # setup QaaS configuration
@@ -81,6 +84,10 @@ def launch_qaas(app_params, logic, container, service_msg_recv_handler, launch_o
     # get QaaS user's configuration
     params.read_user_config(app_params)
     logging.debug("QaaS User Config:\n\t%s", params.user)
+
+    if user_ns_root and params.system["machines"]["QAAS_USER"] == "root":
+        logging.error("Run as root in container not allowed for QAAS_USER=root\n")
+        return 1,None
     
     # Setup Env. Provisionning: code  + data location
     prov = QAASEnvProvisioner(params.system["global"]["QAAS_ROOT"], 
@@ -95,7 +102,7 @@ def launch_qaas(app_params, logic, container, service_msg_recv_handler, launch_o
                               int(params.system["global"]["QAAS_COMM_PORT"]),
                               service_msg_recv_handler,
                               launch_output_dir)
-    rc = prov.create_work_dirs(container)
+    rc = prov.create_work_dirs(container, user_ns_root)
     if rc != 0:
        return rc
     rc = prov.clone_source_repo()
@@ -117,7 +124,7 @@ def launch_qaas(app_params, logic, container, service_msg_recv_handler, launch_o
                         prov,
                         logic)
 
-    rc = job.run_job(container)
+    rc = job.run_job(container, user_ns_root)
     #rc = job.build_default()
     #rc = job.run_reference_app()
     if rc != 0:

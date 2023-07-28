@@ -161,7 +161,7 @@ class QAASEnvProvisioner:
         elif target == "dataset":
             return self.work_dirs[DATADIR_INDEX]
 
-    def create_work_dirs(self, container=True):
+    def create_work_dirs(self, container=True, user_ns_root=False):
         """Create working directories."""
         logging.info("Create Working Directories on %s", self.machine)
         # craete dirs
@@ -173,7 +173,7 @@ class QAASEnvProvisioner:
         if rc != 0:
             return rc
         # update ownership rights for container runs
-        if container:
+        if container and not user_ns_root:
             rc = self.update_workdir_owner()
         return rc
 
