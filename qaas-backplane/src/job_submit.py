@@ -156,12 +156,14 @@ class QAASJobSubmit:
         locus_run_dir = self.provisioner.get_workdir("locus_runs")
         base_run_dir = self.provisioner.get_workdir("base_runs")
         dataset_dir = os.path.join(self.provisioner.get_workdir("dataset"), self.provisioner.app_name)
+        qaas_reports_dir = self.provisioner.get_workdir("qaas_reports")
         ov_dir="/opt/maqao"
         container_app_builder_path = "/app/builder" if container else self.provisioner.get_workdir("build")
         container_app_dataset_path = "/app/dataset" if container else dataset_dir
         container_app_oneview_path = "/app/oneview_runs" if container else ov_run_dir
         container_app_locus_path = "/app/locus_runs" if container else locus_run_dir
         container_app_base_path = "/app/base_runs" if container else base_run_dir
+        container_app_reports_path = "/app/qaas_reports" if container else qaas_reports_dir
         # The current load script seems to require the same path
         container_compiler_root=compiler_root
         container_script_root = "/app/QAAS_SCRIPT_ROOT"  if container else script_root
@@ -191,6 +193,7 @@ class QAASJobSubmit:
                      ov_run_dir:container_app_oneview_path, 
                      base_run_dir:container_app_base_path,
                      locus_run_dir:container_app_locus_path, 
+                     qaas_reports_dir:container_app_reports_path, 
                      compiler_root:container_compiler_root,
                      dataset_dir:container_app_dataset_path}
 
