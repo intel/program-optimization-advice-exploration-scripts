@@ -17,6 +17,8 @@ options:
   -nc, --no-container   Disable container mode
   -D, --debug           debug mode
   -q, --quiet           quiet mode
+  -r, --as-root-in-container
+                        Run host users as root in container [permissive rootless mode in podman]. Not allowed for true root users.
 ```
 
 # Configuration
@@ -72,7 +74,8 @@ QaaS relies on a global configuration file `qaas/qaas-backplane/config/qaas.conf
 Users must modify the following parameters:
 - `QAAS_ROOT`: path to where QaaS runs are stored.
 - `QAAS_SCRIPT_ROOT`: path to QaaS scripts root file system so that `$QAAS_SCRIPT_ROOT/qaas-service` is accessible on compute nodes.
-- `QAAS_COMPILERS_ROOT_DIRECTORT` : path to QaaS scripts to source compilers and Intel runtime.
+- `QAAS_COMPILERS_ROOT_DIRECTORY` : path to QaaS scripts to source compilers and Intel runtime.
+- `QAAS_INTEL_COMPILERS_DIRECTORY` : path to Intel compilers and runtimes installation directory. By default, it points to `/opt/intel/oneapi`.
 - `QAAS_USER` : target user name on the compute node for ssh access (password-less must configured
 - `QAAS_MACHINE`: machine name of target node where to perform QaaS runs (localhost by default)
 
@@ -87,3 +90,11 @@ cd qaas
 ```
 
 Will run the QaaS strategizer (only unicore logic for now) using the debug mode but with container mode disabled.
+
+# Running QaaS in a container
+
+To run QaaS in a container (prefered way), users must follow the steps below:
+- Install `podman` (rootless mode).
+- Pull container image: `podman pull registry.gitlab.com/davidwong/qaas:sdp`
+- Setup compiler scripts structure similar to what the `setup_compilers.sh` is doing (see above)
+- Run QaaS: `./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer --as-root-in-container -D`

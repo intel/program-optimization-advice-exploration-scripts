@@ -58,7 +58,8 @@ RUNDIR_INDEX        = 2
 BASEDIR_INDEX       = 3
 OVDIR_INDEX         = 4
 LOCUSDIR_INDEX      = 5
-DATADIR_INDEX      = 6
+DATADIR_INDEX       = 6
+QAAS_REPORTS_INDEX  = 7
 QAAS_RUN_TYPES = ["base_runs", "oneview_runs", "locus_runs"]
 
 
@@ -78,6 +79,7 @@ class QAASEnvProvisioner:
         # NOTE: Following append order related to the INDEX values and also there are
         # len(QAAS_RUN_TYPES) run directories allocated assumed
         # (BASEDIR_INDEX, OVDIR_INDEX, LOCUSDIR_INDEX) matches QAAS_RUN_TYPES array order
+        # qaas_reports holds generated csv reports
         self.work_dirs = []
         self.work_dirs.append(os.path.join(self.service_dir, self.account, self.app_name))
         self.work_dirs.append(os.path.join(self.work_dirs[WORKDIR_ROOT_INDEX], "build"))
@@ -85,6 +87,7 @@ class QAASEnvProvisioner:
         for workdir in QAAS_RUN_TYPES:
             self.work_dirs.append(os.path.join(self.work_dirs[RUNDIR_INDEX], workdir))
         self.work_dirs.append(os.path.join(self.work_dirs[WORKDIR_ROOT_INDEX], "dataset"))
+        self.work_dirs.append(os.path.join(self.work_dirs[RUNDIR_INDEX], 'qaas_reports'))
         # save git configuration
         self.git_user = git_params[GIT_USER]
         self.git_token = git_params[GIT_TOKEN]
@@ -106,6 +109,8 @@ class QAASEnvProvisioner:
         self.comm_port = comm_port
         self.msg_server = ServiceMessageReceiver(("localhost", self.comm_port), service_msg_recv_handler=service_msg_recv_handler) 
         self.compiler_root = compilers["QAAS_COMPILERS_ROOT_DIRECTORY"]
+        self.intel_compiler_root = compilers["QAAS_INTEL_COMPILERS_DIRECTORY"] if compilers["QAAS_INTEL_COMPILERS_DIRECTORY"] else ""
+        self.gnu_compiler_root = compilers["QAAS_GNU_COMPILERS_DIRECTORY"] if compilers["QAAS_GNU_COMPILERS_DIRECTORY"] else ""
         self.compiler_mappings = compiler_mappings
         self._launch_output_dir = launch_output_dir
 
@@ -133,6 +138,12 @@ class QAASEnvProvisioner:
     def get_compiler_root(self):
         return self.compiler_root
 
+    def get_intel_compiler_root(self):
+        return self.intel_compiler_root
+
+    def get_gnu_compiler_root(self):
+        return self.gnu_compiler_root
+
     def get_compilerdir(self):
         return "/nfs/site/proj/openmp/compilers/intel/2022"
 
@@ -152,8 +163,10 @@ class QAASEnvProvisioner:
             return self.work_dirs[LOCUSDIR_INDEX]
         elif target == "dataset":
             return self.work_dirs[DATADIR_INDEX]
+        elif target == "qaas_reports":
+            return self.work_dirs[QAAS_REPORTS_INDEX]
 
-    def create_work_dirs(self, container=True):
+    def create_work_dirs(self, container=True, user_ns_root=False):
         """Create working directories."""
         logging.info("Create Working Directories on %s", self.machine)
         # craete dirs
@@ -165,7 +178,7 @@ class QAASEnvProvisioner:
         if rc != 0:
             return rc
         # update ownership rights for container runs
-        if container:
+        if container and not user_ns_root:
             rc = self.update_workdir_owner()
         return rc
 
