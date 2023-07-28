@@ -38,6 +38,13 @@ def add_exclusive_trace_options(excl_parser):
     excl_parser.add_argument("-D", "--debug", action="store_true", help="debug mode")
     excl_parser.add_argument("-q", "--quiet", action="store_true", help="quiet mode")
 
+def add_exclusive_container_options(excl_parser):
+    """Populate a parser with exclusive trace options."""
+    # Specify whether to disable container mode 
+    excl_parser.add_argument('-nc', "--no-container", action="store_true", help="Disable container mode")
+    # Specify whether to run root in container (permissive rootless mode) 
+    excl_parser.add_argument('-r', "--as-root-in-container", action="store_true", help="Run host users as root in container [permissive rootless mode in podman]. Not allowed for true root users.")
+
 def parse_cli_args(argv):
     """Process the command line arguments."""
     if len(argv) == 1:
@@ -55,12 +62,13 @@ def parse_cli_args(argv):
     # Specify the type of QaaS logic to run: demo (legacy) vs Stratigizer (multi-phase)
     global_parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='demo')
 
-    # Specify whether to disable container mode 
-    global_parser.add_argument('-nc', "--no-container", action="store_true", help="Disable container mode")
-
     # setup mutually exclusive arguments
     global_excl = global_parser.add_mutually_exclusive_group()
     add_exclusive_trace_options(global_excl)
+
+    # setup mutually exclusive container arguments
+    container_excl = global_parser.add_mutually_exclusive_group()
+    add_exclusive_container_options(container_excl)
 
     # parse arguments
     args = global_parser.parse_args()
