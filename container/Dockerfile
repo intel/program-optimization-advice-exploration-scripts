@@ -65,7 +65,8 @@ RUN python3 -m pip install sympy \
   && python3 -m pip install Cheetah3 \
   && python3 -m pip install parse \
   && python3 -m pip install pytrie \
-  && python3 -m pip install pandas
+  && python3 -m pip install pandas \
+  && python3 -m pip install py-cpuinfo
 
 # Build cmake
 # NOTE: WHY WE NEED A SPECFIC VERSION instead of apt install cmake
