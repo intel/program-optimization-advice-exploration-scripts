@@ -92,7 +92,6 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     # Phase 3.1: Parameter Exploration and Tuning
     # Setup QaaS reports dir
     qaas_reports_dir = os.path.join(os.path.dirname(base_run_dir), 'qaas_reports')
-    os.makedirs(qaas_reports_dir, exist_ok=True)
 
     # First build all options
     binaries_dir = os.path.join(os.path.dirname(base_run_dir), 'binaries')
