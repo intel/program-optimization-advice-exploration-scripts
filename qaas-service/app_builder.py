@@ -87,6 +87,7 @@ lookup_functions = [
             ({'icc': 'mfpmath=sse', 'gcc': 'mfpmath=sse', 'icx': 'mfpmath=sse'}, simple_replace),
             ({'icc': 'qoverride-limits', 'gcc': '', 'icx': 'qoverride-limits'}, simple_replace),
             ({'icc': 'no-vec', 'gcc': 'fno-tree-vectorize', 'icx': 'fno-vectorize'}, simple_replace),
+            ({'icc': '', 'gcc': '', 'icx': 'fno-slp-vectorize'}, simple_replace),
             ({'icc': 'no-simd', 'gcc': '', 'icx': 'no-simd'}, simple_replace),
             ({'icc': 'qno-openmp-simd', 'gcc': '', 'icx': 'fno-openmp-simd'}, simple_replace),
             ({'icc': 'march=native', 'gcc': 'march=native', 'icx': 'march=native'}, simple_replace),
