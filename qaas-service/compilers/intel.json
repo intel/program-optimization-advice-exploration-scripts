@@ -1,26 +1,26 @@
 {
     "SPR": {
         "compilers": ["icx", "icc", "gcc"],
-        "flags": ["-O3 -xSAPPHIRERAPIDS", "-O3 -xSAPPHIRERAPIDS -mprefer-vector-width=512", "-O3 -xCORE-AVX2", "-O3 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd",
-                  "-O2 -xSAPPHIRERAPIDS", "-O2 -xSAPPHIRERAPIDS -mprefer-vector-width=512", "-O2 -xCORE-AVX2", "-O2 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd",
-                  "-O3 -xSAPPHIRERAPIDS -flto", "-O3 -xSAPPHIRERAPIDS -mprefer-vector-width=512 -flto", "-O3 -xCORE-AVX2 -flto", "-O3 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd -flto",
-                  "-O2 -xSAPPHIRERAPIDS -flto", "-O2 -xSAPPHIRERAPIDS -mprefer-vector-width=512 -flto", "-O2 -xCORE-AVX2 -flto", "-O2 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd -flto"],
+        "flags": ["-O3 -xSAPPHIRERAPIDS", "-O3 -xSAPPHIRERAPIDS -mprefer-vector-width=512", "-O3 -xCORE-AVX2", "-O3 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd",
+                  "-O2 -xSAPPHIRERAPIDS", "-O2 -xSAPPHIRERAPIDS -mprefer-vector-width=512", "-O2 -xCORE-AVX2", "-O2 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd",
+                  "-O3 -xSAPPHIRERAPIDS -flto", "-O3 -xSAPPHIRERAPIDS -mprefer-vector-width=512 -flto", "-O3 -xCORE-AVX2 -flto", "-O3 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd -flto",
+                  "-O2 -xSAPPHIRERAPIDS -flto", "-O2 -xSAPPHIRERAPIDS -mprefer-vector-width=512 -flto", "-O2 -xCORE-AVX2 -flto", "-O2 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd -flto"],
         "reference_compiler": "icx"
     },
     "ICX": {
         "compilers": ["icx", "icc", "gcc"],
-        "flags": ["-O3 -xICELAKE-SERVER", "-O3 -xICELAKE-SERVER -mprefer-vector-width=512", "-O3 -xCORE-AVX2", "-O3 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd",
-                  "-O2 -xICELAKE-SERVER", "-O2 -xICELAKE-SERVER -mprefer-vector-width=512", "-O2 -xCORE-AVX2", "-O2 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd",
-                  "-O3 -xICELAKE-SERVER -flto", "-O3 -xICELAKE-SERVER -mprefer-vector-width=512 -flto", "-O3 -xCORE-AVX2 -flto", "-O3 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd -flto",
-                  "-O2 -xICELAKE-SERVER -flto", "-O2 -xICELAKE-SERVER -mprefer-vector-width=512 -flto", "-O2 -xCORE-AVX2 -flto", "-O2 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd -flto"],
+        "flags": ["-O3 -xICELAKE-SERVER", "-O3 -xICELAKE-SERVER -mprefer-vector-width=512", "-O3 -xCORE-AVX2", "-O3 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd",
+                  "-O2 -xICELAKE-SERVER", "-O2 -xICELAKE-SERVER -mprefer-vector-width=512", "-O2 -xCORE-AVX2", "-O2 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd",
+                  "-O3 -xICELAKE-SERVER -flto", "-O3 -xICELAKE-SERVER -mprefer-vector-width=512 -flto", "-O3 -xCORE-AVX2 -flto", "-O3 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd -flto",
+                  "-O2 -xICELAKE-SERVER -flto", "-O2 -xICELAKE-SERVER -mprefer-vector-width=512 -flto", "-O2 -xCORE-AVX2 -flto", "-O2 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd -flto"],
         "reference_compiler": "icx"
     },
     "SKL": {
         "compilers": ["icx", "icc", "gcc"],
-        "flags": ["-O3 -xSKYLAKE-AVX512", "-O3 -xSKYLAKE-AVX512 -mprefer-vector-width=512", "-O3 -xCORE-AVX2", "-O3 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd",
-                  "-O2 -xSKYLAKE-AVX512", "-O2 -xSKYLAKE-AVX512 -mprefer-vector-width=512", "-O2 -xCORE-AVX2", "-O2 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd",
-                  "-O3 -xSKYLAKE-AVX512 -flto", "-O3 -xSKYLAKE-AVX512 -mprefer-vector-width=512 -flto", "-O3 -xCORE-AVX2 -flto", "-O3 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd -flto",
-                  "-O2 -xSKYLAKE-AVX512 -flto", "-O2 -xSKYLAKE-AVX512 -mprefer-vector-width=512 -flto", "-O2 -xCORE-AVX2 -flto", "-O2 -xCORE-AVX2 -fno-vectorize -fno-openmp-simd -flto"],
+        "flags": ["-O3 -xSKYLAKE-AVX512", "-O3 -xSKYLAKE-AVX512 -mprefer-vector-width=512", "-O3 -xCORE-AVX2", "-O3 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd",
+                  "-O2 -xSKYLAKE-AVX512", "-O2 -xSKYLAKE-AVX512 -mprefer-vector-width=512", "-O2 -xCORE-AVX2", "-O2 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd",
+                  "-O3 -xSKYLAKE-AVX512 -flto", "-O3 -xSKYLAKE-AVX512 -mprefer-vector-width=512 -flto", "-O3 -xCORE-AVX2 -flto", "-O3 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd -flto",
+                  "-O2 -xSKYLAKE-AVX512 -flto", "-O2 -xSKYLAKE-AVX512 -mprefer-vector-width=512 -flto", "-O2 -xCORE-AVX2 -flto", "-O2 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd -flto"],
         "reference_compiler": "icx"
     },
     "HSW": {
