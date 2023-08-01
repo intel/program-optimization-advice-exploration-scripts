@@ -190,7 +190,7 @@ def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target
     # setup env
     env = load_compiler_env(compiler_dir)
 
-    subprocess.run('icc --version', shell=True, env=env)
+    #subprocess.run('icc --version', shell=True, env=env)
     if cmake_env: env.update(cmake_env)
     
     cmake_config_cmd=f'cmake -DCMAKE_CXX_COMPILER={cmake_cxx_compiler} -DCMAKE_C_COMPILER={cmake_c_compiler} '\
@@ -205,6 +205,8 @@ def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target
     print(cmake_config_cmd)
     env['VERBOSE']='1'
     subprocess.run(cmake_config_cmd, shell=True, env=env)
+    # Allow search any compiler generated files
+    env['QAAS_BUILD_DIR']=build_dir
     return build_dir, output_dir, output_name, env
 
 def compute_cmake_variables(user_mpi_compiler, target_mpi_compiler, user_CC, target_CC, target_CXX, target_FC, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags):
