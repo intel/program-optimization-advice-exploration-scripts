@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -6,8 +6,10 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
 import { AiTwotoneDelete } from "react-icons/ai";
 import axios from 'axios';
+import Box from '@mui/material/Box';
+import TotalTimeSpeedupGraph from './graph/TotalTimeSpeedupGraph';
 import './css/TopBar.css'
-const SelectedRunsDrawer = ({ isOpen, onClose, selectedRows, setSelectedRows }) => {
+const SelectedRunsDrawer = ({ isOpen, onClose, selectedRows, setSelectedRows, baseline, setBaseline, setShowGraph }) => {
 
     const handleFormSubmit = async () => {
         const newWindow = window.open(`/generated?loading=true`, "_blank");
@@ -24,9 +26,20 @@ const SelectedRunsDrawer = ({ isOpen, onClose, selectedRows, setSelectedRows }) 
         setSelectedRows(selectedRows.filter((_, i) => i !== index));
     };
 
+    const handleBaselineUnselect = () => {
+        setBaseline(null);
+    };
+
+    const handleGraphButton = () => {
+        setShowGraph(true);
+        //close drawer so graph is brighter
+        onClose()
+    };
+
     //drawer will show the list and compared button would only show if some items are selected
     return (
         <Drawer anchor="right" open={isOpen} onClose={onClose}>
+
             <List>
                 {selectedRows.map((row, index) => (
                     <ListItem key={index}>
@@ -37,6 +50,8 @@ const SelectedRunsDrawer = ({ isOpen, onClose, selectedRows, setSelectedRows }) 
                     </ListItem>
                 ))}
             </List>
+
+
             {selectedRows.length > 0 ? (
                 <button className="table-action-button" onClick={handleFormSubmit}>
                     Compare Selected Runs
@@ -44,7 +59,31 @@ const SelectedRunsDrawer = ({ isOpen, onClose, selectedRows, setSelectedRows }) 
             ) : (
                 <p className='drawer-no-selection-text'>No items have been selected</p>
             )}
+
+
+            {baseline ? (
+                <div>
+                    <Box display="flex" alignItems="center">
+                        <p>Baseline: {baseline.timestamp}</p>
+                        <AiTwotoneDelete onClick={() => handleBaselineUnselect()} />
+                    </Box>
+
+
+                </div>
+            ) : (
+                <p className='drawer-no-selection-text'>No baseline have been selected</p>
+            )}
+
+            {selectedRows.length > 0 && baseline && (
+
+                <button className="table-action-button" onClick={handleGraphButton}>
+                    Show Graph
+                </button>
+            )}
+
         </Drawer>
+
+
     );
 };
 

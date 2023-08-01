@@ -13,6 +13,7 @@ function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaul
         ? data.filter((row) =>
             Object.values(row).some(
                 (cell) =>
+                    cell !== null &&
                     cell !== undefined &&
                     cell.toString().toLowerCase().includes(filterInput.toLowerCase())
             )
