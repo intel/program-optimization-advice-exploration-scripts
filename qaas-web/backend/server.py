@@ -26,6 +26,8 @@ from sqlalchemy import select, join
 import luadata
 import re
 from filters import FilterContext
+from model_accessor import MetricGetter
+from qaas_database import QaaSDatabase
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../config/qaas-web.conf")
 # more initializations in main()
@@ -102,34 +104,58 @@ def create_app(config):
 
             run_data = []
 
-
-# All(...), Any(...), And(f1,f2), Or(f1, f2)...
-# LessThan(metric, value), Equal(metric, value)
-# MetricGetter(metric)
-# ProfileTimeMetricGetter(),   LoopTimeMetricGetter(), VectorizationReatioGetter(maqaoID)
-
-# getter = MetricGetter('vectorization ragio', lambda v : v > 10)
-# database.accept(getter)
-# getter.data is avaialble (data can be list, map or scalar depending of metric)
             for execution in filter_context.apply_all_filters(application.executions):
                 if len(execution.maqaos) == 0:
                     continue  
+
+                global_metric_dict = pd.read_json(execution.global_metrics['global_metrics'], orient="split").set_index('metric')['value'].to_dict()
+                
+                
+
 
                 #TODO data needs to be read from config column
                 execution_data = {
                     'timestamp': universal_timestamp_to_datetime(execution.universal_timestamp),
                     'machine': execution.os.hostname,
-                    'data': ''
+                    'data': '',
+                    
                 }
                 run_data.append(execution_data)
   
 
             application_data = {
-             'program': application.program,
-             'version': application.version,
-             'workload': application.workload,
-             'commit_id': application.commit_id,
-             'run_data': run_data
+                'program': application.program,
+                'experiment_name': application.version,
+                'workload': application.workload,
+                'commit_id': application.commit_id,
+                'run_data': run_data,
+                'Total Time(s)':execution.time,
+                'Profiled Time(s)': execution.profiled_time,
+                'Time in analyzed loops (%)': global_metric_dict['loops_time'],
+                'Time in analyzed innermost loops (%)': global_metric_dict['innerloops_time'],
+                'Time in user code (%)': global_metric_dict['user_time'],
+                'Compilation Options Score (%)': global_metric_dict['compilation_options'],
+                'Perfect Flow Complexity': global_metric_dict['flow_complexity'],
+                'Array Access Efficiency (%)': global_metric_dict['array_access_efficiency'],
+                
+                'Perfect OpenMP + MPI + Pthread': global_metric_dict['speedup_if_perfect_MPI_OMP_PTHREAD'],
+                'Perfect OpenMP + MPI + Pthread + Perfect Load Distribution': global_metric_dict['speedup_if_perfect_MPI_OMP_PTHREAD_LOAD_DISTRIBUTION'],
+                
+                'No Scalar Integer Potential Speedup': global_metric_dict['speedup_if_clean'],
+                'FP Vectorised Potential Speedup': global_metric_dict['speedup_if_fp_vect'],
+                'Fully Vectorised Potential Speedup': global_metric_dict['speedup_if_fully_vectorised'],
+                'Data In L1 Cache Potential Speedup': global_metric_dict['speedup_if_L1'],
+                'FP Arithmetic Only Potential Speedup': global_metric_dict['speedup_if_FP_only'],
+
+                'No Scalar Integer Nb Loops to get 80%': global_metric_dict['nb_loops_80_if_clean'],
+                'FP Vectorised Nb Loops to get 80%': global_metric_dict['nb_loops_80_if_fp_vect'],
+                'Fully Vectorised Nb Loops to get 80%': global_metric_dict['nb_loops_80_if_fully_vect'],
+                'Data In L1 Cache Nb Loops to get 80%': global_metric_dict['nb_loops_80_if_L1'],
+                'FP Arithmetic Only Nb Loops to get 80%': global_metric_dict['nb_loops_80_if_FP_only'],
+
+                'Number of Cores':execution.hwsystem.cpui_cpu_cores,
+                'Compilation Options':global_metric_dict['compilation_flags'],
+                'Model Name' : execution.hwsystem.cpui_model_name
 
             }
             if len(run_data) > 0:
@@ -185,6 +211,44 @@ def create_app(config):
                     statusCode= 200,
                     data=data,
                     )
+
+    @app.route('/api/compute_speed_up_data_using_baseline_ov', methods=['POST'])
+    def compute_speed_up_data_using_baseline_ov():
+        data = request.get_json()
+        selectedRows = data['selectedRows']
+        baseline = data['baseline']
+
+        speedup_graph_data = {"labels": [], "speedup": []}
+
+        #use metric getter visitor class to get the execution total time
+        metric_getter = MetricGetter(db.session, "total time")
+
+        
+        #get baseline total time from baseline
+        baseline_total_time = get_total_time_from_row(baseline, metric_getter)
+
+         # Baseline has a speedup of 1
+        baseline_timestamp = baseline['timestamp']
+        speedup_graph_data["labels"].append(f' {baseline_timestamp}')
+        speedup_graph_data["speedup"].append(1)
+
+        #get total time from selected rows
+        for row in selectedRows:
+            total_time = get_total_time_from_row(row, metric_getter)
+            speed_up = baseline_total_time / total_time
+            timestamp = row['timestamp']
+            speedup_graph_data["labels"].append(f' {timestamp}')
+            speedup_graph_data["speedup"].append(speed_up)
+        return speedup_graph_data
+
+    def get_total_time_from_row(row, metric_getter):
+        execution = db.session.query(Execution).filter_by(universal_timestamp = datetime_to_universal_timestamp(row['timestamp']) ).one()
+        total_time = metric_getter.get_value(execution)[0]
+        return total_time
+
+
+
+
     @app.route('/api/run_comparative_view_for_selected_runs', methods=['POST'])
     def run_comparative_view_for_selected_runs():
         selected_runs = request.get_json()

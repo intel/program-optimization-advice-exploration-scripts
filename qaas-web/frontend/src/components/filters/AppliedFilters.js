@@ -16,7 +16,7 @@ const AppliedFilters = ({ appliedFilters = [], onRemoveFilter }) => (
                     }}
                     className='filter-tag'
                 >
-                    <span className='emphasize'>{filter.type}</span> {filter.operator} <span className='emphasize'>{filter.value}</span>
+                    {filter.mode} <span className='emphasize'>{filter.type}</span> {filter.operator} <span className='emphasize'>{filter.value}</span>
 
                 </Tag>
             ))}

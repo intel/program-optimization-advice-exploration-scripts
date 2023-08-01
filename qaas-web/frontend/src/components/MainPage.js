@@ -5,13 +5,16 @@ import Title from './Title';
 import ApplicationTable from './data/ApplicationTable';
 import FilterComponent from './filters/FilterComponent';
 import axios from 'axios';
+import TotalTimeSpeedupGraph from './graph/TotalTimeSpeedupGraph';
 
+import { Modal } from 'antd';
 const MainPage = () => {
     const [selectedRows, setSelectedRows] = useState([]);
     const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filters, setFilters] = useState([]);
-
+    const [baseline, setBaseline] = useState(null);
+    const [showGraph, setShowGraph] = useState(false);
     useEffect(() => {
         fetchData();
     }, []);
@@ -28,18 +31,30 @@ const MainPage = () => {
         }
         setIsLoading(false);
     };
+
     const handleFilter = (newFilters) => {
         setFilters(newFilters);
         fetchData(newFilters);
     };
 
+
+    //function to not show graph
+    const handleOk = () => {
+        setShowGraph(false);
+    };
+    const handleCancel = () => {
+        setShowGraph(false);
+
+    };
+
+
+
     return (
-        <div >
-            <TopBar selectedRows={selectedRows} setSelectedRows={setSelectedRows} />
+        <div>
+            <TopBar selectedRows={selectedRows} setSelectedRows={setSelectedRows} baseline={baseline} setBaseline={setBaseline} setShowGraph={setShowGraph} />
             <div className="page-container">
                 <Title />
                 <div><FilterComponent data={data} onFilter={handleFilter} /></div>
-
 
                 {isLoading
                     ? <p>Loading data, please wait...</p>
@@ -48,8 +63,14 @@ const MainPage = () => {
                         isLoading={isLoading}
                         selectedRows={selectedRows}
                         setSelectedRows={setSelectedRows}
+                        baseline={baseline}
+                        setBaseline={setBaseline}
                     />
                 }
+
+                <Modal title="Comparison" open={showGraph} onOk={handleOk} onCancel={handleCancel}>
+                    <TotalTimeSpeedupGraph selectedRows={selectedRows} baseline={baseline} open={showGraph} />
+                </Modal>
             </div>
         </div>
     );

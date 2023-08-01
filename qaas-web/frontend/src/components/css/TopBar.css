@@ -25,6 +25,12 @@
     font-size: x-large;
 }
 
+.top-bar-badge-baseline {
+    font-size: x-large;
+
+    color: #4ee2ff;
+}
+
 /* text showed when no runs are selected */
 .drawer-no-selection-text {
     padding: 5px;

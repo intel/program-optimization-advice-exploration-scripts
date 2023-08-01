@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 import Table from "./table";
-function ApplicationSubTable({ data, setSelectedRows, selectedRows }) {
+function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, setBaseline }) {
     const navigate = useNavigate();
 
     const handleButtonClick = async (timestamp) => {
@@ -34,6 +34,17 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows }) {
             }
         }
     };
+    const handleBaselineRowSelection = (event, rowInfo) => {
+        if (rowInfo) {
+            const selected = event.target.checked;
+
+            if (selected) {
+                setBaseline(rowInfo._original);
+            } else {
+                setBaseline(null);
+            }
+        }
+    };
     const columns = [
         {
             Header: 'Select',
@@ -48,6 +59,21 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows }) {
                 </div>
             ),
             width: 50,
+
+        },
+        {
+            Header: 'Select Baseline',
+            id: 'selection',
+            Cell: ({ row }) => (
+                <div className="table-action">
+                    <input
+                        type="checkbox"
+                        checked={baseline === row._original}
+                        onChange={(e) => handleBaselineRowSelection(e, row)}
+                    />
+                </div>
+            ),
+            width: 100,
 
         },
         {

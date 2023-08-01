@@ -1568,7 +1568,7 @@ class MetricGetter(ModelAccessor):
     def visitExecution(self, execution):
         if self.metric_type == 'total time':
             self.data = [execution.time]
-        if self.metric_type == 'array efficiency':
+        if self.metric_type == 'array access efficiency':
             global_metrics_json_str = execution.global_metrics['global_metrics']
             df = pd.read_json(global_metrics_json_str, orient='split')
             filtered_df  = df[(df['metric'] == 'array_access_efficiency') & (df['value'] != 'Not Available')]
