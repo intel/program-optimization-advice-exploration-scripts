@@ -12,7 +12,7 @@ extern "C"
 // - int number of variable arguments
 // - void** array of adresses filled by the replay lib
 void load(char *loop_name, int invocation, int count, void *addresses[count]);
-void run_loop(int call_count,int max_seconds);
+void run_loop(int instance_num, int call_count,int max_seconds);
 #ifdef __cplusplus
 }
 #endif

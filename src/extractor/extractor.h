@@ -59,16 +59,16 @@ class LoopLocations {
   int getLoopLevel() {return loop_nest_depth_; }
 };
 class CollectedLoops {
-  std::set<SgForStatement*> collected;
+  std::set<SgScopeStatement*> collected;
   int deepest_nest;
   public:
   CollectedLoops(): deepest_nest(0) {}
   CollectedLoops(const CollectedLoops &other) : collected(other.collected), 
     deepest_nest(other.deepest_nest) {}
-  void set(SgForStatement* loop, int nest_level);
+  void set(SgScopeStatement* loop, int nest_level);
   void addAll(const CollectedLoops& loops) ;
   bool isEmpty() { return collected.empty(); }
-  bool matches(SgForStatement* ast) { return collected.count(ast) > 0; }
+  bool matches(SgScopeStatement* ast) { return collected.count(ast) > 0; }
   int getLoopDepth() {return deepest_nest; }
   void incLoopDepth() {deepest_nest++;}
 };
@@ -124,6 +124,7 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     LoopLocations loop_locs;
     CollectedLoops collected_loops;
     vector<string> filenameVec;
+    vector<SgScopeStatement*> extracting_loops;
   protected:
     SgScopeStatement *main_scope = NULL;
 
@@ -195,9 +196,9 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     // void collectAdjoiningLoops(SgStatement *loop);
     //  void getVarsInFunction();
 
-    bool skipLoop(SgForStatement *astNode);
-    void extractLoops(SgForStatement *astNode);
-    virtual void extractLoop(SgForStatement* curr_loop) = 0;
+    bool skipLoop(SgScopeStatement *astNode);
+    void extractLoops(SgScopeStatement *astNode);
+    virtual void extractLoop(SgScopeStatement* curr_loop) = 0;
     void extractFunctions(SgNode *astNode);
     virtual InheritedAttribute
     evaluateInheritedAttribute(SgNode *astNode, InheritedAttribute inh_attr);
@@ -224,21 +225,21 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
 class OutliningExtractor : public Extractor {
   public:
     OutliningExtractor(const vector<string> &argv):Extractor(argv) {}
-    void extractLoop(SgForStatement* curr_loop);
-    virtual void extractLoop(SgForStatement* loop, LoopInfo& curr_loop);
+    void extractLoop(SgScopeStatement* curr_loop);
+    virtual void extractLoop(SgScopeStatement* loop, LoopInfo& curr_loop);
 };
 
 class InvitroExtractor : public OutliningExtractor {
-    int instance_num ;
+    vector<int> instance_nums;
   public:
-    InvitroExtractor(const vector<string> &argv):OutliningExtractor(argv),instance_num(1) {}
+    InvitroExtractor(const vector<string> &argv):OutliningExtractor(argv) {instance_nums.push_back(1);}
     void generateBaseHeaders(SgGlobal* glb_scope);
     void generateBasePreLoop(SgScopeStatement* loop_scope, SgExprStatement* call_expr_stmt, 
       LoopInfo* loop_info, vector<SgInitializedName *> scope_vars_initName_vec);
     void generateBasePostLoop(SgScopeStatement* loop_scope, SgExprStatement* call_expr_stmt);
     SgExprListExp* generateDumpArgs(SgFunctionCallExp* call_expr);
     void instrumentMain();
-    void extractLoop(SgForStatement* loop, LoopInfo& curr_loop);
+    void extractLoop(SgScopeStatement* loop, LoopInfo& curr_loop);
 };
 
 class InsituExtractor : public OutliningExtractor {
@@ -259,10 +260,13 @@ class InvivoExtractor : public Extractor {
       LoopInfo* loop_info, vector<SgInitializedName *> scope_vars_initName_vec) {}
     void generateBasePostLoop(SgScopeStatement* loop_scope, SgExprStatement* call_expr_stmt) {}
     void instrumentMain() {}
-    void extractLoop(SgForStatement* curr_loop);
+    void extractLoop(SgScopeStatement* curr_loop);
 };
 
 class TypeDeclTraversal : public AstSimpleProcessing {
+  struct TypeDeclVertex {
+    SgDeclarationStatement* decl;
+  };
   //vector<SgDeclarationStatement*> type_decl_v;
   //set<SgDeclarationStatement*> type_decl_s;
   InsertOrderSet<SgDeclarationStatement*> type_decl_ios;
@@ -293,16 +297,12 @@ class TypeDeclTraversal : public AstSimpleProcessing {
     }
   void visit_if_namedtype(SgType* decl_type);
   void visit_defining_decl(SgDeclarationStatement* decl_type);
-  const vector<SgDeclarationStatement*> get_type_decl_v() { 
-    const vector<SgDeclarationStatement*>& pre_decls = type_decl_ios.get_vec();
-    const vector<SgDeclarationStatement*>& pending_decls = type_decl_ios_pending.get_vec();
-    vector<SgDeclarationStatement*> ans;
-    ans.reserve(pre_decls.size() + pending_decls.size());
-    //ans.reserve(pending_decls.size());
-    ans.insert(ans.end(), pre_decls.begin(), pre_decls.end());
-    ans.insert(ans.end(), pending_decls.begin(), pending_decls.end());
-    return ans;
-    }
+  const vector<SgDeclarationStatement*> get_type_decl_v();
+  // return true if first decl1 depends on decl2; false otherwise
+  bool depends_on(SgDeclarationStatement* decl1, SgDeclarationStatement* decl2);
+  bool classdecl_depends_on(SgClassDeclaration* decl1, SgDeclarationStatement* decl2);
+  bool typedef_depends_on(SgTypedefDeclaration* decl1, SgDeclarationStatement* decl2);
+  bool vardecl_depends_on(SgVariableDeclaration* decl1, SgDeclarationStatement* decl2);
 };
 class CallTraversal : public AstSimpleProcessing {
   InsertOrderSet<SgFunctionDeclaration*> fn_defn_ios;
@@ -334,7 +334,7 @@ class LoopInfo {
     const string RESTORE_GUARD_NAME = "__RESTORE_CODELET__";
     Extractor *extr;
     // SgNode *astNode;
-    SgForStatement *loop;
+    SgScopeStatement *loop;
     // SgStatement *loop_func_call;
     string func_name;
     SgScopeStatement *loop_scope;
@@ -355,19 +355,21 @@ class LoopInfo {
     vector<string> scope_struct_str_vec;
 
   public:
-    LoopInfo(SgForStatement *loop, string func_name,
+    LoopInfo(SgScopeStatement *loop, string func_name,
              Extractor *e)
         : extr(e), loop(loop), func_name(func_name) {}
     string getFuncName() const { return func_name; }
     bool isDeclaredInInnerScope(SgScopeStatement *var_scope);
     void getVarsInScope();
+    void getVarInScope(SgVarRefExp* var_ref);
     bool hasFuncCallInScope();
     void addScopeFuncAsExtern(string &externFuncStr);
     void addScopeGlobalsAsExtern(string &externGlobalsStr);
 
     //void printLoopFunc(ofstream &loop_file_buf);
+    void printNeededTypeDecls(SgGlobal* glb_loop_src) ;
     void printLoopFunc(string loop_file_name) ;
-    void printLoopReplay(string replay_loop_filename, int instance_num);
+    void printLoopReplay(string replay_loop_filename);
     void pushPointersToLocalVars(ofstream &loop_file_buf);
     void popLocalVarsToPointers(ofstream &loop_file_buf);
     void analyzeOMPprivateArrays(const string &pragmaStr);
@@ -376,6 +378,7 @@ class LoopInfo {
     void addLoopFuncAsExtern(); // In Base file
     void addLoopFuncCall() ;     // In Base file
     SgFunctionDeclaration* makeLoopFunc(bool defining, SgGlobal* glb) ;
+    SgType* fixLoopFuncArrayArgTypeIfNeeded(SgType* arr_arg_type);
     SgFunctionDeclaration* addLoopFuncDefnDecl(SgGlobal* glb); // In Base file
     void dumpGlobalVarNames(const string& data_folder, const string& loop_file_name);
     void addGlobalVarDecls(SgGlobal* glb, bool as_extern); // In Base file
@@ -390,7 +393,7 @@ class LoopInfo {
     vector<string> getLoopFuncArgsType();
     vector<string> getGlobalVars() { return scope_globals_vec; }
     vector<SgInitializedName*> getGlobalVarsInitNameVec() { return global_vars_initName_vec; }
-    SgForStatement *getLoopStatement() { return loop; }
+    SgScopeStatement *getLoopStatement() { return loop; }
     //SgStatement *getLoopFuncCall() { return loop_func_call; }
     void restoreGlobalVars();
     void saveGlobalVars();

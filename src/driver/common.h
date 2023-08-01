@@ -107,4 +107,6 @@ void genRandomStr(string &str, const int len);
 void stringReplaceAll(string &str, const string &from, const string &to);
 string getAbsolutePath(string const &fullString);
 ParamPassingStyle getPassingStyle(SgType* arg_type, src_lang lang);
+bool isAnonymousName(const SgName& name);
+SgStatement* get_loop_body(SgScopeStatement* loop) ;
 #endif

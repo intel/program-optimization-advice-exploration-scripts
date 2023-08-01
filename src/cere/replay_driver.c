@@ -59,6 +59,10 @@ int main()
 	// In CERE, this is originally retrieved from an env variable
 	char *call_count_var = "10";
 
+  char *instance_num_str = getenv("MYCERE_INSTANCE_NUM");
+	int instance_num = instance_num_str ? atoi(instance_num_str) : 1;
+	printf("instance num = %d\n", instance_num);
+
 	if (call_count_var != NULL)
 	{
 		char *endptr;
@@ -70,7 +74,7 @@ int main()
 		}
 	}
 	/* run_loop_dummy(call_count, max_seconds); */
-	run_loop(call_count, max_seconds);
+	run_loop(instance_num, call_count, max_seconds);
 
 	want_exit = 1;
 	exit(0);

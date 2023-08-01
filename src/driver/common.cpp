@@ -204,7 +204,24 @@ ParamPassingStyle getPassingStyle(SgType* arg_type, src_lang lang) {
         }
     } else if (lang == src_lang_CPP) {
         // Reference for C++
-        return ParamPassingStyle::REFERENCE;
+        if (isSgReferenceType(arg_type)) 
+            // pass direct if already reference type
+            return ParamPassingStyle::DIRECT;
+        else
+            return ParamPassingStyle::REFERENCE;
     }
     return ParamPassingStyle::DIRECT;
+}
+
+bool isAnonymousName(const SgName& name) {
+    return name.getString().substr(0,14) == "__anonymous_0x";
+}
+
+SgStatement* get_loop_body(SgScopeStatement* loop) {
+    if (SgForStatement* for_loop = isSgForStatement(loop)) {
+        return for_loop->get_loop_body();
+    } else if (SgWhileStmt* while_loop = isSgWhileStmt(loop)) {
+        return while_loop->get_body();
+    }
+    return NULL;
 }

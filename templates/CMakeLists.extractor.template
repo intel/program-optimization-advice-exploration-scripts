@@ -1,6 +1,9 @@
 get_target_property(SRC_LIST $binary SOURCES)
 get_target_property(INC_LIST $binary INCLUDE_DIRECTORIES)
 get_target_property(LIB_LIST $binary LINK_LIBRARIES)
+get_target_property(TRACE_CXX_STANDARD $binary CXX_STANDARD)
+get_target_property(TRACE_C_STANDARD $binary C_STANDARD)
+get_target_property(TRACE_COMPILE_DEFINITIONS $binary COMPILE_DEFINITIONS)
 
 \# Try to build a list of absolute path if SRC_LIST is not
 \# OUTPUT: SRC_LIST_ABS
@@ -57,6 +60,24 @@ if (BUILD_TRACE_$trace_binary OR BUILD_SAVE_$trace_binary)
         set_target_properties($lib_name \${COMPILER_FLAGS})
 #end for
     endif()
+    
+    if (TRACE_CXX_STANDARD)
+#for $lib_name in $libnames
+        set_property(TARGET $lib_name PROPERTY CXX_STANDARD \${TRACE_CXX_STANDARD})
+#end for
+    endif()
+
+    if (TRACE_C_STANDARD)
+#for $lib_name in $libnames
+        set_property(TARGET $lib_name PROPERTY C_STANDARD \${TRACE_C_STANDARD})
+#end for
+    endif()
+
+    if (TRACE_COMPILE_DEFINTIONS)
+#for $lib_name in $libnames
+        set_property(TARGET $lib_name PROPERTY COMPILE_DEFINITIONS \${TRACE_COMPILE_DEFINITIONS})
+#end for
+    endif()
 endif()
 
 \# Below building trace and save program.  They have actually the same source but when built with updated 
@@ -75,35 +96,13 @@ if (BUILD_TRACE_$trace_binary)
         set_target_properties($trace_binary \${COMPILER_FLAGS})
     endif()
     target_link_libraries($trace_binary $extra_libs)
+    if (TRACE_CXX_STANDARD)
+        set_property(TARGET $trace_binary PROPERTY CXX_STANDARD \${TRACE_CXX_STANDARD})
+    endif()
+    if (TRACE_C_STANDARD)
+        set_property(TARGET $trace_binary PROPERTY C_STANDARD \${TRACE_C_STANDARD})
+    endif()
+    if (TRACE_COMPILE_DEFINTIONS)
+        set_property(TARGET $trace_binary PROPERTY COMPILE_DEFINITIONS \${TRACE_COMPILE_DEFINITIONS})
+    endif()
 endif()
-
-##if (BUILD_TRACE OR BUILD_SAVE)
-##    add_library(trace_save_obj OBJECT) 
-##    target_sources(trace_save_obj
-##        PRIVATE
-##        "extractor_src/$base_src"
-##        "extractor_src/$loop_src"
-##        "extractor_src/util.c")
-##    target_include_directories(trace_save_obj PRIVATE $orig_src_folder extractor_include)
-##    if (INC_LIST)
-##        target_include_directories(trace_save_obj PRIVATE \${INC_LIST})
-##    endif()
-##endif()
-
-## Below building trace and save program.  They have actually the same source but when built with updated 
-## addresses.h file the output will be different.
-##if (BUILD_TRACE)
-##    add_executable(trace_$binary \${SRC_LIST})
-##    if (INC_LIST)
-##        target_include_directories(trace_$binary PRIVATE \${INC_LIST})
-##    endif()
-##    target_link_libraries(trace_$binary \$<TARGET_OBJECTS:trace_save_obj>)
-##endif()
-
-##if (BUILD_SAVE)
-##    add_executable(save_$binary \${SRC_LIST})
-##    if (INC_LIST)
-##        target_include_directories(save_$binary PRIVATE \${INC_LIST})
-##    endif()
-##    target_link_libraries(save_$binary \$<TARGET_OBJECTS:trace_save_obj>)
-##endif()

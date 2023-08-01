@@ -354,6 +354,7 @@ class Extraction(ABC):
         mockup_profile_csvs = {'./clover_leaf': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-clover_leaf.csv', 
                             './525.x264_r --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-525.csv',
                             './538.imagick_r -limit disk 0 train_input.tga -resize 320x240 -shear 31 -edge 140 -negate -flop -resize 900x900 -edge 10 train_output.tga': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-538.csv',
+                            './500.perlbench_r1 -I./lib diffmail.pl 2 550 15 24 23 100': '/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-538.csv',
                             './bt.c_compute_rhs_line1892_0':'/host/localdisk/cwong29/working/codelet_extractor_work/extractor_work/mockups/profile-bt.csv'}
         #mockup_profile_csvs = {}
         adv_env = load_advisor_env()
@@ -370,11 +371,12 @@ class Extraction(ABC):
     def run_extractor(self,build_dir, extractor_work_dir, loop_extractor_data_dir, prefix, full_source_path, mode):
         src_folder=os.path.dirname(full_source_path)
         compile_command_json_file = os.path.join(build_dir, 'compile_commands.json')
+        assert os.path.isfile(full_source_path)
         with open(compile_command_json_file, 'r') as f:
             for compile_command in json.load(f):
                 cnt_file = compile_command['file']
                 #print(cnt_file)
-                if os.path.samefile(cnt_file, full_source_path):
+                if os.path.isfile(cnt_file) and os.path.samefile(cnt_file, full_source_path):
                     print('match')
                     matched_command = compile_command['command']
                     command_directory = compile_command['directory']
@@ -389,6 +391,10 @@ class Extraction(ABC):
                         command_parts = [x for x in command_parts if not x.startswith('-cxx=')]
                         command_parts.insert(1, f"-I{src_folder}")
                         command_parts.insert(1, f"-cxx={LOOP_EXTRACTOR_PATH}")
+                    elif compiler == "mpiicc":
+                        command_parts = [x for x in command_parts if not x.startswith('-cc=')]
+                        command_parts.insert(1, f"-I{src_folder}")
+                        command_parts.insert(1, f"-cc={LOOP_EXTRACTOR_PATH}")
                     else:
                         # TODO: fix hardcoded
                         compiler_full_paths = [shutil.which("icx"), shutil.which("icpx")]
@@ -411,8 +417,15 @@ class Extraction(ABC):
         #if os.path.islink(data_dir_symlink):
         #    os.unlink(data_dir_symlink)
         #os.symlink(loop_extractor_data_dir, data_dir_symlink)
+        loop_file_names_txt = os.path.join(loop_extractor_data_dir, 'loopFileNames.txt')
+        if os.path.isfile(loop_file_names_txt):
+            os.remove(loop_file_names_txt)
+            # removed loop file if exists
         runCmd(loop_extractor_command, cwd=command_directory, env=env, verbose=True)
-        basefilename, loopfilenames, restore_src_files = getLoopFileNames(os.path.join(loop_extractor_data_dir, 'loopFileNames.txt'))
+        if not os.path.isfile(loop_file_names_txt):
+            # Failed extraction return empty list
+            return []
+        basefilename, loopfilenames, restore_src_files = getLoopFileNames(loop_file_names_txt)
         # Cases:
         # base filename , no loop or restore (for main function and invivo)
         # base filename, loop, no restore (for insitu)
@@ -537,6 +550,12 @@ class InvitroExtraction(Extraction):
         print('Finished replay runs')
 
 
+def check_compilers(compilers):
+    for compiler in compilers:
+        if not shutil.which(compiler):
+            # compiler missing
+            raise Exception(f'Required compiler not found: {compiler}')
+
 def main():
     arg_parser = argparse.ArgumentParser(description="Codelet Extractor for different purposes.")
     arg_parser.add_argument('--mode', default='invitro', choices=['invitro', 'insitu', 'invivo'], help='invitro extraction, insitu extraction, or invivo codelet marking')
@@ -545,6 +564,12 @@ def main():
 
     clean = True
     build_app=True
+
+    cc='icx'
+    cxx='icpx'
+    #cc='cerec'
+    #cxx='cerec'
+    check_compilers([cc, cxx])
 
     # TODO: mark these command line arguments
     binary='525.x264_r'
@@ -562,7 +587,6 @@ def main():
         binary='510.parest_r'
         binary='554.roms_r'
         binary='526.blender_r'
-        binary='549.fotonik3d_r'
         binary='531.deepsjeng_r'
         binary='500.perlbench_r'
         binary='502.gcc_r'
@@ -573,54 +597,75 @@ def main():
         binary='541.leela_r'
         binary='bt.c_compute_rhs_line1892_0'
         binary='519.lbm_r'
-    #binary='538.imagick_r'
+    binary='519.lbm_r'
+    binary='538.imagick_r'
+    binary='500.perlbench_r'
+    binary='544.nab_r'
+    binary='508.namd_r'
+    binary='549.fotonik3d_r'
+    binary='507.cactuBSSN_r'
+    binary='523.xalancbmk_r'
+    binary='531.deepsjeng_r'
+    binary='520.omnetpp_r'
+    binary='505.mcf_r'
+    binary='526.blender_r'
+    binary='557.xz_r'
+    binary='510.parest_r'
+    binary='519.lbm_r'
+    binary='511.povray_r'
+    binary='541.leela_r'
+    binary='CoMD-openmp-mpi'
+    binary='525.x264_r'
+    binary='miniqmc'
+    binary='amg'
+    binary='525.x264_r'
     #binary='500.perlbench_r'
     #binary='clover_leaf'
     # TODO: for SPEC, do "grep workload 1 result/*.log file multi workload situation"
     if binary == '525.x264_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['BuckBunny.yuv'], is_int=True)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['BuckBunny.yuv'], is_int=True)
         app_flags = ' --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720'
     elif binary == '538.imagick_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['train_input.tga'], is_int=False)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['train_input.tga'], is_int=False)
         app_flags = ' -limit disk 0 train_input.tga -resize 320x240 -shear 31 -edge 140 -negate -flop -resize 900x900 -edge 10 train_output.tga'
     elif binary == '519.lbm_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['100_100_130_cf_b.of'], is_int=False)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['100_100_130_cf_b.of'], is_int=False)
         app_flags = ' 300 reference.dat 0 1 100_100_130_cf_b.of'
     elif binary == '531.deepsjeng_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['train.txt'], is_int=True)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['train.txt'], is_int=True)
         app_flags = ' train.txt'
     elif binary == '500.perlbench_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['lib', 'diffmail.pl'], is_int=True)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['lib', 'diffmail.pl'], is_int=True)
         app_flags = ' -I./lib diffmail.pl 2 550 15 24 23 100'
     elif binary == '502.gcc_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['200.c'], is_int=True)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['200.c'], is_int=True)
         app_flags = ' 200.c -O3 -finline-limit=50000 -o 200.opts-O3_-finline-limit_50000.s'
     elif binary == '505.mcf_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['inp.in'], is_int=True)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['inp.in'], is_int=True)
         app_flags = ' inp.in'
     elif binary == '520.omnetpp_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['ned', 'omnetpp.ini'], is_int=True)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['ned', 'omnetpp.ini'], is_int=True)
         app_flags = ' -c General -r 0'
     elif binary == '523.xalancbmk_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['allbooks.xml', 'xalanc.xsl'], is_int=True)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['allbooks.xml', 'xalanc.xsl'], is_int=True)
         app_flags = ' -v allbooks.xml xalanc.xsl'
     elif binary == '541.leela_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['train.sgf'], is_int=True)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['train.sgf'], is_int=True)
         app_flags = ' train.sgf'
     elif binary == '557.xz_r':
         # Multi run picked one
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['input.combined.xz'], is_int=True)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['input.combined.xz'], is_int=True)
         app_flags = ' input.combined.xz 40 a841f68f38572a49d86226b7ff5baeb31bd19dc637a922a972b2e6d1257a890f6a544ecab967c313e370478c74f760eb229d4eef8a8d2836d233d3e9dd1430bf 6356684 -1 8'
     elif binary =='503.bwaves_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['bwaves_1.in'], is_int=False)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['bwaves_1.in'], is_int=False)
         # Segfault in original run , fortran
         app_flags = ' bwaves_1 < bwaves_1.in'
     elif binary =='508.namd_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['apoa1.input'], is_int=False)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['apoa1.input'], is_int=False)
         app_flags = ' --input apoa1.input --iterations 7 --output apoa1.train.output'
     elif binary =='511.povray_r':
         cmakelist_dir, cmake_flags, app_data_files = \
-            get_spec_cmake_flags(binary, ['SPEC-benchmark-train.ini','SPEC-benchmark-train.pov','SPEC-benchmark.tga','arrays.inc',
+            get_spec_cmake_flags(binary, cc, cxx, ['SPEC-benchmark-train.ini','SPEC-benchmark-train.pov','SPEC-benchmark.tga','arrays.inc',
                                           'chars.inc','colors.inc','consts.inc','debug.inc','finish.inc','functions.inc','glass.inc',
                                           'glass_old.inc','golds.inc','logo.inc','math.inc','metals.inc','rad_def.inc','rand.inc',
                                           'screen.inc','shapes.inc','shapes2.inc','shapes_old.inc','shapesq.inc','skies.inc',
@@ -630,13 +675,13 @@ def main():
         app_flags = ' SPEC-benchmark-train.ini'
     elif binary =='521.wrf_r':
         cmakelist_dir, cmake_flags, app_data_files = \
-            get_spec_cmake_flags(binary, ['GENPARM.TBL','LANDUSE.TBL','RRTM_DATA','SOILPARM.TBL','VEGPARM.TBL','namelist.input',
+            get_spec_cmake_flags(binary, cc, cxx, ['GENPARM.TBL','LANDUSE.TBL','RRTM_DATA','SOILPARM.TBL','VEGPARM.TBL','namelist.input',
                                           'wrfbdy_d01','wrfinput_d01'], is_int=False)
         # Segfault in original run , fortran
         app_flags = ''
     elif binary =='527.cam4_r':
         cmakelist_dir, cmake_flags, app_data_files = \
-            get_spec_cmake_flags(binary, ['USGS-gtopo30_1.9x2.5_remap_c050602.nc','dust2_camrt_c080918.nc',
+            get_spec_cmake_flags(binary, cc, cxx, ['USGS-gtopo30_1.9x2.5_remap_c050602.nc','dust2_camrt_c080918.nc',
                                           'abs_ems_factors_fastvx.c030508.nc','dust3_camrt_c080918.nc',
                                           'aero_1.9x2.5_L26_2000clim_c091112.nc','dust4_camrt_c080918.nc','atm_in',
                                           'ocphi_camrt_c080918.nc','bcphi_camrt_c080918.nc','ocpho_camrt_c080918.nc',
@@ -647,22 +692,22 @@ def main():
         # Segfault in original run, fortran
         app_flags = ''
     elif binary =='544.nab_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['aminos'], is_int=False)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['aminos'], is_int=False)
         app_flags = ' aminos 391519156 1000'
     elif binary =='554.roms_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['ocean_benchmark1.in.x', 'varinfo.dat'], is_int=False)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['ocean_benchmark1.in.x', 'varinfo.dat'], is_int=False)
         app_flags = ' < ocean_benchmark1.in.x'
     elif binary =='507.cactuBSSN_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['spec_train.par'], is_int=False)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['spec_train.par'], is_int=False)
         app_flags = ' spec_train.par'
     elif binary =='510.parest_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['train.prm'], is_int=False)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['train.prm'], is_int=False)
         app_flags = ' train.prm'
     elif binary =='526.blender_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['sh5_reduced.blend'], is_int=False)
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['sh5_reduced.blend'], is_int=False)
         app_flags = ' sh5_reduced.blend --render-output sh5_reduced_ --threads 1 -b -F RAWTGA -s 234 -e 234 -a'
     elif binary =='549.fotonik3d_r':
-        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, ['OBJ.dat','PSI.dat','TEwaveguide.m', 
+        cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['OBJ.dat','PSI.dat','TEwaveguide.m', 
                                                                                    'incident_W3PC.def','power1.dat','yee.dat'], 
                                                                           is_int=False)
         app_flags = ''
@@ -680,6 +725,24 @@ def main():
         cmake_flags = f'-DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g"'
         app_data_files = [os.path.join(cmakelist_dir, 'src','all','NPB_2.3-OpenACC-C','BT','bt.c_compute_rhs_line1892_0','codelet.data')]
         app_flags = ''
+    elif binary == 'amg':
+        cmakelist_dir=os.path.join(PREFIX,'miniapps', 'AMG')
+        cmake_flags = '-DCMAKE_C_COMPILER=mpiicc -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_C_FLAGS="-cc=icx -g" -DCMAKE_CXX_FLAGS="-cxx=icpx -g" -DCMAKE_C_FLAGS="-g"'
+
+        app_data_files = []
+        app_flags = ' -n 150 150 150'
+    elif binary == 'CoMD-openmp-mpi':
+        cmakelist_dir=os.path.join(PREFIX,'miniapps', 'CoMD')
+        cmake_flags = '-DCMAKE_C_COMPILER=mpiicc -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_C_FLAGS="-cc=icx -g" -DCMAKE_CXX_FLAGS="-cxx=icpx -g" -DCMAKE_C_FLAGS="-g"'
+
+        app_data_files = []
+        app_flags = ' -x 40 -y 40 -z 40'
+    elif binary == 'miniqmc':
+        cmakelist_dir=os.path.join(PREFIX, 'miniapps', 'miniqmc')
+        cmake_flags = '-DCMAKE_C_COMPILER=mpiicc -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_C_FLAGS="-cc=icx -g -DENABLE_OFFLOAD=0 -DQMC_MPI=1" -DCMAKE_CXX_FLAGS="-cxx=icpx -g -DENABLE_OFFLOAD=0 -DQMC_MPI=1" -DCMAKE_C_FLAGS="-g"'
+
+        app_data_files = []
+        app_flags = ' -g "4 2 2" -b'
     else:
         return
 
@@ -696,20 +759,24 @@ def main():
         raise Exception('Unknown Extraction type:'+args.mode)
     extraction.perform_extraction_steps(top_n, cmakelist_dir, cmake_flags, app_data_files, app_flags)
 
-def get_spec_cmake_flags(binary, datafile_names, is_int):
+def get_spec_cmake_flags(binary, cc, cxx, datafile_names, is_int):
+    #FLTO="-flto"
+    FLTO=""
     cmakelist_dir=os.path.join(PREFIX, 'SPEC2017/llvm-test-suite')
     app_prefix=os.path.join(PREFIX, f'SPEC2017/benchmark/benchspec/CPU/{binary}/run/run_base_train_myTest.0000')
     app_data_files=[os.path.join(app_prefix, f) for f in datafile_names]
     if is_int:
-        SPEC_CFLAGS = "-g -xCORE-AVX512 -mfpmath=sse -O3 -ffast-math -funroll-loops -flto -qopt-mem-layout-trans=4"
+        SPEC_CFLAGS = f"-g -xCORE-AVX512 -mfpmath=sse -O3 -ffast-math -funroll-loops {FLTO} -qopt-mem-layout-trans=4"
         TEST_SUITE_SUBDIRS = "External/SPEC/CINT2017rate"
+        ENABLE_FORTRAN=""
     else: 
-        SPEC_CFLAGS = "-g -xCORE-AVX512 -mfpmath=sse -Ofast -ffast-math -funroll-loops -flto -qopt-mem-layout-trans=4"
+        SPEC_CFLAGS = f"-g -xCORE-AVX512 -mfpmath=sse -Ofast -ffast-math -funroll-loops {FLTO} -qopt-mem-layout-trans=4"
         TEST_SUITE_SUBDIRS = "External/SPEC/CFP2017rate"
-    SPEC_LINKER_FLAGS="-flto"
+        ENABLE_FORTRAN="-DTEST_SUITE_FORTRAN=ON "
+    SPEC_LINKER_FLAGS = FLTO
     spec_src_dir=os.path.join(PREFIX, 'SPEC2017/benchmark')
-    return cmakelist_dir, f'-DTEST_SUITE_SUBDIRS={TEST_SUITE_SUBDIRS} -DTEST_SUITE_SPEC2017_ROOT={spec_src_dir} -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx \
-            -DCMAKE_C_FLAGS="{SPEC_CFLAGS}" -DCMAKE_CXX_FLAGS="{SPEC_CFLAGS}" -DCMAKE_EXE_LINKER_FLAGS="{SPEC_LINKER_FLAGS}" -DTEST_SUITE_COLLECT_CODE_SIZE=OFF', app_data_files
+    return cmakelist_dir, f'{ENABLE_FORTRAN}-DTEST_SUITE_SUBDIRS={TEST_SUITE_SUBDIRS} -DTEST_SUITE_SPEC2017_ROOT={spec_src_dir} -DCMAKE_C_COMPILER={cc} -DCMAKE_CXX_COMPILER={cxx} \
+            -DCMAKE_C_FLAGS="{SPEC_CFLAGS}" -DCMAKE_CXX_FLAGS="{SPEC_CFLAGS}" -DCMAKE_EXE_LINKER_FLAGS="{SPEC_LINKER_FLAGS}" -DTEST_SUITE_COLLECT_CODE_SIZE=OFF -G Ninja', app_data_files
 
 
 
@@ -751,8 +818,10 @@ def run_replay_steps(binary, extractor_work_dir, loop_extractor_data_dir, extrac
             restore_src_dir = ensure_dir_exists(extracted_loop_dir, 'src')
             restore_data_root_dir = ensure_dir_exists(extracted_loop_dir, 'data')
 
-            dump_name = re.search(r"dump\(\"([^\"]*)", 
-                                  open(os.path.join(loop_extractor_data_dir, base_src)).read()).group(1)
+            from_replay_loop_src = os.path.join(loop_extractor_data_dir, replay_loop_src)
+            #dump_name = re.search(r"dump\(\"([^\"]*)", 
+            #                      open(os.path.join(loop_extractor_data_dir, base_src)).read()).group(1)
+            dump_name = re.search(r"load\(\"([^\"]*)", open(from_replay_loop_src).read()).group(1)
             restore_data_dir = ensure_dir_exists(restore_data_root_dir, f"dumps/{dump_name}/{instance_num}")
             cere_dump_dir = os.path.join(cere_out_dir, "dumps", dump_name, str(instance_num))
             # Copy .map files
@@ -781,7 +850,7 @@ def run_replay_steps(binary, extractor_work_dir, loop_extractor_data_dir, extrac
             shutil.copy2(replay_c_file, restore_src_dir)
             shutil.copy2(replay_h_file, restore_include_dir)
             shutil.copy2(os.path.join(loop_extractor_data_dir, loop_src), restore_src_dir)
-            shutil.copy2(os.path.join(loop_extractor_data_dir, replay_loop_src), restore_src_dir)
+            shutil.copy2(from_replay_loop_src, restore_src_dir)
 
             global_linker_flags = []
             for global_var in global_vars:
@@ -853,6 +922,7 @@ def run_replay_steps(binary, extractor_work_dir, loop_extractor_data_dir, extrac
 
 def run_extracted_loop(cmd, codelet_run_dir, cere_data_dir, env=os.environ.copy()):
     env['CERE_WORKING_PATH'] = cere_data_dir
+    env['MYCERE_INSTANCE_NUM'] = '1'
     runCmd(cmd, cwd=codelet_run_dir, env=env, verbose=True)
 
 
@@ -865,7 +935,7 @@ def run_cmake(cmakelist_dir, build_dir, run_cmake_dir, cmake_flags, trace_binary
 
 def update_app_cmakelists_file(src_dir, name_map, added_cmakelists_txt, in_template):
     orig_cmakelist_txt_file = os.path.join(src_dir, 'CMakeLists.txt')
-    include_extractor_build_line = f"include({added_cmakelists_txt})"
+    include_extractor_build_line = f"include({added_cmakelists_txt})\n"
     with open(orig_cmakelist_txt_file, 'r+') as file:
         for line in file:
             if include_extractor_build_line in line:

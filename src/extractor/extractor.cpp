@@ -5,6 +5,8 @@
  * function in the base file.
  */
 #include "extractor.h"
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/topological_sort.hpp>
 
 string Extractor::getFilePath(const string &fileNameWithPath) {
     int lastSlashPos = fileNameWithPath.find_last_of('/');
@@ -41,19 +43,20 @@ string Extractor::getOrigFileName(const string &fileNameWithPath) {
 
 string Extractor::getFileExtn(const string &fileNameWithPath) {
     int lastDotPos = fileNameWithPath.find_last_of('.');
-    string extn = fileNameWithPath.substr(lastDotPos + 1);
+    string extn_orig = fileNameWithPath.substr(lastDotPos + 1);
+    string extn = extn_orig;
     transform(extn.begin(), extn.end(), extn.begin(), ::tolower);
     regex fortran_extn("f*");
-    if (extn.compare("c") == 0)
+    if (extn_orig.compare("c") == 0)
         src_type = src_lang_C;
-    else if (extn.compare("cc") == 0 || extn.compare("cpp") == 0)
+    else if (extn_orig.compare("C") == 0 || extn.compare("cc") == 0 || extn.compare("cpp") == 0)
         src_type = src_lang_CPP;
     else if (regex_match(extn, fortran_extn))
         src_type = src_lang_FORTRAN;
     else
         ROSE_ASSERT(false);
 
-    return extn;
+    return extn_orig;
 }
 
 int Extractor::getAstNodeLineNum(SgNode *const &astNode) {
@@ -134,6 +137,35 @@ bool LoopInfo::isDeclaredInInnerScope(SgScopeStatement *var_scope) {
     return false;
 }
 
+void LoopInfo::getVarInScope(SgVarRefExp* var_ref) {
+    SgVariableSymbol *var = var_ref->get_symbol();
+    SgInitializedName* var_decl = var->get_declaration();
+    SgScopeStatement *var_scope = var_decl->get_scope();
+
+    if (!(isSgGlobal(var_scope) || isDeclaredInInnerScope(var_scope) ||
+            var_scope->get_qualified_name() != "") &&
+        find(scope_vars_symbol_vec.begin(), scope_vars_symbol_vec.end(),
+                var) == scope_vars_symbol_vec.end()) {
+        if (SgArrayType* arr_var_type = isSgArrayType(var_decl->get_type())) {
+            // for array types, also include index variable
+            if (SgVarRefExp* index_var = isSgVarRefExp(arr_var_type->get_index())) {
+                // if index is a variable
+                getVarInScope(index_var);
+            }
+        }
+        scope_vars_symbol_vec.push_back(var); // Needed for function call
+        scope_vars_initName_vec.push_back(var_decl); // Needed for function extern defn
+    } else if (isSgGlobal(var_scope) &&
+                var_scope->get_qualified_name() != "") {
+        //if (! global_vars_initName_set.count(var_decl)) {
+        if (find(global_vars_initName_vec.begin(), global_vars_initName_vec.end(), var_decl) 
+            == global_vars_initName_vec.end()) {
+            // Needed for extracted function extern defn
+            // global_vars_initName_set.insert(var_decl); 
+            global_vars_initName_vec.push_back(var_decl);
+        }
+    }
+}
 void LoopInfo::getVarsInScope() {
     /* collectVarRefs will collect all variables used in the loop body */
     vector<SgVarRefExp *> sym_table;
@@ -143,25 +175,7 @@ void LoopInfo::getVarsInScope() {
 
     vector<SgVarRefExp *>::iterator iter;
     for (iter = sym_table.begin(); iter != sym_table.end(); iter++) {
-        SgVariableSymbol *var = (*iter)->get_symbol();
-        SgScopeStatement *var_scope = (var->get_declaration())->get_scope();
-
-        if (!(isSgGlobal(var_scope) || isDeclaredInInnerScope(var_scope) ||
-              var_scope->get_qualified_name() != "") &&
-            find(scope_vars_symbol_vec.begin(), scope_vars_symbol_vec.end(),
-                 var) == scope_vars_symbol_vec.end()) {
-            scope_vars_symbol_vec.push_back(var); // Needed for function call
-            scope_vars_initName_vec.push_back(
-                var->get_declaration()); // Needed for function extern defn
-        } else if (isSgGlobal(var_scope) &&
-                   var_scope->get_qualified_name() != "") {
-            SgInitializedName* var_decl = var->get_declaration();
-            if (! global_vars_initName_set.count(var_decl)) {
-                // Needed for extracted function extern defn
-                global_vars_initName_set.insert(var_decl); 
-                global_vars_initName_vec.push_back(var_decl);
-            }
-        }
+        getVarInScope(*iter);
     }
 }
 
@@ -567,11 +581,13 @@ void TypeDeclTraversal::visit_if_namedtype(SgType * type) {
 
 void TypeDeclTraversal::visit_defining_decl (SgDeclarationStatement* type_decl) {
     SgDeclarationStatement* def_type_decl = type_decl->get_definingDeclaration(); // ensure full decl
-    if (def_type_decl == NULL && type_decl_visited.count(type_decl) == 0) {
+    if (def_type_decl == NULL) { 
         // no concrete type definition for this struct/class.  Cannot visit member decls.
-        mark_decl_visited(type_decl);
-        if (isSgGlobal(type_decl->get_parent())) {
-            add_decl(type_decl);
+        if(type_decl_visited.count(type_decl) == 0) {
+            mark_decl_visited(type_decl);
+            if (isSgGlobal(type_decl->get_parent())) {
+                add_decl(type_decl);
+            }
         }
         return;
     }
@@ -586,7 +602,8 @@ void TypeDeclTraversal::visit_defining_decl (SgDeclarationStatement* type_decl) 
         //type_decl_ios = decl_traversal.type_decl_ios;
         //type_decl_visited = decl_traversal.type_decl_visited;
         // after traversing all needed declaration, then record this decl
-        if (isSgGlobal(def_type_decl->get_parent())) {
+        SgNode *parent = def_type_decl->get_parent();
+        if (isSgGlobal(parent) || isSgNamespaceDefinitionStatement(parent)) {
             SgClassDeclaration* cls_decl = isSgClassDeclaration(def_type_decl);
             add_decl_pending(def_type_decl);
         }
@@ -646,17 +663,21 @@ void InsertOrderSet<T>::insert(T e) {
     }
 }
 
-void LoopInfo::printLoopReplay(string replay_file_name, int instance_num) {
+void LoopInfo::printLoopReplay(string replay_file_name) {
     std::remove(replay_file_name.c_str());
-    SgSourceFile* my_restore_src_file = isSgSourceFile(SageBuilder::buildFile(replay_file_name, replay_file_name));
+    SgSourceFile* my_restore_src_file = isSgSourceFile(
+        SageBuilder::buildFile(replay_file_name, replay_file_name, SageInterface::getProject()));
     SgGlobal * glb_restore_src = my_restore_src_file->get_globalScope();
     extr->add_src_file_restore(my_restore_src_file);
+    printNeededTypeDecls(glb_restore_src);
 
     //for(type_decls_iter=type_decls_needed.begin(); type_decls_iter != type_decls_needed.end(); type_decls_iter++) {
+    /*
     for(auto decl : type_decls_needed) {
         SgDeclarationStatement* type_decl = isSgDeclarationStatement(SageInterface::deepCopy(decl));
         SageInterface::appendStatement(type_decl, glb_restore_src);
     }
+    */
     this->addGlobalVarDecls(glb_restore_src, false);
     SgFunctionDeclaration* func_decl_restore = this->makeLoopFunc(false, glb_restore_src);
     SageInterface::setExtern(func_decl_restore);
@@ -667,47 +688,25 @@ void LoopInfo::printLoopReplay(string replay_file_name, int instance_num) {
     SageInterface::insertHeader("replay.h", PreprocessingInfo::after, false, glb_restore_src);
     //SageInterface::insertHeader("saved_pointers.h", PreprocessingInfo::after, false, glb_restore_src);
 
-    /*
-    // Create a function declaration for run_loop
-    SgFunctionDeclaration *run_loop_decl = SageBuilder::buildNondefiningFunctionDeclaration(
-        "run_loop", SageBuilder::buildIntType(), 
-        SageBuilder::buildFunctionParameterList(
-            SageBuilder::buildInitializedName("call_count", SageBuilder::buildIntType()),
-            SageBuilder::buildInitializedName("max_seconds", SageBuilder::buildIntType())), glb_restore_src);
-
-    run_loop_decl->set_linkage("C");
-    SageInterface::setExtern(run_loop_decl);
-    // Insert the function declaration into the AST
-    SageInterface::appendStatement(run_loop_decl, glb_restore_src);
-    */
-
-
-    SgFunctionDeclaration *main_decl = SageBuilder::buildDefiningFunctionDeclaration
+    SgFunctionDeclaration *run_loop_fn_decl = SageBuilder::buildDefiningFunctionDeclaration
         ("run_loop", SageBuilder::buildVoidType(), 
         SageBuilder::buildFunctionParameterList(
+            SageBuilder::buildInitializedName("instance_num", SageBuilder::buildIntType()),
             SageBuilder::buildInitializedName("call_count", SageBuilder::buildIntType()),
             SageBuilder::buildInitializedName("max_seconds", SageBuilder::buildIntType())), glb_restore_src);
 
-    //main_decl->set_linkage("C");
-
-    SgBasicBlock* main_fn_bb = main_decl->get_definition()->get_body();
+    SgBasicBlock* run_loop_fn_bb = run_loop_fn_decl->get_definition()->get_body();
     SgType* void_type = SageBuilder::buildVoidType();
     SgType* void_ptr_type = SageBuilder::buildPointerType(void_type);
-    SageBuilder::pushScopeStack(main_fn_bb);
+    SageBuilder::pushScopeStack(run_loop_fn_bb);
 
     //auto preRSP_init_name = preRSP_var_decl->get_vardefn();
     //preRSP_init_name->set_register_name_code(SgInitializedName::e_register_sp);
-    SgBasicBlock* rep_loop_body = SageBuilder::buildBasicBlock_nfi(main_fn_bb);
-
-    // SgForStatement* rep_loop = SageBuilder::buildForStatement_nfi(
-    //     SageBuilder::buildForInitStatement(SageBuilder::buildAssignInitializer_nfi(
-    //         SageBuilder::buildAssignOp(SageBuilder::buildVarRefExp("i"), SageBuilder::buildIntVal(0)), SageBuilder::buildIntType())), 
-    //     SageBuilder::buildLessThanOp(SageBuilder::buildVarRefExp("i"), SageBuilder::buildVarRefExp("call_count")),
-    //     SageBuilder::buildPlusPlusOp(SageBuilder::buildVarRefExp("i")), rep_loop_body);
+    SgBasicBlock* rep_loop_body = SageBuilder::buildBasicBlock_nfi(run_loop_fn_bb);
 
     SgForStatement* rep_loop = SageBuilder::buildForStatement_nfi(
         SageBuilder::buildForInitStatement(
-            SageBuilder::buildVariableDeclaration("i", SageBuilder::buildIntType(), SageBuilder::buildAssignInitializer_nfi(SageBuilder::buildIntVal(0), SageBuilder::buildIntType()), main_fn_bb)), 
+            SageBuilder::buildVariableDeclaration("i", SageBuilder::buildIntType(), SageBuilder::buildAssignInitializer_nfi(SageBuilder::buildIntVal(0), SageBuilder::buildIntType()), run_loop_fn_bb)), 
         SageBuilder::buildExprStatement(SageBuilder::buildLessThanOp(SageBuilder::buildVarRefExp("i"), SageBuilder::buildVarRefExp("call_count"))),
         SageBuilder::buildPlusPlusOp(SageBuilder::buildVarRefExp("i"), SgUnaryOp::postfix), rep_loop_body);
 
@@ -728,7 +727,8 @@ void LoopInfo::printLoopReplay(string replay_file_name, int instance_num) {
         void_type,
         SageBuilder::buildExprListExp(
             SageBuilder::buildStringVal(getFuncName()),
-            SageBuilder::buildIntVal(instance_num),
+            //SageBuilder::buildIntVal(instance_num),
+            SageBuilder::buildVarRefExp("instance_num"),
             SageBuilder::buildIntVal(numOfArgs),
             SageBuilder::buildVarRefExp("args")) 
     );
@@ -758,7 +758,11 @@ void LoopInfo::printLoopReplay(string replay_file_name, int instance_num) {
                 break;
             case ParamPassingStyle::DIRECT: 
                 // do nothing
-                if (SgArrayType* arr_type = isSgArrayType(saved_v_type)) {
+                if (SgTypedefType* type_def_type = isSgTypedefType(saved_v_type)) {
+                    if (SgArrayType* arr_type = isSgArrayType(type_def_type->get_base_type())) {
+                        saved_v_type = SageBuilder::buildPointerType(arr_type->get_base_type());
+                    }
+                } else if (SgArrayType* arr_type = isSgArrayType(saved_v_type)) {
                     // for array type, make it a pointer to base type instead because we 
                     // cannot assign array type to array type
                     saved_v_type = SageBuilder::buildPointerType(arr_type->get_base_type());
@@ -806,9 +810,317 @@ void LoopInfo::printLoopReplay(string replay_file_name, int instance_num) {
     SageBuilder::popScopeStack();
 
     SageBuilder::popScopeStack();
-    SageInterface::appendStatement(main_decl, glb_restore_src);
+    SageInterface::appendStatement(run_loop_fn_decl, glb_restore_src);
 
 }
+
+
+bool TypeDeclTraversal::typedef_depends_on(SgTypedefDeclaration* typedef1, SgDeclarationStatement* decl2) {
+    SgNamedType* decl2_type = SageInterface::getDeclaredType(decl2);
+    SgType* base_type = typedef1->get_base_type();
+    if (SgClassType* class_type = isSgClassType(base_type)) {
+        if (typedef1->get_typedefBaseTypeContainsDefiningDeclaration()) {
+            SgClassDeclaration* class_defn = isSgClassDeclaration(class_type->get_declaration()->get_definingDeclaration());
+            return depends_on(class_defn, decl2);
+        }
+        return false;  // always not depending on class type
+    }
+    return base_type == decl2_type;
+}
+bool TypeDeclTraversal::classdecl_depends_on(SgClassDeclaration* classdecl1, SgDeclarationStatement* decl2) {
+    SgDeclarationStatement* def_type_decl = classdecl1->get_definingDeclaration(); // ensure full decl
+    if (def_type_decl) {
+        SgClassDefinition* class_defn = isSgClassDeclaration(def_type_decl)->get_definition();
+        for(SgDeclarationStatement* mem_decl : class_defn->get_members()) {
+            if (depends_on(mem_decl, decl2)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool TypeDeclTraversal::vardecl_depends_on(SgVariableDeclaration* decl1, SgDeclarationStatement* decl2) {
+    SgNamedType* decl2_type = SageInterface::getDeclaredType(decl2);
+    for (SgInitializedName* cv : decl1->get_variables()) {
+        SgType* cv_type = cv->get_type();
+        if (cv_type == decl2_type) {
+            return true;
+        }
+        if (!isSgPointerType(cv_type) && !isSgArrayType(cv_type)) {
+            // for non-pointer and array type
+            if (SgNamedType* cv_named_type = isSgNamedType(cv_type)) {
+                // if this is named type, need to make sure defining declaration before this.
+                while(SgTypedefType* typedef_type = isSgTypedefType(cv_named_type)) {
+                    cv_named_type = isSgNamedType(typedef_type->get_base_type());
+                }
+                if (SgClassType* cv_class_type = isSgClassType(cv_named_type)) {
+                    if (cv_class_type == decl2_type  ) {
+                        return true;
+                    }
+                    if (decl1->get_variableDeclarationContainsBaseTypeDefiningDeclaration()) { 
+                        SgClassDeclaration* class_defn = isSgClassDeclaration(cv_class_type->get_declaration()->get_definingDeclaration());
+                        if (depends_on(class_defn, decl2)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+        }
+
+
+        // for pointer types, only depends on corresponding typedef
+        while(true) {
+            if (SgPointerType* ptr_type = isSgPointerType(cv_type)) {
+                cv_type = ptr_type->get_base_type();
+                continue;
+            }
+            if (SgArrayType* arr_type = isSgArrayType(cv_type)) {
+                cv_type = arr_type->get_base_type();
+                continue;
+            }
+            break;  // done getting rid array and pointer types modifiers
+        }
+        if (isSgTypedefDeclaration(decl2) && cv_type == decl2_type) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool TypeDeclTraversal::depends_on(SgDeclarationStatement* decl1, SgDeclarationStatement* decl2) {
+    if (SgTypedefDeclaration* typedef1 = isSgTypedefDeclaration(decl1)) {
+        return typedef_depends_on(typedef1, decl2);
+    } else if (SgClassDeclaration* classdecl1 = isSgClassDeclaration(decl1)) {
+        return classdecl_depends_on(classdecl1, decl2);
+    } else if (SgVariableDeclaration* vardecl = isSgVariableDeclaration(decl1)) {
+        return vardecl_depends_on(vardecl, decl2);
+    } else if (SgMemberFunctionDeclaration* memfn_decl = isSgMemberFunctionDeclaration(decl1)) {
+        return false;
+    } else if (SgFunctionDeclaration* friendfn_decl = isSgFunctionDeclaration(decl1)) {
+        return false;
+    } else if (SgEnumDeclaration* enum_decl1 = isSgEnumDeclaration(decl1)) {
+        return false;
+    } else if (SgUsingDeclarationStatement* enum_decl1 = isSgUsingDeclarationStatement(decl1)) {
+        return false;
+    } else if (SgStaticAssertionDeclaration* assert_decl1 = isSgStaticAssertionDeclaration(decl1)) {
+        return false;
+    } else {
+        // need to handle but unexpected
+        assert(false);
+    }
+    return false;
+}
+const vector<SgDeclarationStatement*> TypeDeclTraversal::get_type_decl_v() { 
+    const vector<SgDeclarationStatement*>& pre_decls = type_decl_ios.get_vec();
+    const vector<SgDeclarationStatement*>& pending_decls = type_decl_ios_pending.get_vec();
+    vector<SgDeclarationStatement*> ans; 
+    int decl_size = pre_decls.size() + pending_decls.size();
+    ans.reserve(decl_size); 
+    //ans.reserve(pending_decls.size()); 
+    ans.insert(ans.end(), pre_decls.begin(), pre_decls.end()); 
+    ans.insert(ans.end(), pending_decls.begin(), pending_decls.end()); 
+
+    // Define the graph type using the adjacency_list from Boost
+    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, TypeDeclVertex> Graph;
+
+    // Define the vertex type
+    typedef boost::graph_traits<Graph>::vertex_descriptor vertex_t;
+
+    Graph topo_graph;
+    vertex_t vertices[decl_size];
+    for (int i=0; i<decl_size; i++) {
+        SgDeclarationStatement* decl = ans[i];
+        vertices[i] = boost::add_vertex({decl}, topo_graph);
+    }
+    // add dependence edge
+
+	cout << "DAG building" << endl;
+    for (int i=0; i<decl_size; i++) { 
+        vertex_t first = vertices[i];
+        SgDeclarationStatement* first_decl = topo_graph[first].decl;
+        for (int j=0; j<decl_size; j++) {
+            vertex_t second = vertices[j];
+            SgDeclarationStatement* second_decl = topo_graph[second].decl;
+            if (depends_on(first_decl, second_decl)) {
+                cout << i << "->" << j << endl;
+                add_edge(first, second, topo_graph);
+            }
+        }
+    }
+
+    // Create a vector to store the topological order
+    vector<vertex_t> topological_order;
+
+    // Perform topological sorting
+    topological_sort(topo_graph, std::back_inserter(topological_order));
+
+    vector<SgDeclarationStatement*> sorted_ans; 
+    for(const vertex_t& vertex : topological_order) {
+        SgDeclarationStatement* decl = topo_graph[vertex].decl;
+        sorted_ans.push_back(decl);
+    }
+
+    return sorted_ans;
+}
+void LoopInfo::printNeededTypeDecls(SgGlobal* glb_loop_src) {
+    static int once = 0;
+    //vector<SgDeclarationStatement*>::iterator type_decls_iter;
+    //map<SgDeclarationStatement*,SgDeclarationStatement*> old_new_decl;
+    map<SgType*,SgType*> old_new_type;
+    //for(type_decls_iter=type_decls_needed.begin(); type_decls_iter != type_decls_needed.end(); type_decls_iter++) {
+    
+
+    for(auto decl : type_decls_needed) {
+        SgDeclarationStatement* type_decl = isSgDeclarationStatement(SageInterface::deepCopyNode(decl));
+        // if (SgClassDeclaration* cls_decl = isSgClassDeclaration(decl)) {
+        //  if (
+        //    // once == 0 || 
+        //  //once == 1 || 
+        //  //once ==2 || 
+        //     //once ==3 || 
+        //     //once ==4 || 
+        //     //once ==5 || 
+        //     //once == 6 || 
+        //     once ==7) {
+        //         SgClassDeclaration* nondefdecl = isSgClassDeclaration(cls_decl->get_firstNondefiningDeclaration());
+        //         SgNamespaceDefinitionStatement* this_ns_defn = isSgNamespaceDefinitionStatement(nondefdecl->get_parent()) ;
+        //         SgNamespaceDeclarationStatement* this_ns_decl = isSgNamespaceDeclarationStatement(this_ns_defn->get_parent());
+        //         SgNamespaceDeclarationStatement* ns_decl = SageBuilder::buildNamespaceDeclaration_nfi(this_ns_decl->get_name(), false, glb_loop_src);
+        //         SgNamespaceDefinitionStatement* ns_defn = ns_decl->get_definition();
+
+        //         SgClassDeclaration* cls_type_decl = isSgClassDeclaration(SageInterface::deepCopyNode(decl));
+        //         SageInterface::fixClassDeclaration(cls_type_decl, ns_defn);
+        //         //SageInterface::deepCopyNode(cls_decl);
+
+        //         #if 0
+        //         SgClassDeclaration* new_cls_decl = SageBuilder::buildDefiningClassDeclaration(cls_decl->get_name(), ns_defn);
+        //         SgClassDefinition* new_cls_defn = new_cls_decl->get_definition();
+
+        //         SgClassDefinition* class_defn = cls_decl->get_definition();
+        //         #endif
+        //         //SageInterface::deepCopyNode(class_defn);
+        //         //for(SgDeclarationStatement* mem_decl : class_defn->get_members()) {
+        //         //    SageInterface::deepCopyNode(mem_decl);
+        //         //}
+        //     }
+        //     once ++;
+        // }
+        //continue;
+
+        // Don't want the extra #include from original file
+        //cout << decl->unparseToString() << endl;
+        type_decl->set_attachedPreprocessingInfoPtr(NULL);
+
+        for (SgNode* tn : NodeQuery::querySubTree(type_decl, V_SgClassDefinition)) {
+            SgClassDefinition* class_defn = isSgClassDefinition(tn);
+            cout << "FIXING: " << class_defn->get_mangled_name().getString() << "(" << class_defn<<")"<< endl;
+            SgSymbolTable* the_symtable = class_defn->get_symbol_table();
+            SgSymbolTable::BaseHashType* internalTable1 = the_symtable->get_table();
+            SgSymbolTable::hash_iterator i1 = internalTable1->begin();
+            vector<SgSymbol*> syms_to_remove;
+            while (i1 != internalTable1->end()) {
+                SgSymbol* symbol = isSgSymbol((*i1).second);
+                if (isAnonymousName(symbol->get_name())) {
+                    // fix the symbol tble as deepcopy somehow added extra anonymous class symbols
+                    syms_to_remove.push_back(symbol);
+                }
+                i1++;
+            }
+            for (SgSymbol* rs : syms_to_remove) { 
+                cout << "Removing ANONYMOUS SYM:" << rs->get_name().getString() << endl;
+                the_symtable->remove(rs);
+                delete rs;
+            }
+
+        }
+        std::map<SgName,int> name_to_gnu_attribute_alignment;
+        for (SgNode* decl_node : NodeQuery::querySubTree(decl, V_SgDeclarationStatement)) {
+            SgDeclarationStatement* decl_stmt = isSgDeclarationStatement(decl_node);
+            int alignment = decl_stmt->get_declarationModifier().get_typeModifier().get_gnu_attribute_alignment();
+            if(name_to_gnu_attribute_alignment.find(decl_stmt->get_mangled_name()) == name_to_gnu_attribute_alignment.end()) {
+                // not seen before
+                name_to_gnu_attribute_alignment[decl_stmt->get_mangled_name()] = alignment;
+            } else {
+                // make sure we don't have inconsistent alignment 
+                assert(name_to_gnu_attribute_alignment[decl_stmt->get_mangled_name()] == alignment);
+            }
+        }
+        for (SgNode* decl_node : NodeQuery::querySubTree(type_decl, V_SgDeclarationStatement)) {
+            SgDeclarationStatement* decl_stmt = isSgDeclarationStatement(decl_node);
+            SgName name = decl_stmt->get_mangled_name();
+            int alignment = name_to_gnu_attribute_alignment[name];
+            if (alignment> -1) 
+                decl_stmt->get_declarationModifier().get_typeModifier().set_gnu_attribute_alignment(alignment);
+        }
+
+        SgSymbol* type_decl_sym = type_decl->get_symbol_from_symbol_table();
+        static int iii=0;
+        if (type_decl_sym == NULL) {
+            SgSymbol* decl_sym = decl->get_symbol_from_symbol_table();
+            SgSymbol* type_decl_sym1 = type_decl->get_symbol_from_symbol_table();
+            if (type_decl->get_scope() != glb_loop_src) {
+                type_decl->set_scope(glb_loop_src);
+                if (SgTypedefDeclaration* typedef_decl = isSgTypedefDeclaration(decl)) {
+                    int count = old_new_type.count(typedef_decl->get_base_type());
+                    if (count == 1) {
+                        SgTypedefDeclaration* new_type_decl = SageBuilder::buildTypedefDeclaration(typedef_decl->get_name(), old_new_type[typedef_decl->get_base_type()], glb_loop_src);
+                        //old_new_decl[typedef_decl] = new_type_decl;
+                        old_new_type[typedef_decl->get_type()] = new_type_decl->get_type();
+                        type_decl = new_type_decl;
+                    } else {
+                        glb_loop_src->insert_symbol(typedef_decl->get_name(), new SgTypedefSymbol(typedef_decl));
+                    }
+                } else if (SgClassDeclaration* class_decl = isSgClassDeclaration(type_decl)) {
+                    SgClassDeclaration* nondefdecl = isSgClassDeclaration(class_decl->get_firstNondefiningDeclaration());
+                    if (SgNamespaceDefinitionStatement* this_ns_defn = isSgNamespaceDefinitionStatement(nondefdecl->get_parent())) {
+                        SgNamespaceDeclarationStatement* this_ns_decl = isSgNamespaceDeclarationStatement(this_ns_defn->get_parent());
+                        SgNamespaceDeclarationStatement* ns_decl = SageBuilder::buildNamespaceDeclaration_nfi(this_ns_decl->get_name(), false, glb_loop_src);
+                        SageInterface::appendStatement(ns_decl, glb_loop_src);
+
+                        SgNamespaceDefinitionStatement* ns_defn = ns_decl->get_definition();
+
+                        nondefdecl->set_scope(ns_defn);
+                        ns_defn->insert_symbol(class_decl->get_name(), new SgClassSymbol(nondefdecl));
+                        SageInterface::appendStatement(class_decl, ns_defn);
+
+                        continue;
+                    } else {
+                        nondefdecl->set_scope(glb_loop_src);
+                        glb_loop_src->insert_symbol(class_decl->get_name(), new SgClassSymbol(nondefdecl));
+                    }
+                } else if (SgEnumDeclaration* enum_decl = isSgEnumDeclaration(type_decl)) {
+                    iii++;
+                    //glb_loop_src->insert_symbol(enum_decl->get_name(), new SgEnumSymbol(enum_decl));
+                    //glb_loop_src->insert_symbol("foo"+iii, new SgEnumSymbol(enum_decl));
+                    SgName new_enum_name = enum_decl->get_name();
+                    if (isAnonymousName(new_enum_name)) {
+                        // force non-anonymouse
+                        new_enum_name = "r"+new_enum_name;
+                    }
+
+                    SgEnumDeclaration* new_type_decl = SageBuilder::buildEnumDeclaration(new_enum_name, glb_loop_src);
+                    for (SgInitializedName* in : enum_decl->get_enumerators()) {
+                        in->unparseToString();
+                        SgInitializedName* new_in = SageInterface::deepCopy(in);
+                        if (!isSgNamespaceDefinitionStatement(new_in->get_parent())) {
+                            new_in->set_scope(glb_loop_src);
+                        }
+                        new_type_decl->append_enumerator(new_in);
+                    }
+                    //old_new_decl[decl] = new_type_decl;
+                    old_new_type[isSgEnumDeclaration(decl)->get_type()] = new_type_decl->get_type();
+                    type_decl = new_type_decl;
+                } else {
+                    assert(false);  // unexpected case
+                }
+            }
+        }
+        SageInterface::appendStatement(type_decl, glb_loop_src);
+    }
+} 
+
 /*
  * Take cares of print complete loop function and adding func calls
  * and extern loop func to the base file.
@@ -837,7 +1149,7 @@ void LoopInfo::printLoopFunc(string outfile_name) {
     //     getVarsInScope();
     // }
 
-    loop_scope = (loop->get_loop_body())->get_scope();
+    loop_scope = (get_loop_body(loop))->get_scope();
     getVarsInScope();
 
 
@@ -851,7 +1163,8 @@ void LoopInfo::printLoopFunc(string outfile_name) {
     const char* outfile = outfile_name.c_str();
     std::remove(outfile);
     SgProject* project = TransformationSupport::getProject(loop);
-    SgSourceFile* src_file_loop = isSgSourceFile(SageBuilder::buildFile(outfile, outfile));
+    //SgSourceFile* src_file_loop = isSgSourceFile(SageBuilder::buildFile(outfile, outfile));
+    SgSourceFile* src_file_loop = isSgSourceFile(SageBuilder::buildFile(outfile, outfile, project));
     extr->add_src_file_loop(src_file_loop);
 
     Sg_File_Info* file_info = src_file_loop->get_file_info();
@@ -867,90 +1180,8 @@ void LoopInfo::printLoopFunc(string outfile_name) {
         decl_traversal.visit_if_namedtype(type); 
     }
     type_decls_needed = decl_traversal.get_type_decl_v();
+    printNeededTypeDecls(glb_loop_src);
 
-    vector<SgDeclarationStatement*>::iterator type_decls_iter;
-    map<SgDeclarationStatement*,SgDeclarationStatement*> old_new_decl;
-    map<SgType*,SgType*> old_new_type;
-    //for(type_decls_iter=type_decls_needed.begin(); type_decls_iter != type_decls_needed.end(); type_decls_iter++) {
-    for(auto decl : type_decls_needed) {
-        SgDeclarationStatement* type_decl = isSgDeclarationStatement(SageInterface::deepCopy(decl));
-
-        // Don't want the extra #include from original file
-        //cout << decl->unparseToString() << endl;
-        type_decl->set_attachedPreprocessingInfoPtr(NULL);
-
-        for (SgNode* tn : NodeQuery::querySubTree(type_decl, V_SgClassDefinition)) {
-            SgClassDefinition* class_defn = isSgClassDefinition(tn);
-            cout << "FIXING: " << class_defn->get_mangled_name().getString() << "(" << class_defn<<")"<< endl;
-            SgSymbolTable* the_symtable = class_defn->get_symbol_table();
-            SgSymbolTable::BaseHashType* internalTable1 = the_symtable->get_table();
-            SgSymbolTable::hash_iterator i1 = internalTable1->begin();
-            vector<SgSymbol*> syms_to_remove;
-            while (i1 != internalTable1->end()) {
-                SgSymbol* symbol = isSgSymbol((*i1).second);
-                if (symbol->get_name().getString().substr(0,14) == "__anonymous_0x") {
-                    // fix the symbol tble as deepcopy somehow added extra anonymous class symbols
-                    syms_to_remove.push_back(symbol);
-                }
-                i1++;
-            }
-            for (SgSymbol* rs : syms_to_remove) { 
-                cout << "Removing ANONYMOUS SYM:" << rs->get_name().getString() << endl;
-                the_symtable->remove(rs);
-                delete rs;
-            }
-
-        }
-        std::map<SgName,int> name_to_gnu_attribute_alignment;
-        for (SgNode* decl_node : NodeQuery::querySubTree(decl, V_SgDeclarationStatement)) {
-            SgDeclarationStatement* decl_stmt = isSgDeclarationStatement(decl_node);
-            assert(name_to_gnu_attribute_alignment.find(decl_stmt->get_mangled_name()) == name_to_gnu_attribute_alignment.end());
-            name_to_gnu_attribute_alignment[decl_stmt->get_mangled_name()] = 
-                decl_stmt->get_declarationModifier().get_typeModifier().get_gnu_attribute_alignment();
-        }
-        for (SgNode* decl_node : NodeQuery::querySubTree(type_decl, V_SgDeclarationStatement)) {
-            SgDeclarationStatement* decl_stmt = isSgDeclarationStatement(decl_node);
-            SgName name = decl_stmt->get_mangled_name();
-            int alignment = name_to_gnu_attribute_alignment[name];
-            if (alignment> -1) 
-                decl_stmt->get_declarationModifier().get_typeModifier().set_gnu_attribute_alignment(alignment);
-        }
-
-        SgSymbol* type_decl_sym = type_decl->get_symbol_from_symbol_table();
-        static int iii=0;
-        if (type_decl_sym == NULL) {
-            SgSymbol* decl_sym = decl->get_symbol_from_symbol_table();
-            SgSymbol* type_decl_sym1 = type_decl->get_symbol_from_symbol_table();
-            if (type_decl->get_scope() != glb_loop_src) {
-                type_decl->set_scope(glb_loop_src);
-                if (SgTypedefDeclaration* typedef_decl = isSgTypedefDeclaration(type_decl)) {
-                    int count = old_new_type.count(typedef_decl->get_base_type());
-                    glb_loop_src->insert_symbol(typedef_decl->get_name(), new SgTypedefSymbol(typedef_decl));
-                } else if (SgClassDeclaration* class_decl = isSgClassDeclaration(type_decl)) {
-                    SgClassDeclaration* nondefdecl = isSgClassDeclaration(class_decl->get_firstNondefiningDeclaration());
-                    nondefdecl->set_scope(glb_loop_src);
-                    glb_loop_src->insert_symbol(class_decl->get_name(), new SgClassSymbol(nondefdecl));
-                } else if (SgEnumDeclaration* enum_decl = isSgEnumDeclaration(type_decl)) {
-                    iii++;
-                    //glb_loop_src->insert_symbol(enum_decl->get_name(), new SgEnumSymbol(enum_decl));
-                    //glb_loop_src->insert_symbol("foo"+iii, new SgEnumSymbol(enum_decl));
-                    SgEnumDeclaration* new_type_decl = SageBuilder::buildEnumDeclaration(enum_decl->get_name(), glb_loop_src);
-                    for (SgInitializedName* in : enum_decl->get_enumerators()) {
-                        in->unparseToString();
-                        SgInitializedName* new_in = SageInterface::deepCopy(in);
-                        new_in->set_scope(glb_loop_src);
-                        new_type_decl->append_enumerator(new_in);
-                    }
-                    old_new_decl[enum_decl] = new_type_decl;
-                    old_new_type[enum_decl->get_type()] = new_type_decl->get_type();
-                    type_decl = new_type_decl;
-                } else {
-                    assert(false);  // unexpected case
-                }
-            }
-        }
-        SageInterface::appendStatement(type_decl, glb_loop_src);
-    }
     //this->addGlobalVarDecls(glb_loop_src, true);
     for (SgVariableDeclaration* var_decl : call_traversal.get_global_decl_v()) {
         addGlobalVarDecl(glb_loop_src, true, var_decl);
@@ -1038,7 +1269,8 @@ void LoopInfo::printLoopFunc(string outfile_name) {
     SageBuilder::pushScopeStack(fn_bb);
     SgPragmaDeclaration* scop_pragma = SageBuilder::buildPragmaDeclaration("scop", SageBuilder::topScopeStack());
     SageInterface::appendStatement(scop_pragma, SageBuilder::topScopeStack());
-    SgForStatement* extracted_loop = isSgForStatement(SageInterface::deepCopy(loop));
+    //SgForStatement* extracted_loop = isSgForStatement(SageInterface::deepCopy(loop));
+    SgScopeStatement* extracted_loop = isSgScopeStatement(SageInterface::deepCopy(loop));
     // fix loop variable if they were passed by pointer
     vector<SgVariableSymbol *>::iterator iter;
     set<SgVariableSymbol *> fix_vars;
@@ -1233,6 +1465,7 @@ void LoopInfo::addGlobalVarDecl(SgGlobal* glb, bool as_extern, SgDeclarationStat
             SageInterface::setExtern(var_decl);
         //std::cout << "David deArg type unparse 2:" << paramList->unparseToString() << std::endl;
     }
+    var_decl->set_attachedPreprocessingInfoPtr(NULL);
     SageInterface::appendStatement(var_decl , glb);
 }
 /* Add loop function call as extern in the base source file */
@@ -1240,6 +1473,17 @@ SgFunctionDeclaration* LoopInfo::addLoopFuncDefnDecl(SgGlobal* glb) {
     return this->makeLoopFunc(true, glb);
 }
 
+SgType* LoopInfo::fixLoopFuncArrayArgTypeIfNeeded(SgType* arg_type) {
+    if (SgArrayType* arr_type = isSgArrayType(arg_type)) {
+        SgType* base_type = fixLoopFuncArrayArgTypeIfNeeded(arr_type->get_base_type());
+        SgExpression* index = arr_type->get_index();
+        if (SgVarRefExp* index_var = isSgVarRefExp(index)) {
+            index = SageBuilder::buildPointerDerefExp(index_var);
+        }
+        arg_type = SageBuilder::buildArrayType(base_type, index);
+    }
+    return arg_type;
+}
 SgFunctionDeclaration* LoopInfo::makeLoopFunc(bool defining, SgGlobal* glb) {
     vector<SgInitializedName *>::iterator iter;
     SgFunctionParameterList *paramList =
@@ -1253,6 +1497,9 @@ SgFunctionDeclaration* LoopInfo::makeLoopFunc(bool defining, SgGlobal* glb) {
 
         ParamPassingStyle style = getPassingStyle(arg_type, extr->getSrcType());
 
+        // for array types, fix the shape to use pointer to index variable
+        // should have passed as ptr variable already
+        arg_type = fixLoopFuncArrayArgTypeIfNeeded(arg_type);
         //if (need_addressof_type)
         if (style == ParamPassingStyle::POINTER)
             arg_type = SageBuilder::buildPointerType(arg_type);
@@ -1292,8 +1539,10 @@ void InvitroExtractor::generateBaseHeaders(SgGlobal* glb_scope) {
 SgExprListExp* InvitroExtractor::generateDumpArgs(SgFunctionCallExp * call_expr) {
     assert(call_expr != NULL);
     SgName func_name = call_expr->getAssociatedFunctionSymbol()->get_name();
-    SgExprListExp* dump_args = SageBuilder::buildExprListExp(
-        SageBuilder::buildStringVal(func_name.str()), SageBuilder::buildIntVal(instance_num));
+    SgExprListExp* dump_args = SageBuilder::buildExprListExp(SageBuilder::buildStringVal(func_name.str()));
+    for (int instance_num : instance_nums) {
+        SageInterface::appendExpression(dump_args, SageBuilder::buildIntVal(instance_num));
+    }
     return dump_args;
 }
 void InvitroExtractor::generateBasePreLoop(SgScopeStatement* loop_scope, 
@@ -1482,6 +1731,7 @@ void LoopInfo::addLoopFuncCall() {
 
     // END Add save stuff here
     SageInterface::replaceStatement(loop, call_expr_stmt, true);
+    //SageInterface::insertStatementAfter(loop, call_expr_stmt);
 
 
     for (SgExprStatement* copy_reg_stmt : copy_reg_stmts) {
@@ -1552,7 +1802,7 @@ vector<string> LoopInfo::getLoopFuncArgsName() {
     return args_name;
 }
 
-bool Extractor::skipLoop(SgForStatement *astNode) {
+bool Extractor::skipLoop(SgScopeStatement *astNode) {
     return !collected_loops.matches(astNode);
 }
 
@@ -1669,12 +1919,12 @@ void Extractor::reportOutputFiles() {
     cout << "Output file info: " << report_file << endl;
 }
 
-void OutliningExtractor::extractLoop(SgForStatement* loop) {
+void OutliningExtractor::extractLoop(SgScopeStatement* loop) {
     LoopInfo curr_loop(loop, getLoopName(loop), this);
     extractLoop(loop, curr_loop);
 }
 
-void OutliningExtractor::extractLoop(SgForStatement* loop, LoopInfo& curr_loop) {
+void OutliningExtractor::extractLoop(SgScopeStatement* loop, LoopInfo& curr_loop) {
     /*
         * Take cares of print complete loop function and adding func calls
         * and extern loop func to the base file.
@@ -1690,16 +1940,16 @@ void OutliningExtractor::extractLoop(SgForStatement* loop, LoopInfo& curr_loop) 
     curr_loop.dumpGlobalVarNames(output_path, loop_file_name);
 }
 
-void InvitroExtractor::extractLoop(SgForStatement* loop, LoopInfo& curr_loop) {
+void InvitroExtractor::extractLoop(SgScopeStatement* loop, LoopInfo& curr_loop) {
     string output_path = getDataFolderPath();
     OutliningExtractor::extractLoop(loop, curr_loop);
     string replay_loop_file_name = output_path + getReplayFileName(loop);
-    curr_loop.printLoopReplay(replay_loop_file_name, instance_num);
+    curr_loop.printLoopReplay(replay_loop_file_name);
 }
 
-void InvivoExtractor::extractLoop(SgForStatement* loop) {
+void InvivoExtractor::extractLoop(SgScopeStatement* loop) {
     // Invivo extraction means inserting Locus pragma at loop head
-    SgScopeStatement* loop_scope = (loop->get_loop_body())->get_scope();
+    SgScopeStatement* loop_scope = get_loop_body(loop)->get_scope();
     SgPragmaDeclaration* locus_pragma = SageBuilder::buildPragmaDeclaration("@ICE loop=scop", loop_scope);
     SageInterface::insertStatementBefore(loop, locus_pragma);
 }
@@ -1709,7 +1959,7 @@ void InvivoExtractor::extractLoop(SgForStatement* loop) {
  *        body and create a new function
  * @param astNode The loop to be extracted
  */
-void Extractor::extractLoops(SgForStatement *astNode) {
+void Extractor::extractLoops(SgScopeStatement *astNode) {
     Sg_File_Info* file_info = astNode->get_file_info();
     string file_name = file_info->get_filenameString();
     int lineNum = file_info->get_line();
@@ -1723,7 +1973,7 @@ void Extractor::extractLoops(SgForStatement *astNode) {
     if (collected_loops.matches(astNode)) {
         // cout << "PASSED the lineNum check" << endl;
         //SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
-        SgForStatement *loop = isSgForStatement(astNode);
+        SgScopeStatement *loop = isSgScopeStatement(astNode);
         updateUniqueCounter(loop);
 
         //ofstream loop_file_buf;
@@ -1786,7 +2036,7 @@ LoopCollector::evaluateInheritedAttribute(SgNode *astNode, LoopLocations locs) {
     //LoopLocations ret;
     //cout << "INH:" << astNode->unparseToString() << endl;
     // just pass it on
-    if (isSgForStatement(astNode)) { 
+    if (isSgForStatement(astNode) || isSgWhileStmt(astNode)) { 
         locs.incLevel();
     }
     return locs;
@@ -1797,7 +2047,7 @@ void CollectedLoops::addAll(const CollectedLoops& loops) {
     deepest_nest = max(deepest_nest, loops.deepest_nest);
 }
 
-void CollectedLoops::set(SgForStatement* loop, int nest_level) { 
+void CollectedLoops::set(SgScopeStatement* loop, int nest_level) { 
     assert(collected.size() == 0);
     collected.insert(loop); 
     deepest_nest = nest_level;
@@ -1810,17 +2060,22 @@ CollectedLoops LoopCollector::evaluateSynthesizedAttribute(SgNode *astNode, Loop
     for (auto const &child_loops : syn_attr_list) { 
         children_loops.addAll(child_loops);
     }
-    if (SgForStatement *for_loop = isSgForStatement(astNode)) { 
+    if (SgScopeStatement *loop = isSgForStatement(astNode) ? isSgForStatement(astNode) : isSgScopeStatement(isSgWhileStmt(astNode))) { 
         int children_depth = children_loops.getLoopDepth();
         bool check_depth = false;
         bool depth_test = check_depth ? (children_depth <=2) : true;
 
-        if (locs.matches(for_loop) || (!children_loops.isEmpty() && depth_test)) {
+        if (locs.matches(loop) || (!children_loops.isEmpty() && depth_test)) {
         //if (locs.matches(for_loop) || (!children_loops.isEmpty() && children_depth <= 3)) {
             CollectedLoops loops;
             cout << "matched or children matched:" << endl;
-            loops.set(for_loop, children_depth + 1);
-            return loops;
+            if(NodeQuery::querySubTree(loop, V_SgGotoStatement).empty() 
+                && NodeQuery::querySubTree(loop, V_SgReturnStmt).empty()) {
+                loops.set(loop, children_depth + 1);
+                return loops;
+            } else {
+                cout << "SKIP LOOP WITH Gotos" << endl;
+            }
         } 
         // fall through to use children nests, this is for loop so increase one level
         children_loops.incLoopDepth();
@@ -1840,9 +2095,11 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
     if (astNodesCollector.find(astNode) == astNodesCollector.end()) {
         astNodesCollector.insert(astNode);
         switch (astNode->variantT()) {
-        case V_SgForStatement: {
+        case V_SgForStatement: 
+        case V_SgWhileStmt: 
+        {
             //SgForStatement *loop = dynamic_cast<SgForStatement *>(astNode);
-            SgForStatement *loop = isSgForStatement(astNode);
+            SgScopeStatement *loop = isSgScopeStatement(astNode);
             if (collected_loops.matches(loop)) {
                 Sg_File_Info* file_info = loop->get_file_info();
                 cout << "MATCHED:" << file_info->get_filenameString() << ":"
@@ -1856,7 +2113,6 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
             // cerr << "Found node: " << loop->class_name() << " with depth: "
             // << inh_attr.loop_nest_depth_ << endl;
             // TODO: Upto what loop depth to extract as tool option
-            //if (inh_attr.loop_nest_depth_ < 2) {
             if (inh_attr.loop_nest_depth_ < 20) {
                 // cerr << "Extracting loop now" << endl;
                 // if( SageInterface::getNextStatement(loop)->variantT() != NULL
@@ -1870,7 +2126,8 @@ Extractor::evaluateInheritedAttribute(SgNode *astNode,
                     else
                         consecutiveLoops.push_back(loop);
                     */
-                    extractLoops(loop);
+                    extracting_loops.push_back(loop);
+                    //extractLoops(loop);
                 }
                 // consecutiveLoops.clear(); // Clear vector for next kernel
                 loopOMPpragma = "";
@@ -2301,6 +2558,17 @@ void InvitroExtractor::instrumentMain() {
         // insertion of dump_close() call is a bit more tricky as we need to insert them before return statements too
         for (auto n : NodeQuery::querySubTree(main_scope, V_SgReturnStmt)) {
             SgReturnStmt* retStmt = isSgReturnStmt(n);
+            if(SgExpression* retExp = retStmt->get_expression()) {
+                // evaulate the return expression before calling dump close
+                SgBasicBlock* bb = SageBuilder::buildBasicBlock_nfi(main_scope);
+
+                std::pair<SgVariableDeclaration*, SgExpression*> rst = SageInterface::createTempVariableForExpression(retExp, bb, true);
+                SageInterface::appendStatement(rst.first, bb);
+                SgReturnStmt* newRetStmt = SageBuilder::buildReturnStmt(rst.second);
+                SageInterface::appendStatement(newRetStmt, bb);
+                SageInterface::replaceStatement(retStmt, bb);
+                retStmt = newRetStmt;
+            }
             SgExprStatement *dump_close_call = buildSimpleFnCallStmt("dump_close", main_scope);
             SageInterface::insertStatementBefore(retStmt, dump_close_call);
         }
@@ -2351,6 +2619,10 @@ void Extractor::do_extraction() {
     // should do a traverse first to collect all loops before doing transformation
     // so the input line numbers will be correct
     this->traverseInputFiles(ast, inhr_attr);
+
+    for (SgScopeStatement* loop : extracting_loops) {
+        extractLoops(loop);
+    }
     // after traversing, main scope will be found
     this->instrumentMain();
     // this->generateHeaderFile();
