@@ -200,11 +200,12 @@ def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target
         f'-DCMAKE_Fortran_FLAGS="{cmake_fortran_flags}" '\
         f'-DCMAKE_EXE_LINKER_FLAGS="{cmake_linker_flags}" '\
         f'{extra_cmake_flags} '\
-        f'-S {src_dir} -B {build_dir} -G Ninja '
+        f'-S {src_dir} -B {build_dir} -G Ninja >  {os.path.dirname(src_dir)}/qaas_build.log'
     #    f'-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={output_dir}'
     print(cmake_config_cmd)
     env['VERBOSE']='1'
     subprocess.run(cmake_config_cmd, shell=True, env=env)
+    shutil.move(os.path.join(os.path.dirname(src_dir), 'qaas_build.log'), build_dir)
     # Allow search any compiler generated files
     env['QAAS_BUILD_DIR']=build_dir
     return build_dir, output_dir, output_name, env
@@ -276,7 +277,7 @@ def get_build_dir(src_dir, relative_build_dir):
 
 def build_binary(user_target, build_dir, target_location, env, output_dir, output_name):
     cmake_target = user_target if user_target else 'all'
-    cmake_build_cmd=f'time cmake --build {build_dir} --target {cmake_target} > {build_dir}/qaas_build.log'
+    cmake_build_cmd=f'time cmake --build {build_dir} --target {cmake_target} >> {build_dir}/qaas_build.log'
     print(cmake_build_cmd)
     subprocess.run(cmake_build_cmd, shell=True, env=env)
     built_bin = os.path.join(build_dir, target_location)
