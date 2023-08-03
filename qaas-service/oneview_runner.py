@@ -33,7 +33,6 @@ import os
 from logger import log, QaasComponents
 import argparse
 import subprocess
-import pathlib
 from utils.util import generate_timestamp_str
 from base_runner import BaseRunner
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -64,17 +63,9 @@ class OneviewRunner(BaseRunner):
     def maqao_bin(self):
         return os.path.join(self.maqao_bin_dir, 'maqao')
 
-    def search_shared_libs(self, build_dir):
-        '''Search all shared libraries (*.so) generated after build.'''
-        return list(pathlib.Path(build_dir).glob('**/*.so'))
-
     def format_ov_shared_libs_option(self, so_libs):
         '''Convert shared libs paths to OV format.'''
         return ','.join(['\\"'+str(item) + '\\"' for item in so_libs])
-
-    def find_shared_libs_location(self, so_libs):
-        '''Find shared libs location.'''
-        return ':'.join(list(set([os.path.dirname(item) for item in so_libs])))
 
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         true_run_cmd = run_cmd.replace('<binary>', binary_path)
@@ -85,8 +76,7 @@ class OneviewRunner(BaseRunner):
 
         ov_mpi_command = f"--mpi-command=\"{mpi_command}\"" if mpi_command else ""
         ov_filter_option = '--filter="{type=\\\"number\\\", value=4}"' if self.level != 1 else ''
-        found_so_libs = self.search_shared_libs(run_env['QAAS_BUILD_DIR'])
-        ov_extra_libs_option = '--external-libraries="{' + self.format_ov_shared_libs_option(found_so_libs) + '}"' if found_so_libs else ""
+        ov_extra_libs_option = '--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"' if self.found_so_libs else ""
 
         ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} '\
             f' {ov_extra_libs_option} '\
@@ -97,7 +87,7 @@ class OneviewRunner(BaseRunner):
             f'-- {true_run_cmd}'
         print(ov_run_cmd)
         print(self.ov_result_dir)
-        run_env["LD_LIBRARY_PATH"] = run_env.get("LD_LIBRARY_PATH") + ":" + self.maqao_lib_dir + ':' + self.find_shared_libs_location(found_so_libs)
+        run_env["LD_LIBRARY_PATH"] = run_env.get("LD_LIBRARY_PATH") + ":" + self.maqao_lib_dir
         result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.ov_result_root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode == 0:
             return True

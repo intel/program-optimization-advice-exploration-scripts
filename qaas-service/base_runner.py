@@ -30,6 +30,7 @@
 
 import os
 import shutil
+import pathlib
 from abc import ABC, abstractmethod
 from utils.runcmd import QAASRunCMD
 
@@ -57,6 +58,14 @@ class BaseRunner(ABC):
         except:
             pass
 
+    def search_shared_libs(self, build_dir):
+        '''Search all shared libraries (*.so) generated after build.'''
+        return list(pathlib.Path(build_dir).glob('**/*.so*'))
+
+    def find_shared_libs_location(self, so_libs):
+        '''Find shared libs location.'''
+        return ':'.join(list(set([os.path.dirname(item) for item in so_libs])))
+
     def run(self, binary_path, run_cmd, 
             mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs, env):
         run_env = env.copy()
@@ -64,6 +73,9 @@ class BaseRunner(ABC):
         run_env.update(omp_envs)
         run_env["OMP_NUM_THREADS"] = str(omp_num_threads)
         mpi_command = f"{mpi_run_command} -np {mpi_num_processes}" if mpi_run_command else ""
+        # Setup LD_LIBRARY_PATH with any found shared libraries built by cmake
+        self.found_so_libs = self.search_shared_libs(run_env['QAAS_BUILD_DIR'])
+        run_env["LD_LIBRARY_PATH"] = run_env.get("LD_LIBRARY_PATH") + ":" + self.find_shared_libs_location(self.found_so_libs)
         success = self.true_run(binary_path, self.run_dir, run_cmd, run_env, mpi_command)
         return success
 
