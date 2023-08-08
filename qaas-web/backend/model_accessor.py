@@ -1555,38 +1555,64 @@ class OneViewModelExporter(OneviewModelAccessor):
 
 #this class is used to find a specfic metrc throught the execution
 class MetricGetter(ModelAccessor):
-    def __init__(self, session, metric_type):
+    def __init__(self, session, metric_type, model_obj):
         super().__init__(session)
         self.metric_type = metric_type
+        self.model_obj = model_obj
         self.data = None 
 
     #get value for execution
-    def get_value(self, model_obj):
-        model_obj.accept(self)  
+    def get_value(self):
+        self.model_obj.accept(self)  
         return self.data
 
+
     def visitExecution(self, execution):
-        if self.metric_type == 'total time':
-            self.data = [execution.time]
-        if self.metric_type == 'array access efficiency':
-            global_metrics_json_str = execution.global_metrics['global_metrics']
-            df = pd.read_json(global_metrics_json_str, orient='split')
-            filtered_df  = df[(df['metric'] == 'array_access_efficiency') & (df['value'] != 'Not Available')]
-            if not filtered_df.empty:
-                self.data = [filtered_df['value'].item()]
-          
+        # Create a dictionary mapping the metric type to the corresponding value
+        global_metrics = get_global_metrics_dict_from_execution(execution)
+        metric_mapper = {
+            'total_time': execution.time,
+            'array_access_efficiency': global_metrics['array_access_efficiency'],
+            'profiled_time': execution.profiled_time,
+            'number_of_cores': execution.hwsystem.cpui_cpu_cores,
+            'speedup_if_clean': global_metrics['speedup_if_clean'],
+            'speedup_if_fp_vect': global_metrics['speedup_if_fp_vect'],
+            'speedup_if_fully_vectorised': global_metrics['speedup_if_fully_vectorised'],
+            'speedup_if_FP_only': global_metrics['speedup_if_FP_only'],
+            'model_name': execution.hwsystem.cpui_model_name,
+            'time_in_analyzed_loops': global_metrics['loops_time'],
+            'time_in_analyzed_innermost_loops': global_metrics['innerloops_time'],
+            'time_in_user_code': global_metrics['user_time'],
+            'compilation_options_score': global_metrics['compilation_options'],
+            'perfect_flow_complexity': global_metrics['flow_complexity'],
+            'perfect_openmp_mpi_pthread': global_metrics['speedup_if_perfect_MPI_OMP_PTHREAD'],
+            'perfect_openmp_mpi_pthread_load_distribution': global_metrics['speedup_if_perfect_MPI_OMP_PTHREAD_LOAD_DISTRIBUTION'],
+            'compilation_flags': global_metrics['compilation_flags'],
+            'iterations_count': global_metrics['iterations_count'],
+            'speedup_if_L1': global_metrics['speedup_if_L1']
+        }
+
+        value = metric_mapper.get(self.metric_type)
+        self.data = value
+
 
 
     def visitCqaCollection(self, cqa_collection):
-        if self.metric_type == "vectorization ratio":
-            loop_cqas = [cqa for cqa in cqa_collection.get_objs() if cqa.loop is not None]
-            res = []
-            for cqa in loop_cqas:
-                cqa_metrics = get_names_and_values_data_for_metric_table(cqa.cqa_metrics)
-                ratio_metric_name = 'packed ratio all'
-                vectorization_ratio = cqa_metrics[ratio_metric_name] if ratio_metric_name in cqa_metrics else None
-                if vectorization_ratio:
-                    res.append(vectorization_ratio)
+        loop_cqas = [cqa for cqa in cqa_collection.get_objs() if cqa.loop is not None]
+        res = []
+        for cqa in loop_cqas:
+            cqa_metrics = get_names_and_values_data_for_metric_table(cqa.cqa_metrics)
+
+            #vectorization ratio
+            if self.metric_type == "vectorization_ratio":
+                metric_value = cqa_metrics.get('packed ratio all')
+
+            #vectorization efficiency
+            if self.metric_type == "vectorization_efficiency":
+                metric_value = cqa_metrics.get('vec eff ratio all')
+
+            if metric_value:
+                res.append(metric_value)
             self.data = res 
 
     def visitQaaSDataBase(self, qaas_database):

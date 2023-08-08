@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
 import Table from "./table";
 function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, setBaseline }) {
     const navigate = useNavigate();

@@ -37,7 +37,6 @@
 
 .table-search-input {
     width: 180px;
-    border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 14px;
     font-weight: 400;
@@ -60,4 +59,11 @@
     font-size: 16px;
     margin-top: 20px;
     cursor: pointer;
+}
+
+/* overide default behavior */
+.wrap-text {
+    white-space: initial !important;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }

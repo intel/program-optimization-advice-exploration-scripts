@@ -7,6 +7,15 @@
 
 }
 
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    /* stays above other content */
+    background-color: white;
+    /* ensures the content behind doesn't show through */
+}
+
 .home {
     display: inline-block;
     margin: 14px;

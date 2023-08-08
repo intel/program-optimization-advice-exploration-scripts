@@ -1,32 +1,32 @@
 import React, { useState } from "react";
 import ReactTable from "react-table-6";
-
+import TableSearchBar from "./TableSearchBar";
 import "react-table-6/react-table.css";
 import '../css/table.css'
+
 function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaultPageSize }) {
     const [filterInput, setFilterInput] = useState("");
-    const handleFilterChange = (e) => {
-        const value = e.target.value || undefined;
-        setFilterInput(value);
-    };
+
+    console.log(filterInput)
     const filteredData = filterInput
-        ? data.filter((row) =>
-            Object.values(row).some(
-                (cell) =>
-                    cell !== null &&
-                    cell !== undefined &&
-                    cell.toString().toLowerCase().includes(filterInput.toLowerCase())
-            )
-        )
+        ? (() => {
+            const [searchText, header] = filterInput.split(" in ");
+            const column = columns.find(col => col.Header === header);
+            return data.filter(row => {
+                const value = typeof column.accessor === 'function' ? column.accessor(row) : row[column.accessor];
+                return value && value.toString().toLowerCase().includes(searchText.toLowerCase());
+            });
+        })()
         : data;
+
     return (
         <div className="table-container">
-            <input
-                value={filterInput}
-                onChange={handleFilterChange}
-                placeholder={"Search..."}
-                className="table-search-input"
+            <TableSearchBar
+                data={data}
+                columns={columns}
+                onSearchSelect={(value) => setFilterInput(value)}
             />
+
             <ReactTable
                 data={filteredData}
                 columns={columns}
@@ -35,6 +35,11 @@ function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaul
                 expanded={expanded}
                 onExpandedChange={(newExpanded) => onExpandedChange(newExpanded)}
                 SubComponent={SubComponent}
+                getTheadThProps={() => {
+                    return {
+                        className: "wrap-text"
+                    };
+                }}
             />
         </div>
     );

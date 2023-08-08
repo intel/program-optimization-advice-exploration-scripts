@@ -6,13 +6,14 @@ import ApplicationTable from './data/ApplicationTable';
 import FilterComponent from './filters/FilterComponent';
 import axios from 'axios';
 import TotalTimeSpeedupGraph from './graph/TotalTimeSpeedupGraph';
-
+import { INITIAL_FILTERS } from './filters/InitialFilter';
 import { Modal } from 'antd';
+import AllSpeedupRangeGraph from './graph/AllSpeedupRangeGraph';
 const MainPage = () => {
     const [selectedRows, setSelectedRows] = useState([]);
     const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [filters, setFilters] = useState([]);
+    const [filters, setFilters] = useState(INITIAL_FILTERS);
     const [baseline, setBaseline] = useState(null);
     const [showGraph, setShowGraph] = useState(false);
     useEffect(() => {
@@ -33,7 +34,6 @@ const MainPage = () => {
     };
 
     const handleFilter = (newFilters) => {
-        setFilters(newFilters);
         fetchData(newFilters);
     };
 
@@ -51,11 +51,16 @@ const MainPage = () => {
 
     return (
         <div>
-            <TopBar selectedRows={selectedRows} setSelectedRows={setSelectedRows} baseline={baseline} setBaseline={setBaseline} setShowGraph={setShowGraph} />
+            <div className="sticky-top">
+
+                <TopBar selectedRows={selectedRows} setSelectedRows={setSelectedRows} baseline={baseline} setBaseline={setBaseline} setShowGraph={setShowGraph} />
+            </div>
+
             <div className="page-container">
                 <Title />
-                <div><FilterComponent data={data} onFilter={handleFilter} /></div>
+                <div><FilterComponent data={data} onFilter={handleFilter} filters={filters} setFilters={setFilters} /></div>
 
+                <AllSpeedupRangeGraph />
                 {isLoading
                     ? <p>Loading data, please wait...</p>
                     : <ApplicationTable
