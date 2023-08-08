@@ -2,6 +2,7 @@
 from qaas_database import QaaSDatabase
 from model_collection import *
 from model_accessor import MetricGetter
+from constants import *
 class FilterStrategy:
     def __init__(self, type, operator, value, mode):
         self.type = type
@@ -11,35 +12,38 @@ class FilterStrategy:
 
     def apply(self, data):
         pass  
+    def apply_with_mode(self, condition_func, data):
+        #if data is a list of values
+        if isinstance(data, list):
+            if self.mode == 'all':
+                return all(condition_func(d) for d in data)
+            elif self.mode == 'any':
+                return any(condition_func(d) for d in data)
+            else:
+                return False 
+        #data is a value
+        else:
+            return condition_func(data)
     
 class LessThanFilterStrategy(FilterStrategy):
     def apply(self, data):
-        if self.mode == 'all':
-            return all(float(d) < float(self.value) for d in data)
-        elif self.mode == 'any':
-            return any(float(d) < float(self.value) for d in data)
-        else:
-            return False
+        return self.apply_with_mode(lambda d: float(d) < float(self.value), data)
 
 
 class GreaterThanFilterStrategy(FilterStrategy):
     def apply(self, data):
-        if self.mode == 'all':
-            return all(float(d) > float(self.value) for d in data)
-        elif self.mode == 'any':
-            return any(float(d) > float(self.value) for d in data)
-        else:
-            return False
+        return self.apply_with_mode(lambda d: float(d) > float(self.value), data)
 
 
 class EqualToFilterStrategy(FilterStrategy):
     def apply(self, data):
-        if self.mode == 'all':
-            return all(float(d) == float(self.value) for d in data)
-        elif self.mode == 'any':
-            return any(float(d) > float(self.value) for d in data)
-        else:
-            return False
+        return self.apply_with_mode(lambda d: float(d) == float(self.value), data)
+
+
+class LikeFilterStrategy(FilterStrategy):
+    def apply(self, data):
+        print(data, self.value)
+        return self.apply_with_mode(lambda d: self.value in d, data)
 
 
 class FilterContext:
@@ -51,7 +55,7 @@ class FilterContext:
         value = filter_info['value']
         operator = filter_info['operator']
         type = filter_info['type']
-        mode = filter_info['mode']
+        mode = filter_info['mode'] 
 
         if operator == 'less than':
             return LessThanFilterStrategy(type, operator, value, mode)
@@ -59,22 +63,23 @@ class FilterContext:
             return GreaterThanFilterStrategy(type, operator, value, mode)
         elif operator == 'equal to':
             return EqualToFilterStrategy(type, operator, value, mode)
+        elif operator == 'like':
+            return LikeFilterStrategy(type, operator, value, mode)
         else:
             raise ValueError(f'Invalid operator: {filter_info["operator"]}')
 
 
     def is_satisfied(self, execution, filter_strategy):
-        metric_getter = MetricGetter(self.session, filter_strategy.type)
-        qaas_database = QaaSDatabase.find_database(execution.universal_timestamp, self.session)
 
-        if filter_strategy.type == 'vectorization ratio':
+        if filter_strategy.type in CQA_LOOP_METRIC_TYPES:
+            qaas_database = QaaSDatabase.find_database(execution.universal_timestamp, self.session)
             cqa_collection = qaas_database.get_data_from_data_list(CqaCollection)
-            values = metric_getter.get_value(cqa_collection)
-        elif filter_strategy.type in ['total time', 'vectorization ratio']:
-            values = metric_getter.get_value(execution)
+            values = MetricGetter(self.session, filter_strategy.type, cqa_collection).get_value()       
+        elif filter_strategy.type in EXECUTION_METRIC_TYPES:
+            values = MetricGetter(self.session, filter_strategy.type, execution).get_value()
         else:
             values = None
-        return filter_strategy.apply(values) if values else False
+        return filter_strategy.apply(values) if values and values != "Not Available" else False
 
     def apply_all_filters(self, executions):
         filtered_executions = []

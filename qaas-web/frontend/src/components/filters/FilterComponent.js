@@ -1,78 +1,67 @@
-import React, { useState } from 'react';
-import AppliedFilters from './AppliedFilters';
+// FilterComponent.js
+import React, { useState, useEffect } from 'react';
 import FilterMenu from './FilterMenu';
-const initialFilters = {
-    "Loops: Vectorization Ratio (%)": {
-        'less than': { value: '', mode: 'all' },
-        'bigger than': { value: '', mode: 'all' },
-        'equal to': { value: '', mode: 'all' }
-    },
-    "Global: Total Time (s)": {
-        'less than': { value: '', mode: 'all' },
-        'bigger than': { value: '', mode: 'all' },
-        'equal to': { value: '', mode: 'all' }
-    },
-    "Global: Array Access Efficiency (%)": {
-        'less than': { value: '', mode: 'all' },
-        'bigger than': { value: '', mode: 'all' },
-        'equal to': { value: '', mode: 'all' }
-    }
-};
-const backendFilterMap = {
-    "Loops: Vectorization Ratio (%)": "vectorization ratio",
-    "Global: Total Time (s)": "total time",
-    "Global: Array Access Efficiency (%)": "vectorization ratio",
-};
-export default function FilterComponent({ onFilter }) {
-    const [filters, setFilters] = useState(initialFilters);
-    const [appliedFilters, setAppliedFilters] = useState([]);
+import '../css/filter.css'
+import { Row, Col } from 'antd';
+export default function FilterComponent({ onFilter, filters, setFilters }) {
 
-    const applyFilter = (filterType, operator) => {
-        if (filterType && operator && filters[filterType][operator].value !== '') {
-            const newFilter = {
-                type: backendFilterMap[filterType],
-                operator: operator,
-                value: filters[filterType][operator].value,
-                mode: filters[filterType][operator].mode
-            };
+    const [selectedFilters, setSelectedFilters] = useState([]);
 
-            const newFilters = [...appliedFilters, newFilter];
-            setAppliedFilters(newFilters);
-            onFilter(newFilters);
+
+    //count how many filters are selected
+    useEffect(() => {
+        let selected = [];
+        for (const category in filters) {
+            for (const filterType in filters[category]) {
+                const filter = filters[category][filterType];
+                if (filter.selected && filter.value !== '') {
+                    selected.push({
+                        type: filter.accessor,
+                        operator: filter.operator,
+                        value: filter.value,
+                        mode: filter.mode
+                    });
+                }
+            }
         }
+        setSelectedFilters(selected);
+    }, [filters]);
+
+    const applyFilter = () => {
+        onFilter(selectedFilters);
     }
-
-
-    // handle input change
-    const handleInputChange = (filterType, operator, value, mode) => {
+    const handleInputChange = (category, filterType, attribute, value) => {
         setFilters(prevState => ({
             ...prevState,
-            [filterType]: {
-                ...prevState[filterType],
-                [operator]: { value: value, mode: mode }
+            [category]: {
+                ...prevState[category],
+                [filterType]: {
+                    ...prevState[category][filterType],
+                    [attribute]: value
+                }
             }
         }));
     };
 
 
-    const removeFilter = (indexToRemove) => {
-        const updatedFilters = appliedFilters.filter((_, index) => index !== indexToRemove);
-        setAppliedFilters(updatedFilters);
-
-        // Re-filter the data
-        onFilter(updatedFilters);
-    };
 
     return (
         <div>
             <h2>Filters</h2>
+            <Row>
+                {Object.keys(filters).map((category) => (
+                    <Col key={category}>
+                        <FilterMenu
+                            category={category}
+                            filterOptions={filters[category]}
+                            handleInputChange={handleInputChange}
+                        />
+                    </Col>
+                ))}
+            </Row>
 
-            <FilterMenu
-                filterOptions={filters}
-                applyFilter={applyFilter}
-                handleInputChange={handleInputChange}
-            />
-            <AppliedFilters appliedFilters={appliedFilters} onRemoveFilter={removeFilter} />
+            <button onClick={applyFilter}>Apply {selectedFilters.length} Filters</button>
+
         </div>
     );
 }

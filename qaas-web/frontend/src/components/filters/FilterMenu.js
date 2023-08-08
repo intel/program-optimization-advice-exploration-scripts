@@ -1,14 +1,58 @@
-import { Dropdown } from 'antd';
-import React, { useState } from 'react';
-import MenuComponent from './MenuComponent';
-import { DownOutlined } from '@ant-design/icons';
+import React from 'react';
+import { Collapse, Select, Input, Space, Checkbox } from 'antd';
 
-export default function FilterMenu({ filterOptions, applyFilter, handleInputChange }) {
+const { Panel } = Collapse;
+
+export default function FilterMenu({ category, filterOptions, handleInputChange }) {
+
+    const renderOperatorSelector = (category, filterType) => {
+        if (filterOptions[filterType].operator === 'like') {
+            return <p>Like</p>
+        }
+        return (
+            <Select
+                defaultValue={filterOptions[filterType].operator}
+                onChange={(operator) => handleInputChange(category, filterType, 'operator', operator)}
+            >
+                <Select.Option value="less than">Less Than</Select.Option>
+                <Select.Option value="bigger than">Bigger Than</Select.Option>
+                <Select.Option value="equal to">Equal To</Select.Option>
+            </Select>
+        )
+    }
+
+    const renderModeSelector = (category, filterType) => {
+        if (category !== 'Global') {
+            return (
+                <Select
+                    defaultValue={filterOptions[filterType].mode}
+                    onChange={(mode) => handleInputChange(category, filterType, 'mode', mode)}
+                >
+                    <Select.Option value="all">All</Select.Option>
+                    <Select.Option value="any">Any</Select.Option>
+                </Select>
+            )
+        }
+    }
+
     return (
-        <Dropdown overlay={<MenuComponent filterOptions={filterOptions} handleInputChange={handleInputChange} handleMenuAction={applyFilter} />}>
-            <a className="ant-dropdown-link" onClick={e => e.preventDefault()}>
-                Select Filter <DownOutlined />
-            </a>
-        </Dropdown>
+        <Collapse className="panel-container">
+            <Panel header={category} key={category} className="panel">
+                {Object.keys(filterOptions).map((filterType) => (
+                    <Space key={filterType} className="space-container" >
+                        <Checkbox
+                            onChange={(e) => handleInputChange(category, filterType, 'selected', e.target.checked)}
+                        />
+                        <span>{filterType}</span>
+                        {renderOperatorSelector(category, filterType)}
+                        <Input
+                            value={filterOptions[filterType].value}
+                            onChange={(e) => handleInputChange(category, filterType, 'value', e.target.value)}
+                        />
+                        {renderModeSelector(category, filterType)}
+                    </Space>
+                ))}
+            </Panel>
+        </Collapse>
     );
 }

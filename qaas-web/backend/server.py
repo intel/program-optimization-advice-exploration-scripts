@@ -28,6 +28,9 @@ import re
 from filters import FilterContext
 from model_accessor import MetricGetter
 from qaas_database import QaaSDatabase
+from constants import EXECUTION_METRIC_TYPES
+from collections import defaultdict
+
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../config/qaas-web.conf")
 # more initializations in main()
@@ -91,6 +94,43 @@ def create_app(config):
 
         return Response(get_data(), mimetype='text/event-stream')
 
+
+    @app.route('/api/ov_get_all_speedup_range', methods=['GET'])
+    def ov_get_all_speedup_range():
+
+        applications = db.session.query(Application).all()
+
+        # Create a dictionary to store the 'orig' total time and minimum total time for each program
+        program_times = defaultdict(lambda: {'orig_total_time': None, 'min_total_time': float('inf'), 'min_compiler': None})
+
+        # Calculate the 'orig' total time and minimum total time for each program
+        for application in applications:
+            compiler_name = parse_experiment_name(application.version)
+            program_name = application.program
+            for execution in application.executions:
+                if compiler_name == 'orig':
+                    program_times[program_name]['orig_total_time'] = execution.time
+                else:
+                    if execution.time < program_times[program_name]['min_total_time']:
+                        program_times[program_name]['min_total_time'] = execution.time
+                        program_times[program_name]['min_compiler'] = compiler_name
+
+
+        # Create a dictionary to store the speedup data
+        speed_up_data = defaultdict(list)
+
+        # Calculate the speedup for each program
+        for program_name, times in program_times.items():
+            speedup_r = times['orig_total_time'] / times['min_total_time']
+            speed_up_data[times['min_compiler']].append({'speedup_r': speedup_r})
+
+
+        print(speed_up_data)
+        return speed_up_data
+
+
+
+
     @app.route('/api/get_application_table_info_ov', methods=['POST'])
     def get_application_table_info_ov():
         request_data = request.get_json()
@@ -108,11 +148,6 @@ def create_app(config):
                 if len(execution.maqaos) == 0:
                     continue  
 
-                global_metric_dict = pd.read_json(execution.global_metrics['global_metrics'], orient="split").set_index('metric')['value'].to_dict()
-                
-                
-
-
                 #TODO data needs to be read from config column
                 execution_data = {
                     'timestamp': universal_timestamp_to_datetime(execution.universal_timestamp),
@@ -120,46 +155,24 @@ def create_app(config):
                     'data': '',
                     
                 }
+                application_data = {
+                    'program': application.program,
+                    'experiment_name': application.version,
+                    'workload': application.workload,
+                    'commit_id': application.commit_id,
+                    'run_data': run_data,
+                    # Start of metric collection
+                }
                 run_data.append(execution_data)
-  
-
-            application_data = {
-                'program': application.program,
-                'experiment_name': application.version,
-                'workload': application.workload,
-                'commit_id': application.commit_id,
-                'run_data': run_data,
-                'Total Time(s)':execution.time,
-                'Profiled Time(s)': execution.profiled_time,
-                'Time in analyzed loops (%)': global_metric_dict['loops_time'],
-                'Time in analyzed innermost loops (%)': global_metric_dict['innerloops_time'],
-                'Time in user code (%)': global_metric_dict['user_time'],
-                'Compilation Options Score (%)': global_metric_dict['compilation_options'],
-                'Perfect Flow Complexity': global_metric_dict['flow_complexity'],
-                'Array Access Efficiency (%)': global_metric_dict['array_access_efficiency'],
                 
-                'Perfect OpenMP + MPI + Pthread': global_metric_dict['speedup_if_perfect_MPI_OMP_PTHREAD'],
-                'Perfect OpenMP + MPI + Pthread + Perfect Load Distribution': global_metric_dict['speedup_if_perfect_MPI_OMP_PTHREAD_LOAD_DISTRIBUTION'],
-                
-                'No Scalar Integer Potential Speedup': global_metric_dict['speedup_if_clean'],
-                'FP Vectorised Potential Speedup': global_metric_dict['speedup_if_fp_vect'],
-                'Fully Vectorised Potential Speedup': global_metric_dict['speedup_if_fully_vectorised'],
-                'Data In L1 Cache Potential Speedup': global_metric_dict['speedup_if_L1'],
-                'FP Arithmetic Only Potential Speedup': global_metric_dict['speedup_if_FP_only'],
+                #add all rest of interested metric types into application data
+                for metric_type in EXECUTION_METRIC_TYPES:
+                    value = MetricGetter(db.session, metric_type, execution).get_value()
+                    application_data[metric_type] = value
 
-                'No Scalar Integer Nb Loops to get 80%': global_metric_dict['nb_loops_80_if_clean'],
-                'FP Vectorised Nb Loops to get 80%': global_metric_dict['nb_loops_80_if_fp_vect'],
-                'Fully Vectorised Nb Loops to get 80%': global_metric_dict['nb_loops_80_if_fully_vect'],
-                'Data In L1 Cache Nb Loops to get 80%': global_metric_dict['nb_loops_80_if_L1'],
-                'FP Arithmetic Only Nb Loops to get 80%': global_metric_dict['nb_loops_80_if_FP_only'],
+                if len(run_data) > 0:
+                    data.append(application_data)
 
-                'Number of Cores':execution.hwsystem.cpui_cpu_cores,
-                'Compilation Options':global_metric_dict['compilation_flags'],
-                'Model Name' : execution.hwsystem.cpui_model_name
-
-            }
-            if len(run_data) > 0:
-                data.append(application_data)
         return jsonify(isError= False,
                     message= "Success",
                     statusCode= 200,
@@ -212,6 +225,7 @@ def create_app(config):
                     data=data,
                     )
 
+
     @app.route('/api/compute_speed_up_data_using_baseline_ov', methods=['POST'])
     def compute_speed_up_data_using_baseline_ov():
         data = request.get_json()
@@ -220,31 +234,26 @@ def create_app(config):
 
         speedup_graph_data = {"labels": [], "speedup": []}
 
-        #use metric getter visitor class to get the execution total time
-        metric_getter = MetricGetter(db.session, "total time")
-
         
         #get baseline total time from baseline
-        baseline_total_time = get_total_time_from_row(baseline, metric_getter)
+        baseline_total_time, baselin_execution = get_total_time_from_row(baseline)
 
          # Baseline has a speedup of 1
-        baseline_timestamp = baseline['timestamp']
-        speedup_graph_data["labels"].append(f' {baseline_timestamp}')
+        speedup_graph_data["labels"].append(f' {parse_experiment_name(baselin_execution.application.version)}')
         speedup_graph_data["speedup"].append(1)
 
         #get total time from selected rows
         for row in selectedRows:
-            total_time = get_total_time_from_row(row, metric_getter)
-            speed_up = baseline_total_time / total_time
-            timestamp = row['timestamp']
-            speedup_graph_data["labels"].append(f' {timestamp}')
+            total_time, execution = get_total_time_from_row(row)
+            speed_up = float(baseline_total_time) / float(total_time) 
+            speedup_graph_data["labels"].append(f' {parse_experiment_name(execution.application.version)}')
             speedup_graph_data["speedup"].append(speed_up)
         return speedup_graph_data
 
-    def get_total_time_from_row(row, metric_getter):
+    def get_total_time_from_row(row):
         execution = db.session.query(Execution).filter_by(universal_timestamp = datetime_to_universal_timestamp(row['timestamp']) ).one()
-        total_time = metric_getter.get_value(execution)[0]
-        return total_time
+        total_time = MetricGetter(db.session, "total_time", execution).get_value()
+        return total_time, execution
 
 
 

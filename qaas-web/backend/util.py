@@ -45,13 +45,12 @@ def universal_timestamp_to_datetime(universal_timestamp):
 def datetime_to_universal_timestamp(date_time):
     return str(int(datetime.strptime(date_time, '%c').timestamp()))
 ##### parse file
-def parse_file_name_no_variant(file_name):
-    match = re.match(r'^(?:(fct)_)?(\w+)_(\d+)(?:(_cqa))?(?:(_text))?(?:(\.csv))?(?:(\.txt))?(?:(\.lua))?$', file_name)
+
+def parse_experiment_name(experiment_name):
+    pattern = r'(orig|unicore/([^/_]*))'
+    match = re.search(pattern, experiment_name)
     if match:
-        module = match.group(2)
-        identifier = match.group(3)
-        type = 1 if "fct" in file_name else 0
-        return type, module, identifier
+        return match.group(2) if match.group(2) else match.group(1)
     else:
         return None
 
@@ -323,6 +322,9 @@ def get_names_and_values_data_for_metric_table(metrics):
     for metric in metrics:
         data[metric.metric_name] = metric.metric_value 
     return data
+
+def get_global_metrics_dict_from_execution(execution):
+    return pd.read_json(execution.global_metrics['global_metrics'], orient="split").set_index('metric')['value'].to_dict()
 
 
 def text_to_list(text):
