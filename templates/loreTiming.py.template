@@ -1,0 +1,58 @@
+import re                                                                       
+#if $timing_fn_name == 'getTimingQaas'
+from fdo_lib import LProfProfiler
+#end if
+
+def make_result_time_unit(data, unit):
+    return {'metric' : data,
+            'exps' : tuple([(data,)]),
+            'unit' : (unit,),
+            'desc' : ('Total',)}
+
+def make_result(metric):
+    return make_result_time_unit(metric, 'cycles')
+                                                                                
+#if $timing_fn_name == 'getTimingNew'
+def getTimingNew(std,error):
+    metric=0.0
+    \# Read the last line containing most recent measurement
+    with open('time.out') as f:
+        metric = float(f.readlines()[-1])
+    return make_result(metric)
+#else if $timing_fn_name == 'getTimingQaas'
+def getTimingQaas(std,error):
+    time_result, unit_result = LProfProfiler($maqao_path).aggregate_loop_time("$locus_bin_run_dir", "$locus_bin", "$src_file", $timing_script_loop_head)
+    return make_result_time_unit(time_result, unit_result)
+#else
+def getTiming(std,error):
+    \#print std                                                                  
+    pattern = re.compile(r"^ min\s+max.*")                                      
+    r = None                                                                    
+    lines_iter = iter(std.splitlines())                                         
+    \#lines_iter = std.splitlines()                                              
+    for l in lines_iter:                                                        
+        \#print("Testing",l)                                                     
+        \#if l.startswith("\tmin\tmax"):                                         
+        mat = pattern.match(l)                                                  
+        \#print mat                                                              
+        if mat:                                                                 
+            \#print "Found!", mat                                                
+            \#r = lines_iter.next()                                              
+            r = next(lines_iter)                                                
+            break                                                               
+                                                                                
+    result = 'N/A'                                                              
+    if r:                                                                       
+        \#print(r)                                                               
+        m = re.split('\s+', r)                                                  
+        \#print(m)                                                               
+        if m and len(m) >= 4:                                                   
+            \# get the median                                                    
+            metric = float(m[3])                                                
+            result = make_result(metric)                                       
+        else:                                                                   
+            result = {'metric': 'N/A'}                                          
+    else:                                                                       
+        result = {'metric': 'N/A'}                                              
+    return result  
+#end if
