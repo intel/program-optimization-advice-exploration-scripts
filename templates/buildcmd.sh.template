@@ -1,0 +1,12 @@
+\#!/bin/bash
+btype="\$1"
+
+rm -f ./$exe_file
+if [[ \$btype == "$orig_build_type_name" ]]; then
+	cp $iceorig_file $src_file
+else
+       	mv $opt_file $src_file
+fi
+$build_cmd
+\# Copy iceorig back ready for next Locus step
+cp $iceorig_file $src_file
