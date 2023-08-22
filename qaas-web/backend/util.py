@@ -123,6 +123,10 @@ def get_files_with_pattern(directory, pattern):
 def is_df_empty(df):
     return df.applymap(lambda x: x is None).all().all()
         
+def is_flag_in_compiler(flag, all_flags):
+    if not all_flags:
+        return 0
+    return 1 if flag in all_flags else 0
 
 def read_file(path, delimiter=';'):
     df = pd.read_csv(path, sep=delimiter, keep_default_na=False, index_col=False, skipinitialspace=True, na_values=[''])

@@ -30,9 +30,7 @@
     background-color: #277383;
 }
 
-.ReactTable {
-    clear: both;
-}
+
 
 
 .table-search-input {
@@ -44,6 +42,7 @@
     float: right;
     padding: 2px;
     margin-bottom: 5px;
+    clear: right;
 }
 
 .submit-button {
@@ -66,4 +65,17 @@
     white-space: initial !important;
     overflow-wrap: break-word;
     word-wrap: break-word;
+}
+
+.ReactTable {
+    clear: both;
+}
+
+.ReactTable .rt-th,
+.ReactTable .rt-td {
+    border: 1px solid #dfdfdf;
+}
+
+.ReactTable .rt-th {
+    color: inherit !important;
 }

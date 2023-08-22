@@ -15,3 +15,4 @@ CQA_LOOP_METRIC_TYPES = [
     'vectorization_ratio', 'vectorization_efficiency'
 
 ]
+

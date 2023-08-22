@@ -20,12 +20,15 @@ function Histogram({ data }) {
                                 display: true,
                                 text: data.xAxis,
                             },
+                            stacked: true,
+
                         },
                         y: {
                             title: {
                                 display: true,
                                 text: data.yAxis,
                             },
+                            stacked: true,
                             max: 5,
                             beginAtZero: true,
                             ticks: {
