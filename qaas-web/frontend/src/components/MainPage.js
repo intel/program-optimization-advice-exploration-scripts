@@ -60,17 +60,19 @@ const MainPage = () => {
                 <Title />
                 <div><FilterComponent data={data} onFilter={handleFilter} filters={filters} setFilters={setFilters} /></div>
 
-                <AllSpeedupRangeGraph />
                 {isLoading
                     ? <p>Loading data, please wait...</p>
-                    : <ApplicationTable
-                        data={data}
-                        isLoading={isLoading}
-                        selectedRows={selectedRows}
-                        setSelectedRows={setSelectedRows}
-                        baseline={baseline}
-                        setBaseline={setBaseline}
-                    />
+                    :
+                    <div>
+                        <AllSpeedupRangeGraph application_table_data={data} />
+                        <ApplicationTable
+                            data={data}
+                            selectedRows={selectedRows}
+                            setSelectedRows={setSelectedRows}
+                            baseline={baseline}
+                            setBaseline={setBaseline}
+                        />
+                    </div>
                 }
 
                 <Modal title="Comparison" open={showGraph} onOk={handleOk} onCancel={handleCancel}>

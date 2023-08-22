@@ -1471,6 +1471,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                 module_name = os.path.basename(asm.loops[0].function.module.name)
 
                 content = asm.content
+                print(asm.decan_variant.variant_name, module_name, asm.loops[0].maqao_loop_id)
                 file_name = '{}_{}_{}.csv'.format(asm.decan_variant.variant_name, module_name, asm.loops[0].maqao_loop_id) if \
                     asm.decan_variant is not None else '{}_{}.csv'.format(module_name, asm.loops[0].maqao_loop_id)
                 path = os.path.join(asm_dir_path, file_name)

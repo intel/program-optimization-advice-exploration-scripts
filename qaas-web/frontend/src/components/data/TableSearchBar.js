@@ -6,20 +6,30 @@ function TableSearchBar({ data, columns, onSearchSelect }) {
 
     const handleSearch = (searchText) => {
         const results = [];
+        let foundInAnyColumn = false;  // track if the searchText is found in any column
 
-        data.forEach(row => {
-            columns.forEach(column => {
+        columns.forEach(column => {
+            data.some(row => {
                 const value = typeof column.accessor === 'function' ? column.accessor(row) : row[column.accessor];
                 if (value && value.toString().toLowerCase().includes(searchText.toLowerCase())) {
+                    foundInAnyColumn = true;
                     if (!results.some(result => result.Header === column.Header)) {
                         results.push({ Header: column.Header, SearchText: searchText });
                     }
+                    return true;  // Stops match is found 
                 }
+                return false;  // Continue the loop
             });
         });
 
+        // If searchText is found in any column, add an aggregated result
+        if (foundInAnyColumn) {
+            results.push({ Header: 'All', SearchText: searchText });
+        }
+
         setSearchResults(results);
     };
+
 
     return (
         <AutoComplete

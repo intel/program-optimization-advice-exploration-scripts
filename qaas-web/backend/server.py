@@ -66,7 +66,7 @@ def create_app(config):
         db_name = os.path.basename(config['web']['SQLALCHEMY_DATABASE_URI'])
     #create all tables in the model
     ########################### http request ################################
-    @app.route('/api/get_all_timestamps', methods=['GET','POST'])
+    @app.route('/get_all_timestamps', methods=['GET','POST'])
     def get_all_timestamps():
         get_timestamp_table = db.metadata.tables[f'{db_name}.execution']
         query = db.session.query(get_timestamp_table.c.qaas_timestamp.distinct())
@@ -78,7 +78,7 @@ def create_app(config):
                         timestamps= time_list,
                         statusCode= 200,
                         )
-    @app.route('/api/stream')
+    @app.route('/stream')
     def stream():
 
         def get_data():
@@ -95,7 +95,7 @@ def create_app(config):
         return Response(get_data(), mimetype='text/event-stream')
 
 
-    @app.route('/api/ov_get_all_speedup_range', methods=['GET'])
+    @app.route('/ov_get_all_speedup_range', methods=['GET'])
     def ov_get_all_speedup_range():
 
         applications = db.session.query(Application).all()
@@ -125,13 +125,12 @@ def create_app(config):
             speed_up_data[times['min_compiler']].append({'speedup_r': speedup_r})
 
 
-        print(speed_up_data)
         return speed_up_data
 
 
 
 
-    @app.route('/api/get_application_table_info_ov', methods=['POST'])
+    @app.route('/get_application_table_info_ov', methods=['POST'])
     def get_application_table_info_ov():
         request_data = request.get_json()
         filters = filters = request_data.get('filters', []) 
@@ -170,6 +169,15 @@ def create_app(config):
                     value = MetricGetter(db.session, metric_type, execution).get_value()
                     application_data[metric_type] = value
 
+
+                #extract flags from compilation options flags
+                all_flags = application_data['compilation_flags']
+                application_data['o2_o3'] = is_flag_in_compiler('O2', all_flags) or is_flag_in_compiler('O3', all_flags)
+                application_data['icl_hsw'] = is_flag_in_compiler('icelake', all_flags) or is_flag_in_compiler('haswell', all_flags)
+                application_data['flto'] = is_flag_in_compiler('flto', all_flags)
+                application_data['fno_tree_vec'] = is_flag_in_compiler('fno-tree-vectorize', all_flags)
+
+
                 if len(run_data) > 0:
                     data.append(application_data)
 
@@ -178,7 +186,7 @@ def create_app(config):
                     statusCode= 200,
                     data=data,
                     )
-    @app.route('/api/get_application_table_info_lore', methods=['GET'])
+    @app.route('/get_application_table_info_lore', methods=['GET'])
     def get_application_table_info_lore():
         data = []
         applications = db.session.query(Application).all()
@@ -226,7 +234,7 @@ def create_app(config):
                     )
 
 
-    @app.route('/api/compute_speed_up_data_using_baseline_ov', methods=['POST'])
+    @app.route('/compute_speed_up_data_using_baseline_ov', methods=['POST'])
     def compute_speed_up_data_using_baseline_ov():
         data = request.get_json()
         selectedRows = data['selectedRows']
@@ -258,7 +266,7 @@ def create_app(config):
 
 
 
-    @app.route('/api/run_comparative_view_for_selected_runs', methods=['POST'])
+    @app.route('/run_comparative_view_for_selected_runs', methods=['POST'])
     def run_comparative_view_for_selected_runs():
         selected_runs = request.get_json()
         data_folder_list = []
@@ -278,7 +286,7 @@ def create_app(config):
                     message= "Success",
                     statusCode= 200,
                     )
-    @app.route('/api/create_new_timestamp', methods=['GET','POST'])
+    @app.route('/create_new_timestamp', methods=['GET','POST'])
     def create_new_timestamp():
         #real user input data  unused for now
         qaas_request = request.get_json()
@@ -319,7 +327,7 @@ def create_app(config):
                     )
 
 
-    @app.route('/api/get_html_by_timestamp', methods=['GET','POST'])
+    @app.route('/get_html_by_timestamp', methods=['GET','POST'])
     def get_html_by_timestamp():
         #place to put files
         query_time = request.get_json()['timestamp'] 
@@ -344,7 +352,7 @@ def create_app(config):
 
 
 
-    @app.route('/api/get_data_table_rows', methods=['GET','POST'])
+    @app.route('/get_data_table_rows', methods=['GET','POST'])
     def get_data_table_rows():
         #get application, machine, and dataset
         #dataset and application in config.lua

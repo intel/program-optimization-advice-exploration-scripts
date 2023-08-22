@@ -3,11 +3,11 @@ import Histogram from "./Histogram";
 import { Modal } from 'antd';
 import axios from 'axios';
 import { RANGES } from "../Constants";
-export default function AllSpeedupRangeGraph() {
+import { DEFAULT_COLOR_SCHEME } from "../Constants";
+export default function AllSpeedupRangeGraph({ application_table_data }) {
     const [data, setData] = useState(null);
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const colors = ['#4D4D4D', '#5DA5DA', '#FAA43A', '#60BD68', '#F17CB0', '#B2912F', '#B276B2', '#DECF3F', '#F15854'];
 
     const fetchData = () => {
         setLoading(true);
@@ -58,7 +58,7 @@ export default function AllSpeedupRangeGraph() {
             label: `${compilerName}`,
             data: generateDataForCompiler(data, compilerName),
             fill: false,
-            backgroundColor: colors[index % colors.length]
+            backgroundColor: DEFAULT_COLOR_SCHEME[index % DEFAULT_COLOR_SCHEME.length]
         })),
         xAxis: 'Range',
         yAxis: 'Count Speedup R',
