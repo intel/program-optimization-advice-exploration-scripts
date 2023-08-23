@@ -853,10 +853,10 @@ def get_function_by_maqao_id_module(current_execution, maqao_id, module):
             if f.maqao_function_id == maqao_id and os.path.basename(f.module.name) == module:
                 return f
     return res
-def get_loop_by_maqao_id(current_execution, maqao_id):
+def get_loop_by_maqao_id_module(current_execution, maqao_id, module):
     res = None
     for src_loop in current_execution.src_loops:
         for l in src_loop.loops:
-            if l.maqao_loop_id == maqao_id:
+            if l.maqao_loop_id == maqao_id and l.function and os.path.basename(l.function.module.name) == module:
                 return l
     return res
