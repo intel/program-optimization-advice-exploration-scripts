@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
 
     install_backend_dependencies(backend_dir, apache_dir)
-    install_frontend_dependencies(frontend_dir, apache_dir)
+    # install_frontend_dependencies(frontend_dir, apache_dir)
 
     
 

@@ -55,14 +55,17 @@ def parse_experiment_name(experiment_name):
         return None
 
 def parse_file_name(file_name):
-    match = re.match(r'^(?:(fct)_)?(?:([A-Z0-9]+)_)?(.*?_(\d+))(?:_cqa)?(?:_text)?(?:\.csv)?(?:\.txt)?(?:\.lua)?$', file_name)
+    match = re.match(r'^(?:(fct|src)_)?(?:([A-Z0-9]+)_)?(.*?_(\d+))(?:_cqa)?(?:_text)?(?:\.csv)?(?:\.txt)?(?:\.lua)?$', file_name)
     if match:
-        fct = match.group(1)
+        prefix = match.group(1)
         variant = match.group(2)
         module_and_id = match.group(3)
         # Separate module and id from the combined string
         module, identifier = module_and_id.rsplit('_', 1)
-        type = 1 if fct is not None else 0
+        if prefix == "fct":
+            type = 1
+        else:
+            type = 0
         return type, variant, module, identifier
     else:
         return None
@@ -132,10 +135,6 @@ def read_file(path, delimiter=';'):
     df = pd.read_csv(path, sep=delimiter, keep_default_na=False, index_col=False, skipinitialspace=True, na_values=[''])
     df = df.replace({np.nan: None})
     return df
-
-def get_value(dic, key, type):
-    value = dic.get(key, None)
-    return type(value) if value is not None else None
 
 def write_file(df, path, delimiter=';'):
     df.to_csv(path, sep=delimiter, index=False, header=True)

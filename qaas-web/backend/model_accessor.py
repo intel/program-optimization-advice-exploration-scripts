@@ -340,6 +340,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
         current_execution.application = current_application
         qaas_database.add_to_data_list(current_execution)
+        
+      
         # ##hwsystem table
         current_hw = HwSystem(self)
         current_execution.hwsystem = current_hw
@@ -390,6 +392,12 @@ class OneViewModelInitializer(OneviewModelAccessor):
         qaas_database.add_to_data_list(function_collection)
         qaas_database.add_to_data_list(loop_collection)
 
+        ##### decan collection 
+        current_decan_collection = DecanCollection()
+        current_decan_collection.accept(self)
+        qaas_database.add_to_data_list(current_decan_collection)
+
+      
         ###lprof easure ments
         lprof_measurement_collection = LprofMeasurementCollection(  block_collection, function_collection, loop_collection)
         lprof_measurement_collection.accept(self)
@@ -417,15 +425,12 @@ class OneViewModelInitializer(OneviewModelAccessor):
         source_collection.accept(self)
         qaas_database.add_to_data_list(source_collection)
 
-        ##### decan collection 
-        current_decan_collection = DecanCollection()
-        current_decan_collection.accept(self)
-        qaas_database.add_to_data_list(current_decan_collection)
-
         ##### vprof collection 
         current_vprof_collection = VprofCollection()
         current_vprof_collection.accept(self)
         qaas_database.add_to_data_list(current_vprof_collection)
+        
+       
         
 
     def visitEnvironment(self, environment):
@@ -538,15 +543,17 @@ class OneViewModelInitializer(OneviewModelAccessor):
         decan_data = read_file(decan_path).to_dict(orient='records')
         for dic in decan_data:
             current_decan = DecanRun(self)
-            current_decan.bucket = int(dic.get('bucket', 0))
-            current_decan.frequency = float(dic.get('frequency', 0.0))
+            current_decan.bucket = int(dic.get('bucket', None))
+            current_decan.frequency = float(dic.get('frequency', None))
             current_decan.type = dic.get('type', None)
             current_decan.mpi_process = dic.get('mpi_process', None)
             current_decan.thread = dic.get('thread', None)
+            module = dic.get('module', None)
 
             current_decan.add_metric(self, dic.get('metric', None), float(dic.get('value', 0.0)), dic.get('value_type', None))
 
-            current_loop = get_loop_by_maqao_id(self.get_current_execution(), int(dic.get('id', 0)))
+            
+            current_loop = get_loop_by_maqao_id_module(self.get_current_execution(), int(dic.get('id', None)), module)
             current_decan.loop = current_loop
             current_variant = DecanVariant.get_or_create_by_name(dic.get('variant', None), self)
             current_decan.decan_variant = current_variant 
@@ -565,21 +572,21 @@ class OneViewModelInitializer(OneviewModelAccessor):
             dic = delete_nan_from_dict(dic)
             current_vprof = VprofMeasure(self)
             
-            current_vprof.instance_count = get_value(dic, 'instance_count', int)
-            current_vprof.invalid_count = get_value(dic, 'invalid_count', int)
-            current_vprof.iteration_total = get_value(dic, 'iteration_total', float)
-            current_vprof.iteration_min = get_value(dic, 'iteration_min', float)
-            current_vprof.iteration_max = get_value(dic, 'iteration_max', float)
-            current_vprof.iteration_mean = get_value(dic, 'iteration_mean', float)
-            current_vprof.cycle_total = get_value(dic, 'cycle_total', float)
-            current_vprof.cycle_min = get_value(dic, 'cycle_min', float)
-            current_vprof.cycle_max = get_value(dic, 'cycle_max', float)
-            current_vprof.cycle_mean = get_value(dic, 'cycle_mean', float)
-            current_vprof.cycles_per_iteration_min = get_value(dic, 'cycles_per_iteration_min', float)
-            current_vprof.cycles_per_iteration_max = get_value(dic, 'cycles_per_iteration_max', float)
-            current_vprof.cycles_per_iteration_mean = get_value(dic, 'cycles_per_iteration_mean', float)
+            current_vprof.instance_count = dic.get('instance_count', None) 
+            current_vprof.invalid_count = dic.get('invalid_count', None)  
+            current_vprof.iteration_total = dic.get('iteration_total', None) 
+            current_vprof.iteration_min = dic.get('iteration_min', None) 
+            current_vprof.iteration_max = dic.get('iteration_max', None) 
+            current_vprof.iteration_mean = dic.get('iteration_mean', None)  
+            current_vprof.cycle_total = dic.get('cycle_total', None) 
+            current_vprof.cycle_min = dic.get('cycle_min', None) 
+            current_vprof.cycle_max = dic.get('cycle_max', None) 
+            current_vprof.cycle_mean = dic.get('cycle_mean', None) 
+            current_vprof.cycles_per_iteration_min = dic.get('cycles_per_iteration_min', None) 
+            current_vprof.cycles_per_iteration_max = dic.get('cycles_per_iteration_max', None) 
+            current_vprof.cycles_per_iteration_mean = dic.get('cycles_per_iteration_mean', None)  
 
-            current_loop = get_loop_by_maqao_id(self.get_current_execution(), get_value(dic, 'loop_id', int))
+            current_loop = get_loop_by_maqao_id_module(self.get_current_execution(),  dic.get('loop_id', None),  dic.get('module', None) )
             current_vprof.loop = current_loop
 
             for bucket_range in self.vprof_bucket_range:
@@ -742,7 +749,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 current_loop.tid = tid 
 
                 maqao_function_id = d_dict['function_id']
-                current_function = get_function_by_maqao_id(self.get_current_execution(), maqao_function_id)  
+                module = d_dict['module']
+                current_function = get_function_by_maqao_id_module(self.get_current_execution(), maqao_function_id, module)  
                 current_loop.src_loop = src_loop
                 current_loop.function = current_function
                 loop_collection.add_obj(current_loop)
@@ -860,7 +868,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         for cqa_path in cqa_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(cqa_path))
 
-            current_loop = get_loop_by_maqao_id(self.get_current_execution(), int(identifier))
+            current_loop = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
 
             cqa_df = read_file(cqa_path)
             cqa_measures = []
@@ -917,10 +925,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
             asm_obj.content = asm_content
             asm_obj.hash = asm_hash
             asm_obj.decan_variant = DecanVariant.get_or_create_by_name(variant, self)
-
-
+           
             if type == 0:
-                loop_obj = get_loop_by_maqao_id(self.get_current_execution(), int(identifier))
+                loop_obj = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
+                print(int(identifier), loop_obj.table_id)
                 loop_obj.asm = asm_obj
             else:
                 function_obj = get_function_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
@@ -934,7 +942,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         group_paths = get_files_with_extension(group_dir_path,['.csv'])
         for group_path in group_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(group_path))
-            loop_obj = get_loop_by_maqao_id(self.get_current_execution(), int(identifier))
+            loop_obj = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
             group_data = get_data_from_csv(group_path)
 
             if group_data is not None:
@@ -971,7 +979,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
             source_obj.content = compress_file(source_path)
             source_obj.hash = get_file_sha256(source_path)
             if type == 0:
-                loop_obj = get_loop_by_maqao_id(self.get_current_execution(), int(identifier))
+                loop_obj = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
                 src_loop_obj = loop_obj.src_loop
                 src_loop_obj.source = source_obj
             else:
@@ -1471,7 +1479,8 @@ class OneViewModelExporter(OneviewModelAccessor):
                 module_name = os.path.basename(asm.loops[0].function.module.name)
 
                 content = asm.content
-                print(asm.decan_variant.variant_name, module_name, asm.loops[0].maqao_loop_id)
+                if int(asm.loops[0].maqao_loop_id) == 682:
+                    print("missing variabant name",asm.decan_variant.variant_name, module_name, asm.loops[0].maqao_loop_id)
                 file_name = '{}_{}_{}.csv'.format(asm.decan_variant.variant_name, module_name, asm.loops[0].maqao_loop_id) if \
                     asm.decan_variant is not None else '{}_{}.csv'.format(module_name, asm.loops[0].maqao_loop_id)
                 path = os.path.join(asm_dir_path, file_name)
