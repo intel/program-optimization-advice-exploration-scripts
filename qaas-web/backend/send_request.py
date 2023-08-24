@@ -22,11 +22,20 @@ CONFIG_PATH=os.path.join(SCRIPT_DIR, "..", "config", "qaas-web.conf")
 #get the config
 config = configparser.ConfigParser()
 config.read(CONFIG_PATH)
-output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-80-123"
-ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
+output_ov_dir = "/localdisk/yue/expR2"
+# ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
+qaas_timestamp = os.path.basename(output_ov_dir)
+
+
+
+workload_name = f"workload_name"
+workload_version_name = f"version_name"
+workload_program_name = f"test_program_name"
+workload_program_commit_id = f"test###id"
+populate_database(output_ov_dir, qaas_timestamp, workload_version_name, workload_name, workload_version_name, workload_program_name, workload_program_commit_id)
 
 #test lore read
-migrate_database()
+# migrate_database()
 #test ov data read and write
 # for version in ['opt','orig']:
 #     ov_version_output_dir = os.path.join(ov_output_dir, version)
