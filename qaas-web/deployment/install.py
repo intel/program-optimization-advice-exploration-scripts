@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 
 def install_packages():
     try:
+        http_proxy, https_proxy = get_proxy()
+        set_apt_proxy(http_proxy, https_proxy)
         os.system("sudo apt-get update")
         #assume they already have these
         os.system("sudo apt-get install -y apache2")
@@ -16,8 +18,8 @@ def install_packages():
         os.system("sudo apt-get install -y python3-pip")
         os.system("sudo apt-get install -y libmysqlclient-dev")
         os.system("sudo apt-get install -y libmariadbclient-dev")
-        os.system('sudo apt-get install curl')
-        os.system("curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash -")
+        os.system('sudo apt-get install -y curl')
+        os.system("curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -")
 
         os.system("sudo apt-get install -y nodejs")
         os.system("sudo apt-get install -y git libapache2-mod-wsgi-py3")
@@ -29,10 +31,21 @@ def install_packages():
     except Exception as e:
         print("Error installing packages:", e)
         sys.exit(1)
-def set_node_proxy(proxyserver, port):
+
+def set_apt_proxy(http_proxy, https_proxy):
     try:
-        os.system(f'npm config set proxy http://{proxyserver}:{port}')
-        os.system(f'npm config set https-proxy http://{proxyserver}:{port}')
+        os.system(f'echo \'Acquire::http::Proxy "{http_proxy}";\' | sudo tee -a /etc/apt/apt.conf')
+        os.system(f'echo \'Acquire::https::Proxy "{https_proxy}";\' | sudo tee -a /etc/apt/apt.conf')
+        
+        print("APT proxy configuration set successfully.")
+    except Exception as e:
+        print("Error setting APT proxy configuration:", e)
+
+def set_node_proxy(http_proxy, https_proxy):
+    try:
+        os.system(f'npm config set proxy {http_proxy}')
+        os.system(f'npm config set https-proxy {https_proxy}')
+        os.system(f'npm config set registry https://registry.npmjs.org/')
         print("Node.js/npm proxy configuration set successfully.")
     except Exception as e:
         print("Error setting Node.js/npm proxy configuration:", e)
@@ -40,6 +53,10 @@ def set_proxy(proxy_server, proxy_port):
     # Set environment variables for the proxy
     os.environ['http_proxy'] = f'http://{proxy_server}:{proxy_port}'
     os.environ['https_proxy'] = f'http://{proxy_server}:{proxy_port}'
+
+def get_proxy():
+    # Get environment variables for the proxy
+    return os.environ.get('http_proxy'), os.environ.get('https_proxy')
 
 # def set_git_proxy(proxyserver, port):
 #     try:
@@ -209,8 +226,7 @@ def delete_index_html(apache_dir):
 if __name__ == "__main__":
     script_dir=os.path.dirname(os.path.realpath(__file__))
     apache_dir = f"/var/www/html"
-
-
+   
     # git_repo_url = "git@gitlab.com:davidwong/qaas.git"
     # git_branch = "ov_deployment"
     target_qaas_dir = os.path.join(script_dir, '..',)
@@ -228,40 +244,42 @@ if __name__ == "__main__":
     create_directory(output_dir)
     maqao_package_dir = os.path.join(target_qaas_dir, 'maqao_package')
 
-    # install_packages()
+    install_packages()
 
+    http_proxy, https_proxy = get_proxy()
+    set_node_proxy(http_proxy, https_proxy)
 
 
     install_backend_dependencies(backend_dir, apache_dir)
-    # install_frontend_dependencies(frontend_dir, apache_dir)
+    install_frontend_dependencies(frontend_dir, apache_dir)
 
     
 
     # # # #also copy the config folder
-    # os.system(f"sudo cp -r {config_dir} {apache_dir}")
+    os.system(f"sudo cp -r {config_dir} {apache_dir}")
 
     # # # #also copy maqao package to output folder
-    # os.system(f"sudo cp -r {os.path.join(maqao_package_dir, 'lib')} {os.path.join(maqao_package_dir, 'bin')} {output_dir}")
+    os.system(f"sudo cp -r {os.path.join(maqao_package_dir, 'lib')} {os.path.join(maqao_package_dir, 'bin')} {output_dir}")
  
 
     # # # #set the environment path
-    # os.environ["PATH"] = f"{os.path.join(output_dir, 'bin')}" + os.pathsep + os.environ["PATH"]
-    # os.environ["LD_LIBRARY_PATH"] = f"{os.path.join(output_dir, 'lib')}"
+    os.environ["PATH"] = f"{os.path.join(output_dir, 'bin')}" + os.pathsep + os.environ["PATH"]
+    os.environ["LD_LIBRARY_PATH"] = f"{os.path.join(output_dir, 'lib')}"
 
 
     # # # #permission for the www-data to wrtie to apache dir
  
-    # create_apache_config( apache_frontend_dir, apache_backend_dir, apache_dir)
+    create_apache_config( apache_frontend_dir, apache_backend_dir, apache_dir)
 
     # # # #give permissions
-    # os.system(f"sudo a2enmod wsgi")
-    # os.system(f"sudo a2enmod rewrite")
-    # give_permission(output_dir, 'www-data')
+    os.system(f"sudo a2enmod wsgi")
+    os.system(f"sudo a2enmod rewrite")
+    give_permission(output_dir, 'www-data')
 
     # # #setup database
-    # database_url = 'mysql://qaas:qaas-password@localhost/test'
+    database_url = 'mysql://qaas:qaas-password@localhost/test'
 
-    # setup_database(database_url)
+    setup_database(database_url)
 
     # # #delete default index html
-    # delete_index_html(apache_dir)
+    delete_index_html(apache_dir)
