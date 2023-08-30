@@ -57,5 +57,6 @@ USER qaas
 WORKDIR /app/runner
 ENV USER=qaas
 ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install
+
 #USER root
 #ENTRYPOINT /opt/intel/sep/sepdk/src/insmod-sep -g docker && su runner && /opt/intel/sep/sepdk/src/rmmod-sep
