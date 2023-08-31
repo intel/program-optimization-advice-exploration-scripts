@@ -6,7 +6,8 @@ import SelectedRunsBag from './components/SelectedRunBag';
 function App() {
     return (
         <Routes>
-            <Route path="/" element={<MainPage />} />
+            <Route path="/oneview" element={<MainPage />} />
+
             <Route path="/generated" element={<GeneratedPage />} />
 
         </Routes>
