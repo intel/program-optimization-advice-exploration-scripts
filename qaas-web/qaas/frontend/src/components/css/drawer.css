@@ -1,0 +1,39 @@
+.level {
+    max-height: 10px;
+    background-color: transparent;
+    font-size: 10px;
+
+}
+
+.drawer .level1 {
+    padding-left: 0;
+}
+
+.drawer .level2 {
+    padding-left: 10px;
+}
+
+.drawer .level3 {
+    padding-left: 20px;
+}
+
+.level.highlight-color {
+    background-color: #277383;
+    color: #F0F0F0;
+
+}
+
+.level.hover-color:hover {
+    background-color: #ccc;
+    color: #F0F0F0;
+
+}
+
+.level.highlight-color.hover-color:hover {
+    background-color: #1a4a5a;
+
+}
+
+.drawer-width {
+    width: 280px;
+}
