@@ -111,6 +111,10 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
       
         os.system(f"sudo rm -rf {apache_html_dir}/dist")
         os.system(f"sudo cp -r {frontend_dir}/dist {apache_html_dir}/") 
+
+        os.system(f"sudo cp -r {frontend_dir}/../common {apache_html_dir}/") 
+
+
         print("Frontend dependencies installed successfully.")
 
         
@@ -121,35 +125,44 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
 
 def create_apache_config(apache_frontend_dir, apache_backend_dir, apache_dir):
     otter_dir = os.path.join(apache_dir, 'private', 'otter_html')
+    landing_page_dir = f"{apache_dir}/common"
+
     APACHE_CONFIG = f"""
+#landing page
 <VirtualHost *:80>
-        ServerAdmin webmaster@localhost
-        DocumentRoot {apache_frontend_dir}
-        Alias /otter_html {otter_dir}
-        <Directory {otter_dir}>
-            Options Indexes FollowSymLinks
-            AllowOverride None
-            Require all granted
-        </Directory>
-        # Handle actual resources
-        <Directory {apache_frontend_dir}>
-           Options -Indexes +FollowSymLinks
-           AllowOverride All
-           Require all granted
-           FallbackResource /index.html
-       </Directory>
+    ServerAdmin webmaster@localhost
+    DocumentRoot {apache_frontend_dir}
 
-           ErrorLog /var/log/apache2/error.log
-       CustomLog /var/log/apache2/access.log combined
+    # Redirect to the landing page by default
+    RedirectMatch ^/$ /landing
 
-        WSGIDaemonProcess flaskapp user=www-data group=www-data threads=5 
-        WSGIScriptAlias /api {apache_backend_dir}/server.wsgi
+    Alias /landing {apache_dir}/common/landing.html
+    Alias /otter_html {otter_dir}
 
-        <Directory {apache_backend_dir}>
-            WSGIProcessGroup flaskapp
-            WSGIApplicationGroup %{{GLOBAL}}
-            Require all granted
-        </Directory>
+    <Directory {otter_dir}>
+        Options Indexes FollowSymLinks
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    <Directory {apache_frontend_dir}>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+        FallbackResource /index.html
+    </Directory>
+
+    ErrorLog /var/log/apache2/error.log
+    CustomLog /var/log/apache2/access.log combined
+
+    WSGIDaemonProcess flaskapp user=www-data group=www-data threads=5
+    WSGIScriptAlias /api {apache_backend_dir}/server.wsgi
+
+    <Directory {apache_backend_dir}>
+        WSGIProcessGroup flaskapp
+        WSGIApplicationGroup %{{GLOBAL}}
+        Require all granted
+    </Directory>
 </VirtualHost>
 """
     try:
@@ -244,7 +257,7 @@ if __name__ == "__main__":
     create_directory(output_dir)
     maqao_package_dir = os.path.join(target_qaas_dir, 'maqao_package')
 
-    install_packages()
+    # install_packages()
 
     http_proxy, https_proxy = get_proxy()
     set_node_proxy(http_proxy, https_proxy)
