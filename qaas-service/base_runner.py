@@ -45,16 +45,16 @@ class BaseRunner(ABC):
     def prepare(self, binary_path, data_path):
         os.makedirs(self.run_dir, exist_ok=True)
         try:
-            shutil.copy(binary_path, self.run_dir)
+            os.symlink(binary_path, os.path.join(self.run_dir, os.path.basename(binary_path)))
         except:
             pass
         try:
             if os.path.isfile(data_path):
-                shutil.copy(data_path, self.run_dir)
+                os.symlink(data_path, os.path.join(self.run_dir, data_path))
             else:
                 assert os.path.isdir(data_path)
                 for file in os.listdir(data_path): 
-                    shutil.copy(os.path.join(data_path, file), self.run_dir, follow_symlinks=False)
+                    os.symlink(os.path.join(data_path, file), os.path.join(self.run_dir, file))
         except:
             pass
 
