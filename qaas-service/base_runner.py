@@ -45,7 +45,7 @@ class BaseRunner(ABC):
     def prepare(self, binary_path, data_path):
         os.makedirs(self.run_dir, exist_ok=True)
         try:
-            shutil.copy(binary_path, self.run_dir)
+            os.symlink(binary_path, os.path.join(self.run_dir, os.path.basename(binary_path)))
         except:
             pass
         try:
