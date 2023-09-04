@@ -276,14 +276,14 @@ def get_build_dir(src_dir, relative_build_dir):
 
 def build_binary(user_target, build_dir, target_location, env, output_dir, output_name):
     cmake_target = user_target if user_target else 'all'
-    cmake_build_cmd=f'time cmake --build {build_dir} --target {cmake_target} > {build_dir}/qaas_build.log'
+    cmake_build_cmd=f'/usr/bin/time -p cmake --build {build_dir} --target {cmake_target} >> {build_dir}/qaas_build.log 2>&1'
     print(cmake_build_cmd)
     subprocess.run(cmake_build_cmd, shell=True, env=env)
     built_bin = os.path.join(build_dir, target_location)
     out_bin = os.path.join(output_dir, output_name)
     print(f"Copying executable: {built_bin} -> {out_bin}")
     os.makedirs(output_dir, exist_ok=True)
-    shutil.copy2(built_bin, out_bin)
+    os.symlink(built_bin, out_bin)
     print(f"Binary executable saved to: {out_bin}")
 
 
