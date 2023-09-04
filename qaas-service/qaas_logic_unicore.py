@@ -74,10 +74,14 @@ def compute_unicore_speedups(t_unicore, orig_time, i_time):
 
     for compiler in t_unicore:
         for row  in t_unicore[compiler]:
-            # Compare to user provided compiler and flags
-            row.append(float(orig_time)/float(row[i_time]))
-            # Compare to
-            row.append(float(t_unicore[list(t_unicore.keys())[0]][0][i_time])/float(row[i_time]))
+            if row[i_time] != None:
+                # Compare to user provided compiler and flags
+                row.append(float(orig_time)/float(row[i_time]))
+                row.append(float(t_unicore[list(t_unicore.keys())[0]][0][i_time])/float(row[i_time]))
+            else:
+                # Compare to
+                row.append(0.0)
+                row.append(0.0)
 
 def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir):
     '''Measure Application-wide execution times'''
@@ -113,7 +117,7 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
         # Add the local table to dict
         qaas_table[compiler] = t_compiler
         # Find best option for current compiler
-        time_values = np.array(time_values)
+        time_values = np.array([x if x != None else 10000  for x in time_values])
         qaas_min_val = time_values.min()
         qaas_best_opt[compiler] = time_values.argmin()
         qaas_min_opt =  qaas_best_opt[compiler] + 1  # option indexing starts at 1.
