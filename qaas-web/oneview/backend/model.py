@@ -395,13 +395,12 @@ class Function(QaaSBase):
     # hierarchy = Column(JSON, nullable = True)
     hierarchy = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
 
-    fk_asm_id = Column(Integer, ForeignKey('asm.table_id'))
     fk_module_id = Column(Integer, ForeignKey('module.table_id'))
     fk_compiler_id = Column(Integer, ForeignKey('compiler.table_id'))
     fk_src_function_id = Column(Integer, ForeignKey('src_function.table_id'))
 
     loops = relationship("Loop", back_populates="function")
-    asm  = relationship("Asm", back_populates="functions")
+    asms  = relationship("Asm", back_populates="function")
     module  = relationship("Module", back_populates="functions")
     lprof_measurements  = relationship("LprofMeasurement", back_populates="function")
     compiler = relationship("Compiler", back_populates="functions")
@@ -433,12 +432,10 @@ class Loop(QaaSBase):
 
     fk_function_id = Column(Integer,ForeignKey('function.table_id'))
     fk_src_loop_id = Column(Integer, ForeignKey('src_loop.table_id'))
-    fk_asm_id = Column(Integer, ForeignKey('asm.table_id'))
     fk_compiler_id = Column(Integer, ForeignKey('compiler.table_id'))
 
     function  = relationship("Function", back_populates="loops")
     src_loop  = relationship("SrcLoop", back_populates="loops")
-    asm  = relationship("Asm", back_populates="loops")
     compiler = relationship("Compiler", back_populates="loops")
     lprof_measurements  = relationship("LprofMeasurement", back_populates="loop")
     groups = relationship("Group", back_populates="loop")
@@ -446,6 +443,7 @@ class Loop(QaaSBase):
     lore_loop_measures = relationship("LoreLoopMeasure", back_populates="loop")
     vprof_measures = relationship("VprofMeasure", back_populates="loop")
     decan_runs = relationship("DecanRun", back_populates="loop")
+    asms  = relationship("Asm", back_populates="loop")
 
     def __init__(self, initializer):
         super().__init__(initializer.session)
@@ -634,10 +632,13 @@ class Asm(QaaSBase):
     content = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
     hash = Column(String(64), nullable = True)
     fk_decan_variant_id = Column(Integer, ForeignKey('decan_variant.table_id'))
+    fk_loop_id = Column(Integer, ForeignKey('loop.table_id'))
+    fk_function_id = Column(Integer, ForeignKey('function.table_id'))
 
-    loops = relationship("Loop", back_populates="asm")
-    functions = relationship("Function", back_populates="asm")
     decan_variant = relationship("DecanVariant", back_populates="asms")
+    function = relationship("Function", back_populates="asms")
+    loop = relationship("Loop", back_populates="asms")
+
     def __init__(self, initializer):
         super().__init__(initializer.session)
     
@@ -860,3 +861,4 @@ def get_loop_by_maqao_id_module(current_execution, maqao_id, module):
             if l.maqao_loop_id == maqao_id and l.function and os.path.basename(l.function.module.name) == module:
                 return l
     return res
+

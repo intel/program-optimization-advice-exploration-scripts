@@ -7,7 +7,6 @@ import configparser
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
 
-
 def main():
     # Define the argument parser
     parser = argparse.ArgumentParser(description='Run QAAS Script with Parameters')
@@ -37,7 +36,7 @@ def main():
     sys.path.append(qaas_dir)
     # Get the directory of the script
     # Calculate the path to the backend directory
-    qaas_web_backend_dir = os.path.join(script_dir, '..', 'backend')
+    qaas_web_backend_dir = os.path.join(script_dir, '..', '..','qaas-web','oneview','backend')
     # Add the backend directory to sys.path
     sys.path.append(qaas_web_backend_dir)
 
@@ -86,7 +85,7 @@ if __name__ == "__main__":
         main()
     else:
          # Calculate the path to the backend directory
-        qaas_web_backend_dir = os.path.join(script_dir, '..', 'backend')
+        qaas_web_backend_dir = os.path.join(script_dir, '..', '..','qaas-web','oneview','backend')
         # Add the backend directory to sys.path
         sys.path.append(qaas_web_backend_dir)
 

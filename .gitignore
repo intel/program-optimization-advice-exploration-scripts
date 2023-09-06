@@ -3,8 +3,11 @@
 .vscode
 *.swp
 container/pocc*
-qaas-web/backend/venv
-qaas-web/frontend/public/otter_html
-qaas-web/frontend/node_modules/
-qaas-web/frontend/package-lock.json
-qaas-web/frontend/dist/
+qaas-web/oneview/backend/venv
+qaas-web/oneview/frontend/node_modules/
+qaas-web/oneview/frontend/package-lock.json
+qaas-web/oneview/frontend/dist/
+qaas-web/qaas/backend/venv
+qaas-web/qaas/frontend/node_modules/
+qaas-web/qaas/frontend/package-lock.json
+qaas-web/qaas/frontend/dist/
