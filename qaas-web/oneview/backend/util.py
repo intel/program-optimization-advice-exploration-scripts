@@ -18,7 +18,7 @@ level_map = {0: 'Single', 1: 'Innermost', 2: 'InBetween', 3: 'Outermost'}
 reverse_level_map = {v: k for k, v in level_map.items()}
 
 SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH=os.path.join(SCRIPT_DIR, "..", "config", "qaas-web.conf")
+CONFIG_PATH=os.path.join(SCRIPT_DIR, "..", '..',"config", "qaas-web.conf")
 
 def safe_division(n, d):
     if n is None or d is None:
@@ -525,11 +525,11 @@ def get_all_cqa_for_run(functions, loops):
 def get_all_asm_for_run(functions, loops):
     res = []
     for function in functions:
-        if function.asm:
-            res.append(function.asm)
+        if function.asms:
+            res.extend(function.asms)
     for loop in loops:
-        if loop.asm:
-            res.append(loop.asm)
+        if loop.asms:
+            res.extend(loop.asms)
     return res
 
 def get_all_source_for_run(execution):

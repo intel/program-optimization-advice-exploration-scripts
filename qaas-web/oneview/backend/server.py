@@ -422,7 +422,8 @@ dir;{run_id};env_dir;{output_data_dir}/shared/run_0;
 """
     if os.path.exists(f'{output_data_dir}/shared/run_0/decan.csv'):
         higher_level_content = f"""file;{run_id};decan;{output_data_dir}/shared/run_0/decan.csv;
-        file;{run_id};vprof;{output_data_dir}/shared/run_0/vprof.csv;"""
+        file;{run_id};vprof;{output_data_dir}/shared/run_0/vprof.csv;
+        dir;{run_id};asm_mapping_dir;{output_data_dir}/tools/decan/run_{run_id}/others;"""
         content += higher_level_content
 
     write_string_to_file(manifest_path, content)

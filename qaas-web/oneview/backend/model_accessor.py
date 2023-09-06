@@ -304,7 +304,8 @@ class OneviewModelAccessor(ModelAccessor):
         return cqa_dir_path, self.expert_loop_path
     def get_asm_path(self):
         asm_dir_path = os.path.join(self.static_dir_path, "asm")
-        return asm_dir_path
+        asm_mapping_dir = os.path.join(self.qaas_data_dir, "tools", "decan", self.get_run_name(), "others")
+        return asm_dir_path, asm_mapping_dir
     def get_group_path(self):
         group_dir_path = os.path.join(self.static_dir_path, "groups")
         return group_dir_path
@@ -914,7 +915,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
 
     def visitAsmCollection(self, asm_collection):
-        asm_dir_path = self.get_asm_path()
+        asm_dir_path,_ = self.get_asm_path()
         asm_paths = get_files_with_extension(asm_dir_path, ['.csv'])
         for asm_path in asm_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(asm_path))
@@ -928,11 +929,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
            
             if type == 0:
                 loop_obj = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
-                print(int(identifier), loop_obj.table_id)
-                loop_obj.asm = asm_obj
+                asm_obj.loop = loop_obj
             else:
                 function_obj = get_function_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
-                function_obj.asm = asm_obj
+                asm_obj.function = function_obj
 
             asm_collection.add_obj(asm_obj)
             self.session.flush()
@@ -1469,27 +1469,28 @@ class OneViewModelExporter(OneviewModelAccessor):
 
         
     def visitAsmCollection(self, asm_collection):
-        asm_dir_path = self.get_asm_path()
+        asm_dir_path, asm_mapping_path = self.get_asm_path()
         os.makedirs(asm_dir_path, exist_ok=True)
+        os.makedirs(asm_mapping_path, exist_ok=True)
+
         for asm in asm_collection.get_objs():
 
             #check if asm is function or loop
-            if asm.loops: 
+            if asm.loop: 
 
-                module_name = os.path.basename(asm.loops[0].function.module.name)
+                module_name = os.path.basename(asm.loop.function.module.name)
 
                 content = asm.content
-                if int(asm.loops[0].maqao_loop_id) == 682:
-                    print("missing variabant name",asm.decan_variant.variant_name, module_name, asm.loops[0].maqao_loop_id)
-                file_name = '{}_{}_{}.csv'.format(asm.decan_variant.variant_name, module_name, asm.loops[0].maqao_loop_id) if \
-                    asm.decan_variant is not None else '{}_{}.csv'.format(module_name, asm.loops[0].maqao_loop_id)
+
+                file_name = '{}_{}_{}.csv'.format(asm.decan_variant.variant_name, module_name, asm.loop.maqao_loop_id) if \
+                    asm.decan_variant is not None else '{}_{}.csv'.format(module_name, asm.loop.maqao_loop_id)
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:
                     f.write(decompress_file(content))
             else:
-                module_name = os.path.basename(asm.functions[0].module.name)
+                module_name = os.path.basename(asm.function.module.name)
                 content = asm.content
-                file_name = 'fct_{}_{}.csv'.format(module_name, asm.functions[0].maqao_function_id)
+                file_name = 'fct_{}_{}.csv'.format(module_name, asm.function.maqao_function_id)
 
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:

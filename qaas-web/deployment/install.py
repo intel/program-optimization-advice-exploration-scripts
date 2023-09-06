@@ -58,61 +58,38 @@ def get_proxy():
     # Get environment variables for the proxy
     return os.environ.get('http_proxy'), os.environ.get('https_proxy')
 
-# def set_git_proxy(proxyserver, port):
-#     try:
-#         os.system(f'git config --global http.proxy http://{proxyserver}:{port}')
-#         os.system(f'git config --global https.proxy http://{proxyserver}:{port}')
-#         print("Git proxy configuration set successfully.")
-#     except Exception as e:
-#         print("Error setting Git proxy configuration:", e)
-
-# def get_source_code(repo_url, destination, branch):
-#     set_git_proxy('proxy-chain.intel.com', 911)
-#     if os.path.exists(destination):
-#         print("pull it")
-
-#         try:
-#             print(f"Pulling changes from branch {branch} in the existing Git repository at {destination}")
-#             subprocess.run(f"cd {destination} &&  git checkout {branch} && git pull {repo_url}", shell=True, check=True)
-#             print("Changes pulled successfully.")
-#         except subprocess.CalledProcessError as e:
-#             print("Error pulling changes from Git repository:", e)
-#             sys.exit(1)
-#     else:
-#         print("clone it")
-#         create_directory(destination)
-#         try:
-#             print(f"Cloning Git repository: {repo_url} (branch: {branch}) to {destination}")
-#             subprocess.run(f"  git clone --branch {branch} {repo_url} {destination}", shell=True, check=True)
-#             print("Git repository cloned successfully.")
-#         except subprocess.CalledProcessError as e:
-#             print("Error cloning Git repository:", e)
-#             sys.exit(1)
-
 def install_backend_dependencies(backend_dir, apache_html_dir):
+    tool_name = get_tool_name_from_path(backend_dir)
     try:
         print(f"Installing backend dependencies in {backend_dir}...")
         os.system(f"cd {backend_dir} && bash install_pip.sh")
         #also copy the config
         print("Backend dependencies installed successfully.")
        
-        os.system(f"sudo rm -rf {apache_html_dir}/backend")
-        os.system(f"sudo cp -r {backend_dir} {apache_html_dir}/")
+        target_cp_path = os.path.join(apache_html_dir, tool_name, 'backend')
+        create_directory(target_cp_path)
+
+        os.system(f"sudo rm -rf {target_cp_path}")
+        os.system(f"sudo cp -r {backend_dir} {target_cp_path}")
       
     except Exception as e:
         print("Error installing backend dependencies:", e)
         sys.exit(1)
 
 def install_frontend_dependencies(frontend_dir, apache_html_dir):
+    tool_name = get_tool_name_from_path(frontend_dir)
     try:
         print(f"Installing frontend dependencies in {frontend_dir}...")
         os.system(f"cd {frontend_dir} && npm i --legacy-peer-deps")
         os.system(f"cd {frontend_dir} && npm run build")
       
-        os.system(f"sudo rm -rf {apache_html_dir}/dist")
-        os.system(f"sudo cp -r {frontend_dir}/dist {apache_html_dir}/") 
+        target_cp_path = os.path.join(apache_html_dir, tool_name, 'dist')
+        create_directory(target_cp_path)
 
-        os.system(f"sudo cp -r {frontend_dir}/../common {apache_html_dir}/") 
+        os.system(f"sudo rm -rf {target_cp_path}")
+        os.system(f"sudo cp -r {frontend_dir}/dist {target_cp_path}") 
+
+        os.system(f"sudo cp -r {frontend_dir}/../../common {apache_html_dir}/") 
 
 
         print("Frontend dependencies installed successfully.")
@@ -123,15 +100,13 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
         sys.exit(1)
 
 
-def create_apache_config(apache_frontend_dir, apache_backend_dir, apache_dir):
+def create_apache_config(ov_apache_frontend_dir, ov_apache_backend_dir, apache_dir):
     otter_dir = os.path.join(apache_dir, 'private', 'otter_html')
-    landing_page_dir = f"{apache_dir}/common"
-
     APACHE_CONFIG = f"""
 #landing page
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
-    DocumentRoot {apache_frontend_dir}
+    DocumentRoot {ov_apache_frontend_dir}
 
     # Redirect to the landing page by default
     RedirectMatch ^/$ /landing
@@ -145,7 +120,7 @@ def create_apache_config(apache_frontend_dir, apache_backend_dir, apache_dir):
         Require all granted
     </Directory>
 
-    <Directory {apache_frontend_dir}>
+    <Directory {ov_apache_frontend_dir}>
         Options -Indexes +FollowSymLinks
         AllowOverride All
         Require all granted
@@ -156,9 +131,9 @@ def create_apache_config(apache_frontend_dir, apache_backend_dir, apache_dir):
     CustomLog /var/log/apache2/access.log combined
 
     WSGIDaemonProcess flaskapp user=www-data group=www-data threads=5
-    WSGIScriptAlias /api {apache_backend_dir}/server.wsgi
+    WSGIScriptAlias /oneview/api {ov_apache_backend_dir}/server.wsgi
 
-    <Directory {apache_backend_dir}>
+    <Directory {ov_apache_backend_dir}>
         WSGIProcessGroup flaskapp
         WSGIApplicationGroup %{{GLOBAL}}
         Require all granted
@@ -236,6 +211,16 @@ def delete_index_html(apache_dir):
         except Exception as e:
             print("Error deleting index.html:", e)
             sys.exit(1)
+
+def install_web_dependencies(backend_dir, frontend_dir, apache_dir):
+    install_backend_dependencies(backend_dir, apache_dir)
+    install_frontend_dependencies(frontend_dir, apache_dir)
+
+def get_tool_name_from_path(path):
+    parent_dir = os.path.dirname(ov_backend_dir)
+    last_part = os.path.basename(parent_dir)
+    return last_part
+
 if __name__ == "__main__":
     script_dir=os.path.dirname(os.path.realpath(__file__))
     apache_dir = f"/var/www/html"
@@ -246,12 +231,15 @@ if __name__ == "__main__":
 
     # get_source_code(git_repo_url, target_qaas_dir, git_branch)
 
-    backend_dir = os.path.join(target_qaas_dir, "backend")
-    frontend_dir = os.path.join(target_qaas_dir, "frontend")
+    ov_backend_dir = os.path.join(target_qaas_dir, 'oneview',"backend")
+    ov_frontend_dir = os.path.join(target_qaas_dir,'oneview', "frontend")
+    qaas_backend_dir = os.path.join(target_qaas_dir, 'qaas',"backend")
+    qaas_frontend_dir = os.path.join(target_qaas_dir,'qaas', "frontend")
+
     config_dir =  os.path.join(target_qaas_dir, "config")
 
-    apache_backend_dir = os.path.join(apache_dir, "backend")
-    apache_frontend_dir = os.path.join(apache_dir, "dist")
+    ov_apache_backend_dir = os.path.join(apache_dir, 'oneview',"backend")
+    ov_apache_frontend_dir = os.path.join(apache_dir, 'oneview',"dist")
 
     output_dir = os.path.join(apache_dir, 'private')
     create_directory(output_dir)
@@ -263,10 +251,8 @@ if __name__ == "__main__":
     set_node_proxy(http_proxy, https_proxy)
 
 
-    install_backend_dependencies(backend_dir, apache_dir)
-    install_frontend_dependencies(frontend_dir, apache_dir)
-
-    
+    install_web_dependencies(ov_backend_dir, ov_frontend_dir, apache_dir)
+ 
 
     # # # #also copy the config folder
     os.system(f"sudo cp -r {config_dir} {apache_dir}")
@@ -282,12 +268,14 @@ if __name__ == "__main__":
 
     # # # #permission for the www-data to wrtie to apache dir
  
-    create_apache_config( apache_frontend_dir, apache_backend_dir, apache_dir)
+    create_apache_config( ov_apache_frontend_dir, ov_apache_backend_dir, apache_dir)
 
     # # # #give permissions
     os.system(f"sudo a2enmod wsgi")
     os.system(f"sudo a2enmod rewrite")
     give_permission(output_dir, 'www-data')
+    give_permission(apache_dir, 'www-data')
+
 
     # # #setup database
     database_url = 'mysql://qaas:qaas-password@localhost/test'
