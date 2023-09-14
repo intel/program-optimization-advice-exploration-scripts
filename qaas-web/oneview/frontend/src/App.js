@@ -14,6 +14,8 @@ const App = () => {
             <HashRouter >
                 <Routes>
                     <Route path="/oneview" element={<MainPage />} />
+                    <Route path="/generated" element={<GeneratedPage />} />
+
                 </Routes>
             </HashRouter>
 

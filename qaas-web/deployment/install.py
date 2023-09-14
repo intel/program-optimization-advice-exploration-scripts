@@ -200,44 +200,44 @@ if __name__ == "__main__":
     create_directory(output_dir)
     maqao_package_dir = os.path.join(target_qaas_dir, 'maqao_package')
 
-    install_packages()
+    # install_packages()
 
     http_proxy, https_proxy = get_proxy()
     set_node_proxy(http_proxy, https_proxy)
 
 
     install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
-    install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
+    # install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
 
-    install_common_dependencies(os.path.join(apache_dir, 'common'))
+    # install_common_dependencies(os.path.join(apache_dir, 'common'))
 
-    # # # # #also copy the config folder
-    os.system(f"sudo cp -r {config_dir} {apache_dir}")
+    # # # # # #also copy the config folder
+    # os.system(f"sudo cp -r {config_dir} {apache_dir}")
 
-    # # # # #also copy maqao package to output folder
-    os.system(f"sudo cp -r {os.path.join(maqao_package_dir, 'lib')} {os.path.join(maqao_package_dir, 'bin')} {output_dir}")
+    # # # # # #also copy maqao package to output folder
+    # os.system(f"sudo cp -r {os.path.join(maqao_package_dir, 'lib')} {os.path.join(maqao_package_dir, 'bin')} {output_dir}")
  
 
-    # # # # #set the environment path
-    os.environ["PATH"] = f"{os.path.join(output_dir, 'bin')}" + os.pathsep + os.environ["PATH"]
-    os.environ["LD_LIBRARY_PATH"] = f"{os.path.join(output_dir, 'lib')}"
+    # # # # # #set the environment path
+    # os.environ["PATH"] = f"{os.path.join(output_dir, 'bin')}" + os.pathsep + os.environ["PATH"]
+    # os.environ["LD_LIBRARY_PATH"] = f"{os.path.join(output_dir, 'lib')}"
 
 
-    # # # # #permission for the www-data to wrtie to apache dir
+    # # # # # #permission for the www-data to wrtie to apache dir
  
     create_apache_config()
 
-    # # # #give permissions
-    os.system(f"sudo a2enmod wsgi")
-    os.system(f"sudo a2enmod rewrite")
-    give_permission(output_dir, 'www-data')
-    give_permission(apache_dir, 'www-data')
-    give_permission('/etc/apache2/auth', 'www-data')
+    # # # # #give permissions
+    # os.system(f"sudo a2enmod wsgi")
+    # os.system(f"sudo a2enmod rewrite")
+    # give_permission(output_dir, 'www-data')
+    # give_permission(apache_dir, 'www-data')
+    # give_permission('/etc/apache2/auth', 'www-data')
 
-    # # #setup database
-    database_url = 'mysql://qaas:qaas-password@localhost/test'
+    # # # #setup database
+    # database_url = 'mysql://qaas:qaas-password@localhost/test'
 
-    setup_database(database_url)
+    # setup_database(database_url)
 
-    # # #delete default index html
-    delete_index_html(apache_dir)
+    # # # #delete default index html
+    # delete_index_html(apache_dir)

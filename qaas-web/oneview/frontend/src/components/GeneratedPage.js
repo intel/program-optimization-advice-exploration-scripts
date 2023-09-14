@@ -3,16 +3,14 @@ import './css/main.css'
 import { useLocation } from "react-router-dom";
 
 const GeneratedPage = () => {
-    const iframeSrc = `http://localhost:81/otter_html/index.html`;
+    const iframeSrc = `https://oneview-intel.liparad.uvsq.fr/otter_html/index.html`;
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const loading = queryParams.get("loading") === "true";
-    console.log("iframeSrc:", iframeSrc);
-
     return (
         <div>
             {loading ? (
-                <div>iframe URL: {iframeSrc} Loading124, please wait...</div>
+                <div>iframe URL: {iframeSrc} Loading, please wait...</div>
             ) : (
 
                 <div>
