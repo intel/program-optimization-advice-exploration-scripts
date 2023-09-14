@@ -1,7 +1,7 @@
 import React from 'react';
 function Title() {
     return (
-        <h1 id="ttl1" >List of Benchmarks and Workloads</h1>
+        <h1 id="ttl1" >List of Benchmarks and Workloads oneview</h1>
     );
 }
 

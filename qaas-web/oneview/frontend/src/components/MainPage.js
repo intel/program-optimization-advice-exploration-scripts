@@ -16,9 +16,11 @@ const MainPage = () => {
     const [filters, setFilters] = useState(INITIAL_FILTERS);
     const [baseline, setBaseline] = useState(null);
     const [showGraph, setShowGraph] = useState(false);
+
     useEffect(() => {
         fetchData();
     }, []);
+
 
     const fetchData = async (filters = []) => {
         setIsLoading(true);

@@ -12,12 +12,12 @@ export default function CompilerComparisonHistogram() {
     const COMPILER_COLORS = {
         'ICX': DEFAULT_COLOR_SCHEME[0],
         'ICC': DEFAULT_COLOR_SCHEME[1],
-        'GCC': DEFAULT_COLOR_SCHEME[2]
+        'GCC': DEFAULT_COLOR_SCHEME[2],
+        'TIE': DEFAULT_COLOR_SCHEME[3]
     };
 
-
     useEffect(() => {
-        axios.get("/get_qaas_compiler_comparison_historgram_data")
+        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_qaas_compiler_comparison_historgram_data`)
             .then((response) => {
                 setWinerData(processData(response.data, true));
                 setLoserData(processData(response.data, false));
@@ -27,7 +27,9 @@ export default function CompilerComparisonHistogram() {
     }, [])
 
     if (!winerData || !loserData) {
-        return <div>Loading...</div>
+        console.log("envvvvv variable", process.env.REACT_APP_API_BASE_URL)
+
+        return <div>testLoading...</div>
     }
 
 
@@ -41,6 +43,26 @@ export default function CompilerComparisonHistogram() {
         let addedToLegend = new Set();  // unique legends
 
         data.applications.forEach(app => {
+
+
+            if (app.is_n_way_tie) {
+                let counts = RANGES.map(() => 0);
+                let bestCompilerSpeedup = app.losers.find(loser => loser.compiler === app.best_compiler)?.speedup || 1; // default 1 if not found
+                let range = categorizeSpeedup(bestCompilerSpeedup);
+                counts[RANGES.indexOf(range)] = 1;
+                let n = app.losers.length + 1;
+
+                datasets.push({
+                    label: addedToLegend.has("TIE") ? "" : "TIE",
+                    data: counts,
+                    backgroundColor: COMPILER_COLORS['TIE'],
+                    barText: RANGES.map(r => r === range ? `${app.application}: ${n}-way tie` : "")
+                });
+
+                addedToLegend.add("TIE");
+                return;  // move to the next application without processing losers
+            }
+
             app.losers.forEach(loserData => {
                 let counts = RANGES.map(() => 0);
                 let range = categorizeSpeedup(loserData.speedup);
@@ -95,7 +117,7 @@ export default function CompilerComparisonHistogram() {
             legend: {
                 labels: {
                     filter: function (item, chart) {
-                        return ['ICX', 'ICC', 'GCC'].includes(item.text); //make sure it is unqiue
+                        return ['ICX', 'ICC', 'GCC', 'TIE'].includes(item.text); //make sure it is unqiue
                     }
                 }
             },
