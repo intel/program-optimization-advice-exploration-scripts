@@ -7,13 +7,13 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
 
     const handleButtonClick = async (timestamp) => {
         // Call your backend API here and fetch data
-        const newWindow = window.open(`/generated?loading=true`, "_blank");
+        const newWindow = window.open(`#/generated?loading=true`, "_blank");
 
         try {
             const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_html_by_timestamp`, { 'timestamp': timestamp })
             //send user to new page
-            // navigate('/generated');
-            newWindow.location.href = "/generated?loading=false";
+            newWindow.location.href = `#/generated?loading=false`;
+
 
         } catch (error) {
             console.error('Error fetching data:', error);
