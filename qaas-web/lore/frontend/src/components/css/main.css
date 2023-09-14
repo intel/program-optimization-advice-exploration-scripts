@@ -1,0 +1,55 @@
+html,
+body {
+    font-family: 'Lato', Calibri, Arial, sans-serif;
+    color: #505260;
+    font-size: 14px;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    background-color: #fafafa;
+
+}
+
+
+#ttl1 {
+    font-size: 26px;
+    color: #2f889a;
+    margin-left: 5px;
+    line-height: 0.5;
+}
+
+#ttl2 {
+    font-size: 23px;
+    color: #2f889a;
+    margin-left: 5px;
+    line-height: 0.5;
+    margin-bottom: 0;
+}
+
+#ttl3 {
+    font-size: 15px;
+    color: #2f889a;
+    margin-left: 6px;
+    line-height: 0.5;
+    margin-bottom: 0;
+    font-weight: bold;
+}
+
+.iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.page-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 3rem;
+}
+
+.center-text {
+    text-align: center;
+}

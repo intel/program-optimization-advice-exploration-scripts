@@ -1,0 +1,140 @@
+.component-spacing {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+
+}
+
+.component-spacing-center {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    margin: 5px;
+    padding: 5px;
+
+}
+
+.vertical-spacing {
+    margin-top: 40px;
+}
+
+.code-tab {
+    background-color: #fafafa;
+}
+
+.sub-tab-container {
+    padding: 20px;
+    display: flex;
+
+    justify-content: center;
+    /* horizontal alignment */
+
+}
+
+.component-background {
+    background-color: #f2f5f7;
+}
+
+.source-compare-button {
+    border-radius: 4px;
+    background-color: #dddddd;
+    color: #505260;
+    border: none;
+    padding: 10px 15px;
+    font-size: 10px;
+    margin: 2px;
+}
+
+.source-compare-button:hover {
+    background-color: #f6f6f6;
+    cursor: pointer;
+    color: #277383;
+
+}
+
+.source-compare-button.active {
+    background-color: #277383;
+    color: #F0F0F0;
+}
+
+.button-text {
+    font-size: 10px;
+    margin-bottom: 0;
+    font-weight: 750;
+}
+
+.code-container {
+    width: 700px;
+    height: 400px;
+    overflow: auto;
+    /* Add scroll bars if the content is too large */
+}
+
+.tab-container {
+    background-color: #f0f0f0;
+
+}
+
+.code-text {
+    font-size: 12px !important;
+    background-color: #f0f0f0;
+}
+
+.table-container {
+    max-height: 450px;
+    overflow-y: auto;
+    font-size: 13px;
+    padding: 5px;
+
+
+}
+
+.styled-table {
+    width: 100%;
+    margin: 0 auto;
+    overflow: auto;
+}
+
+.styled-table td {
+    padding: 10px;
+}
+
+.even-row {
+    background-color: #f2f2f2;
+}
+
+.odd-row {
+    background-color: #ffffff;
+}
+
+.dropdown {
+    width: 400px;
+    height: 30px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    padding: 5px;
+    background-color: #dddddd;
+    color: #505260;
+    border: none;
+    margin-top: 10px;
+
+
+}
+
+.speedup-graph-container {
+    width: 600px;
+    height: 300px;
+}
+
+.graph-spacing {
+    margin: 0 100px;
+}
+
+.margin-right {
+    margin-right: 2vw;
+}

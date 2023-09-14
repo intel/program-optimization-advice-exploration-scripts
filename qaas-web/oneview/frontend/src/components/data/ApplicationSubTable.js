@@ -7,7 +7,6 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
 
     const handleButtonClick = async (timestamp) => {
         // Call your backend API here and fetch data
-        console.log(timestamp)
         const newWindow = window.open(`/generated?loading=true`, "_blank");
 
         try {

@@ -31,7 +31,6 @@ function ReactTable({ columns, data, SubComponent, onExpandedChange }) {
         ...columns
     ];
 
-    // console.log(adjustedColumns);
 
 
     const {

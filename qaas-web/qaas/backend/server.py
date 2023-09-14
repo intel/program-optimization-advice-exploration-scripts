@@ -30,7 +30,7 @@ import re
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
 script_dir=os.path.dirname(os.path.realpath(__file__))
-config_path = os.path.join(script_dir, "../config/qaas-web.conf")
+config_path = os.path.join(script_dir, "../../../config/qaas-web.conf")
 # more initializations in main()
 db = SQLAlchemy()
 app = Flask(__name__)
@@ -95,6 +95,7 @@ def create_app(config):
         compilers = ['ICX', 'ICC', 'GCC']
 
         applications = []
+        delta = 0.03  # 3% threshold
 
         for index, row in df.iterrows():
             app_name = row['Unnamed: 0']
@@ -105,6 +106,11 @@ def create_app(config):
             speedups = {'ICX': icx_speedup, 'ICC': icc_speedup, 'GCC': gcc_speedup}
             best_compiler = row['Best compiler'].upper()
 
+            #  maxc(WC/c) for all compilers
+            max_speedup = max([icx_speedup, icc_speedup, gcc_speedup])
+            is_n_way_tie = max_speedup < (1 + delta) 
+
+            print(app_name, best_compiler, max_speedup, is_n_way_tie)
             # Remove the best compiler from the dict
             del speedups[best_compiler]
 
@@ -114,13 +120,12 @@ def create_app(config):
             applications.append({
                 'application': app_name,
                 'best_compiler': best_compiler,
-                'losers': [{'compiler': loser, 'speedup': speedups[loser]} for loser in ranked_compilers]
+                'losers': [{'compiler': loser, 'speedup': speedups[loser]} for loser in ranked_compilers],
+                'is_n_way_tie': is_n_way_tie
+
             })
 
-        print({
-            'compilers': compilers,
-            'applications': applications
-        })
+        print(applications)
         return jsonify({
             'compilers': compilers,
             'applications': applications

@@ -64,7 +64,6 @@ export default function AllSpeedupRangeGraph({ application_table_data }) {
         yAxis: 'Count Speedup R',
     } : null;
 
-    console.log(chartData)
     return (
 
         <div >

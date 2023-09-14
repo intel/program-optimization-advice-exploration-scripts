@@ -27,3 +27,44 @@ body {
     height: 100%;
     border: none;
 }
+
+h1 {
+    font-size: 3em;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 2em;
+    margin-bottom: 15px;
+}
+
+p {
+    font-size: 1.5em;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+li {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+.textPageContainer {
+    margin: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+
+}
+
+.imageContainer {
+    max-width: 100%;
+    text-align: center;
+    overflow: hidden;
+}
+
+.imageContainer img {
+    max-width: 800px;
+    max-height: 400px;
+    display: block;
+    margin: 0 auto;
+}

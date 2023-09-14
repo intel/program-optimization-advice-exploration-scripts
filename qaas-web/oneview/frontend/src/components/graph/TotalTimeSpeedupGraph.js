@@ -29,7 +29,6 @@ function TotalTimeSpeedupGraph({ selectedRows, baseline, open }) {
         return <p>Loading graph...</p>;
     }
 
-    console.log("should render??", isLoading, graphData, open)
 
     const data = {
         labels: graphData.labels,

@@ -4,7 +4,6 @@ import { TOGGLE_BUTTON_COLOR_SCHEME, APPLICATION_TABLE_COLUMNS } from '../Consta
 
 const ToggleButton = ({ groupName, label, hiddenChildColumns, toggleGroup, color, columns }) => {
     const areChildColumnsHidden = columns.some(col => hiddenChildColumns.includes(col.id));
-    console.log(areChildColumnsHidden)
     return (
         <button
             onClick={() => toggleGroup(groupName)}

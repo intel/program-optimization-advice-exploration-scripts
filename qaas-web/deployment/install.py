@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 
 
 
+script_dir=os.path.dirname(os.path.realpath(__file__))
 
 def install_packages():
     try:
@@ -18,6 +19,7 @@ def install_packages():
         os.system("sudo apt-get install -y python3-pip")
         os.system("sudo apt-get install -y libmysqlclient-dev")
         os.system("sudo apt-get install -y libmariadbclient-dev")
+        os.system("sudo apt-get install -y python3-certbot-apache")
         os.system('sudo apt-get install -y curl')
         os.system("curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -")
 
@@ -58,15 +60,19 @@ def get_proxy():
     # Get environment variables for the proxy
     return os.environ.get('http_proxy'), os.environ.get('https_proxy')
 
+def install_common_dependencies(apache_common_dir):
+    os.system(f"sudo rm -rf {apache_common_dir}")
+    apache_parent_dir = os.path.dirname(apache_common_dir)
+    os.system(f"sudo cp -r {script_dir}/../common {apache_parent_dir}/") 
+
 def install_backend_dependencies(backend_dir, apache_html_dir):
-    tool_name = get_tool_name_from_path(backend_dir)
     try:
         print(f"Installing backend dependencies in {backend_dir}...")
         os.system(f"cd {backend_dir} && bash install_pip.sh")
         #also copy the config
         print("Backend dependencies installed successfully.")
        
-        target_cp_path = os.path.join(apache_html_dir, tool_name, 'backend')
+        target_cp_path = os.path.join(apache_html_dir, 'backend')
         create_directory(target_cp_path)
 
         os.system(f"sudo rm -rf {target_cp_path}")
@@ -77,19 +83,17 @@ def install_backend_dependencies(backend_dir, apache_html_dir):
         sys.exit(1)
 
 def install_frontend_dependencies(frontend_dir, apache_html_dir):
-    tool_name = get_tool_name_from_path(frontend_dir)
     try:
         print(f"Installing frontend dependencies in {frontend_dir}...")
         os.system(f"cd {frontend_dir} && npm i --legacy-peer-deps")
         os.system(f"cd {frontend_dir} && npm run build")
       
-        target_cp_path = os.path.join(apache_html_dir, tool_name, 'dist')
+        target_cp_path = os.path.join(apache_html_dir, 'dist')
         create_directory(target_cp_path)
 
         os.system(f"sudo rm -rf {target_cp_path}")
         os.system(f"sudo cp -r {frontend_dir}/dist {target_cp_path}") 
 
-        os.system(f"sudo cp -r {frontend_dir}/../../common {apache_html_dir}/") 
 
 
         print("Frontend dependencies installed successfully.")
@@ -100,53 +104,14 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
         sys.exit(1)
 
 
-def create_apache_config(ov_apache_frontend_dir, ov_apache_backend_dir, apache_dir):
-    otter_dir = os.path.join(apache_dir, 'private', 'otter_html')
-    APACHE_CONFIG = f"""
-#landing page
-<VirtualHost *:80>
-    ServerAdmin webmaster@localhost
-    DocumentRoot {ov_apache_frontend_dir}
-
-    # Redirect to the landing page by default
-    RedirectMatch ^/$ /landing
-
-    Alias /landing {apache_dir}/common/landing.html
-    Alias /otter_html {otter_dir}
-
-    <Directory {otter_dir}>
-        Options Indexes FollowSymLinks
-        AllowOverride None
-        Require all granted
-    </Directory>
-
-    <Directory {ov_apache_frontend_dir}>
-        Options -Indexes +FollowSymLinks
-        AllowOverride All
-        Require all granted
-        FallbackResource /index.html
-    </Directory>
-
-    ErrorLog /var/log/apache2/error.log
-    CustomLog /var/log/apache2/access.log combined
-
-    WSGIDaemonProcess flaskapp user=www-data group=www-data threads=5
-    WSGIScriptAlias /oneview/api {ov_apache_backend_dir}/server.wsgi
-
-    <Directory {ov_apache_backend_dir}>
-        WSGIProcessGroup flaskapp
-        WSGIApplicationGroup %{{GLOBAL}}
-        Require all granted
-    </Directory>
-</VirtualHost>
-"""
+def create_apache_config():
     try:
-        print("Creating Apache configuration file...")
-        config_content = APACHE_CONFIG
-        os.system(f'echo "{config_content}" | sudo tee /etc/apache2/sites-available/000-default.conf')
-        
-        # os.system("sudo systemctl reload apache2")
-        print("Apache configuration file created successfully.")
+        with open('000-default.conf', 'r') as file:
+            config_content = file.read()
+            os.system(f'echo "{config_content}" | sudo tee /etc/apache2/sites-available/000-default.conf')
+            os.system("sudo a2ensite 000-default.conf")
+
+            print("Apache configuration file created successfully.")
     except Exception as e:
         print("Error creating Apache configuration file:", e)
         sys.exit(1)
@@ -178,7 +143,6 @@ def setup_database(database_url):
         password = result.password
         database_name = result.path[1:]  # remove the leading '/'
         
-        print(username, password, database_name)
         # Check if the user alread,y exists
         user_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{username}');\"", shell=True).decode().strip()
 
@@ -216,66 +180,59 @@ def install_web_dependencies(backend_dir, frontend_dir, apache_dir):
     install_backend_dependencies(backend_dir, apache_dir)
     install_frontend_dependencies(frontend_dir, apache_dir)
 
-def get_tool_name_from_path(path):
-    parent_dir = os.path.dirname(ov_backend_dir)
-    last_part = os.path.basename(parent_dir)
-    return last_part
+
 
 if __name__ == "__main__":
-    script_dir=os.path.dirname(os.path.realpath(__file__))
     apache_dir = f"/var/www/html"
    
-    # git_repo_url = "git@gitlab.com:davidwong/qaas.git"
-    # git_branch = "ov_deployment"
     target_qaas_dir = os.path.join(script_dir, '..',)
-
-    # get_source_code(git_repo_url, target_qaas_dir, git_branch)
+    config_dir =  os.path.join(target_qaas_dir, "config")
 
     ov_backend_dir = os.path.join(target_qaas_dir, 'oneview',"backend")
     ov_frontend_dir = os.path.join(target_qaas_dir,'oneview', "frontend")
     qaas_backend_dir = os.path.join(target_qaas_dir, 'qaas',"backend")
     qaas_frontend_dir = os.path.join(target_qaas_dir,'qaas', "frontend")
 
-    config_dir =  os.path.join(target_qaas_dir, "config")
-
-    ov_apache_backend_dir = os.path.join(apache_dir, 'oneview',"backend")
-    ov_apache_frontend_dir = os.path.join(apache_dir, 'oneview',"dist")
+    ov_apache_dir = os.path.join(apache_dir, 'merge', 'oneview')
+    qaas_apache_dir = os.path.join(apache_dir, 'merge', 'qaas')
 
     output_dir = os.path.join(apache_dir, 'private')
     create_directory(output_dir)
     maqao_package_dir = os.path.join(target_qaas_dir, 'maqao_package')
 
-    # install_packages()
+    install_packages()
 
     http_proxy, https_proxy = get_proxy()
     set_node_proxy(http_proxy, https_proxy)
 
 
-    install_web_dependencies(ov_backend_dir, ov_frontend_dir, apache_dir)
- 
+    install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
+    install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
 
-    # # # #also copy the config folder
+    install_common_dependencies(os.path.join(apache_dir, 'common'))
+
+    # # # # #also copy the config folder
     os.system(f"sudo cp -r {config_dir} {apache_dir}")
 
-    # # # #also copy maqao package to output folder
+    # # # # #also copy maqao package to output folder
     os.system(f"sudo cp -r {os.path.join(maqao_package_dir, 'lib')} {os.path.join(maqao_package_dir, 'bin')} {output_dir}")
  
 
-    # # # #set the environment path
+    # # # # #set the environment path
     os.environ["PATH"] = f"{os.path.join(output_dir, 'bin')}" + os.pathsep + os.environ["PATH"]
     os.environ["LD_LIBRARY_PATH"] = f"{os.path.join(output_dir, 'lib')}"
 
 
-    # # # #permission for the www-data to wrtie to apache dir
+    # # # # #permission for the www-data to wrtie to apache dir
  
-    create_apache_config( ov_apache_frontend_dir, ov_apache_backend_dir, apache_dir)
+    create_apache_config()
 
     # # # #give permissions
     os.system(f"sudo a2enmod wsgi")
     os.system(f"sudo a2enmod rewrite")
     give_permission(output_dir, 'www-data')
     give_permission(apache_dir, 'www-data')
-
+    give_permission('/etc/apache2/auth', 'www-data')
 
     # # #setup database
     database_url = 'mysql://qaas:qaas-password@localhost/test'

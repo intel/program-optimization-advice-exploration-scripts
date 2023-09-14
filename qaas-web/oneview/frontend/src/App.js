@@ -1,17 +1,24 @@
-import React from 'react';
+import React from "react";
 import MainPage from './components/MainPage';
 import { Route, Routes } from 'react-router-dom';
 import GeneratedPage from './components/GeneratedPage';
 import SelectedRunsBag from './components/SelectedRunBag';
-function App() {
+import { BrowserRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
+
+
+
+const App = () => {
     return (
-        <Routes>
-            <Route path="/oneview" element={<MainPage />} />
+        <div>test
+            <HashRouter >
+                <Routes>
+                    <Route path="/oneview" element={<MainPage />} />
+                </Routes>
+            </HashRouter>
 
-            <Route path="/generated" element={<GeneratedPage />} />
-
-        </Routes>
+        </div>
     );
-}
+};
 
 export default App;
