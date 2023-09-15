@@ -2,8 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './css/TopBar.css';
 
-const pages = ['input', 'result'];
-const pages_labels = ['Job Submission', 'Result'];
+const pages = ['input', 'result', 'system_config'];
+const pages_labels = ['Job Submission', 'Result', 'System Configuration'];
 
 function TopBar() {
     return (

@@ -10,7 +10,7 @@ import { HashRouter } from 'react-router-dom';
 
 const App = () => {
     return (
-        <div>test
+        <div>
             <HashRouter >
                 <Routes>
                     <Route path="/oneview" element={<MainPage />} />
