@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 import minitopImage from '../imgs/minitop.png';
 export default function CQOverviewPerformance() {
@@ -6,7 +7,7 @@ export default function CQOverviewPerformance() {
         <div className="textPageContainer">
             <h1>Performance</h1>
             <p>
-                The overall results for 7 miniapps on Intel Ice Lake are shown in
+                The overall results for 7 miniapps on <Link to="/system_config/ice_lake">Intel Ice Lake </Link>are shown in
                 <div className='imageContainer'>
                     <img src={minitopImage} alt="Minitop Description" />
                 </div>

@@ -1,57 +1,13 @@
 import React, { useState } from 'react';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemButton from '@mui/material/ListItemButton';
 import { useNavigate } from 'react-router-dom';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-
-import './css/drawer.css'
-const DrawerItem = ({ level, text, path, children, navigateToSection, selectedItem, hasChildren }) => {
-    const isSelected = selectedItem === path;
-    return (
-        <ListItem>
-            <ListItemButton
-                className={`level level${level} ${isSelected ? 'highlight-color' : ''} hover-color`}
-                onClick={() => navigateToSection(path, children)}
-            >
-                <ListItemText primary={text} />
-                {hasChildren && <ArrowForwardIosIcon fontSize="small" />}
-
-            </ListItemButton>
-        </ListItem>
-    );
-};
-
-
+import DrawerItemsList from './DrawerItemList';
 
 const WelcomePageTableOfContentsDrawer = () => {
-
     const navigate = useNavigate();
     const [selectedItem, setSelectedItem] = useState(null);
     const [expandedSections, setExpandedSections] = useState([]);
-
-
-    function renderItems(items) {
-        return items.map((item) => {
-            const hasChildren = item.children && item.children.length > 0;
-            return (
-                <React.Fragment key={item.path}>
-                    <DrawerItem
-                        level={item.level}
-                        text={item.text}
-                        path={item.path}
-                        children={item.children}
-                        navigateToSection={navigateToSection}
-                        selectedItem={selectedItem}
-                        hasChildren={hasChildren}
-                    />
-                    {expandedSections.includes(item.path) && hasChildren && renderItems(item.children)}
-                </React.Fragment>
-            );
-        });
-    }
 
     const navigateToSection = (path, children) => {
         if (children) {
@@ -66,9 +22,6 @@ const WelcomePageTableOfContentsDrawer = () => {
         }
     };
 
-
-
-
     const drawerItems = [
         { level: 1, text: 'Overview', path: '/' },
         { level: 1, text: 'A. Quality definitions', path: '/quality_definitions' },
@@ -81,7 +34,6 @@ const WelcomePageTableOfContentsDrawer = () => {
                         { level: 3, text: 'C1.1 Performance', path: '/cq_overview_performance' },
                         { level: 3, text: 'C1.2 Portability', path: '/cq_overview_portability' },
                         { level: 3, text: 'C1.3 Energy', path: '/cq_overview_energy' },
-
                     ]
                 },
                 { level: 2, text: 'C2. Automatic application analysis', path: '/automatic_application_analysis' },
@@ -97,28 +49,29 @@ const WelcomePageTableOfContentsDrawer = () => {
     ];
 
     return (
-        <div >
+        <div>
             <Drawer
                 className="drawer"
                 anchor="left"
                 variant="permanent"
-
                 ModalProps={{
                     hideBackdrop: true,
                 }}
-
                 sx={{
                     '& .MuiDrawer-paper': {
                         marginTop: '50px',
                         alignItems: 'center',
                         minWidth: '250px',
-
                     },
-
                 }}
             >
                 <List>
-                    {renderItems(drawerItems)}
+                    <DrawerItemsList
+                        items={drawerItems}
+                        navigateToSection={navigateToSection}
+                        selectedItem={selectedItem}
+                        expandedSections={expandedSections}
+                    />
                 </List>
             </Drawer>
         </div>
