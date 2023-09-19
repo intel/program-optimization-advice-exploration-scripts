@@ -11,8 +11,12 @@ export default function App() {
 
     return (
         <HashRouter>
-            <TopBar />
-            <QaaSRouting drawerContent={drawerContent} setDrawerContent={setDrawerContent} isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML} />
+            <div className="main-container">
+                <TopBar />
+                <div className="content-container">
+                    <QaaSRouting drawerContent={drawerContent} setDrawerContent={setDrawerContent} isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML} />
+                </div>
+            </div>
         </HashRouter>
 
     );

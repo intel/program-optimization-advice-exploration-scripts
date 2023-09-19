@@ -9,6 +9,9 @@ module.exports = {
         path: path.resolve(__dirname, 'dist'),
         filename: 'bundle.js'
     },
+    mode: process.env.NODE_ENV || 'development',
+    devtool: process.env.NODE_ENV === 'production' ? 'source-map' : 'inline-source-map',
+
     module: {
         rules: [
             {
@@ -45,6 +48,8 @@ module.exports = {
         },
         historyApiFallback: true,
         compress: true,
-        port: 3000
+        port: 3000,
+        hot: true
+
     }
 };

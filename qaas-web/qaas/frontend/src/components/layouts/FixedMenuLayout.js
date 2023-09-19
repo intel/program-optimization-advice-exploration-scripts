@@ -1,12 +1,14 @@
 import React from 'react';
-import '../css/drawer.css'
+import '../css/drawer.css';
+
 const FixedMenuLayout = ({ drawerContent, mainContent }) => {
     return (
-        <div style={{ display: 'flex' }}>
-            <div className='drawer-width' style={{ flexShrink: 0 }}>
+        <div className="layout-container">
+            <div className="drawer-width">
                 {drawerContent}
             </div>
-            <div style={{ flexGrow: 1, marginLeft: '10px' }}>
+
+            <div className="main-content">
                 {mainContent}
             </div>
         </div>
