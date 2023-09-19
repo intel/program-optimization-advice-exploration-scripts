@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import './css/TopBar.css';
 
 const pages = ['input', 'result', 'system_config'];
-const pages_labels = ['Job Submission', 'Result', 'System Configuration'];
+const pages_labels = ['Job Submission', 'Results', 'System Configuration'];
 
 function TopBar() {
     return (
