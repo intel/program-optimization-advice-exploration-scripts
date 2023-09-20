@@ -23,6 +23,7 @@ const MainPage = () => {
 
 
     const fetchData = async (filters = []) => {
+        console.log
         setIsLoading(true);
         try {
             const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_application_table_info_ov`, {
@@ -66,7 +67,7 @@ const MainPage = () => {
                     ? <p>Loading data, please wait...</p>
                     :
                     <div>
-                        <AllSpeedupRangeGraph application_table_data={data} />
+                        {/* <AllSpeedupRangeGraph application_table_data={data} /> */}
                         <ApplicationTable
                             data={data}
                             selectedRows={selectedRows}

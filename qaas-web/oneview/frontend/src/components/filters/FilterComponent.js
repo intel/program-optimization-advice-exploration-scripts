@@ -12,15 +12,17 @@ export default function FilterComponent({ onFilter, filters, setFilters }) {
     useEffect(() => {
         let selected = [];
         for (const category in filters) {
-            for (const filterType in filters[category]) {
-                const filter = filters[category][filterType];
-                if (filter.selected && filter.value !== '') {
-                    selected.push({
-                        type: filter.accessor,
-                        operator: filter.operator,
-                        value: filter.value,
-                        mode: filter.mode
-                    });
+            for (const subCategory in filters[category]) {
+                for (const filterType in filters[category][subCategory]) {
+                    const filter = filters[category][subCategory][filterType];
+                    if (filter.selected && filter.value !== '') {
+                        selected.push({
+                            type: filter.accessor,
+                            operator: filter.operator,
+                            value: filter.value,
+                            mode: filter.mode
+                        });
+                    }
                 }
             }
         }
@@ -30,17 +32,23 @@ export default function FilterComponent({ onFilter, filters, setFilters }) {
     const applyFilter = () => {
         onFilter(selectedFilters);
     }
-    const handleInputChange = (category, filterType, attribute, value) => {
-        setFilters(prevState => ({
-            ...prevState,
-            [category]: {
-                ...prevState[category],
-                [filterType]: {
-                    ...prevState[category][filterType],
-                    [attribute]: value
+    const handleInputChange = (category, subCategory, filterType, attribute, value) => {
+        setFilters(prevState => {
+            const newState = {
+                ...prevState,
+                [category]: {
+                    ...prevState[category],
+                    [subCategory]: {
+                        ...prevState[category][subCategory],
+                        [filterType]: {
+                            ...prevState[category][subCategory][filterType],
+                            [attribute]: value
+                        }
+                    }
                 }
-            }
-        }));
+            };
+            return newState;
+        });
     };
 
 
