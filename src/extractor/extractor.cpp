@@ -816,7 +816,7 @@ void LoopInfo::printLoopReplay(string replay_file_name) {
 
 
 bool TypeDeclTraversal::typedef_depends_on(SgTypedefDeclaration* typedef1, SgDeclarationStatement* decl2) {
-    SgNamedType* decl2_type = SageInterface::getDeclaredType(decl2);
+    SgNamedType* decl2_type = isSgNamedType(SageInterface::getDeclaredType(decl2));
     SgType* base_type = typedef1->get_base_type();
     if (SgClassType* class_type = isSgClassType(base_type)) {
         if (typedef1->get_typedefBaseTypeContainsDefiningDeclaration()) {
@@ -841,7 +841,7 @@ bool TypeDeclTraversal::classdecl_depends_on(SgClassDeclaration* classdecl1, SgD
 }
 
 bool TypeDeclTraversal::vardecl_depends_on(SgVariableDeclaration* decl1, SgDeclarationStatement* decl2) {
-    SgNamedType* decl2_type = SageInterface::getDeclaredType(decl2);
+    SgNamedType* decl2_type = isSgNamedType(SageInterface::getDeclaredType(decl2));
     for (SgInitializedName* cv : decl1->get_variables()) {
         SgType* cv_type = cv->get_type();
         if (cv_type == decl2_type) {

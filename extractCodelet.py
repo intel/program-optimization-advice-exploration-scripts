@@ -193,6 +193,78 @@ class Extraction(ABC):
         name_map = {'locator_out_file':locator_out_file, 'binary': self.binary}
         update_app_cmakelists_file(cmakelist_dir, name_map, added_cmakelists_txt = 'CMakeLists.locator.txt',
                                    in_template='CMakeLists.locator.template')
+        cere_build_dir = ensure_dir_exists(self.extractor_work_dir, 'cere_build')
+        shutil.rmtree(cere_build_dir, ignore_errors=True)
+        cere_cmakelist_dir, cere_cmake_flags, cere_app_data_files, cere_app_flags = \
+            get_build_and_run_settings('cerec', 'cerec', self.binary)
+        run_cmake(cere_cmakelist_dir, cere_build_dir, run_cmake_dir, cere_cmake_flags, self.binary)
+        profile_data_dir = ensure_dir_exists(self.extractor_work_dir, 'profile_data')
+        cere_profile_data_dir = ensure_dir_exists(profile_data_dir, 'cere')
+        cere_json_template_fn='cere.json.template'
+        cere_json_template_file=os.path.join(SCRIPT_DIR, 'templates', cere_json_template_fn)
+        cere_json_template = Template.compile(file=cere_json_template_file)
+        name_map = { "binary": self.binary, "app_flags": cere_app_flags, "cere_build": cere_build_dir}
+        cere_json_def = cere_json_template(searchList=[name_map])
+        print(cere_json_def, file=open(os.path.join(cere_profile_data_dir, 'cere.json'), 'w'))
+        cere_full_binary_path = self.find_binary(cere_build_dir, self.binary)
+        os.symlink(cere_full_binary_path, os.path.join(cere_profile_data_dir, self.binary))
+        link_app_data_files(cere_profile_data_dir, cere_app_data_files)
+        # cere profile
+
+        #cere_profile_data_dir_mockup = '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/169-453-6754/profile_data/cere'
+        #cere_profile_data_dir_mockup = '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/169-456-0285/profile_data/cere'
+        #cere_profile_data_dir_mockup = '/host/localdisk/cwong29/working/codelet_extractor_work/SPEC2017/extractor_work/525.x264_r/169-457-2285/profile_data/cere'
+        try:
+            cere_profile_data_dir_mockup
+            cere_profile_data_dir = cere_profile_data_dir_mockup
+            SKIP = True
+        except:
+            SKIP = False
+            
+
+        if not SKIP:
+            runCmd(f'cere profile', cwd=cere_profile_data_dir, verbose=True)
+            runCmd(f'cere regions --estimate-cycles', cwd=cere_profile_data_dir, verbose=True)
+        regions_df = pd.read_csv(os.path.join(cere_profile_data_dir, 'regions.csv'))
+        regions_df = regions_df.sort_values(by='Coverage (self)', ascending=False)
+        # pick top loops with over 10% coverage
+        regions_df = regions_df[regions_df['Coverage (self)']>1]
+        cere_traces_dir = os.path.join(cere_profile_data_dir, '.cere', 'traces')
+        
+        if not SKIP:
+            regions = ";".join(regions_df['Region Name'])
+            #runCmd(f'cere trace --region {regions}', cwd=cere_profile_data_dir, verbose=True) 
+            for region in regions_df['Region Name']:
+                try:
+                    runCmd(f'cere trace --region {region}', cwd=cere_profile_data_dir, verbose=True) 
+                except:
+                    pass
+
+        cere_measurement_df = pd.DataFrame()
+        for region in regions_df['Region Name']:
+            try:
+                runCmd(f'cere selectinv --region {region} --dump-clusters', cwd=cere_profile_data_dir, verbose=True) 
+                inv_df = pd.read_csv(os.path.join(cere_traces_dir, f'{region}.invocations'), delimiter=' ', names=['Cluster ID', 'v1', 'Cluster Cycles']) 
+                inv_df['Region Name'] = region
+                inv_df = pd.merge(inv_df, regions_df, on='Region Name', how='inner')
+                for cluster_id in inv_df['Cluster ID']: 
+                    try:
+                        sample_df = pd.read_csv(os.path.join(cere_traces_dir, f'{region}_cluster{cluster_id}.invocations'), delimiter=' ', names=['Sample ID', 'Sample Cycles'])
+                        sample_df['Cluster ID'] = cluster_id
+                        sample_df = pd.merge(sample_df, inv_df, on='Cluster ID', how='inner')
+                        cere_measurement_df = cere_measurement_df.append(sample_df)
+                    except:
+                        pass
+            except:
+                pass
+        # for hot region in regions.csv
+        #   cere trace --region $region
+        #   cere selectinv --region $region --dump-clusters
+        #   cat .cere/traces/$region.invocations
+        cere_measurement_df.to_excel('/tmp/mycere.xlsx')
+        #exit()
+
+
         if self.build_app:
             shutil.rmtree(build_dir, ignore_errors=True)
             #run_cmake3(binary, src_dir, build_dir, run_cmake_dir, cmake_flags) 
@@ -204,6 +276,9 @@ class Extraction(ABC):
     def perform_codelet_extraction(self, build_dir, profile_df, idx, prefix,  main_src_info):
         mode = self.mode
         COVERAGE = .8
+        COVERAGE = .85
+        COVERAGE = 1.0
+        #COVERAGE = .95
 
         self.loop_extractor_data_dir = ensure_dir_exists(self.extractor_work_dir, 'LoopExtractor_data')
         top_row = profile_df.iloc[idx]
@@ -408,7 +483,7 @@ class Extraction(ABC):
                         
         # Extractor loop using in-situ extractor
         env = os.environ.copy()
-        env['LD_LIBRARY_PATH'] = env['LD_LIBRARY_PATH']+':/usr/lib/jvm/java-11-openjdk-amd64/lib/server'
+        env['LD_LIBRARY_PATH'] = env['LD_LIBRARY_PATH']+':/usr/lib/jvm/java-11-openjdk-amd64/lib/server:/usr/rose/lib'
         env['OMP_NUM_THREADS']="1"
         
         #runCmd(loop_extractor_command, cwd=extractor_work_dir, env=env, verbose=True)
@@ -622,6 +697,22 @@ def main():
     #binary='500.perlbench_r'
     #binary='clover_leaf'
     # TODO: for SPEC, do "grep workload 1 result/*.log file multi workload situation"
+    cmakelist_dir, cmake_flags, app_data_files, app_flags = get_build_and_run_settings(cc, cxx, binary)
+
+    top_n = 21
+    top_n = 2
+    top_n = 1
+    if args.mode == 'invitro':
+        extraction = InvitroExtraction(binary, clean, build_app)
+    elif args.mode == 'insitu':
+        extraction = InsituExtraction(binary, clean, build_app)
+    elif args.mode == 'invivo':
+        extraction = InvivoExtraction(binary, clean, build_app)
+    else:
+        raise Exception('Unknown Extraction type:'+args.mode)
+    extraction.perform_extraction_steps(top_n, cmakelist_dir, cmake_flags, app_data_files, app_flags)
+
+def get_build_and_run_settings(cc, cxx, binary):
     if binary == '525.x264_r':
         cmakelist_dir, cmake_flags, app_data_files = get_spec_cmake_flags(binary, cc, cxx, ['BuckBunny.yuv'], is_int=True)
         app_flags = ' --dumpyuv 50 --frames 156 -o BuckBunny_New.264 BuckBunny.yuv 1280x720'
@@ -715,49 +806,37 @@ def main():
         cmakelist_dir=os.path.join(PREFIX,'CloverLeaf')
         cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP"'
         cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
-        cmake_flags = '-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-cxx=icpx -DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
+        cmake_flags = f'-DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_CXX_FLAGS="-cxx={cxx} -DUSE_OPENMP -g" -DCMAKE_C_FLAGS="-g"'
 
         app_data_files = os.path.join(cmakelist_dir, 'clover.in')
 
         app_flags = ''
     elif binary == 'bt.c_compute_rhs_line1892_0':
         cmakelist_dir=os.path.join(PREFIX,'qaas-demo-lore-codelets')
-        cmake_flags = f'-DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g"'
+        cmake_flags = f'-DCMAKE_C_COMPILER={cc} -DCMAKE_CXX_COMPILER={cxx} -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_FLAGS="-g"'
         app_data_files = [os.path.join(cmakelist_dir, 'src','all','NPB_2.3-OpenACC-C','BT','bt.c_compute_rhs_line1892_0','codelet.data')]
         app_flags = ''
     elif binary == 'amg':
         cmakelist_dir=os.path.join(PREFIX,'miniapps', 'AMG')
-        cmake_flags = '-DCMAKE_C_COMPILER=mpiicc -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_C_FLAGS="-cc=icx -g" -DCMAKE_CXX_FLAGS="-cxx=icpx -g" -DCMAKE_C_FLAGS="-g"'
+        cmake_flags = f'-DCMAKE_C_COMPILER=mpiicc -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_C_FLAGS="-cc={cc} -g" -DCMAKE_CXX_FLAGS="-cxx={cxx} -g" -DCMAKE_C_FLAGS="-g"'
 
         app_data_files = []
         app_flags = ' -n 150 150 150'
     elif binary == 'CoMD-openmp-mpi':
         cmakelist_dir=os.path.join(PREFIX,'miniapps', 'CoMD')
-        cmake_flags = '-DCMAKE_C_COMPILER=mpiicc -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_C_FLAGS="-cc=icx -g" -DCMAKE_CXX_FLAGS="-cxx=icpx -g" -DCMAKE_C_FLAGS="-g"'
+        cmake_flags = f'-DCMAKE_C_COMPILER=mpiicc -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_C_FLAGS="-cc={cc} -g" -DCMAKE_CXX_FLAGS="-cxx={cxx} -g" -DCMAKE_C_FLAGS="-g"'
 
         app_data_files = []
         app_flags = ' -x 40 -y 40 -z 40'
     elif binary == 'miniqmc':
         cmakelist_dir=os.path.join(PREFIX, 'miniapps', 'miniqmc')
-        cmake_flags = '-DCMAKE_C_COMPILER=mpiicc -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_C_FLAGS="-cc=icx -g -DENABLE_OFFLOAD=0 -DQMC_MPI=1" -DCMAKE_CXX_FLAGS="-cxx=icpx -g -DENABLE_OFFLOAD=0 -DQMC_MPI=1" -DCMAKE_C_FLAGS="-g"'
+        cmake_flags = f'-DCMAKE_C_COMPILER=mpiicc -DCMAKE_CXX_COMPILER=mpiicpc -DCMAKE_C_FLAGS="-cc={cc} -g -DENABLE_OFFLOAD=0 -DQMC_MPI=1" -DCMAKE_CXX_FLAGS="-cxx={cxx} -g -DENABLE_OFFLOAD=0 -DQMC_MPI=1" -DCMAKE_C_FLAGS="-g"'
 
         app_data_files = []
         app_flags = ' -g "4 2 2" -b'
     else:
-        return
-
-    top_n = 21
-    top_n = 2
-    top_n = 1
-    if args.mode == 'invitro':
-        extraction = InvitroExtraction(binary, clean, build_app)
-    elif args.mode == 'insitu':
-        extraction = InsituExtraction(binary, clean, build_app)
-    elif args.mode == 'invivo':
-        extraction = InvivoExtraction(binary, clean, build_app)
-    else:
-        raise Exception('Unknown Extraction type:'+args.mode)
-    extraction.perform_extraction_steps(top_n, cmakelist_dir, cmake_flags, app_data_files, app_flags)
+        raise Exception(f'Unknown binary: {binary}')
+    return cmakelist_dir,cmake_flags,app_data_files,app_flags
 
 def get_spec_cmake_flags(binary, cc, cxx, datafile_names, is_int):
     #FLTO="-flto"
@@ -766,11 +845,17 @@ def get_spec_cmake_flags(binary, cc, cxx, datafile_names, is_int):
     app_prefix=os.path.join(PREFIX, f'SPEC2017/benchmark/benchspec/CPU/{binary}/run/run_base_train_myTest.0000')
     app_data_files=[os.path.join(app_prefix, f) for f in datafile_names]
     if is_int:
-        SPEC_CFLAGS = f"-g -xCORE-AVX512 -mfpmath=sse -O3 -ffast-math -funroll-loops {FLTO} -qopt-mem-layout-trans=4"
+        if cc != "cerec":
+            SPEC_CFLAGS = f"-g -xCORE-AVX512 -mfpmath=sse -O3 -ffast-math -funroll-loops {FLTO} -qopt-mem-layout-trans=4"
+        else:
+            SPEC_CFLAGS = f"-g -O3 {FLTO}"
         TEST_SUITE_SUBDIRS = "External/SPEC/CINT2017rate"
         ENABLE_FORTRAN=""
     else: 
-        SPEC_CFLAGS = f"-g -xCORE-AVX512 -mfpmath=sse -Ofast -ffast-math -funroll-loops {FLTO} -qopt-mem-layout-trans=4"
+        if cc != "cerec":
+            SPEC_CFLAGS = f"-g -xCORE-AVX512 -mfpmath=sse -Ofast -ffast-math -funroll-loops {FLTO} -qopt-mem-layout-trans=4"
+        else:
+            SPEC_CFLAGS = f"-g -Ofast -funroll-loops {FLTO} "
         TEST_SUITE_SUBDIRS = "External/SPEC/CFP2017rate"
         ENABLE_FORTRAN="-DTEST_SUITE_FORTRAN=ON "
     SPEC_LINKER_FLAGS = FLTO
@@ -808,63 +893,12 @@ def run_replay_steps(binary, extractor_work_dir, loop_extractor_data_dir, extrac
                                              extracted_sources['global_vars']):
             if not loop_src:
                 continue  # Skip empty loop info
-            loop_filename = os.path.basename(loop_src)
-            loop_name = os.path.splitext(loop_filename)[0]
-
-            restore_binary=f'replay_{loop_name}'
-            extracted_loop_dir = ensure_dir_exists(extracted_codelets_dir, loop_name)
-            print(f"add_subdirectory({loop_name})\n", file=top_cmakelist)
-            restore_include_dir = ensure_dir_exists(extracted_loop_dir, 'include')
-            restore_src_dir = ensure_dir_exists(extracted_loop_dir, 'src')
-            restore_data_root_dir = ensure_dir_exists(extracted_loop_dir, 'data')
-
-            from_replay_loop_src = os.path.join(loop_extractor_data_dir, replay_loop_src)
-            #dump_name = re.search(r"dump\(\"([^\"]*)", 
-            #                      open(os.path.join(loop_extractor_data_dir, base_src)).read()).group(1)
-            dump_name = re.search(r"load\(\"([^\"]*)", open(from_replay_loop_src).read()).group(1)
-            restore_data_dir = ensure_dir_exists(restore_data_root_dir, f"dumps/{dump_name}/{instance_num}")
-            cere_dump_dir = os.path.join(cere_out_dir, "dumps", dump_name, str(instance_num))
-            # Copy .map files
-            shutil.copy2(os.path.join(cere_dump_dir, "core.map"), restore_data_dir)
-            shutil.copy2(os.path.join(cere_dump_dir, "hotpages.map"), restore_data_dir)
-            obj_s_file = "objs.S"
-            restore_linker_section_flags=[]
-            with open(os.path.join(restore_src_dir, obj_s_file), "w") as obj_s_f:
-                data_rel_src_dir = os.path.relpath(restore_data_dir, restore_src_dir)
-                addrs = [os.path.splitext(os.path.basename(f))[0] for f in glob(f'{cere_dump_dir}/*.memdump')]
-                # Sort according to their hex values
-                addrs.sort(key=lambda h:int(h,16))
-                for addr in addrs:
-                #for memdump_file in glob(f'{cere_dump_dir}/*.memdump'):
-                    memdump_file = f'{cere_dump_dir}/{addr}.memdump'
-                    shutil.copy2(memdump_file, restore_data_dir)
-                    # Drop prefix directory name and also extension
-                    base_memdump_file = os.path.basename(memdump_file)
-                    #addr = os.path.splitext(base_memdump_file)[0]
-                    print(f'.section s{addr}, "aw"', file=obj_s_f)
-                    # Use relative path assuming build under directory extracted_loop_dir
-                    print(f'.incbin "{data_rel_src_dir}/{base_memdump_file}"', file=obj_s_f)
-                    restore_linker_section_flags.append(f" -Wl,--section-start=s{addr}=0x{addr}")
-            replay_h_file = os.path.join(cere_src_folder, 'replay.h')
-            replay_c_file = os.path.join(cere_src_folder, 'replay_driver.c')
-            shutil.copy2(replay_c_file, restore_src_dir)
-            shutil.copy2(replay_h_file, restore_include_dir)
-            shutil.copy2(os.path.join(loop_extractor_data_dir, loop_src), restore_src_dir)
-            shutil.copy2(from_replay_loop_src, restore_src_dir)
-
-            global_linker_flags = []
-            for global_var in global_vars:
-                addr_cmd = f"objdump -t {full_trace_binary}|grep '{global_var}$'|awk '{{print $1}}'"
-                # cwd should not matter
-                rst,_ = runCmdGetRst(addr_cmd, cwd = extractor_work_dir)
-                global_linker_flags.append(f" -Wl,-defsym,{global_var}=0x{rst}")
-                
-            restore_linker_flags = "-Wl,--section-start=.text=0x60004000 -Wl,--section-start=.init=0x60000000" \
-                +"".join(restore_linker_section_flags)+"".join(global_linker_flags) +" -Wl,-z,now"
-            name_map = { 'restore_binary': restore_binary, 'loop_src': loop_src, 'replay_loop_src': replay_loop_src, 
-                        'obj_s': obj_s_file, 'restore_linker_flags': restore_linker_flags }
-            instantiate_cmakelists_file(name_map, in_template = 'CMakeLists.restore.template', 
-                                    out_instantiated_file=os.path.join(extracted_loop_dir, 'CMakeLists.txt'))
+            try:
+                make_extracted_folder(extractor_work_dir, loop_extractor_data_dir, cere_src_folder, 
+                                      cere_out_dir, full_trace_binary, instance_num, extracted_codelets_dir, 
+                                      top_cmakelist, loop_src, replay_loop_src, global_vars)
+            except:
+                pass
 
 
     # Build and run
@@ -919,6 +953,65 @@ def run_replay_steps(binary, extractor_work_dir, loop_extractor_data_dir, extrac
         for successfull_loop in ['CMakeLists.txt']+successful_loops+failed_loops:
             tarball.add(os.path.join(extracted_codelets_dir, successfull_loop), arcname=os.path.join(codelet_folder_name, successfull_loop))
     print(f'Extracted loops tarball at: {extracted_tarball}')
+
+def make_extracted_folder(extractor_work_dir, loop_extractor_data_dir, cere_src_folder, cere_out_dir, full_trace_binary, instance_num, extracted_codelets_dir, top_cmakelist, loop_src, replay_loop_src, global_vars):
+    loop_filename = os.path.basename(loop_src)
+    loop_name = os.path.splitext(loop_filename)[0]
+
+    restore_binary=f'replay_{loop_name}'
+    extracted_loop_dir = ensure_dir_exists(extracted_codelets_dir, loop_name)
+    restore_include_dir = ensure_dir_exists(extracted_loop_dir, 'include')
+    restore_src_dir = ensure_dir_exists(extracted_loop_dir, 'src')
+    restore_data_root_dir = ensure_dir_exists(extracted_loop_dir, 'data')
+
+    from_replay_loop_src = os.path.join(loop_extractor_data_dir, replay_loop_src)
+            #dump_name = re.search(r"dump\(\"([^\"]*)", 
+            #                      open(os.path.join(loop_extractor_data_dir, base_src)).read()).group(1)
+    dump_name = re.search(r"load\(\"([^\"]*)", open(from_replay_loop_src).read()).group(1)
+    restore_data_dir = ensure_dir_exists(restore_data_root_dir, f"dumps/{dump_name}/{instance_num}")
+    cere_dump_dir = os.path.join(cere_out_dir, "dumps", dump_name, str(instance_num))
+            # Copy .map files
+    shutil.copy2(os.path.join(cere_dump_dir, "core.map"), restore_data_dir)
+    shutil.copy2(os.path.join(cere_dump_dir, "hotpages.map"), restore_data_dir)
+    obj_s_file = "objs.S"
+    restore_linker_section_flags=[]
+    with open(os.path.join(restore_src_dir, obj_s_file), "w") as obj_s_f:
+        data_rel_src_dir = os.path.relpath(restore_data_dir, restore_src_dir)
+        addrs = [os.path.splitext(os.path.basename(f))[0] for f in glob(f'{cere_dump_dir}/*.memdump')]
+                # Sort according to their hex values
+        addrs.sort(key=lambda h:int(h,16))
+        for addr in addrs:
+                #for memdump_file in glob(f'{cere_dump_dir}/*.memdump'):
+            memdump_file = f'{cere_dump_dir}/{addr}.memdump'
+            shutil.copy2(memdump_file, restore_data_dir)
+                    # Drop prefix directory name and also extension
+            base_memdump_file = os.path.basename(memdump_file)
+                    #addr = os.path.splitext(base_memdump_file)[0]
+            print(f'.section s{addr}, "aw"', file=obj_s_f)
+                    # Use relative path assuming build under directory extracted_loop_dir
+            print(f'.incbin "{data_rel_src_dir}/{base_memdump_file}"', file=obj_s_f)
+            restore_linker_section_flags.append(f" -Wl,--section-start=s{addr}=0x{addr}")
+    replay_h_file = os.path.join(cere_src_folder, 'replay.h')
+    replay_c_file = os.path.join(cere_src_folder, 'replay_driver.c')
+    shutil.copy2(replay_c_file, restore_src_dir)
+    shutil.copy2(replay_h_file, restore_include_dir)
+    shutil.copy2(os.path.join(loop_extractor_data_dir, loop_src), restore_src_dir)
+    shutil.copy2(from_replay_loop_src, restore_src_dir)
+
+    global_linker_flags = []
+    for global_var in global_vars:
+        addr_cmd = f"objdump -t {full_trace_binary}|grep '{global_var}$'|awk '{{print $1}}'"
+                # cwd should not matter
+        rst,_ = runCmdGetRst(addr_cmd, cwd = extractor_work_dir)
+        global_linker_flags.append(f" -Wl,-defsym,{global_var}=0x{rst}")
+                
+    restore_linker_flags = "-Wl,--section-start=.text=0x60004000 -Wl,--section-start=.init=0x60000000" \
+                +"".join(restore_linker_section_flags)+"".join(global_linker_flags) +" -Wl,-z,now"
+    name_map = { 'restore_binary': restore_binary, 'loop_src': loop_src, 'replay_loop_src': replay_loop_src, 
+                        'obj_s': obj_s_file, 'restore_linker_flags': restore_linker_flags }
+    instantiate_cmakelists_file(name_map, in_template = 'CMakeLists.restore.template', 
+                                    out_instantiated_file=os.path.join(extracted_loop_dir, 'CMakeLists.txt'))
+    print(f"add_subdirectory({loop_name})\n", file=top_cmakelist)
 
 def run_extracted_loop(cmd, codelet_run_dir, cere_data_dir, env=os.environ.copy()):
     env['CERE_WORKING_PATH'] = cere_data_dir
