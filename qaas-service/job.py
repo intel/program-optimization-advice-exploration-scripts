@@ -32,6 +32,7 @@ from argparse import ArgumentParser
 import subprocess
 import os
 import sys
+import resource
 
 import app_builder
 import app_runner
@@ -79,6 +80,9 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags):
     '''QAAS Ruuning Logic/Strategizer Entry Point.''' 
+
+    # Increase stack size soft limit for the current process and children
+    resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY,-1))
 
     # Phase 2: Intial profiling and cleaning    
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Initail Profiling and Cleaning"))
