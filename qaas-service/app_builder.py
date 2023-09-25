@@ -200,11 +200,12 @@ def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target
         f'-DCMAKE_Fortran_FLAGS="{cmake_fortran_flags}" '\
         f'-DCMAKE_EXE_LINKER_FLAGS="{cmake_linker_flags}" '\
         f'{extra_cmake_flags} '\
-        f'-S {src_dir} -B {build_dir} -G Ninja '
+        f'-S {src_dir} -B {build_dir} -G Ninja > {os.path.dirname(src_dir)}/qaas_build.log 2>&1'
     #    f'-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={output_dir}'
     print(cmake_config_cmd)
     env['VERBOSE']='1'
     subprocess.run(cmake_config_cmd, shell=True, env=env)
+    shutil.move(os.path.join(os.path.dirname(src_dir), 'qaas_build.log'), build_dir)
     # Allow search any compiler generated files
     env['QAAS_BUILD_DIR']=build_dir
     return build_dir, output_dir, output_name, env
@@ -283,6 +284,8 @@ def build_binary(user_target, build_dir, target_location, env, output_dir, outpu
     out_bin = os.path.join(output_dir, output_name)
     print(f"Copying executable: {built_bin} -> {out_bin}")
     os.makedirs(output_dir, exist_ok=True)
+    if os.path.islink(out_bin):
+        os.remove(out_bin)
     os.symlink(built_bin, out_bin)
     print(f"Binary executable saved to: {out_bin}")
 
