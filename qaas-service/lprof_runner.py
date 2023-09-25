@@ -63,7 +63,8 @@ class LProfRunner(BaseRunner):
         if result.returncode != 0:
             print(result.stderr.decode("utf-8"))
             return 
-        self.lprof_time = float(result.stdout.decode("utf-8"))
+        cmdout = result.stdout.decode("utf-8")
+        self.lprof_time = float(cmdout[:-1].split('\n')[-1])
         print(self.lprof_time)
 
     def compute_lprof_overhead(self, reference_time):
