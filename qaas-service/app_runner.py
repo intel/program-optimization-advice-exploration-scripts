@@ -57,10 +57,10 @@ class AppRunner(BaseRunner):
         for i in range(self.meta_repetitions):
             subprocess.run(f"echo run:{i} > runs.log", shell=True, cwd=self.run_dir)
             start = time.time_ns()
-            result = subprocess.run(base_run_cmd, shell=True, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            result = subprocess.run(f"{base_run_cmd} >> output.out 2>&1", shell=True, env=run_env, cwd=self.run_dir)
             stop = time.time_ns()
             if result.returncode != 0:
-                print(result.stderr.decode("utf-8"))
+                print(f"Check errors in {self.run_dir}/output.out")
                 return False
             self.exec_times.append((stop - start)/1e9)
 
