@@ -21,18 +21,25 @@ def create_app():
 
         for index, row in df.iterrows():
             app_name = row['Unnamed: 0']
+            print(app_name)
+            if pd.isna(app_name):
+                break
             icx_speedup = row['ICX: -O3 -march=native']
             icc_speedup = row['ICC: -O3 -march=native']
             gcc_speedup = row['GCC: -O3 -march=native']
 
             speedups = {'ICX': icx_speedup, 'ICC': icc_speedup, 'GCC': gcc_speedup}
-            best_compiler = row['Best compiler'].upper()
+            print(row['Best compiler'])
+            best_compiler_set = sorted(set(row['Best compiler'].split("/")))
+            
+            is_n_way_tie = len(best_compiler_set) == 3
+            best_compiler = best_compiler_set[0].upper()
+
 
             #  maxc(WC/c) for all compilers
             max_speedup = max([icx_speedup, icc_speedup, gcc_speedup])
             is_n_way_tie = max_speedup < (1 + delta) 
 
-            print(app_name, best_compiler, max_speedup, is_n_way_tie)
             # Remove the best compiler from the dict
             del speedups[best_compiler]
 

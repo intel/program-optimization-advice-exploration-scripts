@@ -4,7 +4,7 @@ import React from 'react';
 export default function AutomaticApplicationAnalysis() {
     return (
         <div className="textPageContainer">
-            <h1>Automatic application analysis</h1>
+            <h1>C2. Automatic application analysis</h1>
             <p>
                 The other half of the website contains more detailed information, and is provided on demand by users for their specific computations.
                 For this, the same tools used for the encyclopedic comparative overviews, are used to dig deeply into quality issues for single computations,

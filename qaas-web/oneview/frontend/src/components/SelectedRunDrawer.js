@@ -12,11 +12,11 @@ import './css/TopBar.css'
 const SelectedRunsDrawer = ({ isOpen, onClose, selectedRows, setSelectedRows, baseline, setBaseline, setShowGraph }) => {
 
     const handleFormSubmit = async () => {
-        const newWindow = window.open(`/generated?loading=true`, "_blank");
+        const newWindow = window.open(`#/generated?loading=true`, "_blank");
 
         try {
             const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/run_comparative_view_for_selected_runs`, selectedRows);
-            newWindow.location.href = "/generated?loading=false";
+            newWindow.location.href = "#/generated?loading=false";
         } catch (error) {
             console.error('Error submitting data:', error);
         }

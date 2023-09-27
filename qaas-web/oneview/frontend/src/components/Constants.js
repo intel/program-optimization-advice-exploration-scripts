@@ -6,13 +6,13 @@ export const TOGGLE_BUTTON_COLOR_SCHEME = ['#FFDA8D', '#FFA6B9', '#B0E57C', '#AE
 export const formatNumber = value => {
     if (value === "Not Available") return value;
     const num = parseFloat(value);
-    return isNaN(num) ? value : num.toFixed(2);
+    return isNaN(num) ? value : num.toExponential(2);
 };
 export const APPLICATION_TABLE_COLUMNS = [
     { Header: 'Workload', accessor: 'workload', id: 'workload' },
     { Header: 'Program', accessor: 'program', id: 'program' },
     { Header: 'Experiment Name', accessor: 'experiment_name', id: 'experiment_name' },
-    { Header: 'Commit ID', accessor: 'commit_id', id: 'commit_id' },
+    { Header: 'Commit ID', accessor: 'commit_id', id: 'commit_id', width: 80 },
     {
         groupName: 'time',
         Header: 'Time',
@@ -54,11 +54,11 @@ export const APPLICATION_TABLE_COLUMNS = [
 
         columns: [
             { Header: 'Compilation Options', accessor: 'compilation_flags', id: 'compilation_flags', },
-            { Header: '-O2/O3', accessor: 'o2_o3', id: 'o2_o3', },
-            { Header: 'ICL/HSW', accessor: 'icl_hsw', id: 'icl_hsw', },
-            { Header: 'FLTO', accessor: 'flto', id: 'flto', },
-            { Header: 'fno-tree-vectorize', accessor: 'fno_tree_vec', id: 'fno_tree_vec', },
-            { Header: 'Model Name', accessor: 'model_name', id: 'model_name', },
+            { Header: '-O2/O3', accessor: 'o2_o3', id: 'o2_o3', width: 50 },
+            { Header: 'ICL/HSW', accessor: 'icl_hsw', id: 'icl_hsw', width: 50 },
+            { Header: 'FLTO', accessor: 'flto', id: 'flto', width: 50 },
+            { Header: 'fno-tree-vectorize', accessor: 'fno_tree_vec', id: 'fno_tree_vec', width: 50 },
+            { Header: 'Model Name', accessor: 'model_name', id: 'model_name' },
             { Header: 'Number of Cores', accessor: d => formatNumber(d.number_of_cores), id: 'number_of_cores', }
         ]
     },

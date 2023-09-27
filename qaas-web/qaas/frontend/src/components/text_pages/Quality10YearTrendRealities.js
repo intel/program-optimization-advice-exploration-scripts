@@ -1,11 +1,13 @@
 import React from 'react';
 
 import comparisonsGainsImage from '../imgs/10year_comparisons_gains_across_contests.png';
+import mpImage from '../imgs/mp.png';
+import specImage from '../imgs/spec.png';
 
 export default function Quality10YearTrendRealities() {
     return (
         <div className="textPageContainer">
-            <h1>Quality 10-year trend realities</h1>
+            <h1>C4. Quality 10-year trend realities</h1>
             <p>
 
                 What performance gains have been achieved historically with different types of independent variables? What really improves performance the most for a given app?
@@ -36,6 +38,9 @@ export default function Quality10YearTrendRealities() {
                 so there is gains depend dramatically on the algorithms involved.
 
             </p>
+            <div className='imageContainer'>
+                <img src={specImage} alt="specImage" />
+            </div>
 
             <p>
                 It is very difficult to separate the gains due to architectural change and compiler change,
@@ -51,6 +56,9 @@ export default function Quality10YearTrendRealities() {
                 Fig. MP shows a 10^6 Bell gain over 30 years, or 100X in 10 years. Note that there are approximately 7 plateaus of a few years in Fig.
                 MP, which  imply a given system that reigned for a few years in the Bell competition.
             </p>
+            <div className='imageContainer'>
+                <img src={mpImage} alt="mpImage" />
+            </div>
         </div>
     );
 

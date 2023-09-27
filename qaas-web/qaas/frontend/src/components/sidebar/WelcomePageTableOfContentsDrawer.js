@@ -6,7 +6,7 @@ import DrawerItemsList from './DrawerItemList';
 
 const WelcomePageTableOfContentsDrawer = () => {
     const navigate = useNavigate();
-    const [selectedItem, setSelectedItem] = useState(null);
+    const [selectedItem, setSelectedItem] = useState('/');
     const [expandedSections, setExpandedSections] = useState([]);
 
     const navigateToSection = (path, children) => {
@@ -50,13 +50,21 @@ const WelcomePageTableOfContentsDrawer = () => {
                         },
                         {
                             level: 3, text: 'C1.3 Multiprocessor', path: '/cq_overview_multiprocessor', children: [
-                                { level: 4, text: 'C1.3.1Best system computer technology [Gf perf/core] per app', path: '/best_system_perf' },
-                                { level: 4, text: 'C1.3.2 Best system efficient total MP Performance per App. & Domain [tot Gf/system]', path: '/best_total_system_perf' },
-                                { level: 4, text: 'C1.3.3 Architectural performance ratios showing top performer by [Gf]', path: '/architectural_performance_ratios' },
-                                { level: 4, text: 'C1.3.2 Performance by scalability type', path: '/perf_by_scalability_type' },
-                                { level: 4, text: 'C1.3.3 Best App insights per domain. ', path: '/best_app_insights_per_domain' },
+                                { level: 4, text: 'C1.3.1Best system computer technology [Gf perf/core] per app', path: '/gf_cor' },
+                                { level: 4, text: 'C1.3.2 Best system efficient total MP Performance per App. & Domain [tot Gf/system]', path: '/gf_system' },
+                                { level: 4, text: 'C1.3.3 Architectural performance ratios showing top performer by [Gf]', path: '/gf_arch' },
+
                             ]
                         },
+                        {
+                            level: 3, text: 'C1.4 Performance by scalability type', path: '/perf_by_scalability_type', children: [
+                                { level: 4, text: 'C1.4.1.a Best arch perf/cost implicit w. various numbers of cores for optimal scalability', path: '/gf_cost' },
+                                { level: 4, text: 'C1.4.1.b  Type of scaling – replication factors', path: '/type_of_scaling_replication_factors' },
+                            ]
+                        },
+                        { level: 3, text: 'C1.5 Oneview ', path: '/oneview' },
+                        { level: 3, text: 'C1.6 Best App insights per domain ', path: '/best_app_insights_per_domain' },
+
                     ]
                 },
                 { level: 2, text: 'C2. Automatic application analysis', path: '/automatic_application_analysis' },
@@ -79,13 +87,7 @@ const WelcomePageTableOfContentsDrawer = () => {
                 ModalProps={{
                     hideBackdrop: true,
                 }}
-                sx={{
-                    '& .MuiDrawer-paper': {
-                        position: 'static',
-                        alignItems: 'center',
 
-                    },
-                }}
             >
                 <List>
                     <DrawerItemsList

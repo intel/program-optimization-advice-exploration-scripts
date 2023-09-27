@@ -4,7 +4,7 @@ import React from 'react';
 export default function ManualInteractiveMode() {
     return (
         <div className="textPageContainer">
-            <h1>Manual Interactive Mode</h1>
+            <h1>C3. Manual Interactive Mode</h1>
             <p>
                 In any case, QaaS may make general comments about the quality of the source or binary code that could improve quality through manual work.
                 This means work for the user and may require specific types of expertise, so is not as generally useful as the QaaS Automatic mode.
