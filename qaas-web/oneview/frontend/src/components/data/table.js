@@ -62,6 +62,11 @@ function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaul
                         className: "wrap-text"
                     };
                 }}
+                getTheadGroupThProps={(state, rowInfo, column, instance) => {
+                    return {
+                        className: "group-header"
+                    };
+                }}
             />
         </div>
     );

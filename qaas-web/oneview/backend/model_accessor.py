@@ -225,8 +225,7 @@ class OneviewModelAccessor(ModelAccessor):
         self.hierarchy_dir_path = os.path.join(self.static_dir_path, 'hierarchy')
         self.callchain_dir_path = os.path.join(self.lprof_dir_path, 'callchains')
 
-        self.local_vars_path1 = os.path.join(self.static_dir_path, 'local_vars.csv')
-        self.local_vars_path2 = os.path.join(self.run_dir_path, 'local_vars.csv')
+        self.local_vars_path = os.path.join(self.run_dir_path, 'local_vars.csv')
         self.expert_loop_path = os.path.join(self.run_dir_path, "expert_loops.csv")
         self.vprof_bucket_range = ["0.00-2.00", "2.00-4.00", "4.00-8.00", "8.00-16.00", "16.00-32.00", "32.00-64.00", "64.00-128.00", "128.00-256.00", "256.00-512.00", "512.00-1024.00", "1024.00-2048.00", "2048.00+"]
 
@@ -262,18 +261,18 @@ class OneviewModelAccessor(ModelAccessor):
         global_metrics_path = os.path.join(self.run_dir_path, 'global_metrics.csv')
         compilation_options_path = os.path.join(self.source_dir, 'compilation_options.csv')
 
-        return self.local_vars_path1, self.local_vars_path2, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
+        return  self.local_vars_path, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
                 fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path
     
     def get_os_path(self):
-        return self.local_vars_path1, self.local_vars_path2
+        return  self.local_vars_path
 
     def get_hwsystem_path(self):
-        return self.local_vars_path1, self.local_vars_path2
+        return self.local_vars_path
 
     
     def get_maqao_path(self):
-        return self.local_vars_path1, self.local_vars_path2
+        return  self.local_vars_path
     
     def get_decan_path(self):
         return os.path.join(self.run_dir_path, "decan.csv")
@@ -453,9 +452,9 @@ class OneViewModelInitializer(OneviewModelAccessor):
     def visitExecution(self, execution):
         execution.qaas_timestamp = self.qaas_timestamp
         execution.version = self.version
-        local_vars_path1, local_vars_path2, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
+        local_vars_path, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
             fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
-        local_vars_df = read_file(local_vars_path1)
+        local_vars_df = read_file(local_vars_path)
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
 
 
@@ -501,15 +500,15 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
 
     def visitOs(self, os):
-        local_vars_path1, local_vars_path2=self.get_os_path()
-        local_vars_df = read_file(local_vars_path1)
+        local_vars_path=self.get_os_path()
+        local_vars_df = read_file(local_vars_path)
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         os.os_version = local_vars_dict.get('os_version', None)
         os.hostname = local_vars_dict.get('hostname', None)
 
     def visitHwSystem(self, hwsystem):
-        local_vars_path1, local_vars_path2=self.get_os_path()
-        local_vars_df = read_file(local_vars_path1)
+        local_vars_path = self.get_os_path()
+        local_vars_df = read_file(local_vars_path)
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         hwsystem.cpui_model_name =  local_vars_dict.get('cpui_model_name', None)
         hwsystem.cpui_cpu_cores = local_vars_dict.get('cpui_cpu_cores', None)
@@ -521,8 +520,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
         hwsystem.proc_name =  local_vars_dict.get('proc_name', None)
 
     def visitMaqao(self, maqao):
-        local_vars_path1, local_vars_path2=self.get_os_path()
-        local_vars_df = read_file(local_vars_path1)
+        local_vars_path=self.get_os_path()
+        local_vars_df = read_file(local_vars_path)
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         maqao.global_instances_per_bucket = local_vars_dict.get('global_instances_per_bucket', None)
         maqao.instances_per_bucket = local_vars_dict.get('instances_per_bucket', None)
@@ -998,11 +997,10 @@ class OneViewModelExporter(OneviewModelAccessor):
     def visitApplication(self, application):
         pass
     def visitExecution(self, execution, qaas_timestamp = None, version = None):
-        local_vars_path1, local_vars_path2, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,fct_locations_path,\
+        local_vars_path, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,fct_locations_path,\
             loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
         # Create directories
-        os.makedirs(os.path.dirname(local_vars_path1), exist_ok=True)
-        os.makedirs(os.path.dirname(local_vars_path2), exist_ok=True)
+        os.makedirs(os.path.dirname(local_vars_path), exist_ok=True)
         os.makedirs(os.path.dirname(config_path), exist_ok=True)
         os.makedirs(os.path.dirname(cqa_context_path), exist_ok=True)
         os.makedirs(os.path.dirname(expert_run_path), exist_ok=True)
@@ -1015,12 +1013,10 @@ class OneViewModelExporter(OneviewModelAccessor):
         os.makedirs(os.path.dirname(fct_callchain_path), exist_ok=True)
         os.makedirs(os.path.dirname(loop_callchain_path), exist_ok=True)
         #localvars csv
-        create_or_update_localvar_df('is_src_code', str(execution.is_src_code).lower(), local_vars_path1)
-        create_or_update_localvar_df('universal_timestamp', execution.universal_timestamp, local_vars_path1)
-        create_or_update_localvar_df('timestamp', universal_timestamp_to_datetime(execution.universal_timestamp), local_vars_path1)
+        create_or_update_localvar_df('is_src_code', str(execution.is_src_code).lower(), local_vars_path)
+        create_or_update_localvar_df('universal_timestamp', execution.universal_timestamp, local_vars_path)
+        create_or_update_localvar_df('timestamp', universal_timestamp_to_datetime(execution.universal_timestamp), local_vars_path)
 
-        # Make a copy of the file
-        shutil.copy(local_vars_path1, local_vars_path2)
 
         # config lua file and cqa_context lua
         convert_python_to_lua(execution.config, config_path) 
@@ -1051,50 +1047,41 @@ class OneViewModelExporter(OneviewModelAccessor):
         convert_callchain_python_to_binary(execution.fct_callchain, fct_callchain_path, self.session)
 
     def visitOs(self, os_obj):
-        local_vars_path1, local_vars_path2=self.get_os_path()
+        local_vars_path=self.get_os_path()
         # Read existing data
-        # update local_vars_path1
-        create_or_update_localvar_df('os_version', os_obj.os_version, local_vars_path1)
-        create_or_update_localvar_df('hostname', os_obj.hostname, local_vars_path1)
-
-        # copy updates to local_vars_path2
-        shutil.copy(local_vars_path1, local_vars_path2)
+        create_or_update_localvar_df('os_version', os_obj.os_version, local_vars_path)
+        create_or_update_localvar_df('hostname', os_obj.hostname, local_vars_path)
 
     def visitMaqao(self, maqao):
-        local_vars_path1, local_vars_path2=self.get_maqao_path()
+        local_vars_path=self.get_maqao_path()
         # Read existing data
-        # update local_vars_path1
-        create_or_update_localvar_df('global_instances_per_bucket', maqao.global_instances_per_bucket, local_vars_path1)
-        create_or_update_localvar_df('instances_per_bucket', maqao.instances_per_bucket, local_vars_path1)
-        create_or_update_localvar_df('architecture_code', maqao.architecture_code, local_vars_path1)
-        create_or_update_localvar_df('uarchitecture_code', maqao.uarchitecture_code, local_vars_path1)
-        create_or_update_localvar_df('min_time_obj', maqao.min_time_obj, local_vars_path1)
-        create_or_update_localvar_df('cqa_uarch', maqao.cqa_uarch, local_vars_path1)
-        create_or_update_localvar_df('cqa_arch', maqao.cqa_arch, local_vars_path1)
-        create_or_update_localvar_df('lprof_suffix', maqao.lprof_suffix, local_vars_path1)
-        create_or_update_localvar_df('last_html_path', maqao.last_html_path, local_vars_path1)
-        create_or_update_localvar_df('maqao_build', maqao.maqao_build, local_vars_path1)
-        create_or_update_localvar_df('maqao_version', maqao.maqao_version, local_vars_path1)
-        create_or_update_localvar_df('exp_version', maqao.exp_version, local_vars_path1)
+        create_or_update_localvar_df('global_instances_per_bucket', maqao.global_instances_per_bucket, local_vars_path)
+        create_or_update_localvar_df('instances_per_bucket', maqao.instances_per_bucket, local_vars_path)
+        create_or_update_localvar_df('architecture_code', maqao.architecture_code, local_vars_path)
+        create_or_update_localvar_df('uarchitecture_code', maqao.uarchitecture_code, local_vars_path)
+        create_or_update_localvar_df('min_time_obj', maqao.min_time_obj, local_vars_path)
+        create_or_update_localvar_df('cqa_uarch', maqao.cqa_uarch, local_vars_path)
+        create_or_update_localvar_df('cqa_arch', maqao.cqa_arch, local_vars_path)
+        create_or_update_localvar_df('lprof_suffix', maqao.lprof_suffix, local_vars_path)
+        create_or_update_localvar_df('last_html_path', maqao.last_html_path, local_vars_path)
+        create_or_update_localvar_df('maqao_build', maqao.maqao_build, local_vars_path)
+        create_or_update_localvar_df('maqao_version', maqao.maqao_version, local_vars_path)
+        create_or_update_localvar_df('exp_version', maqao.exp_version, local_vars_path)
 
-        # copy updates to local_vars_path2
-        shutil.copy(local_vars_path1, local_vars_path2)
 
     def visitHwSystem(self, hwsystem):
-        local_vars_path1, local_vars_path2=self.get_os_path()
+        local_vars_path=self.get_os_path()
         # Read existing data
-        # update local_vars_path1
-        create_or_update_localvar_df('cpui_model_name', hwsystem.cpui_model_name, local_vars_path1)
-        create_or_update_localvar_df('cpui_cpu_cores', hwsystem.cpui_cpu_cores, local_vars_path1)
-        create_or_update_localvar_df('cpui_cache_size', hwsystem.cpui_cache_size, local_vars_path1)
-        create_or_update_localvar_df('cur_frequency', hwsystem.cur_frequency, local_vars_path1)
-        create_or_update_localvar_df('max_frequency', hwsystem.max_frequency, local_vars_path1)
-        create_or_update_localvar_df('architecture', hwsystem.architecture, local_vars_path1)
-        create_or_update_localvar_df('uarchitecture', hwsystem.uarchitecture, local_vars_path1)
-        create_or_update_localvar_df('proc_name', hwsystem.proc_name, local_vars_path1)
+        create_or_update_localvar_df('cpui_model_name', hwsystem.cpui_model_name, local_vars_path)
+        create_or_update_localvar_df('cpui_cpu_cores', hwsystem.cpui_cpu_cores, local_vars_path)
+        create_or_update_localvar_df('cpui_cache_size', hwsystem.cpui_cache_size, local_vars_path)
+        create_or_update_localvar_df('cur_frequency', hwsystem.cur_frequency, local_vars_path)
+        create_or_update_localvar_df('max_frequency', hwsystem.max_frequency, local_vars_path)
+        create_or_update_localvar_df('architecture', hwsystem.architecture, local_vars_path)
+        create_or_update_localvar_df('uarchitecture', hwsystem.uarchitecture, local_vars_path)
+        create_or_update_localvar_df('proc_name', hwsystem.proc_name, local_vars_path)
 
-        # copy updates to local_vars_path2
-        shutil.copy(local_vars_path1, local_vars_path2)
+     
 
     def visitEnvironment(self, environment):
         self.run_dir_path=self.get_env_path()

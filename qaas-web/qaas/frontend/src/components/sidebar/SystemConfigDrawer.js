@@ -28,13 +28,7 @@ const SystemConfigDrawer = () => {
                 ModalProps={{
                     hideBackdrop: true,
                 }}
-                sx={{
-                    '& .MuiDrawer-paper': {
-                        marginTop: '50px',
-                        alignItems: 'center',
-                        minWidth: '250px',
-                    },
-                }}
+
             >
                 <List>
                     <DrawerItemsList

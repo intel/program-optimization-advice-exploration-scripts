@@ -8,7 +8,7 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 const DrawerItem = ({ level, text, path, children, navigateToSection, selectedItem, hasChildren }) => {
     const isSelected = selectedItem === path;
     return (
-        <ListItem>
+        <ListItem className='draweritem-list-button'>
             <ListItemButton
                 className={`level level${level} ${isSelected ? 'highlight-color' : ''} hover-color`}
                 onClick={() => navigateToSection(path, children)}
@@ -19,5 +19,6 @@ const DrawerItem = ({ level, text, path, children, navigateToSection, selectedIt
         </ListItem>
     );
 };
+
 
 export default DrawerItem;

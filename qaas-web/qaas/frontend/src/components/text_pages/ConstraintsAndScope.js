@@ -6,7 +6,7 @@ export default function ConstraintsAndScope() {
 
     return (
         <div className="textPageContainer">
-            <h1>Constraints and Scope</h1>
+            <h1>B.Constraints and Scope</h1>
             <p>Our ambitious goals are constrained by practical, technical, and legal realities. Our broad scope includes: computer systems including HW architecture from 1 processor to small MP systems (100+) cores,
                 big-core/small-core systems and GPUs, a range of compilers and languages across various application domains (chemistry, physics, engineering, weather, etc.)
                 and multiple algorithmic approaches per domain. So, there are millions of possible combinations, whose impracticality forces us to make choices.

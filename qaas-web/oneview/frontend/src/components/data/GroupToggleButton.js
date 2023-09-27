@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { TOGGLE_BUTTON_COLOR_SCHEME, APPLICATION_TABLE_COLUMNS } from '../Constants';
-
+import '../css/table.css'
 const ToggleButton = ({ groupName, label, hiddenChildColumns, toggleGroup, color, columns }) => {
     const areChildColumnsHidden = columns.some(col => hiddenChildColumns.includes(col.id));
     return (
         <button
             onClick={() => toggleGroup(groupName)}
-            style={{ backgroundColor: color, color: 'black' }}
+            style={{ backgroundColor: color }}
             className='table-action-button'
 
         >
