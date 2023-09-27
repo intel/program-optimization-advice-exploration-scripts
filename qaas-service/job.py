@@ -82,20 +82,21 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
 
     # Increase stack size soft limit for the current process and children
     resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY,-1))
+    # Setup QaaS reports dir
+    qaas_reports_dir = os.path.join(os.path.dirname(base_run_dir), 'qaas_reports')
 
     # Phase 2: Intial profiling and cleaning    
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Initail Profiling and Cleaning"))
-    rc,msg,median_orig = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
+    rc,msg,defaults = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-                     user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags)
+                     user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir)
     if rc != 0: 
         to_backplane.send(qm.GeneralStatus(msg))
         return
     to_backplane.send(qm.GeneralStatus("Done Initail Profiling and Cleaning!"))
+    print(defaults)
 
     # Phase 3.1: Parameter Exploration and Tuning
-    # Setup QaaS reports dir
-    qaas_reports_dir = os.path.join(os.path.dirname(base_run_dir), 'qaas_reports')
 
     # First build all options
     binaries_dir = os.path.join(os.path.dirname(base_run_dir), 'binaries')
@@ -107,7 +108,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     # Start unicore runs
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Unicore Parameters Exploration/Tuning"))
     rc,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
-                     orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, median_orig)
+                     orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults)
     if rc != 0: 
         to_backplane.send(qm.GeneralStatus(msg))
         return
