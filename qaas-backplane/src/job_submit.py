@@ -46,7 +46,7 @@ class QAASJobException(Exception):
 
 class QAASJobSubmit:
     """."""
-    def __init__(self, system_compilers, user_compiler, user_application, provisioner, logic, no_compiler_default, no_compiler_flags):
+    def __init__(self, system_compilers, user_compiler, user_application, provisioner, logic, no_compiler_default, no_compiler_flags, parallel_compiler_runs):
         self.compiler = user_compiler
         self.compilers = system_compilers
         self.provisioner = provisioner
@@ -54,6 +54,7 @@ class QAASJobSubmit:
         self.logic = logic
         self.no_compiler_default = no_compiler_default
         self.no_compiler_flags = no_compiler_flags
+        self.parallel_compiler_runs = parallel_compiler_runs
 
     def run_container(self, app_cmd, mount_map, user_ns_root, network_host=False, cap_add=False, debug=False):
         mount_flags = "".join([f' -v {k}:{v}' for k,v in mount_map.items()])
@@ -193,6 +194,7 @@ class QAASJobSubmit:
                     f' --logic {self.logic}' + \
                     f' {disable_best_compiler_default}' + \
                     f' {disable_best_compiler_flags}' + \
+                    f' --parallel-compiler-runs {self.parallel_compiler_runs}' + \
                     f" --comm-port {self.provisioner.comm_port}" 
         if container:
             mount_map = { ov_dir:ov_dir, script_root:container_script_root,

@@ -40,6 +40,7 @@ import app_runner
 import lprof_runner
 import oneview_runner
 from logger import log, QaasComponents
+from wrapper_runner import compiler_run
 
 #this_script=os.path.realpath(__file__)
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -64,7 +65,7 @@ def dump_compilers_csv_file(qaas_reports_dir, file_name, table, defaults, best_o
     writer = csv.writer(csv_compiler)
     # Do not add header if file exists already
     if not file_exists:
-        csv_header = ['app_name', 'compiler', 'option #', 'flags', 'time(s)']
+        csv_header = ['app_name', 'compiler', 'option #', 'flags', '#MPI', '#OMP', 'time(s)']
         for default in defaults:
             csv_header.append(f"Spd w.r.t {default}")
         writer.writerow(csv_header)
@@ -91,7 +92,7 @@ def compute_compilers_speedups(t_compilers, defaults, i_time):
                     # Compare to
                     row.append(0.0)
 
-def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir):
+def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir, parallel_runs):
     '''Measure Application-wide execution times'''
 
     # Add extra OV runs
@@ -109,13 +110,14 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
             _,option = os.path.basename(os.path.dirname(binary_path)).split('_')
             # Setup run directory and launch initial run
             base_run_bin_dir = os.path.join(base_run_dir, 'compilers', f"{compiler}_{option}")
-            basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', DEFAULT_REPETITIONS, "mpirun")
+            basic_run,nb_mpi,nb_omp = compiler_run(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 
+                                                   DEFAULT_REPETITIONS, "app", parallel_runs)
             tmp = [str(x) for x in basic_run.exec_times]
             # Check execution in defined range
             median_value = basic_run.compute_median_exec_time()
             run_log += f"[Compiler Options] (compiler={compiler},option={option}) Median on {DEFAULT_REPETITIONS} runs: {median_value}\n"
             time_values.append(median_value)
-            t_compiler.append([app_name, compiler, option, flags, median_value])
+            t_compiler.append([app_name, compiler, option, flags,nb_mpi,nb_omp, median_value])
 
         # Add the local table to dict
         qaas_table[compiler] = t_compiler
@@ -129,7 +131,7 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
 
     return (qaas_table, qaas_best_opt, run_log)
 
-def run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options):
+def run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, parallel_runs):
     '''Run and generate OneView reports on best options'''
 
     for compiler, best_opt in qaas_best_opt.items():
@@ -142,22 +144,22 @@ def run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_bes
         # Retrieve the execution environment
         app_env = compiled_options[compiler][best_opt][1]
         # Make the oneview run
-        oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, ov_config, 'both', level=2, mpi_run_command="mpirun", mpi_num_processes=1)
+        compiler_run(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
 
 def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
-                orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults):
+                orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults, parallel_runs):
     '''Execute QAAS Running Logic: UNICORE PARAMETER EXPLORATION/TUNING'''
 
     # Init status
     rc=0
     # Compare options
-    qaas_table, qaas_best_opt, log = measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir)
+    qaas_table, qaas_best_opt, log = measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir, parallel_runs)
 
     # Print log to file
     dump_compilers_log_file(qaas_reports_dir, 'qaas_compilers.log', log)
 
     # Compute speedups
-    index = 4 # index of the median execution time column
+    index = 6 # index of the median execution time column
     compute_compilers_speedups(qaas_table, defaults, index)
 
     # Dump csv table to file
@@ -166,6 +168,6 @@ def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir
     dump_compilers_csv_file(qaas_reports_dir, 'qaas_compilers_best.csv', qaas_table, defaults, True, qaas_best_opt)
 
     # Run oneview on best options
-    run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options)
+    run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, parallel_runs)
 
     return rc,qaas_best_opt,""

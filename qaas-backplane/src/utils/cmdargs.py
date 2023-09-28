@@ -81,6 +81,10 @@ def parse_cli_args(argv):
     compilers_excl = global_parser.add_mutually_exclusive_group()
     add_exclusive_compilers_options(compilers_excl)
 
+    # Force usage of parallel run for compiler search
+    global_parser.add_argument('-p', '--parallel-compiler-runs', choices=['off', 'mpi', 'openmp', 'hybrid'], default='off',
+                               help="Force multiprocessing [MPI, OpenMP or hybrid] for compiler search runs")
+    
     # parse arguments
     args = global_parser.parse_args()
 
