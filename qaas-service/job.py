@@ -78,9 +78,10 @@ def run_demo_phase(to_backplane, src_dir, data_dir, ov_config, ov_run_dir, locus
 def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, locus_run_root, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags,
-                     disable_compiler_default=False, disable_compiler_flags=False):
+                     disable_compiler_default, disable_compiler_flags, parallel_compiler_runs):
     '''QAAS Ruuning Logic/Strategizer Entry Point.''' 
 
+    print(parallel_compiler_runs)
     # Increase stack size soft limit for the current process and children
     resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY,-1))
     # Setup QaaS reports dir
@@ -91,7 +92,8 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     rc,msg,defaults = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location, 
-                     run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir, disable_compiler_default)
+                     run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir, 
+                     disable_compiler_default, parallel_compiler_runs)
     if rc != 0: 
         to_backplane.send(qm.GeneralStatus(msg))
         return
@@ -110,7 +112,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         # Start unicore runs
         to_backplane.send(qm.GeneralStatus("QAAS running logic: Compilers Parameters Exploration/Tuning"))
         rc,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
-                         orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults)
+                         orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults, parallel_compiler_runs)
         if rc != 0: 
             to_backplane.send(qm.GeneralStatus(msg))
             return
@@ -130,6 +132,8 @@ if __name__ == '__main__':
     parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='demo')
     parser.add_argument('--no-compiler-default', action="store_true", help="Disable search for best default compiler", required=False)
     parser.add_argument('--no-compiler-flags', action="store_true", help="Disable search for best compiler flags", required=False)
+    parser.add_argument('-p', '--parallel-compiler-runs', choices=['off', 'mpi', 'openmp', 'hybrid'], default='off',
+                               help="Force multiprocessing [MPI, OpenMP or hybrid] for compiler search runs")
     app_builder_builder_argparser(parser, include_binary_path=False, include_mode=False)
     args = parser.parse_args()
     log(QaasComponents.BUSINESS_LOGICS, 'Executing job.py script in a container', mockup=True)
@@ -146,6 +150,6 @@ if __name__ == '__main__':
         run_multiple_phase(to_backplane, args.src_dir, args.data_dir, args.base_run_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
                      args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
                      args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags,
-                     args.no_compiler_default, args.no_compiler_flags)
+                     args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs)
     to_backplane.send(qm.EndJob())
     to_backplane.close()
