@@ -60,7 +60,10 @@ def main():
     user_ns_root = False if not args.as_root_in_container else True
 
     # Command line just print the message for service message, GUI will act on message differently.
-    rc, _ = launch_qaas(args.app_params, args.logic, container, user_ns_root, lambda msg: print(msg.str()))
+    rc, _ = launch_qaas(args.app_params, args.logic, 
+                        container, user_ns_root, 
+                        args.no_compiler_default, args.no_compiler_flags, 
+                        lambda msg: print(msg.str()))
 
     exitcode = 1
     if rc == 0:
@@ -69,10 +72,13 @@ def main():
     sys.exit(exitcode)
 
 def launch_qaas_web(qaas_message_queue, app_params, launch_output_dir='/tmp/qaas_out'):
-   launch_qaas(app_params, "demo", True, lambda msg: qaas_message_queue.put(msg), launch_output_dir)
+   launch_qaas(app_params, "demo", True, False, False, False, lambda msg: qaas_message_queue.put(msg), launch_output_dir)
 
 # Webfront will call this to launch qaas for a submission
-def launch_qaas(app_params, logic, container, user_ns_root, service_msg_recv_handler, launch_output_dir='/tmp/qaas_out'):
+def launch_qaas(app_params, logic, 
+                container, user_ns_root, 
+                no_compiler_default, no_compiler_flags, 
+                service_msg_recv_handler, launch_output_dir='/tmp/qaas_out'):
     # Better api to send back message 
     service_msg_recv_handler(qm.BeginQaas())
     # setup QaaS configuration
@@ -122,7 +128,8 @@ def launch_qaas(app_params, logic, container, user_ns_root, service_msg_recv_han
                         params.user["compiler"],
                         params.user["application"],
                         prov,
-                        logic)
+                        logic,
+                        no_compiler_default, no_compiler_flags)
 
     rc = job.run_job(container, user_ns_root)
     #rc = job.build_default()
