@@ -94,7 +94,8 @@ def dump_defaults_csv_file(qaas_reports_dir, file_name, table, app_name):
 
 def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-                     user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir):
+                     user_link_flags, user_target, user_target_location,
+                     run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir, disable_compiler_default=False):
     ''' Execute QAAS Running Logic: INITIAL PROFILING AND CLEANING'''
 
     # Parse original user CC
@@ -165,47 +166,49 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     oneview_runner.exec(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, maqao_dir, ov_config, 'both', level=2, mpi_run_command="mpirun", mpi_num_processes=1)
 
     # Run using other compilers with default flags
-    vendor = system.get_vendor_name()
-    if vendor == 'unknown':
-        printf("Unknown / unsupported vendor")
-        return None
-    # Get the processor architecture
-    processor = system.get_intel_processor_name()
-
-    # Get the list of flags for the CPU vendor (x86, ...) and processor.
-    compiler_params = read_compiler_flags(vendor, processor)
-    compilers_list = compiler_params['compilers']
-
-    # Iterate on all compilers
-    for compiler in compilers_list:
-        # Nothing to do if user-specified compiler
-        if compiler == user_CC:
-            continue
-
-        # Set target compiler
-        target_CC = f"{mpi_wrapper}-{compiler}" if mpi_wrapper else compiler
-        # Setup binary
-        base_run_bin_dir = os.path.join(base_run_dir, 'defaults', compiler)
-        binary_path = os.path.join(base_run_bin_dir, 'exec')
+    if not disable_compiler_default:
+        # Identify host machine vendor
+        vendor = system.get_vendor_name()
+        if vendor == 'unknown':
+            printf("Unknown / unsupported vendor")
+            return None
+        # Get the processor architecture
+        processor = system.get_intel_processor_name()
     
-        # Build originl app using user-provided compilation options
-        app_builder_env = app_builder.exec(src_dir, compiler_dir, binary_path,
-                                       orig_user_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
-                                       user_link_flags, user_target, user_target_location, 'both', extra_cmake_flags, f"{compiler}")
-        # Add any user-provided environment variables
-        app_builder_env.update(env_var_map)
-
-        # Setup run directory and launch initial run
-        basic_run = app_runner.exec(app_builder_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 3, "mpirun")
-        defaults[compiler] = basic_run.compute_median_exec_time()
-
-        # Dump median exec time to file
-        cmd = f"echo 'base_median_time;{compiler};" + str(defaults[compiler]) + "' > initial_profile.csv"
-        subprocess.run(cmd, shell=True, cwd=basic_run.run_dir)
-
-        # Make an OV run
-        ov_run_bin_dir = os.path.join(ov_run_dir, 'defaults', compiler)
-        oneview_runner.exec(app_builder_env, binary_path, data_dir, ov_run_bin_dir, run_cmd, maqao_dir, ov_config, 'both', level=2, mpi_run_command="mpirun", mpi_num_processes=1)
+        # Get the list of flags for the CPU vendor (x86, ...) and processor.
+        compiler_params = read_compiler_flags(vendor, processor)
+        compilers_list = compiler_params['compilers']
+    
+        # Iterate on all compilers
+        for compiler in compilers_list:
+            # Nothing to do if user-specified compiler
+            if compiler == user_CC:
+                continue
+    
+            # Set target compiler
+            target_CC = f"{mpi_wrapper}-{compiler}" if mpi_wrapper else compiler
+            # Setup binary
+            base_run_bin_dir = os.path.join(base_run_dir, 'defaults', compiler)
+            binary_path = os.path.join(base_run_bin_dir, 'exec')
+        
+            # Build originl app using user-provided compilation options
+            app_builder_env = app_builder.exec(src_dir, compiler_dir, binary_path,
+                                           orig_user_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
+                                           user_link_flags, user_target, user_target_location, 'both', extra_cmake_flags, f"{compiler}")
+            # Add any user-provided environment variables
+            app_builder_env.update(env_var_map)
+    
+            # Setup run directory and launch initial run
+            basic_run = app_runner.exec(app_builder_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 3, "mpirun")
+            defaults[compiler] = basic_run.compute_median_exec_time()
+    
+            # Dump median exec time to file
+            cmd = f"echo 'base_median_time;{compiler};" + str(defaults[compiler]) + "' > initial_profile.csv"
+            subprocess.run(cmd, shell=True, cwd=basic_run.run_dir)
+    
+            # Make an OV run
+            ov_run_bin_dir = os.path.join(ov_run_dir, 'defaults', compiler)
+            oneview_runner.exec(app_builder_env, binary_path, data_dir, ov_run_bin_dir, run_cmd, maqao_dir, ov_config, 'both', level=2, mpi_run_command="mpirun", mpi_num_processes=1)
 
     # Dump defaults values to csv
     dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, user_target)

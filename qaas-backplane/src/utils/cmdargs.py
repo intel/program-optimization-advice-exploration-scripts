@@ -39,11 +39,18 @@ def add_exclusive_trace_options(excl_parser):
     excl_parser.add_argument("-q", "--quiet", action="store_true", help="quiet mode")
 
 def add_exclusive_container_options(excl_parser):
-    """Populate a parser with exclusive trace options."""
+    """Populate a parser with exclusive container options."""
     # Specify whether to disable container mode 
     excl_parser.add_argument('-nc', "--no-container", action="store_true", help="Disable container mode")
     # Specify whether to run root in container (permissive rootless mode) 
     excl_parser.add_argument('-r', "--as-root-in-container", action="store_true", help="Run host users as root in container [permissive rootless mode in podman]. Not allowed for true root users.")
+
+def add_exclusive_compilers_options(excl_parser):
+    """Populate a parser with exclusive compilers options."""
+    # Specify whether to disable QaaS search for best default compiler 
+    excl_parser.add_argument('-ncd', "--no-compiler-default", action="store_true", help="Disable search for best default compiler")
+    # Specify whether to disable QaaS search for best compiler flags 
+    excl_parser.add_argument('-ncf', "--no-compiler-flags", action="store_true", help="Disable search for best compiler flags")
 
 def parse_cli_args(argv):
     """Process the command line arguments."""
@@ -69,6 +76,10 @@ def parse_cli_args(argv):
     # setup mutually exclusive container arguments
     container_excl = global_parser.add_mutually_exclusive_group()
     add_exclusive_container_options(container_excl)
+
+    # Specify whether to overide compilers search parameters 
+    compilers_excl = global_parser.add_mutually_exclusive_group()
+    add_exclusive_compilers_options(compilers_excl)
 
     # parse arguments
     args = global_parser.parse_args()

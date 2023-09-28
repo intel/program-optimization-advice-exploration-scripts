@@ -77,7 +77,8 @@ def run_demo_phase(to_backplane, src_dir, data_dir, ov_config, ov_run_dir, locus
 
 def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, locus_run_root, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-                     user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags):
+                     user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags,
+                     disable_compiler_default=False, disable_compiler_flags=False):
     '''QAAS Ruuning Logic/Strategizer Entry Point.''' 
 
     # Increase stack size soft limit for the current process and children
@@ -89,7 +90,8 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Initail Profiling and Cleaning"))
     rc,msg,defaults = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-                     user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir)
+                     user_link_flags, user_target, user_target_location, 
+                     run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir, disable_compiler_default)
     if rc != 0: 
         to_backplane.send(qm.GeneralStatus(msg))
         return
@@ -97,23 +99,22 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     print(defaults)
 
     # Phase 3.1: Parameter Exploration and Tuning
-
-    # First build all options
-    binaries_dir = os.path.join(os.path.dirname(base_run_dir), 'binaries')
-    compiled_options = compile_all(src_dir, binaries_dir, compiler_dir,
-                orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-                user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map)
-    to_backplane.send(qm.GeneralStatus("Done compile all binaries!"))
-
-    # Start unicore runs
-    to_backplane.send(qm.GeneralStatus("QAAS running logic: Unicore Parameters Exploration/Tuning"))
-    rc,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
-                     orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults)
-    if rc != 0: 
-        to_backplane.send(qm.GeneralStatus(msg))
-        return
-    to_backplane.send(qm.GeneralStatus("Done Unicore Parameters Exploration/Tuning!"))
-    return
+    if not disable_compiler_flags:
+        # First build all options
+        binaries_dir = os.path.join(os.path.dirname(base_run_dir), 'binaries')
+        compiled_options = compile_all(src_dir, binaries_dir, compiler_dir,
+                    orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags,
+                    user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map)
+        to_backplane.send(qm.GeneralStatus("Done compile all binaries!"))
+    
+        # Start unicore runs
+        to_backplane.send(qm.GeneralStatus("QAAS running logic: Compilers Parameters Exploration/Tuning"))
+        rc,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
+                         orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults)
+        if rc != 0: 
+            to_backplane.send(qm.GeneralStatus(msg))
+            return
+        to_backplane.send(qm.GeneralStatus("Done Compilers Parameters Exploration/Tuning!"))
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Run a job at the machine in a container.')
@@ -127,6 +128,8 @@ if __name__ == '__main__':
     parser.add_argument('--var', help='Env variable to add', required=False, action='append')
     parser.add_argument('--comm-port', nargs='?', type=int, default=None) 
     parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='demo')
+    parser.add_argument('--no-compiler-default', action="store_true", help="Disable search for best default compiler", required=False)
+    parser.add_argument('--no-compiler-flags', action="store_true", help="Disable search for best compiler flags", required=False)
     app_builder_builder_argparser(parser, include_binary_path=False, include_mode=False)
     args = parser.parse_args()
     log(QaasComponents.BUSINESS_LOGICS, 'Executing job.py script in a container', mockup=True)
@@ -142,6 +145,7 @@ if __name__ == '__main__':
     else:
         run_multiple_phase(to_backplane, args.src_dir, args.data_dir, args.base_run_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
                      args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
-                     args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags)
+                     args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags,
+                     args.no_compiler_default, args.no_compiler_flags)
     to_backplane.send(qm.EndJob())
     to_backplane.close()
