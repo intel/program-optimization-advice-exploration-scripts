@@ -3,7 +3,6 @@ import os
 import subprocess
 import argparse
 import configparser
-
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
 qaas_dir = os.path.join(script_dir, '..', '..', 'qaas-backplane', 'src')
@@ -60,6 +59,28 @@ def read_from_folder(folder_path):
                             version_prefix = f"{os.path.relpath(sub_version_path, os.path.join(folder_path, workload, program))}/"
                             process_result(os.path.join(sub_version_path, result), version_prefix)
 
+def read_from_folder_french(folder_path):
+    for application in os.listdir(folder_path):
+        if application in ['README']:
+            continue  
+        application_path = os.path.join(folder_path, application)
+        for tar_filename in os.listdir(application_path):
+            if tar_filename.endswith('.tar.gz'):
+                # extract tar files
+                tar_filepath = os.path.join(application_path, tar_filename)
+                print(tar_filepath)
+                extracted_folder = tar_filepath.replace('.tar.gz', '')
+                #  # check if the folder already exists
+                if not os.path.exists(extracted_folder):
+                    subprocess.run(['tar', '-xvf', tar_filepath, '-C', application_path])
+                
+                output_ov_dir = extracted_folder
+                workload_program_name = application
+                workload_program_commit_id = ""  
+                qaas_timestamp = ""  
+                version = tar_filename.replace('.tar.gz', '')
+                # print(output_ov_dir, qaas_timestamp, version, "", version, workload_program_name, workload_program_commit_id)
+                populate_database(output_ov_dir, qaas_timestamp, version, "", version, workload_program_name, workload_program_commit_id)
 
 def main():
     # Define the argument parser
@@ -70,12 +91,15 @@ def main():
     parser.add_argument('--program', type=str,  help='Workload Program Name')
     parser.add_argument('--commit_id', type=str, help='Workload Program Commit ID')
     parser.add_argument('--read_from_folder', type=str, help='Read from a folder instead of arguments')
+    parser.add_argument('--read_from_folder_french', type=str, help='Read from a folder instead of arguments')
 
     # Parse the arguments
     args = parser.parse_args()
 
     if args.read_from_folder:
         read_from_folder(args.read_from_folder)
+    elif args.read_from_folder_french:
+        read_from_folder_french(args.read_from_folder_french)
     else:
         output_ov_dir = args.data
         qaas_timestamp = os.path.basename(output_ov_dir)
