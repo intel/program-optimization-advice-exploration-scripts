@@ -46,12 +46,15 @@ class QAASJobException(Exception):
 
 class QAASJobSubmit:
     """."""
-    def __init__(self, system_compilers, user_compiler, user_application, provisioner, logic):
+    def __init__(self, system_compilers, user_compiler, user_application, provisioner, logic, no_compiler_default, no_compiler_flags, parallel_compiler_runs):
         self.compiler = user_compiler
         self.compilers = system_compilers
         self.provisioner = provisioner
         self.application = user_application
         self.logic = logic
+        self.no_compiler_default = no_compiler_default
+        self.no_compiler_flags = no_compiler_flags
+        self.parallel_compiler_runs = parallel_compiler_runs
 
     def run_container(self, app_cmd, mount_map, user_ns_root, network_host=False, cap_add=False, debug=False):
         mount_flags = "".join([f' -v {k}:{v}' for k,v in mount_map.items()])
@@ -172,6 +175,9 @@ class QAASJobSubmit:
         env_var_flags = "".join([f' --var {k}={v}' for k,v in env_var_map.items()])
         # Check if we need USER_EXTRA_CMAKE_FLAGS
         user_extra_cmake_flags = self.compiler["USER_EXTRA_CMAKE_FLAGS"] if "USER_EXTRA_CMAKE_FLAGS" in self.compiler.keys() else ""
+        # Check if need to disable automatic search for best default compiler and/or compiler flags
+        disable_best_compiler_default = "--no-compiler-default" if self.no_compiler_default else ""
+        disable_best_compiler_flags = "--no-compiler-flags" if self.no_compiler_flags else ""
         # Below used --network=host so script can communicate back to launcher via ssh forwarding.  Can try to restrict to self.provisioner.comm_port if needed
         app_cmd = f"/usr/bin/python3 {container_script_root}/qaas-service/job.py "+ \
                     f' --src-dir {os.path.join(container_app_builder_path, self.provisioner.app_name)}'+ \
@@ -186,6 +192,9 @@ class QAASJobSubmit:
                     f'{env_var_flags}'+ \
                     f' --run-cmd "{app_run_info["APP_RUN_CMD"]}"' + \
                     f' --logic {self.logic}' + \
+                    f' {disable_best_compiler_default}' + \
+                    f' {disable_best_compiler_flags}' + \
+                    f' --parallel-compiler-runs {self.parallel_compiler_runs}' + \
                     f" --comm-port {self.provisioner.comm_port}" 
         if container:
             mount_map = { ov_dir:ov_dir, script_root:container_script_root,
