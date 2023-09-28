@@ -50,6 +50,7 @@ from utils.comm import ServiceMessageSender
 import utils.system as system
 from utils.util import split_compiler_combo
 from qaas_logic_compile import read_compiler_flags
+from wrapper_runner import compiler_run
 
 #this_script=os.path.realpath(__file__)
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -58,7 +59,7 @@ LPROF_WALLTIME_LUA_FILE=os.path.join(script_dir, 'lua_scripts', 'lprof_walltime.
 
 DEFAULT_REPETITIONS = 11
 MAX_ALLOWED_EXEC_TIME = 180
-
+    
 def compute_repetitions(stability):
     print(stability)
     if stability > 10:
@@ -71,19 +72,19 @@ def compute_repetitions(stability):
         print("GOOD STABILITY: no repetitions")
         return 1
 
-def dump_defaults_csv_file(qaas_reports_dir, file_name, table, app_name):
+def dump_defaults_csv_file(qaas_reports_dir, file_name, table, app_name, nb_mpi, nb_omp):
     '''Dump unicore runs to csv'''
 
     csv_defaults = open(os.path.join(qaas_reports_dir, file_name), "w", newline='\n')
     writer = csv.writer(csv_defaults)
-    csv_header = ['app_name', 'compiler', 'option #', 'flags', 'time(s)']
+    csv_header = ['app_name', 'compiler', 'option #', 'flags', '#MPI', '#OMP', 'time(s)']
     for default in table:
         csv_header.append(f"Spd w.r.t {default}")
     writer.writerow(csv_header)
 
     # Write execution times to csv format
     for compiler in table:
-        row = [app_name, compiler, 0, 'default', table[compiler]]
+        row = [app_name, compiler, 0, 'default', nb_mpi, nb_omp, table[compiler]]
         for compiler_compare in table:
             if table[compiler] != None:
                 row.append(float(table[compiler_compare])/float(table[compiler]))
@@ -95,7 +96,8 @@ def dump_defaults_csv_file(qaas_reports_dir, file_name, table, app_name):
 def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location,
-                     run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir, disable_compiler_default=False):
+                     run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir, 
+                     disable_compiler_default, parallel_runs):
     ''' Execute QAAS Running Logic: INITIAL PROFILING AND CLEANING'''
 
     # Parse original user CC
@@ -116,10 +118,10 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     subprocess.run(f"ln -s orig {user_CC}", shell=True, cwd=os.path.dirname(base_run_dir_orig))
 
     # Setup run directory and launch initial run
-    basic_run = app_runner.exec(app_builder_env, orig_binary, data_dir, base_run_dir_orig, run_cmd, 'both', DEFAULT_REPETITIONS, "mpirun")
+    basic_run,nb_mpi,nb_omp = compiler_run(app_builder_env, orig_binary, data_dir, base_run_dir_orig, run_cmd, 
+                                           DEFAULT_REPETITIONS, "app", parallel_runs)
     print(basic_run.exec_times)
     tmp = [str(x) for x in basic_run.exec_times]
-    #to_backplane.send(qm.GeneralStatus(f"Exec time: {tmp}"))
 
     # Check performance stability
     stability = basic_run.compute_stability_metric()
@@ -143,7 +145,8 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     defaults['orig'] = median_value
 
     # Check LProf overhead
-    lprof_run = lprof_runner.exec(app_builder_env, orig_binary, maqao_dir, base_run_dir_orig, data_dir, run_cmd, 'both', "mpirun", 1)
+    lprof_run,_,_ = compiler_run(app_builder_env, orig_binary, data_dir, base_run_dir_orig, run_cmd, 
+                                 DEFAULT_REPETITIONS, "lprof", parallel_runs, maqao_dir)
     lprof_run.compute_lprof_time(LPROF_WALLTIME_LUA_FILE)
     new_lprof_conf = lprof_run.compute_lprof_overhead(median_value)
     print(new_lprof_conf)
@@ -162,8 +165,8 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     # Create sym links to orig ov folder
     subprocess.run(f"ln -s orig {user_CC}", shell=True, cwd=os.path.dirname(ov_run_dir_orig))
 
-    # Generate Level 1 oneview report on original app
-    oneview_runner.exec(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, maqao_dir, ov_config, 'both', level=2, mpi_run_command="mpirun", mpi_num_processes=1)
+    # Generate Level 2 oneview report on original app
+    compiler_run(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
 
     # Run using other compilers with default flags
     if not disable_compiler_default:
@@ -199,7 +202,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             app_builder_env.update(env_var_map)
     
             # Setup run directory and launch initial run
-            basic_run = app_runner.exec(app_builder_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 3, "mpirun")
+            basic_run,_,_ = compiler_run(app_builder_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 3, "app", parallel_runs)
             defaults[compiler] = basic_run.compute_median_exec_time()
     
             # Dump median exec time to file
@@ -208,9 +211,9 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     
             # Make an OV run
             ov_run_bin_dir = os.path.join(ov_run_dir, 'defaults', compiler)
-            oneview_runner.exec(app_builder_env, binary_path, data_dir, ov_run_bin_dir, run_cmd, maqao_dir, ov_config, 'both', level=2, mpi_run_command="mpirun", mpi_num_processes=1)
+            compiler_run(app_builder_env, binary_path, data_dir, ov_run_bin_dir, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
 
     # Dump defaults values to csv
-    dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, user_target)
+    dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, user_target, nb_mpi,nb_omp)
 
     return 0,"",defaults
