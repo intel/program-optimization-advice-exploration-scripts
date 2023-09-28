@@ -40,6 +40,7 @@ import app_runner
 import lprof_runner
 import oneview_runner
 from logger import log, QaasComponents
+from wrapper_runner import compiler_run
 
 #this_script=os.path.realpath(__file__)
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -47,19 +48,27 @@ script_dir=os.path.dirname(os.path.realpath(__file__))
 
 DEFAULT_REPETITIONS = 3
 
-def dump_unicore_log_file(qaas_reports_dir, file_name, message):
-    '''Dump unicore runs log'''
+def dump_compilers_log_file(qaas_reports_dir, file_name, message):
+    '''Dump compare compilers runs log'''
 
-    f_unicore = open(os.path.join(qaas_reports_dir, file_name), "w")
-    f_unicore.write(message)
-    f_unicore.close()
+    f_compiler = open(os.path.join(qaas_reports_dir, file_name), "w")
+    f_compiler.write(message)
+    f_compiler.close()
 
-def dump_unicore_csv_file(qaas_reports_dir, file_name, table, best_only=False, best_options=None):
-    '''Dump unicore runs to csv'''
+def dump_compilers_csv_file(qaas_reports_dir, file_name, table, defaults, best_only=False, best_options=None):
+    '''Dump Compilers runs to csv'''
 
-    csv_unicore = open(os.path.join(qaas_reports_dir, file_name), "w", newline='\n')
-    writer = csv.writer(csv_unicore)
-    writer.writerow(['app_name', 'compiler', 'option #', 'flags', 'time(s)', 'Spd w.r.t orig', 'Spd w.r.t option 1'])
+    # Check file exist status
+    file_exists = True if os.path.isfile(os.path.join(qaas_reports_dir, file_name)) else False
+    # Open the csv file in append mode
+    csv_compiler = open(os.path.join(qaas_reports_dir, file_name), "a", newline='\n')
+    writer = csv.writer(csv_compiler)
+    # Do not add header if file exists already
+    if not file_exists:
+        csv_header = ['app_name', 'compiler', 'option #', 'flags', '#MPI', '#OMP', 'time(s)']
+        for default in defaults:
+            csv_header.append(f"Spd w.r.t {default}")
+        writer.writerow(csv_header)
     
     # Write execution times to csv format
     for compiler in table:
@@ -67,23 +76,23 @@ def dump_unicore_csv_file(qaas_reports_dir, file_name, table, best_only=False, b
             writer.writerows(table[compiler])
         else:
             writer.writerow(table[compiler][best_options[compiler]])
-    csv_unicore.close()
+    csv_compiler.close()
 
-def compute_unicore_speedups(t_unicore, orig_time, i_time):
+def compute_compilers_speedups(t_compilers, defaults, i_time):
     '''Compute Speedups w/r original and option 1 of compiler #1'''
 
-    for compiler in t_unicore:
-        for row  in t_unicore[compiler]:
-            if row[i_time] != None:
-                # Compare to user provided compiler and flags
-                row.append(float(orig_time)/float(row[i_time]))
-                row.append(float(t_unicore[list(t_unicore.keys())[0]][0][i_time])/float(row[i_time]))
-            else:
-                # Compare to
-                row.append(0.0)
-                row.append(0.0)
+    for compiler in t_compilers:
+        for row  in t_compilers[compiler]:
+            for item in defaults:
+                if row[i_time] != None:
+                    # Compare to user provided compiler and flags
+                    row.append(float(defaults[item])/float(row[i_time]))
+                    #row.append(float(t_unicore[list(t_unicore.keys())[0]][0][i_time])/float(row[i_time]))
+                else:
+                    # Compare to
+                    row.append(0.0)
 
-def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir):
+def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir, parallel_runs):
     '''Measure Application-wide execution times'''
 
     # Add extra OV runs
@@ -100,19 +109,15 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
             # Extract tested configuration
             _,option = os.path.basename(os.path.dirname(binary_path)).split('_')
             # Setup run directory and launch initial run
-            base_run_bin_dir = os.path.join(base_run_dir, 'unicore', f"{compiler}_{option}")
-            basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', DEFAULT_REPETITIONS, "mpirun")
+            base_run_bin_dir = os.path.join(base_run_dir, 'compilers', f"{compiler}_{option}")
+            basic_run,nb_mpi,nb_omp = compiler_run(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 
+                                                   DEFAULT_REPETITIONS, "app", parallel_runs)
             tmp = [str(x) for x in basic_run.exec_times]
             # Check execution in defined range
             median_value = basic_run.compute_median_exec_time()
             run_log += f"[Compiler Options] (compiler={compiler},option={option}) Median on {DEFAULT_REPETITIONS} runs: {median_value}\n"
             time_values.append(median_value)
-            t_compiler.append([app_name, compiler, option, flags, median_value])
-
-            # Add extra OV runs: to be removed soon as not sustainable in production
-            print("Run Extra OV")
-            ov_run_dir_opt = os.path.join(ov_run_dir_root, f"{compiler}_{option}")
-            oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, None, 'both', level=1, mpi_run_command="mpirun", mpi_num_processes=1, ov_of="xlsx")
+            t_compiler.append([app_name, compiler, option, flags,nb_mpi,nb_omp, median_value])
 
         # Add the local table to dict
         qaas_table[compiler] = t_compiler
@@ -126,44 +131,43 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
 
     return (qaas_table, qaas_best_opt, run_log)
 
-def run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options):
+def run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, parallel_runs):
     '''Run and generate OneView reports on best options'''
 
     for compiler, best_opt in qaas_best_opt.items():
         # keep option directories consistent with build naming convention
         option = best_opt + 1
         # Setup experiment directory on oneview run directory
-        ov_run_dir_opt = os.path.join(ov_run_dir, "unicore", f"{compiler}_{option}")
+        ov_run_dir_opt = os.path.join(ov_run_dir, "compilers", f"{compiler}_{option}")
         # Extract the binary path of the best option
         binary_path = compiled_options[compiler][best_opt][0]
         # Retrieve the execution environment
         app_env = compiled_options[compiler][best_opt][1]
         # Make the oneview run
-        oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, ov_config, 'both', level=2, mpi_run_command="mpirun", mpi_num_processes=1)
+        compiler_run(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
 
 def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
-                orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, orig_time=1.0):
+                orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults, parallel_runs):
     '''Execute QAAS Running Logic: UNICORE PARAMETER EXPLORATION/TUNING'''
 
     # Init status
     rc=0
     # Compare options
-    qaas_table, qaas_best_opt, log = measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir)
+    qaas_table, qaas_best_opt, log = measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_options, maqao_dir, parallel_runs)
 
     # Print log to file
-    dump_unicore_log_file(qaas_reports_dir, 'qaas_unicore.log', log)
-    #f_unicore.write(f"{str(qaas_best_opt)}\n")
+    dump_compilers_log_file(qaas_reports_dir, 'qaas_compilers.log', log)
 
     # Compute speedups
-    index = 4 # index of the median execution time column
-    compute_unicore_speedups(qaas_table, orig_time, index)
+    index = 6 # index of the median execution time column
+    compute_compilers_speedups(qaas_table, defaults, index)
 
     # Dump csv table to file
-    dump_unicore_csv_file(qaas_reports_dir, 'qaas_unicore.csv', qaas_table)
+    dump_compilers_csv_file(qaas_reports_dir, 'qaas_compilers.csv', qaas_table, defaults)
     # Dump best options csv file
-    dump_unicore_csv_file(qaas_reports_dir, 'qaas_unicore_best.csv', qaas_table, True, qaas_best_opt)
+    dump_compilers_csv_file(qaas_reports_dir, 'qaas_compilers_best.csv', qaas_table, defaults, True, qaas_best_opt)
 
     # Run oneview on best options
-    run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options)
+    run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, parallel_runs)
 
     return rc,""
