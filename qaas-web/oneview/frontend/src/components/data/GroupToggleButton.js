@@ -1,17 +1,21 @@
 
-import React from 'react';
+import React, { useState, useEffect }from 'react';
 import { TOGGLE_BUTTON_COLOR_SCHEME, APPLICATION_TABLE_COLUMNS } from '../Constants';
 import '../css/table.css'
 const ToggleButton = ({ groupName, label, hiddenChildColumns, toggleGroup, color, columns }) => {
-    const areChildColumnsHidden = columns.some(col => hiddenChildColumns.includes(col.id));
+    const [isGroupExpanded, setIsGroupExpanded] = useState(false); 
+    const handleToggleGroup = () => {
+        toggleGroup(groupName);
+        setIsGroupExpanded(!isGroupExpanded);  
+    };
+    const buttonText = isGroupExpanded ? 'Hide' : 'Show';
     return (
         <button
-            onClick={() => toggleGroup(groupName)}
+            onClick={handleToggleGroup}  
             style={{ backgroundColor: color }}
             className='table-action-button'
-
         >
-            {areChildColumnsHidden ? 'Show' : 'Hide'} {label}
+            {buttonText} {label}
         </button>
     );
 };
@@ -32,7 +36,7 @@ export const GroupToggleButton = ({ hiddenChildColumns, toggleGroup }) => {
 
 
                 />
-                <ToggleButton
+                {/* <ToggleButton
                     groupName="globalScore"
                     label="Global Score"
                     hiddenChildColumns={hiddenChildColumns}
@@ -41,7 +45,7 @@ export const GroupToggleButton = ({ hiddenChildColumns, toggleGroup }) => {
                     columns={APPLICATION_TABLE_COLUMNS.find(col => col.groupName === "globalScore")?.columns || []}
 
 
-                />
+                /> */}
                 <ToggleButton
                     groupName="speedup"
                     label="Speedup"

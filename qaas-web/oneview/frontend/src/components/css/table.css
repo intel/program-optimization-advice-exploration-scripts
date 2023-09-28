@@ -5,7 +5,20 @@
     margin: 10px;
 
 }
+.button{
+    background-color: #277383;
+    border-radius: 4px;
 
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin-top: 20px;
+    cursor: pointer;
+}
 .table-action-button {
     border: none;
     text-align: center;
@@ -94,3 +107,28 @@
     font-weight: bold;
     text-align: center;
 }
+
+.custom-tooltip {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .custom-tooltip .tooltip-text {
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 5px;
+    border-radius: 6px;
+    position: absolute;
+    z-index: 1;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -60px;
+  }
+  
+  .custom-tooltip:hover .tooltip-text {
+    visibility: visible;
+  }
+  

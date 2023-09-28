@@ -3,10 +3,23 @@ import Table from './table';
 import '../css/table.css';
 import ApplicationSubTable from './ApplicationSubTable';
 import { GroupToggleButton } from './GroupToggleButton';
-import { TABLE_COLOR_SCHEME, APPLICATION_TABLE_COLUMNS } from '../Constants';
+import { TABLE_COLOR_SCHEME, APPLICATION_TABLE_COLUMNS, STATIC_COLUMNS } from '../Constants';
 function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBaseline }) {
     const [expanded, setExpanded] = useState({});
     const [hiddenChildColumns, setHiddenChildColumns] = useState([]);
+    useEffect(() => {
+        // initialzie hiddenChildColumns based on STATIC_COLUMNS and default collapsed groups
+        let defaultHiddenColumns = [];
+        Object.keys(STATIC_COLUMNS).forEach(groupName => {
+            const group = columns.find(col => col.groupName === groupName);
+            if (group && group.columns) {
+                const childColumns = group.columns.map(col => col.id).filter(id => !STATIC_COLUMNS[groupName].includes(id));
+                defaultHiddenColumns = [...defaultHiddenColumns, ...childColumns];
+            }
+        });
+        setHiddenChildColumns(defaultHiddenColumns);
+    }, []);
+    
 
 
     // add color to colums
@@ -28,7 +41,9 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
     const toggleGroup = (groupName) => {
         const group = columns.find(col => col.groupName === groupName);
         if (group && group.columns) {
-            const childColumns = group.columns.map(col => col.id);
+            const staticColumns = STATIC_COLUMNS[groupName] || [];
+            const childColumns = group.columns.map(col => col.id).filter(id => !staticColumns.includes(id));
+    
             if (childColumns.some(id => hiddenChildColumns.includes(id))) {
                 setHiddenChildColumns(prev => prev.filter(id => !childColumns.includes(id)));
             } else {
