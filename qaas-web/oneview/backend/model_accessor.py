@@ -1035,6 +1035,13 @@ class OneViewModelExporter(OneviewModelAccessor):
 
         #global metrics and compilation options
         global_metrics_df = pd.read_json(execution.global_metrics['global_metrics'], orient="split")
+        
+        if 'details' not in global_metrics_df.columns:
+            global_metrics_df['details'] = np.nan
+            columns = global_metrics_df.columns.tolist()
+            columns.insert(-1, columns.pop(columns.index('details')))
+            global_metrics_df = global_metrics_df[columns]
+
         compilation_options_df = pd.read_json(execution.global_metrics['compilation_options'], orient="split")
         write_file(global_metrics_df, global_metrics_path)
         write_file(compilation_options_df, compilation_options_path)

@@ -389,7 +389,7 @@ class Function(QaaSBase):
     function_name = Column(Text, nullable = True)
     label_name = Column(Text, nullable = True)
     maqao_function_id = Column(Integer, nullable = True)
-    cats = Column(String(50), nullable = True)
+    cats = Column(Text, nullable = True)
     pid = Column(Integer, nullable=True)
     tid = Column(Integer, nullable=True)
     # hierarchy = Column(JSON, nullable = True)
