@@ -89,7 +89,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
 
     # Phase 2: Intial profiling and cleaning    
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Initail Profiling and Cleaning"))
-    rc,msg,defaults = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
+    rc,msg,defaults,flops = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location, 
                      run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir, 
@@ -112,7 +112,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         # Start unicore runs
         to_backplane.send(qm.GeneralStatus("QAAS running logic: Compilers Parameters Exploration/Tuning"))
         rc,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
-                         orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults, parallel_compiler_runs)
+                         orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults, flops, parallel_compiler_runs)
         if rc != 0: 
             to_backplane.send(qm.GeneralStatus(msg))
             return
