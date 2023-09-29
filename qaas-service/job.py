@@ -142,6 +142,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-compiler-default', action="store_true", help="Disable search for best default compiler", required=False)
     parser.add_argument('--no-compiler-flags', action="store_true", help="Disable search for best compiler flags", required=False)
     parser.add_argument('-p', '--parallel-compiler-runs', choices=['off', 'mpi', 'openmp', 'hybrid'], default='off',
+                               help="Force multiprocessing [MPI, OpenMP or hybrid] for compiler search runs")
     parser.add_argument('-s', '--enable-scale', action="store_true", help="Turn on multicore scalability runs", required=False)
     app_builder_builder_argparser(parser, include_binary_path=False, include_mode=False)
     args = parser.parse_args()
