@@ -51,6 +51,7 @@ import utils.system as system
 from utils.util import split_compiler_combo
 from qaas_logic_compile import read_compiler_flags
 from wrapper_runner import compiler_run
+from qaas_logic_unicore import set_compilers_csv_header
 
 #this_script=os.path.realpath(__file__)
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -72,24 +73,21 @@ def compute_repetitions(stability):
         print("GOOD STABILITY: no repetitions")
         return 1
 
-def dump_defaults_csv_file(qaas_reports_dir, file_name, table, app_name, nb_mpi, nb_omp):
+def dump_defaults_csv_file(qaas_reports_dir, file_name, table, app_name, nb_mpi, nb_omp, flops):
     '''Dump unicore runs to csv'''
 
     csv_defaults = open(os.path.join(qaas_reports_dir, file_name), "w", newline='\n')
     writer = csv.writer(csv_defaults)
-    csv_header = ['app_name', 'compiler', 'option #', 'flags', '#MPI', '#OMP', 'time(s)']
-    for default in table:
-        csv_header.append(f"Spd w.r.t {default}")
-    writer.writerow(csv_header)
+    writer.writerow(set_compilers_csv_header(table))
 
     # Write execution times to csv format
     for compiler in table:
-        row = [app_name, compiler, 0, 'default', nb_mpi, nb_omp, table[compiler]]
+        row = [app_name, compiler, 0, 'default', nb_mpi, nb_omp, table[compiler], flops/float(table[compiler])]
         for compiler_compare in table:
             if table[compiler] != None:
                 row.append(float(table[compiler_compare])/float(table[compiler]))
             else:
-                row.append(0.0)
+                row.append(0.0, 0.0)
         writer.writerow(row)
     csv_defaults.close()
 
@@ -166,7 +164,8 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     subprocess.run(f"ln -s orig {user_CC}", shell=True, cwd=os.path.dirname(ov_run_dir_orig))
 
     # Generate Level 2 oneview report on original app
-    compiler_run(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
+    ov_run,_,_ = compiler_run(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
+    flops = 0 if ov_run == None else ov_run.extract_flops_count() 
 
     # Run using other compilers with default flags
     if not disable_compiler_default:
@@ -214,6 +213,6 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             compiler_run(app_builder_env, binary_path, data_dir, ov_run_bin_dir, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
 
     # Dump defaults values to csv
-    dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, user_target, nb_mpi,nb_omp)
+    dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, user_target, nb_mpi,nb_omp, flops)
 
-    return 0,"",defaults
+    return 0,"",defaults,flops
