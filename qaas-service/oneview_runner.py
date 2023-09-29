@@ -67,6 +67,21 @@ class OneviewRunner(BaseRunner):
         '''Convert shared libs paths to OV format.'''
         return ','.join(['\\"'+str(item) + '\\"' for item in so_libs])
 
+    def extract_flops_count(self):
+        '''Get Flops count from OV report'''
+        # Extract lprof computed GFlops number
+        result = subprocess.run(f"grep GFlops global_metrics.csv  | cut -d';' -f3", shell=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                cwd=os.path.join(self.ov_result_dir, 'shared', 'run_0'))
+        gflops = float(result.stdout.decode('utf-8'))
+        # Extract lprof wall clock time
+        result = subprocess.run(f"tail -n 1 expert_run.csv | cut -d';' -f1", shell=True, 
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                cwd=os.path.join(self.ov_result_dir, 'shared', 'run_0'))
+        time = float(result.stdout.decode('utf-8'))
+        # Return number of operations (Flops)
+        return gflops * time
+
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         true_run_cmd = run_cmd.replace('<binary>', binary_path)
         pinning_cmd = "" if mpi_command else f"--pinning-command=\"{self.get_pinning_cmd()}\""
@@ -79,6 +94,7 @@ class OneviewRunner(BaseRunner):
         ov_extra_libs_option = '--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"' if self.found_so_libs else ""
 
         ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} '\
+            f' --with-FLOPS ' \
             f' {ov_extra_libs_option} '\
             f'--run-directory="{run_dir}" {pinning_cmd} '\
             f'--replace xp={self.ov_result_dir} '\
@@ -123,7 +139,7 @@ def exec(env, binary_path, data_path, ov_result_root, run_cmd, maqao_path, ov_co
     success = ov_runner.exec (env, binary_path, data_path, run_cmd, mode, mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs)
     if success:
         log(QaasComponents.OV_RUNNER, f'Result at {ov_runner.ov_result_dir}', mockup=False)
-        return ov_runner.ov_result_dir
+        return ov_runner
     else:
         return None
 
