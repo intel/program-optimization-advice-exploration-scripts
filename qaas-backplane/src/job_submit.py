@@ -46,13 +46,14 @@ class QAASJobException(Exception):
 
 class QAASJobSubmit:
     """."""
-    def __init__(self, system_compilers, user_compiler, user_application, provisioner, logic, 
+    def __init__(self, system_compilers, user_compiler, user_application, user_runtime, provisioner, logic,
                  no_compiler_default, no_compiler_flags, 
                  parallel_compiler_runs, enable_parallel_scale):
-        self.compiler = user_compiler
         self.compilers = system_compilers
-        self.provisioner = provisioner
+        self.compiler = user_compiler
         self.application = user_application
+        self.runtime = user_runtime
+        self.provisioner = provisioner
         self.logic = logic
         self.no_compiler_default = no_compiler_default
         self.no_compiler_flags = no_compiler_flags
@@ -200,6 +201,8 @@ class QAASJobSubmit:
                     f' {disable_best_compiler_flags}' + \
                     f' --parallel-compiler-runs {self.parallel_compiler_runs}' + \
                     f' {enable_parallel_scale_option}' + \
+                    f' --mpi-scale-type {self.runtime["MPI"]}' + \
+                    f' --openmp-scale-type {self.runtime["OPENMP"]}' + \
                     f" --comm-port {self.provisioner.comm_port}" 
         if container:
             mount_map = { ov_dir:ov_dir, script_root:container_script_root,

@@ -91,6 +91,9 @@ def launch_qaas(app_params, logic,
     logging.debug("QaaS System Config:\n\t%s", params.system)
     # get QaaS user's configuration
     params.read_user_config(app_params)
+    # check if runtime section is added
+    if "runtime" not in params.user.keys():
+        params.user["runtime"] = {"MPI":"no", "OPENMP":"no"}
     logging.debug("QaaS User Config:\n\t%s", params.user)
 
     if user_ns_root and params.system["machines"]["QAAS_USER"] == "root":
@@ -129,6 +132,7 @@ def launch_qaas(app_params, logic,
     job = QAASJobSubmit(params.system["compilers"],
                         params.user["compiler"],
                         params.user["application"],
+                        params.user["runtime"],
                         prov,
                         logic,
                         no_compiler_default, 

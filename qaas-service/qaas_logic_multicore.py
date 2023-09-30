@@ -318,22 +318,25 @@ def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_d
 
     # Init status
     rc=0
+
+    # Check if no parallelism through MPI and/or OMP
+    if not has_mpi and not has_omp:
+        return rc,None,""
+
     # Compare options
-    qaas_table, mp_best_opt, log = eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, has_mpi, has_omp, mpi_weak, omp_weak)
+    qaas_table, mp_best_opt, log = eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt, compiled_options,
+                                                       has_mpi, has_omp, mpi_weak, omp_weak)
 
     # Print log to file
     dump_multicore_log_file(qaas_reports_dir, 'qaas_multicore.log', log)
 
     # Compute speedups
-    #index = 4 # index of the median execution time column
-    #compute_unicore_speedups(qaas_table, orig_time, index)
+    #index = 6 # index of the median execution time column
 
     # Dump csv table to file
     dump_multicore_csv_file(qaas_reports_dir, 'qaas_multicore.csv', qaas_table)
     # Dump best options csv file
-    #dump_unicore_csv_file(qaas_reports_dir, 'qaas_unicore_best.csv', qaas_table, True, qaas_best_opt)
 
     # Run oneview on best options
-    #run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options)
 
     return rc,mp_best_opt,""
