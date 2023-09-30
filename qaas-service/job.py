@@ -79,7 +79,7 @@ def run_demo_phase(to_backplane, src_dir, data_dir, ov_config, ov_run_dir, locus
 def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, locus_run_root, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags,
-                     disable_compiler_default, disable_compiler_flags, parallel_compiler_runs, enable_scale):
+                     disable_compiler_default, disable_compiler_flags, parallel_compiler_runs, runtime):
     '''QAAS Ruuning Logic/Strategizer Entry Point.''' 
 
     # Increase stack size soft limit for the current process and children
@@ -118,10 +118,15 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         to_backplane.send(qm.GeneralStatus("Done Compilers Parameters Exploration/Tuning!"))
 
     # Start multicore runs
-    if enable_scale and not disable_compiler_flags:
+    if runtime["enable_scale"] and not disable_compiler_flags:
         to_backplane.send(qm.GeneralStatus("QAAS running logic: Multicore Parameters Exploration/Tuning"))
+        has_mpi = True if runtime['mpi'] != 'no' else False
+        has_omp = True if runtime['openmp'] != 'no' else False
+        mpi_weak = True if runtime['mpi'] == 'weak' else "strong"
+        omp_weak = True if runtime['openmp'] == 'weak' else "strong"
         rc,mp_best_opt,msg = run_qaas_MP(user_target, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
-                     orig_user_CC, run_cmd, compiled_options, compile_best_opt, qaas_reports_dir)
+                     orig_user_CC, run_cmd, compiled_options, compile_best_opt, qaas_reports_dir,
+                     has_mpi, has_omp, mpi_weak, omp_weak)
         if rc != 0:
             to_backplane.send(qm.GeneralStatus(msg))
             return
@@ -144,11 +149,15 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--parallel-compiler-runs', choices=['off', 'mpi', 'openmp', 'hybrid'], default='off',
                                help="Force multiprocessing [MPI, OpenMP or hybrid] for compiler search runs")
     parser.add_argument('-s', '--enable-scale', action="store_true", help="Turn on multicore scalability runs", required=False)
+    parser.add_argument('--mpi-scale-type', help='MPI scaling type', choices=['strong', 'weak', 'no'], default='strong')
+    parser.add_argument('--openmp-scale-type', help='OpenMP scaling type', choices=['strong', 'weak', 'no'], default='strong')
     app_builder_builder_argparser(parser, include_binary_path=False, include_mode=False)
     args = parser.parse_args()
     log(QaasComponents.BUSINESS_LOGICS, 'Executing job.py script in a container', mockup=True)
-
+    # Prepare env variables
     env_var_map = parse_env_map(args)
+    # Prepare parallel runtime scaling modes
+    runtime = {'enable_scale':args.enable_scale, 'mpi':args.mpi_scale_type, 'openmp':args.openmp_scale_type}
     
     to_backplane = ServiceMessageSender(args.comm_port)
     to_backplane.send(qm.BeginJob())
@@ -160,6 +169,6 @@ if __name__ == '__main__':
         run_multiple_phase(to_backplane, args.src_dir, args.data_dir, args.base_run_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
                      args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
                      args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags,
-                     args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs, args.enable_scale)
+                     args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs, runtime)
     to_backplane.send(qm.EndJob())
     to_backplane.close()
