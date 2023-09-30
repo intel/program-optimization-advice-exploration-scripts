@@ -50,7 +50,7 @@ class BaseRunner(ABC):
             pass
         try:
             if os.path.isfile(data_path):
-                os.symlink(data_path, os.path.join(self.run_dir, data_path))
+                os.symlink(data_path, os.path.join(self.run_dir, os.path.basename(data_path)))
             else:
                 assert os.path.isdir(data_path)
                 for file in os.listdir(data_path): 
