@@ -34,7 +34,7 @@ export default function Miniapps() {
 
             <h2 >Compiler comparisons</h2>
             <h2 style={{ marginLeft: '25px' }}>Compiler choice</h2>
-            <CompilerComparisonHistogram />
+            {/* <CompilerComparisonHistogram /> */}
 
             <h2 style={{ marginLeft: '25px' }}>Flag choice/compiler</h2>
 

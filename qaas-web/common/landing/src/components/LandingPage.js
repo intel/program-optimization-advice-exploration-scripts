@@ -5,7 +5,7 @@ const App = () => {
         <div>
             <h1>Choose a repository:</h1>
             <div>
-                <LinkBox href="https://oneview-intel.liparad.uvsq.fr#/oneview">
+                <LinkBox href="https://oneview-intel.liparad.uvsq.fr">
                     Oneview repository (requires login)
                 </LinkBox>
                 <LinkBox href="https://qaas-intel.liparad.uvsq.fr">

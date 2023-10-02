@@ -4,8 +4,9 @@ import TableSearchBar from "./TableSearchBar";
 import "react-table-6/react-table.css";
 import '../css/table.css'
 import { useMemo } from 'react';
-
+import CustomReactTable from "./CustomReactTable";
 function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaultPageSize }) {
+
     const [filterInput, setFilterInput] = useState("");
 
     const filteredData = filterInput ? (() => {
@@ -23,6 +24,9 @@ function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaul
     })() : data;
 
 
+
+
+
     //the columns are now nested
     function flattenColumns(columns) {
         return columns.reduce((acc, column) => {
@@ -38,6 +42,8 @@ function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaul
         }, []);
     }
     const flattenedCols = useMemo(() => flattenColumns(columns), [columns]);
+    // console.log("Rendering table with columns:", JSON.stringify(columns, null, 2));
+
 
     return (
         <div className="table-container">
@@ -46,8 +52,16 @@ function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaul
                 columns={flattenedCols}
                 onSearchSelect={(value) => setFilterInput(value)}
             />
+            <CustomReactTable
+                columns={columns}
+                data={filteredData}
+                // SubComponent={SubComponent}
+                // expanded={expanded}
+                // onExpandedChange={onExpandedChange}
 
-            <ReactTable
+
+            />
+            {/* <ReactTable
                 data={filteredData}
                 columns={columns}
                 defaultPageSize={defaultPageSize || 10}
@@ -67,7 +81,12 @@ function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaul
                         className: "group-header"
                     };
                 }}
-            />
+                getTdProps={(state, rowInfo, column) => {
+                    return {
+                        title: rowInfo ? rowInfo.row[column.id] : "", // for tooltip
+                    };
+                }}
+            /> */}
         </div>
     );
 }
