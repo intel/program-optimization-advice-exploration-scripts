@@ -13,7 +13,7 @@ const App = () => {
         <div>
             <HashRouter >
                 <Routes>
-                    <Route path="/oneview" element={<MainPage />} />
+                    <Route path="/" element={<MainPage />} />
                     <Route path="/generated" element={<GeneratedPage />} />
 
                 </Routes>

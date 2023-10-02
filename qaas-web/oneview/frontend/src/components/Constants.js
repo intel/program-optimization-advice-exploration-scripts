@@ -16,12 +16,13 @@ export const formatNonScientificNumber = value => {
     return isNaN(num) ? "NA" : num;
 };
 export const APPLICATION_TABLE_COLUMNS = [
-    { 
-        Header: 'Workload', 
+
+    {
+        Header: 'Workload',
         accessor: 'workload',
-         id: 'workload' ,
-         
-        },
+        id: 'workload',
+
+    },
     { Header: 'Program', accessor: 'program', id: 'program' },
     { Header: 'Experiment Name', accessor: 'experiment_name', id: 'experiment_name' },
     { Header: 'Commit ID', accessor: 'commit_id', id: 'commit_id', width: 80 },
@@ -48,47 +49,63 @@ export const APPLICATION_TABLE_COLUMNS = [
     {
         groupName: 'speedup',
         Header: 'Speedup',
+        id: 'speedup',
 
         columns: [
-            { Header: 'Perfect Flow Complexity', accessor: d => formatNumber(d.perfect_flow_complexity), id: 'perfect_flow_complexity', },
-            { Header: 'Iterations Count', accessor: d => formatNumber(d.iterations_count), id: 'iterations_count', },
-            { Header: 'Perfect OpenMP + MPI + Pthread', accessor: d => formatNumber(d.perfect_openmp_mpi_pthread), id: 'perfect_openmp_mpi_pthread', },
-            { Header: 'Perfect OpenMP + MPI + Pthread + Perfect Load Distribution', accessor: d => formatNumber(d.perfect_openmp_mpi_pthread_load_distribution), id: 'perfect_openmp_mpi_pthread_load_distribution', },
-            { Header: 'No Scalar Integer Potential Speedup', accessor: d => formatNumber(d.speedup_if_clean), id: 'speedup_if_clean', },
-            { Header: 'FP Vectorised Potential Speedup', accessor: d => formatNumber(d.speedup_if_fp_vect), id: 'speedup_if_fp_vect', },
-            { Header: 'Fully Vectorised Potential Speedup', accessor: d => formatNumber(d.speedup_if_fully_vectorised), id: 'speedup_if_fully_vectorised', },
-            { 
-                Header: 'FP Arithmetic Only Potential Speedup',
-             accessor: d => formatNumber(d.speedup_if_FP_only),
-              id: 'speedup_if_FP_only', 
-             
+            {
+                Header: 'Interation count',
+                columns: [
+                    { Header: 'Iterations Count', accessor: d => formatNumber(d.iterations_count), id: 'iterations_count' },
+                ]
+            },
+            {
+                Header: 'Perfect OpenMP + MPI + Pthread',
+                columns: [
+                    { Header: 'Default', accessor: d => formatNumber(d.perfect_openmp_mpi_pthread), id: 'perfect_openmp_mpi_pthread' },
+                    { Header: 'Perfect Load Distribution', accessor: d => formatNumber(d.perfect_openmp_mpi_pthread_load_distribution), id: 'perfect_openmp_mpi_pthread_load_distribution' }
+                ]
+            },
+
+            {
+                Header: 'Potential Speedup',
+                columns: [
+                    { Header: 'Perfect Flow Complexity', accessor: d => formatNumber(d.perfect_flow_complexity), id: 'perfect_flow_complexity' },
+                    { Header: 'No Scalar Integer', accessor: d => formatNumber(d.speedup_if_clean), id: 'speedup_if_clean' },
+                    { Header: 'FP Vectorised', accessor: d => formatNumber(d.speedup_if_fp_vect), id: 'speedup_if_fp_vect' },
+                    { Header: 'Fully Vectorised', accessor: d => formatNumber(d.speedup_if_fully_vectorised), id: 'speedup_if_fully_vectorised' },
+                    { Header: 'FP Only', accessor: d => formatNumber(d.speedup_if_FP_only), id: 'speedup_if_FP_only' }
+                ]
             }
-            // {
-            //     Header: 'Potential Speedup',
-            //     id: 'potential_speedup',
-            //     columns: [
-            //         { Header: 'No Scalar Integer', accessor: d => formatNumber(d.speedup_if_clean), id: 'speedup_if_clean' },
-            //         { Header: 'FP Vectorised', accessor: d => formatNumber(d.speedup_if_fp_vect), id: 'speedup_if_fp_vect' },
-            //         { Header: 'Fully Vectorised', accessor: d => formatNumber(d.speedup_if_fully_vectorised), id: 'speedup_if_fully_vectorised' },
-            //         { Header: 'FP Only', accessor: d => formatNumber(d.speedup_if_FP_only), id: 'speedup_if_FP_only' }
-            //     ]
-            // }
         ]
     },
+    // {
+    //     groupName: 'speedup',
+    //     Header: 'Speedup',
+    //     id: 'speedup',
+
+    //     columns: [
+    //         { Header: 'Iterations Count', accessor: d => formatNonScientificNumber(d.iterations_count), id: 'iterations_count' },
+    //         { Header: 'Default', accessor: d => formatNumber(d.perfect_openmp_mpi_pthread), id: 'perfect_openmp_mpi_pthread' },
+    //         { Header: 'Perfect Load Distribution', accessor: d => formatNumber(d.perfect_openmp_mpi_pthread_load_distribution), id: 'perfect_openmp_mpi_pthread_load_distribution' },
+    //         { Header: 'Perfect Flow Complexity', accessor: d => formatNumber(d.perfect_flow_complexity), id: 'perfect_flow_complexity' },
+    //         { Header: 'No Scalar Integer', accessor: d => formatNumber(d.speedup_if_clean), id: 'speedup_if_clean' },
+    //         { Header: 'FP Vectorised', accessor: d => formatNumber(d.speedup_if_fp_vect), id: 'speedup_if_fp_vect' },
+    //         { Header: 'Fully Vectorised', accessor: d => formatNumber(d.speedup_if_fully_vectorised), id: 'speedup_if_fully_vectorised' },
+    //         { Header: 'FP Only', accessor: d => formatNumber(d.speedup_if_FP_only), id: 'speedup_if_FP_only' }
+
+
+    //     ]
+    // },
     {
         groupName: 'experimentSummary',
         Header: 'Experiment Summary',
 
         columns: [
-            { 
-                Header: 'Compilation Options', 
+            {
+                Header: 'Compilation Options',
                 accessor: 'compilation_flags',
-                 id: 'compilation_flags', 
-                 Cell: row => (
-                    <div title={row.value}>
-                      {row.value}
-                    </div>
-                  )
+                id: 'compilation_flags',
+
             },
             { Header: '-O2/O3', accessor: 'o2_o3', id: 'o2_o3', width: 50 },
             { Header: 'ICL/HSW', accessor: 'icl_hsw', id: 'icl_hsw', width: 50 },

@@ -49,7 +49,14 @@ module.exports = {
         historyApiFallback: true,
         compress: true,
         port: 3000,
-        hot: true
+        hot: true,
+        proxy: {
+            '/oneview/api': {
+                target: 'http://127.0.0.1:5002',
+                pathRewrite: { '^/oneview/api': '' },  // remove /oneview/api prefix before forwarding
+                changeOrigin: true
+            }
+        }
 
     }
 };

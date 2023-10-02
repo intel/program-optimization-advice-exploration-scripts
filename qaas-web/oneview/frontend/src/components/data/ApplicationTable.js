@@ -19,7 +19,7 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
         });
         setHiddenChildColumns(defaultHiddenColumns);
     }, []);
-    
+
 
 
     // add color to colums
@@ -43,7 +43,7 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
         if (group && group.columns) {
             const staticColumns = STATIC_COLUMNS[groupName] || [];
             const childColumns = group.columns.map(col => col.id).filter(id => !staticColumns.includes(id));
-    
+
             if (childColumns.some(id => hiddenChildColumns.includes(id))) {
                 setHiddenChildColumns(prev => prev.filter(id => !childColumns.includes(id)));
             } else {

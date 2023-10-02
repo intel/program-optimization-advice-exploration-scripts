@@ -208,8 +208,8 @@ if __name__ == "__main__":
     # set_node_proxy(http_proxy, https_proxy)
 
 
-    install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
-    # install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
+    # install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
+    install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
     # install_frontend_dependencies(common_frontend_dir, common_apache_dir)
 
     # # # # #also copy the config folder
