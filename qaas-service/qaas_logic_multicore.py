@@ -62,7 +62,7 @@ def dump_multicore_csv_file(qaas_reports_dir, file_name, table, best_only=False,
 
     csv_unicore = open(os.path.join(qaas_reports_dir, file_name), "w", newline='\n')
     writer = csv.writer(csv_unicore)
-    writer.writerow(['app_name', 'compiler', 'option #', '#MPI', '#OMP', 'affinity', 'time(s)'])
+    writer.writerow(['app_name', 'compiler', 'option #', '#MPI', '#OMP', 'affinity', 'time(s)', 'GFlops/s'])
     
     # Write execution times to csv format
     for compiler in table:
@@ -237,8 +237,7 @@ def run_scalability_mpixomp(app_env, binary_path, data_dir, base_run_bin_dir, ru
 
     return p_runs
 
-
-def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, has_mpi, has_omp, mpi_weak, omp_weak):
+def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app):
     '''Measure Application-wide execution times'''
 
     # Compare options
@@ -311,27 +310,55 @@ def run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_bes
         # Make the oneview run
         oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, ov_config, 'both', level=2, mpi_run_command="mpirun", mpi_num_processes=1)
 
+def compute_gflops(flops_per_app, time, nmpi, nomp, has_mpi, has_omp, mpi_weak, omp_weak):
+    '''Compute GFlops/s depending on MPI and/or OpenMP scaling modes'''
+    if mpi_weak and omp_weak:
+        gflops = flops_per_app * nmpi * nomp / time
+    elif mpi_weak and not has_omp:
+        gflops = flops_per_app * nmpi / time
+    elif omp_weak and not has_mpi:
+        gflops = flops_per_app * nomp / time
+    else:
+        gflops = flops_per_app / time
+    return gflops
+
+def add_gflops_to_runs(p_runs, flops_per_app, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_weak, omp_weak):
+    '''Add GFlops/s to all parallel runs'''
+
+    for compiler in p_runs:
+        for run in p_runs[compiler]:
+            if run[i_time] != None:
+                run.append(compute_gflops(flops_per_app, run[i_time], run[i_mpi], run[i_omp], has_mpi, has_omp, mpi_weak, omp_weak))
+            else:
+                run.append(0.0)
+
 def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                 orig_user_CC, run_cmd, compiled_options, qaas_best_opt, qaas_reports_dir,
-                has_mpi=True, has_omp=True, mpi_weak=False, omp_weak=False):
+                has_mpi=True, has_omp=True, mpi_weak=False, omp_weak=False, flops_per_app=0.0):
     '''Execute QAAS Running Logic: UNICORE PARAMETER EXPLORATION/TUNING'''
 
     # Init status
     rc=0
-
     # Check if no parallelism through MPI and/or OMP
     if not has_mpi and not has_omp:
         return rc,None,""
 
     # Compare options
     qaas_table, mp_best_opt, log = eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt, compiled_options,
-                                                       has_mpi, has_omp, mpi_weak, omp_weak)
+                                                       has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app)
+
+    # Set index of the median execution time column
+    i_time = 6
+    # Set indexs of the number of MPI processes and OpenMP thraeds
+    i_mpi = 3
+    i_omp = 4
+    # Update run tables with GFlops/s
+    add_gflops_to_runs(qaas_table, flops_per_app, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_weak, omp_weak)
 
     # Print log to file
     dump_multicore_log_file(qaas_reports_dir, 'qaas_multicore.log', log)
 
     # Compute speedups
-    #index = 6 # index of the median execution time column
 
     # Dump csv table to file
     dump_multicore_csv_file(qaas_reports_dir, 'qaas_multicore.csv', qaas_table)
