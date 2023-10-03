@@ -89,7 +89,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
 
     # Phase 2: Intial profiling and cleaning    
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Initail Profiling and Cleaning"))
-    rc,msg,defaults,flops = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
+    rc,msg,defaults,flops,nb_mpi,nb_omp = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location, 
                      run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir, 
@@ -122,11 +122,23 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         to_backplane.send(qm.GeneralStatus("QAAS running logic: Multicore Parameters Exploration/Tuning"))
         has_mpi = True if runtime['mpi'] != 'no' else False
         has_omp = True if runtime['openmp'] != 'no' else False
-        mpi_weak = True if runtime['mpi'] == 'weak' else "strong"
-        omp_weak = True if runtime['openmp'] == 'weak' else "strong"
+        mpi_weak = True if runtime['mpi'] == 'weak' else False
+        omp_weak = True if runtime['openmp'] == 'weak' else False
+        if mpi_weak and omp_weak:
+            # App has MPI and OpenMP and both scale through replication
+            flops_per_app = flops/(nb_mpi * nb_omp)
+        elif mpi_weak and not has_omp:
+            # App implements replication through MPI only
+            flops_per_app = flops/nb_mpi
+        elif omp_weak and not has_mpi:
+            # App implements replication through OpenMP only
+            flops_per_app = flops/nb_omp
+        else:
+            # App implements classic strong scaling: FLOPS is invariant
+            flops_per_app = flops
         rc,mp_best_opt,msg = run_qaas_MP(user_target, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                      orig_user_CC, run_cmd, compiled_options, compile_best_opt, qaas_reports_dir,
-                     has_mpi, has_omp, mpi_weak, omp_weak)
+                     has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app)
         if rc != 0:
             to_backplane.send(qm.GeneralStatus(msg))
             return

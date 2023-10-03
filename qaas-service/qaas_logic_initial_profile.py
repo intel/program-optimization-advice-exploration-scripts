@@ -215,4 +215,4 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     # Dump defaults values to csv
     dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, user_target, nb_mpi,nb_omp, flops)
 
-    return 0,"",defaults,flops
+    return 0,"",defaults,flops,nb_mpi,nb_omp
