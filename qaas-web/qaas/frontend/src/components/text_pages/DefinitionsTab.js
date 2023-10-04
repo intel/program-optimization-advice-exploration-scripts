@@ -32,6 +32,9 @@ export default function DefinitionsTab() {
             </p>
             <div>
                 <h2>ACTORS</h2>
+                <div className='container-next-to-paragraph'>
+                    <p>sameple summary text here sameple summary text here sameple summary text here sameple summary text here.</p>
+                </div>
                 <p>The 4 main actors on the stage are independent variables:</p>
                 <p>
                     <ul>

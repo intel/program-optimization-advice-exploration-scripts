@@ -35,6 +35,7 @@ import GfCost from './text_pages/GfCost';
 import TypeOfScaling from './text_pages/TypeOfScaling';
 import Oneview from './text_pages/Oneview';
 import BestAppInsightsPerDomain from './text_pages/BestAppInsightsPerDomain';
+import CompilerDetails  from './text_pages/CompilerDetails';
 export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const location = useLocation();
 
@@ -74,6 +75,7 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
                             <Route path="/gf_arch" element={<GfArch />} />
 
                             <Route path="/cq_overview_multiprocessor" element={<Multiprocessor />} />
+                            <Route path="/compiler_details" element={<CompilerDetails />} />
 
                             <Route path="/perf_by_scalability_type" element={<PerfByScalabilityType />} />
                             <Route path="/gf_cost" element={<GfCost />} />

@@ -6,14 +6,16 @@ export const TABLE_COLOR_SCHEME = ['#FFF5E1', '#FFB6C1', '#E8F5E9', '#E1F5FE']
 export const TOGGLE_BUTTON_COLOR_SCHEME = ['#FFDA8D', '#FFA6B9', '#B0E57C', '#AEDFF7']
 
 export const formatNumber = value => {
-    if (value === "Not Available") return "NA";
+    if (value === "Not Available" || value === null || value === "") return "NA";
     const num = parseFloat(value);
     return isNaN(num) ? "NA" : num.toExponential(2);
 };
 export const formatNonScientificNumber = value => {
-    if (value === "Not Available") return "NA";
+    if (value === "Not Available" || value === null || value === "") return "NA";
     const num = parseFloat(value);
-    return isNaN(num) ? "NA" : num;
+    if (isNaN(num)) return "NA";
+
+    return Number.isInteger(num) ? num : num.toFixed(2);
 };
 export const APPLICATION_TABLE_COLUMNS = [
 
@@ -78,24 +80,6 @@ export const APPLICATION_TABLE_COLUMNS = [
             }
         ]
     },
-    // {
-    //     groupName: 'speedup',
-    //     Header: 'Speedup',
-    //     id: 'speedup',
-
-    //     columns: [
-    //         { Header: 'Iterations Count', accessor: d => formatNonScientificNumber(d.iterations_count), id: 'iterations_count' },
-    //         { Header: 'Default', accessor: d => formatNumber(d.perfect_openmp_mpi_pthread), id: 'perfect_openmp_mpi_pthread' },
-    //         { Header: 'Perfect Load Distribution', accessor: d => formatNumber(d.perfect_openmp_mpi_pthread_load_distribution), id: 'perfect_openmp_mpi_pthread_load_distribution' },
-    //         { Header: 'Perfect Flow Complexity', accessor: d => formatNumber(d.perfect_flow_complexity), id: 'perfect_flow_complexity' },
-    //         { Header: 'No Scalar Integer', accessor: d => formatNumber(d.speedup_if_clean), id: 'speedup_if_clean' },
-    //         { Header: 'FP Vectorised', accessor: d => formatNumber(d.speedup_if_fp_vect), id: 'speedup_if_fp_vect' },
-    //         { Header: 'Fully Vectorised', accessor: d => formatNumber(d.speedup_if_fully_vectorised), id: 'speedup_if_fully_vectorised' },
-    //         { Header: 'FP Only', accessor: d => formatNumber(d.speedup_if_FP_only), id: 'speedup_if_FP_only' }
-
-
-    //     ]
-    // },
     {
         groupName: 'experimentSummary',
         Header: 'Experiment Summary',
@@ -121,6 +105,8 @@ export const APPLICATION_TABLE_COLUMNS = [
 export const STATIC_COLUMNS = {
     'time': ['total_time'],
     'globalScore': ['compilation_options_score', 'array_access_efficiency'],
-    'speedup': ['speedup_if_fully_vectorised'],
+    'speedup': {
+        'Potential Speedup': ['Fully Vectorised'],
+    },
     'experimentSummary': ['model_name', 'number_of_cores']
 };

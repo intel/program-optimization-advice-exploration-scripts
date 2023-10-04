@@ -83,3 +83,14 @@ li {
     flex: 1;
     background-color: #fafafa;
 }
+
+.container-next-to-paragraph {
+    float: right;
+    margin-right: 20px;
+    margin-bottom: 10px;
+    width: 20%;
+    border: 2px solid #ccc;
+
+    text-align: center;
+
+}

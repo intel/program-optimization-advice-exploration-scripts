@@ -1,15 +1,13 @@
 .center {
-
     display: block;
     clear: both;
     margin: 10px;
-
 }
 
-.button {
+.button,
+.submit-button {
     background-color: #277383;
     border-radius: 4px;
-
     border: none;
     color: white;
     padding: 10px 20px;
@@ -38,10 +36,6 @@
     opacity: 0.6;
 }
 
-
-
-
-
 .table-search-input {
     width: 180px;
     border-radius: 4px;
@@ -54,88 +48,7 @@
     clear: right;
 }
 
-.submit-button {
-    background-color: #277383;
-    border-radius: 4px;
-
-    border: none;
-    color: white;
-    padding: 10px 20px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    margin-top: 20px;
-    cursor: pointer;
-}
-
-/* overide default behavior */
-.wrap-text {
-    white-space: initial !important;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-}
-
-.ReactTable {
-    clear: both;
-}
-
-.ReactTable .rt-thead.-header {
-    font-size: 18px;
-    font-weight: bold;
-}
-
-.ReactTable .rt-tbody .rt-td,
-.ReactTable .rt-tbody .rt-th {
-    font-size: 16px;
-    /* display: flex;
-    align-items: center;
-    justify-content: center; */
-}
-
-.ReactTable .rt-th,
-.ReactTable .rt-td {
-    border: 1px solid #cecccc;
-
-}
-
-.ReactTable .rt-th {
-    color: inherit !important;
-}
-
-.group-header {
-    background-color: #d4d4d4;
-    color: white;
-    font-weight: bold;
-    text-align: center;
-}
-
-.custom-tooltip {
-    position: relative;
-    display: inline-block;
-}
-
-.custom-tooltip .tooltip-text {
-    visibility: hidden;
-    width: 120px;
-    background-color: black;
-    color: #fff;
-    text-align: center;
-    padding: 5px;
-    border-radius: 6px;
-    position: absolute;
-    z-index: 1;
-    bottom: 100%;
-    left: 50%;
-    margin-left: -60px;
-}
-
-.custom-tooltip:hover .tooltip-text {
-    visibility: visible;
-}
-
-/* CustomTableStyles */
-
+/* customTableStyles */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -147,13 +60,30 @@ table {
 th,
 td {
     padding: 10px;
-    border-bottom: 1px solid #ddd;
-    border-left: 1px solid #ddd;
-    border-right: 1px solid #ddd;
+    max-width: 100px;
+    border: 1px solid #ddd;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 th {
     background-color: #f2f2f2;
+    white-space: normal;
+    word-wrap: break-word;
+    max-width: 100px;
+
+}
+
+th.wrap-text {
+    white-space: normal;
+}
+
+th.group-header {
+    background-color: #d4d4d4;
+    color: white;
+    font-weight: bold;
+    text-align: center;
 }
 
 tr:hover {
@@ -163,7 +93,24 @@ tr:hover {
 .table-container {
     width: 100%;
     max-height: 600px;
-    overflow-y: auto;
-    border: 1px solid #ccc;
     margin-top: 20px;
+    overflow-x: auto;
+}
+
+/* tootip style */
+.tooltip {
+    position: relative;
+}
+
+.tooltip:hover:after {
+    content: attr(title);
+    position: absolute;
+    left: 0;
+    top: 100%;
+    white-space: pre-wrap;
+    z-index: 1;
+    background: black;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
 }

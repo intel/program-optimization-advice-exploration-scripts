@@ -52,6 +52,10 @@ const MainPage = () => {
 
 
 
+
+    if (data.length === 0) {
+        return <p>Loading data, please wait...</p>;
+    }
     return (
         <div>
             <div className="sticky-top">

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Table from './table';
 import '../css/table.css';
 import ApplicationSubTable from './ApplicationSubTable';
 import { GroupToggleButton } from './GroupToggleButton';
 import { TABLE_COLOR_SCHEME, APPLICATION_TABLE_COLUMNS, STATIC_COLUMNS } from '../Constants';
 function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBaseline }) {
-    const [expanded, setExpanded] = useState({});
     const [hiddenChildColumns, setHiddenChildColumns] = useState([]);
     useEffect(() => {
         // initialzie hiddenChildColumns based on STATIC_COLUMNS and default collapsed groups
@@ -23,17 +22,18 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
 
 
     // add color to colums
-    const columns = APPLICATION_TABLE_COLUMNS.map((col, index) => {
-        if (col.columns) {
-            const updatedSubColumns = col.columns.map(subCol => ({
-                ...subCol,
-                color: TABLE_COLOR_SCHEME[index % TABLE_COLOR_SCHEME.length]
-            }));
-            return { ...col, columns: updatedSubColumns };
-        }
-        return col;
-    });
-
+    const columns = useMemo(() => {
+        return APPLICATION_TABLE_COLUMNS.map((col, index) => {
+            if (col.columns) {
+                const updatedSubColumns = col.columns.map(subCol => ({
+                    ...subCol,
+                    color: TABLE_COLOR_SCHEME[index % TABLE_COLOR_SCHEME.length]
+                }));
+                return { ...col, columns: updatedSubColumns };
+            }
+            return col;
+        });
+    }, [APPLICATION_TABLE_COLUMNS]);
 
 
 
@@ -67,15 +67,12 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
     const renderSubComponent = (row) => {
         return (
             <div style={{ padding: "20px" }}>
-                <ApplicationSubTable data={row['run_data']} setSelectedRows={setSelectedRows} selectedRows={selectedRows}
+                <ApplicationSubTable data={row.row.original['run_data']} setSelectedRows={setSelectedRows} selectedRows={selectedRows}
                     baseline={baseline} setBaseline={setBaseline} />
             </div>
         );
     };
 
-    const handleExpandedChange = (newExpanded) => {
-        setExpanded(newExpanded);
-    };
 
 
     return (
@@ -90,9 +87,8 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
                 <Table
                     data={data}
                     columns={visibleColumns}
-                    SubComponent={(row) => renderSubComponent(row.original)}
-                    expanded={expanded}
-                    onExpandedChange={handleExpandedChange}
+                    SubComponent={(row) => renderSubComponent(row)}
+
                     defaultPageSize={10}
                 />
             </div>
