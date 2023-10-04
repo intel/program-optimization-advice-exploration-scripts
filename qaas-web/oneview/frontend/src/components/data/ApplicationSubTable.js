@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Table from "./table";
 function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, setBaseline }) {
     const navigate = useNavigate();
-
+    console.log("sub table", data)
     const handleButtonClick = async (timestamp) => {
         // Call your backend API here and fetch data
         const newWindow = window.open(`#/generated?loading=true`, "_blank");
@@ -26,9 +26,9 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
             const selected = event.target.checked;
 
             if (selected) {
-                setSelectedRows(prevSelectedRows => [...prevSelectedRows, rowInfo._original]);
+                setSelectedRows(prevSelectedRows => [...prevSelectedRows, rowInfo.original]);
             } else {
-                setSelectedRows(prevSelectedRows => prevSelectedRows.filter(row => row !== rowInfo._original));
+                setSelectedRows(prevSelectedRows => prevSelectedRows.filter(row => row !== rowInfo.original));
             }
         }
     };
@@ -37,7 +37,7 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
             const selected = event.target.checked;
 
             if (selected) {
-                setBaseline(rowInfo._original);
+                setBaseline(rowInfo.original);
             } else {
                 setBaseline(null);
             }
@@ -49,9 +49,10 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
             id: 'selection',
             Cell: ({ row }) => (
                 <div className="table-action">
+                    {console.log(row)}
                     <input
                         type="checkbox"
-                        checked={selectedRows.some(selectedRow => selectedRow === row._original)}
+                        checked={selectedRows.some(selectedRow => selectedRow === row.original)}
                         onChange={(e) => handleRowSelection(e, row)}
                     />
                 </div>
@@ -61,12 +62,12 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
         },
         {
             Header: 'Select Baseline',
-            id: 'selection',
+            id: 'selection_baseline',
             Cell: ({ row }) => (
                 <div className="table-action">
                     <input
                         type="checkbox"
-                        checked={baseline === row._original}
+                        checked={baseline === row.original}
                         onChange={(e) => handleBaselineRowSelection(e, row)}
                     />
                 </div>
@@ -79,7 +80,7 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
             id: 'button',
             Cell: ({ row }) => (
                 <div className="table-action">
-                    <button className="table-action-button" onClick={() => handleButtonClick(row._original.timestamp)}>View Details</button>
+                    <button className="table-action-button" onClick={() => handleButtonClick(row.original.timestamp)}>View Details</button>
                 </div>
 
             ),

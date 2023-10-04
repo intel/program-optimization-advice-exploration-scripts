@@ -49,9 +49,11 @@ function TopBar() {
             </div>
 
             <div className="right-section">
-                <input type="text" className="search-bar" placeholder="Search..." />
+                {/* <input type="text" className="search-bar" placeholder="Search..." /> */}
                 <Link to="/login" className="nav-link">Log In</Link>
                 <Link to="/signup" className="nav-link">Sign Up</Link>
+                <a href="https://docs.google.com/document/d/1_H7ySm_HwrwR5xhBd4amI-CWN_n6fKYcdVMHb6vDaF4/edit?usp=sharing">Google doc link</a>
+
             </div>
 
         </div>

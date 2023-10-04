@@ -2,6 +2,8 @@ import React from 'react';
 import minitopImage from '../imgs/minitop.png';
 
 import bestcompImage from '../imgs/bestcomp.png';
+import IncludeGFCoreImage from '../imgs/include_gf_core.png';
+
 import CompilerComparisonHistogram from '../graph/CompilerComparisonHistogram';
 
 export default function Miniapps() {
@@ -15,6 +17,12 @@ export default function Miniapps() {
             </p>
             <div className='imageContainer'>
                 <img src={bestcompImage} alt="BestComp Description" />
+            </div>
+            <p>
+                add text
+            </p>
+            <div className='imageContainer'>
+                <img src={IncludeGFCoreImage} alt="IncludeGFCore Description" />
             </div>
             <p>
                 The benefit of QaaS over app developers is discussed next. Fig. minitop compares compilers from the viewpoint of winning
@@ -34,7 +42,7 @@ export default function Miniapps() {
 
             <h2 >Compiler comparisons</h2>
             <h2 style={{ marginLeft: '25px' }}>Compiler choice</h2>
-            {/* <CompilerComparisonHistogram /> */}
+            <CompilerComparisonHistogram />
 
             <h2 style={{ marginLeft: '25px' }}>Flag choice/compiler</h2>
 

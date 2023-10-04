@@ -5,7 +5,7 @@ import "react-table-6/react-table.css";
 import '../css/table.css'
 import { useMemo } from 'react';
 import CustomReactTable from "./CustomReactTable";
-function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaultPageSize }) {
+function Table({ data, columns, SubComponent, defaultPageSize }) {
 
     const [filterInput, setFilterInput] = useState("");
 
@@ -44,49 +44,20 @@ function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaul
     const flattenedCols = useMemo(() => flattenColumns(columns), [columns]);
     // console.log("Rendering table with columns:", JSON.stringify(columns, null, 2));
 
-
     return (
-        <div className="table-container">
+        <div >
             <TableSearchBar
                 data={data}
                 columns={flattenedCols}
                 onSearchSelect={(value) => setFilterInput(value)}
             />
-            <CustomReactTable
-                columns={columns}
-                data={filteredData}
-                // SubComponent={SubComponent}
-                // expanded={expanded}
-                // onExpandedChange={onExpandedChange}
-
-
-            />
-            {/* <ReactTable
-                data={filteredData}
-                columns={columns}
-                defaultPageSize={defaultPageSize || 10}
-                className="-striped -highlight ReactTable"
-                expanded={expanded}
-                onExpandedChange={(newExpanded) => onExpandedChange(newExpanded)}
-                SubComponent={SubComponent}
-
-                getTheadThProps={(state, rowInfo, column) => {
-                    return {
-                        style: column.color ? { backgroundColor: column.color } : {},
-                        className: "wrap-text"
-                    };
-                }}
-                getTheadGroupThProps={(state, rowInfo, column, instance) => {
-                    return {
-                        className: "group-header"
-                    };
-                }}
-                getTdProps={(state, rowInfo, column) => {
-                    return {
-                        title: rowInfo ? rowInfo.row[column.id] : "", // for tooltip
-                    };
-                }}
-            /> */}
+            <div className="table-container">
+                <CustomReactTable
+                    columns={columns}
+                    data={filteredData}
+                    SubComponent={SubComponent}
+                />
+            </div>
         </div>
     );
 }
