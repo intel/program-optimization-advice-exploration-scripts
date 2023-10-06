@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import Table from "./table";
 function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, setBaseline }) {
     const navigate = useNavigate();
-    console.log("sub table", data)
     const handleButtonClick = async (timestamp) => {
         // Call your backend API here and fetch data
         const newWindow = window.open(`#/generated?loading=true`, "_blank");
@@ -49,7 +48,6 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
             id: 'selection',
             Cell: ({ row }) => (
                 <div className="table-action">
-                    {console.log(row)}
                     <input
                         type="checkbox"
                         checked={selectedRows.some(selectedRow => selectedRow === row.original)}

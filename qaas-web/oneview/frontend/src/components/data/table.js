@@ -5,7 +5,7 @@ import "react-table-6/react-table.css";
 import '../css/table.css'
 import { useMemo } from 'react';
 import CustomReactTable from "./CustomReactTable";
-function Table({ data, columns, SubComponent, defaultPageSize }) {
+function Table({ data, columns, SubComponent, defaultPageSize, hiddenColumns }) {
 
     const [filterInput, setFilterInput] = useState("");
 
@@ -55,6 +55,8 @@ function Table({ data, columns, SubComponent, defaultPageSize }) {
                 <CustomReactTable
                     columns={columns}
                     data={filteredData}
+                    hiddenColumns={hiddenColumns}
+
                     SubComponent={SubComponent}
                 />
             </div>

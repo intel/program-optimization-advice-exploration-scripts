@@ -49,7 +49,14 @@ module.exports = {
         historyApiFallback: true,
         compress: true,
         port: 3000,
-        hot: true
+        hot: true,
+        proxy: {
+            '/qaas/api': {
+                target: 'http://127.0.0.1:5002',
+                pathRewrite: { '^/qaas/api': '' },  // remove /qaas/api prefix before forwarding
+                changeOrigin: true
+            }
+        }
 
     }
 };

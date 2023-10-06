@@ -3,21 +3,20 @@ import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import { useNavigate } from 'react-router-dom';
 import DrawerItemsList from './DrawerItemList';
+import { useNavigationState } from '../hooks/useNavigationState';
+
+const drawerItems = [
+    { level: 1, text: 'Overview', path: '/system_config', status: 'empty' },
+    { level: 1, text: 'Sky Lake', path: '/system_config/sky_lake' },
+    { level: 1, text: 'Ice Lake', path: '/system_config/ice_lake' },
+    { level: 1, text: 'Sapphire Rapids', path: '/system_config/sapphire_rapids' },
+];
 
 const SystemConfigDrawer = () => {
-    const navigate = useNavigate();
-    const [selectedItem, setSelectedItem] = useState(null);
-    const [expandedSections, setExpandedSections] = useState([]);
+    const initialHash = window.location.hash.split('#').pop();
+    const { expandedSections, selectedItem, navigateToSection, goBack, navStack } = useNavigationState(drawerItems, initialHash);
 
-    const navigateToSection = (path) => {
-        navigate(path);
-        setSelectedItem(path);
-    };
 
-    const drawerItems = [
-        { level: 1, text: 'Ice Lake', path: '/system_config/ice_lake' },
-        { level: 1, text: 'Sapphire Rapids', path: '/system_config/sapphire_rapids' },
-    ];
 
     return (
         <div>

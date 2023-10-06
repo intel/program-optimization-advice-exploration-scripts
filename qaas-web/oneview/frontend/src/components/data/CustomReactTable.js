@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useTable, useExpanded, usePagination } from "react-table";
 import '../css/table.css';
 
-function CustomReactTable({ columns, data, SubComponent }) {
+function CustomReactTable({ columns, data, SubComponent, hiddenColumns }) {
     const {
         getTableProps,
         getTableBodyProps,
@@ -19,18 +19,21 @@ function CustomReactTable({ columns, data, SubComponent }) {
         previousPage,
         setPageSize,
         state: { pageIndex, pageSize },
+        setHiddenColumns,
     } = useTable(
         {
             columns,
             autoResetHiddenColumns: false,
             data,
             initialState: { pageIndex: 0 },
-
         },
         useExpanded,
         usePagination
 
     );
+    useEffect(() => {
+        setHiddenColumns(hiddenColumns || []);  // set the hidden columns whenever the prop changes
+    }, [hiddenColumns, setHiddenColumns]);
     return (
         <div className="table-container">
 

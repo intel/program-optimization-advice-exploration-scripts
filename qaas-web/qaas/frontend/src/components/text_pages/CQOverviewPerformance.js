@@ -6,16 +6,18 @@ export default function CQOverviewPerformance() {
         <div className="textPageContainer">
             <h1>C1.1 Performance vs. compilers</h1>
             <p>
-                The overall results for 7 miniapps on <Link to="/system_config/ice_lake">Intel Ice Lake </Link>are shown in
-                <div className='imageContainer'>
-                    <img src={minitopImage} alt="Minitop Description" />
-                </div>
+
+                Most application developers have a favorite (or mandated) compiler and possibly a favored set of compilation flags.
+                If available, QaaS uses a developer-chosen compiler/flag set; otherwise it uses an expert-chosen default compiler and settings
+                for each system. In either case, the question is: How much can QaaS improve performance time by searching across many compiler
+                flags and other compilers? We compare ICX, ICC and GCC for performance and portability.
             </p>
 
             <p>
-                From the viewpoint of winning most, ICX is best. But from the viewpoint of losing least, ICC is best.
-                Because we only have 7 miniapps, the table can be regarded as preliminary with only small variations among all 3 compilers.
-                Overall results for numerical libraries are shown in Table libtop.
+                In the following sections, QaaS results are shown for a collection of miniapps,
+                whole applications, and library functions. Generally, the miniapps are web-available simplifications of real apps,
+                intended to allow performance tuning on short-running approximations of the full app. In some cases, the miniapps
+                are rather well tuned to start, in other cases less so.
             </p>
 
         </div>
