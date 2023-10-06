@@ -3,54 +3,55 @@ import Table from './table';
 import '../css/table.css';
 import ApplicationSubTable from './ApplicationSubTable';
 import { GroupToggleButton } from './GroupToggleButton';
-import { TABLE_COLOR_SCHEME, APPLICATION_TABLE_COLUMNS, STATIC_COLUMNS } from '../Constants';
+import { TABLE_COLOR_SCHEME, APPLICATION_TABLE_COLUMNS } from '../Constants';
+//resurive function to find toggleable columes
+const findToggleableColumns = (cols) => {
+    let toggleable = [];
+    cols.forEach(col => {
+        if (col.columns) {
+            toggleable = [...toggleable, ...findToggleableColumns(col.columns)];
+        } else if (col.show === false) {
+            toggleable.push(col.id);
+        }
+    });
+    return toggleable;
+};
+
 function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBaseline }) {
     const [hiddenChildColumns, setHiddenChildColumns] = useState([]);
     useEffect(() => {
-        // initialzie hiddenChildColumns based on STATIC_COLUMNS and default collapsed groups
-        let defaultHiddenColumns = [];
-        Object.keys(STATIC_COLUMNS).forEach(groupName => {
-            const group = columns.find(col => col.groupName === groupName);
-            if (group && group.columns) {
-                const childColumns = group.columns.map(col => col.id).filter(id => !STATIC_COLUMNS[groupName].includes(id));
-                defaultHiddenColumns = [...defaultHiddenColumns, ...childColumns];
-            }
-        });
+        let defaultHiddenColumns = findToggleableColumns(columns);
         setHiddenChildColumns(defaultHiddenColumns);
-    }, []);
-
-
-
-    // add color to colums
-    const columns = useMemo(() => {
-        return APPLICATION_TABLE_COLUMNS.map((col, index) => {
-            if (col.columns) {
-                const updatedSubColumns = col.columns.map(subCol => ({
-                    ...subCol,
-                    color: TABLE_COLOR_SCHEME[index % TABLE_COLOR_SCHEME.length]
-                }));
-                return { ...col, columns: updatedSubColumns };
-            }
-            return col;
-        });
-    }, [APPLICATION_TABLE_COLUMNS]);
+    }, [columns]);
 
 
 
     //hid or show group columns
     const toggleGroup = (groupName) => {
-        const group = columns.find(col => col.groupName === groupName);
-        if (group && group.columns) {
-            const staticColumns = STATIC_COLUMNS[groupName] || [];
-            const childColumns = group.columns.map(col => col.id).filter(id => !staticColumns.includes(id));
+        const group = columns.find(col => col.id === `${groupName}_parent`) || columns.find(col => col.groupName === groupName);
 
-            if (childColumns.some(id => hiddenChildColumns.includes(id))) {
-                setHiddenChildColumns(prev => prev.filter(id => !childColumns.includes(id)));
+        if (group && group.columns) {
+            const toggleableColumns = findToggleableColumns(group.columns);
+
+            if (toggleableColumns.some(id => hiddenChildColumns.includes(id))) {
+                setHiddenChildColumns(prev => prev.filter(id => !toggleableColumns.includes(id)));
             } else {
-                setHiddenChildColumns(prev => [...prev, ...childColumns]);
+                setHiddenChildColumns(prev => [...prev, ...toggleableColumns]);
             }
         }
     };
+
+
+
+
+
+    // add color to colums
+    const columns = APPLICATION_TABLE_COLUMNS;
+
+
+
+
+
 
     //filtered out all visible cols
     const visibleColumns = columns.map(col => {
@@ -75,6 +76,7 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
 
 
 
+
     return (
         <div >
 
@@ -88,6 +90,7 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
                     data={data}
                     columns={visibleColumns}
                     SubComponent={(row) => renderSubComponent(row)}
+                    hiddenColumns={hiddenChildColumns}
 
                     defaultPageSize={10}
                 />

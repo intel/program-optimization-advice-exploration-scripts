@@ -1,50 +1,49 @@
 import React from 'react';
-import minitopImage from '../imgs/minitop.png';
 
 import bestcompImage from '../imgs/bestcomp.png';
-import IncludeGFCoreImage from '../imgs/include_gf_core.png';
-
-import CompilerComparisonHistogram from '../graph/CompilerComparisonHistogram';
+import appGainImage from '../imgs/appgain.png';
+import { Link } from 'react-router-dom';
 
 export default function Miniapps() {
     return (
         <div className="textPageContainer">
             <h1>C1.1.1 Miniapps</h1>
             <p>
-                The overall results for 7 miniapps on Intel Ice Lake are discussed here. First the best compiler,
-                then the benefits of QaaS are explained. The best compiler per miniapp is simply the compiler for which QaaS found
-                a flag setting that beat all others; 48 cases were tested here – 3 compilers with 16 flag settings each: Fig. bestcomp.
+                The overall QaaS results for 7 miniapps run on Intel Ice Lake [Yue reference syst def] are discussed here.
+                First the best compiler, then the benefits of QaaS are explained. The best compiler per miniapp is simply the
+                compiler for which QaaS found a flag setting that beat all others; 48 cases were tested here –
+                3 compilers with 16 flag settings each, see Fig. bestcomp.
             </p>
             <div className='imageContainer'>
                 <img src={bestcompImage} alt="BestComp Description" />
             </div>
+
             <p>
-                add text
-            </p>
-            <div className='imageContainer'>
-                <img src={IncludeGFCoreImage} alt="IncludeGFCore Description" />
-            </div>
-            <p>
-                The benefit of QaaS over app developers is discussed next. Fig. minitop compares compilers from the viewpoint of winning
-                most in improving on well-chosen default flags for each compiler, that ICX is best. But from the viewpoint of losing least,
-                ICC is best. Because we only have 7 miniapps, the table can be regarded as preliminary with only small variations among all 3 compilers.
-                Overall results for numerical libraries are shown in Table libtop. Many people only care about a particular app domain or a few apps,
-                which can be done by clicking here (menu of miniapps). For more details about the miniapps click here [More miniapp perf details].
-                This is all of the stuff weve seen in past month.
-                Note that we regard gains &lt; 10% as insignificant as they may include measurement errors and
-                are generally not too important from an app developers’ point of view.
+                A.    At a high level, ISVs and multi-app developers, or CSPs and computer managers,
+                are mostly interested in outcomes denominated in numbers of codes. Here we use 7 miniapps,
+                and the QaaS benefits can be summarized (see Table appgain), as 2 ties, and various numbers of codes with up to more than 4X performance gains.
 
             </p>
             <div className='imageContainer'>
-                <img src={minitopImage} alt="Minitop Description" />
+                <img src={appGainImage} alt="appGain Description" />
             </div>
-            <h2> Best compiler Time, Gf</h2>
 
-            <h2 >Compiler comparisons</h2>
-            <h2 style={{ marginLeft: '25px' }}>Compiler choice</h2>
-            <CompilerComparisonHistogram />
+            <p>
+                For more details about the wins and losses of each compiler,
+                see Section
+                {' '}
+                <Link
+                    to="/compiler_details"
 
-            <h2 style={{ marginLeft: '25px' }}>Flag choice/compiler</h2>
+                >C.1.1.1 A </Link>
+                {' '}
+                or continue to
+                {' '}
+                <Link to="/apps">C.1.1.2 </Link>
+                {' '}
+                for similar discussions about applications.
+            </p>
+
 
 
 

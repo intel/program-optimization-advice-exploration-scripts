@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './css/TopBar.css';
 
-const pages = ['input', 'result', 'system_config', 'definitions', 'legal', 'catalog'];
-const pages_labels = ['Job Submission', 'Results', 'System Configuration', "Definitions", 'Legal', 'Catalog'];
+const pages = ['input', 'result', 'system_config', 'definitions', 'legal', 'catalog', 'ref'];
+const pages_labels = ['Job Submission', 'Results', 'System Configuration', "Definitions", 'Legal', 'Catalog', 'Ref'];
 
 function TopBar() {
     const [selectedPage, setSelectedPage] = useState('');

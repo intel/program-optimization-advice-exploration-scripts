@@ -1,17 +1,17 @@
 
-import React, { useState, useEffect }from 'react';
+import React, { useState, useEffect } from 'react';
 import { TOGGLE_BUTTON_COLOR_SCHEME, APPLICATION_TABLE_COLUMNS } from '../Constants';
 import '../css/table.css'
 const ToggleButton = ({ groupName, label, hiddenChildColumns, toggleGroup, color, columns }) => {
-    const [isGroupExpanded, setIsGroupExpanded] = useState(false); 
+    const [isGroupExpanded, setIsGroupExpanded] = useState(false);
     const handleToggleGroup = () => {
         toggleGroup(groupName);
-        setIsGroupExpanded(!isGroupExpanded);  
+        setIsGroupExpanded(!isGroupExpanded);
     };
     const buttonText = isGroupExpanded ? 'Hide' : 'Show';
     return (
         <button
-            onClick={handleToggleGroup}  
+            onClick={handleToggleGroup}
             style={{ backgroundColor: color }}
             className='table-action-button'
         >
@@ -57,7 +57,7 @@ export const GroupToggleButton = ({ hiddenChildColumns, toggleGroup }) => {
 
                 />
                 <ToggleButton
-                    groupName="experimentSummary"
+                    groupName="experiment_summary"
                     label="Experiment Summary"
                     hiddenChildColumns={hiddenChildColumns}
                     toggleGroup={toggleGroup}

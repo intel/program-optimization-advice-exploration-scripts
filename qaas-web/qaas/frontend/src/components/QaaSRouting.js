@@ -35,7 +35,9 @@ import GfCost from './text_pages/GfCost';
 import TypeOfScaling from './text_pages/TypeOfScaling';
 import Oneview from './text_pages/Oneview';
 import BestAppInsightsPerDomain from './text_pages/BestAppInsightsPerDomain';
-import CompilerDetails  from './text_pages/CompilerDetails';
+import CompilerDetails from './text_pages/CompilerDetails';
+import SystemConfig from './text_pages/SystemConfig';
+import SkyLake from './text_pages/SkyLake';
 export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const location = useLocation();
 
@@ -87,6 +89,9 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
                             <Route path="/manual_interactive_mode" element={<ManualInteractiveMode />} />
                             <Route path="/quality_10_year_trend_realities" element={<Quality10YearTrendRealities />} />
                             <Route path="/quality_10_year_trend_conclusions" element={<Quality10YearTrendConclusions />} />
+                            <Route path="/system_config" element={<SystemConfig />} />
+                            <Route path="/system_config/sky_lake" element={<SkyLake />} />
+
                             <Route path="/system_config/ice_lake" element={<IceLake />} />
                             <Route path="/system_config/sapphire_rapids" element={<SapphireRapids />} />
 

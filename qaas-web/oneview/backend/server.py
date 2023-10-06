@@ -180,7 +180,6 @@ def create_app(config):
 
                 if len(run_data) > 0:
                     data.append(application_data)
-
         return jsonify(isError= False,
                     message= "Success",
                     statusCode= 200,

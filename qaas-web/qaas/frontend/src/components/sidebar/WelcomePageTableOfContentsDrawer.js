@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DrawerItemsList from './DrawerItemList';
 import ListItemButton from '@mui/material/ListItemButton';
-
+import { useNavigationState } from '../hooks/useNavigationState';
 const drawerItems = [
     { level: 1, text: 'Overview', path: '/' },
     {
@@ -15,6 +15,8 @@ const drawerItems = [
     { level: 1, text: 'B. Constraints and Scope', path: '/constraints_and_scope' },
     {
         level: 1, text: 'C. Initial QaaS offerings', path: '/initial_qaas_offerings', drillDown: true, children: [
+            // level: 1, text: 'C. Initial QaaS offerings', path: '/initial_qaas_offerings', children: [
+
             {
                 level: 2, text: 'C1. CQ Overview', path: '/cq_overview', children: [
                     {
@@ -65,47 +67,13 @@ const drawerItems = [
         ]
     },
 ];
+
+
 const WelcomePageTableOfContentsDrawer = () => {
-    const navigate = useNavigate();
-    const [selectedItem, setSelectedItem] = useState('/');
-    const [expandedSections, setExpandedSections] = useState([]);
-    const [navStack, setNavStack] = useState([drawerItems]);
 
-    useEffect(() => {
-        const storedSelectedItem = localStorage.getItem('selectedItem');
-        if (storedSelectedItem) {
-            setSelectedItem(storedSelectedItem);
-        }
-    }, []);
+    const initialHash = window.location.hash.split('#').pop();
 
-
-    const navigateToSection = (path, children, drillDown) => {
-        navigate(path);
-        setSelectedItem(path);
-        localStorage.setItem('selectedItem', path);
-        if (drillDown && children) {
-            setNavStack(prevStack => [...prevStack, children]);
-        } else {
-            if (children) {
-                if (!expandedSections.includes(path)) {
-                    setExpandedSections(prevSections => [...prevSections, path]);
-                } else {
-                    setExpandedSections(prevSections => prevSections.filter(section => section !== path));
-                }
-            }
-        }
-    };
-
-    const goBack = () => {
-        setNavStack(prevStack => {
-            const newStack = [...prevStack];
-            newStack.pop();
-            return newStack;
-        });
-    };
-
-
-
+    const { expandedSections, selectedItem, navigateToSection, goBack, navStack } = useNavigationState(drawerItems, initialHash);
 
     return (
         <div>
