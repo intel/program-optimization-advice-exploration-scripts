@@ -84,6 +84,8 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
 
     # Increase stack size soft limit for the current process and children
     resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY,-1))
+    # Increase no of open files soft limit for the current process and children
+    resource.setrlimit(resource.RLIMIT_NOFILE, (4096, resource.getrlimit(resource.RLIMIT_NOFILE)[1]))
     # Setup QaaS reports dir
     qaas_reports_dir = os.path.join(os.path.dirname(base_run_dir), 'qaas_reports')
 
