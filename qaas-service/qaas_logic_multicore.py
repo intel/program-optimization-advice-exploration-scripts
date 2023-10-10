@@ -60,9 +60,14 @@ def dump_multicore_log_file(qaas_reports_dir, file_name, message):
 def dump_multicore_csv_file(qaas_reports_dir, file_name, table, best_only=False, best_options=None):
     '''Dump unicore runs to csv'''
 
+    # Open multicore runs CSV file
     csv_unicore = open(os.path.join(qaas_reports_dir, file_name), "w", newline='\n')
     writer = csv.writer(csv_unicore)
-    writer.writerow(['app_name', 'compiler', 'option #', '#MPI', '#OMP', 'affinity', 'time(s)', 'GFlops/s'])
+    # Setup header
+    csv_header= ['app_name', 'compiler', 'option #', '#MPI', '#OMP', 'affinity', 'time(s)', 'GFlops/s']
+    for compiler in table:
+        csv_header.append(f"Spd w.r.t {compiler}")
+    writer.writerow(csv_header)
     
     # Write execution times to csv format
     for compiler in table:
@@ -71,16 +76,6 @@ def dump_multicore_csv_file(qaas_reports_dir, file_name, table, best_only=False,
         else:
             writer.writerow(table[compiler][best_options[compiler]])
     csv_unicore.close()
-
-#def compute_unicore_speedups(t_unicore, orig_time, i_time):
-#    '''Compute Speedups w/r original and option 1 of compiler #1'''
-#
-#    for compiler in t_unicore:
-#        for row  in t_unicore[compiler]:
-#            # Compare to user provided compiler and flags
-#            row.append(float(orig_time)/float(row[i_time]))
-#            # Compare to
-#            row.append(float(t_unicore[list(t_unicore.keys())[0]][0][i_time])/float(row[i_time]))
 
 def eval_parallel_stability(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, has_mpi, has_omp):
     '''Evaluate Multicore runs stability for apps that use MPI, OpenMP (OMP) or hybrid MPIxOMP'''
@@ -149,7 +144,7 @@ def compute_scaling_cores():
     # build the array of the number of cores to scale
     cores = [2**c for c in range(1,max_power_of_2+1)]
     # Append max physical cores to array if missing
-    if max_cores >= 2**max_power_of_2:
+    if max_cores > 2**max_power_of_2:
         cores.append(max_cores)
 
     return cores
@@ -260,7 +255,7 @@ def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt
         if repetitions == -1:
             print(f"Stop parallel runs for compiler {compiler}: too unstable!")
             continue
-        t_compiler.append([app_name, compiler, option, nmpi, nomp, "scatter", median_time])
+        #t_compiler.append([app_name, compiler, option, nmpi, nomp, "scatter", median_time])
 
         # Make a single core run for reference in scalability analysis
         basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 1, "mpirun", mpi_num_processes=1)
@@ -332,6 +327,38 @@ def add_gflops_to_runs(p_runs, flops_per_app, i_time, i_mpi, i_omp, has_mpi, has
             else:
                 run.append(0.0)
 
+def add_speedups_to_runs(p_runs, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_weak, omp_weak):
+    '''Compute Speedups w/r to smallest cores count per compiler'''
+
+    # Search reference runs
+    mp_ref_runs = {}
+    for compiler in p_runs:
+        for run in p_runs[compiler]:
+            if run[i_time] != None and run[i_omp] == 1:
+                mp_ref_runs[compiler] = [run[i_time], run[i_mpi], run[i_omp]]
+                break
+        if not compiler in mp_ref_runs:
+            mp_ref_runs[compiler] = [0.0, 0, 0]
+
+    for compiler in p_runs:
+        for run  in p_runs[compiler]:
+            for item in mp_ref_runs:
+                if run[i_time] != None:
+                    # Compute replication factor
+                    if mpi_weak and omp_weak:
+                        replication = run[i_mpi] * run[i_omp]
+                    elif mpi_weak:
+                        replication = run[i_mpi]
+                    elif omp_weak:
+                        replication = run[i_omp]
+                    else:
+                        replication = 1
+                    # Compare to user provided compiler and flags
+                    run.append(mp_ref_runs[item][0] * replication / float(run[i_time]))
+                else:
+                    # Compare to
+                    run.append(0.0)
+
 def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                 orig_user_CC, run_cmd, compiled_options, qaas_best_opt, qaas_reports_dir,
                 has_mpi=True, has_omp=True, mpi_weak=False, omp_weak=False, flops_per_app=0.0):
@@ -354,11 +381,11 @@ def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_d
     i_omp = 4
     # Update run tables with GFlops/s
     add_gflops_to_runs(qaas_table, flops_per_app, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_weak, omp_weak)
+    # Update run tables with Speedups/s
+    add_speedups_to_runs(qaas_table, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_weak, omp_weak)
 
     # Print log to file
     dump_multicore_log_file(qaas_reports_dir, 'qaas_multicore.log', log)
-
-    # Compute speedups
 
     # Dump csv table to file
     dump_multicore_csv_file(qaas_reports_dir, 'qaas_multicore.csv', qaas_table)
