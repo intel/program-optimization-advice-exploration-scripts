@@ -6,9 +6,9 @@
 
 # QAAS_ROOT=/nfs/site/proj/alac/members/yue/qaas/qaas
 FLASK_DIR=$(pwd)
-QAAS_ROOT=${FLASK_DIR}/../..
+QAAS_ROOT=${FLASK_DIR}/../../..
 BACKPLANE_DIR=${QAAS_ROOT}/qaas-backplane/src
 
-source $FLASK_DIR/venv/bin/activate
+# source $FLASK_DIR/venv/bin/activate
 echo PATYPATH: ${BACKPLANE_DIR}
 PYTHONPATH=${BACKPLANE_DIR} python3 server.py

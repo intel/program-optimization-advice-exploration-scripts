@@ -4,7 +4,7 @@ import React from 'react';
 export default function Apps() {
     return (
         <div className="textPageContainer">
-            <h1>C1.1.2 Apps</h1>
+            <h1>C1.1.2 Applications</h1>
             <p>
                 Here we show Gromacs, QMCpack, Trex Champ and Turbo RVB,  etc. Kevin is building QMCkl version for Cmake – to Hafid.
                 Also be ready for duplicated tables for SPR, and then compare ICL with SPR side by side.Sept 13

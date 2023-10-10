@@ -14,7 +14,7 @@ const drawerItems = [
     },
     { level: 1, text: 'B. Constraints and Scope', path: '/constraints_and_scope' },
     {
-        level: 1, text: 'C. Initial QaaS offerings', path: '/initial_qaas_offerings', drillDown: true, children: [
+        level: 1, text: 'C. Initial QaaS offerings', path: '/initial_qaas_offerings', children: [
             // level: 1, text: 'C. Initial QaaS offerings', path: '/initial_qaas_offerings', children: [
 
             {
@@ -23,11 +23,23 @@ const drawerItems = [
                         level: 3, text: 'C1.1 Performance vs. compilers', path: '/cq_overview_performance', children: [
                             {
                                 level: 4, text: 'C1.1.1 Miniapps', path: '/miniapps', children: [
-                                    { level: 5, text: 'C1.1.1.A Compiler Details', path: '/compiler_details' },
+                                    {
+                                        level: 5, text: 'C1.1.1.A Compiler Details', path: '/compiler_details', drillDown: true, children: [
+                                            { level: 6, text: 'L2.1: Multi-Compiler Gains', path: '/multi_compiler_gains'},
+                                            { 
+                                                level: 6, text: 'L2.2: QaaS Searches', path: '/qaas_searches_l2', drillDown: true, children: [
+                                                { level: 7, text: 'L3.1: QaaS Searches', path: '/qaas_searches', },
+                                            ] 
+                                        },
+                                        { level: 4, text: 'C1.1.2 Applications', path: '/apps' },
+                                        { level: 4, text: 'C1.1.3 Libraries', path: '/libraries' },
+                                        ]
+
+                                    },
 
                                 ]
                             },
-                            { level: 4, text: 'C1.1.2 Apps', path: '/apps' },
+                            { level: 4, text: 'C1.1.2 Applications', path: '/apps' },
                             { level: 4, text: 'C1.1.3 Libraries', path: '/libraries' },
                         ]
                     },

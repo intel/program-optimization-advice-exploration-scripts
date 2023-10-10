@@ -38,6 +38,9 @@ import BestAppInsightsPerDomain from './text_pages/BestAppInsightsPerDomain';
 import CompilerDetails from './text_pages/CompilerDetails';
 import SystemConfig from './text_pages/SystemConfig';
 import SkyLake from './text_pages/SkyLake';
+import MultiCompilerGains from './text_pages/MultiCompilerGains';
+import QaaSSearches from './text_pages/QaaSSearches';
+import QaaSSearchesL2 from './text_pages/QaaSSearchesL2';
 export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const location = useLocation();
 
@@ -78,6 +81,7 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
 
                             <Route path="/cq_overview_multiprocessor" element={<Multiprocessor />} />
                             <Route path="/compiler_details" element={<CompilerDetails />} />
+                            <Route path="/quality_10_year_trend_conclusions" element={<Quality10YearTrendConclusions />} />
 
                             <Route path="/perf_by_scalability_type" element={<PerfByScalabilityType />} />
                             <Route path="/gf_cost" element={<GfCost />} />
@@ -88,7 +92,11 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
                             <Route path="/automatic_application_analysis" element={<AutomaticApplicationAnalysis />} />
                             <Route path="/manual_interactive_mode" element={<ManualInteractiveMode />} />
                             <Route path="/quality_10_year_trend_realities" element={<Quality10YearTrendRealities />} />
-                            <Route path="/quality_10_year_trend_conclusions" element={<Quality10YearTrendConclusions />} />
+                            <Route path="/multi_compiler_gains" element={<MultiCompilerGains />} />
+                            <Route path="/qaas_searches" element={<QaaSSearches />} />
+
+                            <Route path="/qaas_searches_l2" element={<QaaSSearchesL2 />} />
+
                             <Route path="/system_config" element={<SystemConfig />} />
                             <Route path="/system_config/sky_lake" element={<SkyLake />} />
 

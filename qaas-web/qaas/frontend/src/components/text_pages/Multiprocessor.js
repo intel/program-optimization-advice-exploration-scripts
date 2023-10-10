@@ -1,5 +1,6 @@
 import React from 'react';
 
+import bestcompImage from '../imgs/bestcomp.png';
 
 export default function Multiprocessor() {
     return (
@@ -10,6 +11,11 @@ export default function Multiprocessor() {
                 Uniform output across histogram views using colors and 1 or 2 labels.
 
             </p>
+            <div className='imageContainer'>
+                <img src={bestcompImage} alt="BestComp Description" />
+            </div>
+
+
 
         </div>
     );

@@ -1,6 +1,5 @@
 .level {
     background-color: transparent;
-    font-size: 10px;
 
 }
 
@@ -24,13 +23,21 @@
     padding-left: 60px;
 }
 
+.drawer .level6 {
+    padding-left: 75px;
+}
+
+.drawer .level7 {
+    padding-left: 90px;
+}
 
 .drawer .MuiDrawer-paper {
     position: static;
     align-items: center;
-    max-width: 400px;
+    max-width: 300px;
     overflow-y: auto;
     max-height: 100vh;
+
 }
 
 .MuiListItem-root.draweritem-list-button {
@@ -76,4 +83,16 @@
     height: 100vh;
     overflow-y: auto;
 
+}
+
+/* text inside menu item */
+.drawer .MuiTypography-root.MuiTypography-body1.MuiListItemText-primary {
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+/* menu item in menu */
+.drawer .MuiListItem-root.draweritem-list-button {
+    padding: 0px;
+    margin: 0 0;
 }
