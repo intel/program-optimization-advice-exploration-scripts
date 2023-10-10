@@ -2,7 +2,7 @@ import os
 import math
 import json
 import re
-import luadata
+# import luadata
 import pandas as pd
 import zlib
 import hashlib
@@ -14,11 +14,13 @@ from sqlalchemy import distinct, func
 from sqlalchemy.sql import and_
 import subprocess
 from constants import dyn_cntr, derived_metrics, inst_cnt, compiler_flags
+from sqlalchemy import exists, and_
+
 level_map = {0: 'Single', 1: 'Innermost', 2: 'Inbetween', 3: 'Outermost'}
 reverse_level_map = {v: k for k, v in level_map.items()}
 
 SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH=os.path.join(SCRIPT_DIR, "..", "config", "qaas-web.conf")
+CONFIG_PATH=os.path.join(SCRIPT_DIR, "..", "..", "config", "qaas-web.conf")
 
 ###check filters
 def check_filters(session, execution, filters):
@@ -54,7 +56,7 @@ def get_config():
     return config
 
 def connect_db(config):
-    engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI'])
+    engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
     engine.connect()
     return engine
 
@@ -697,6 +699,22 @@ def append_or_create_key(dictionary, key, value):
     else:
         dictionary[key] = [value]
     return dictionary
+
+def get_all_mutations_from_orig_source_loop(orig_loop, session):
+    orig_src_loops = session.query(SrcLoop.orig_src_loop).filter_by(source=orig_loop.source).all()
+    all_mutations = []
+    seen_sources = set()  # keep track of sources that have already been added
+
+    for orig_src_loop_tuple in orig_src_loops:
+        orig_src_loop = orig_src_loop_tuple[0]
+        mutations = session.query(SrcLoop).filter_by(orig_src_loop=orig_src_loop).all()
+        
+        for mutation in mutations:
+            if mutation.source not in seen_sources:
+                all_mutations.append(mutation)
+                seen_sources.add(mutation.source)
+    
+    return all_mutations
 
 def get_target_src_loop_from_id(current_src_loop_id, session):
     target_src_loop = session.query(SrcLoop).filter_by(table_id = current_src_loop_id).one()

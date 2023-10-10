@@ -27,15 +27,25 @@ export const GroupToggleButton = ({ hiddenChildColumns, toggleGroup }) => {
         <div className="toggle-buttons">
             <div className="toggle-buttons">
                 <ToggleButton
+                    groupName="runInfo"
+                    label="Run Info"
+                    hiddenChildColumns={hiddenChildColumns}
+                    toggleGroup={toggleGroup}
+                    color={TOGGLE_BUTTON_COLOR_SCHEME[0]}
+                    columns={APPLICATION_TABLE_COLUMNS.find(col => col.groupName === "runInfo")?.columns || []}
+
+
+                />
+                <ToggleButton
                     groupName="time"
                     label="Time"
                     hiddenChildColumns={hiddenChildColumns}
                     toggleGroup={toggleGroup}
-                    color={TOGGLE_BUTTON_COLOR_SCHEME[0]}
+                    color={TOGGLE_BUTTON_COLOR_SCHEME[1]}
                     columns={APPLICATION_TABLE_COLUMNS.find(col => col.groupName === "time")?.columns || []}
-
-
                 />
+
+
                 {/* <ToggleButton
                     groupName="globalScore"
                     label="Global Score"

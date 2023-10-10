@@ -1,56 +1,62 @@
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
-const dotenv = require('dotenv');
-const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
+const CopyPlugin = require('copy-webpack-plugin');
 
-// Load environment variables
-const env = dotenv.config().parsed;
-const envKeys = Object.keys(env).reduce((prev, next) => {
-    prev[`process.env.${next}`] = JSON.stringify(env[next]);
-    return prev;
-}, {});
 module.exports = {
-    entry: './index.js',
-    mode: 'development',
+    entry: './src/index.js',
     output: {
-        path: path.resolve(__dirname, './dist'),
-        filename: 'index_bundle.js',
+        path: path.resolve(__dirname, 'dist'),
+        filename: 'bundle.js'
     },
-    target: 'web',
-    devServer: {
-        port: '5000',
-        static: {
-            directory: path.join(__dirname, 'public'),
-            publicPath: '/public',
-            serveIndex: true,
-        },
-        open: true,
-        hot: true,
-        liveReload: true,
-        historyApiFallback: true,
+    mode: process.env.NODE_ENV || 'development',
+    devtool: process.env.NODE_ENV === 'production' ? 'source-map' : 'inline-source-map',
 
-    },
-    resolve: {
-        extensions: ['.js', '.jsx', '.json'],
-    },
     module: {
         rules: [
             {
                 test: /\.(js|jsx)$/,
                 exclude: /node_modules/,
-                use: 'babel-loader',
+                use: 'babel-loader'
             },
             {
                 test: /\.css$/,
                 use: ['style-loader', 'css-loader'],
             },
-        ],
+            {
+                test: /\.(png|svg|jpg|jpeg|gif)$/i,
+                type: 'asset/resource',
+            },
+
+        ]
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: path.join(__dirname, 'public', 'index.html')
+            template: './public/index.html'
         }),
-        new webpack.DefinePlugin(envKeys),
+        new Dotenv(),
+        new CopyPlugin({
+            patterns: [
+                { from: './public/.htaccess', to: '.' } // copy .htaccess from public directory to dist directory
+            ]
+        })
 
-    ]
+    ],
+    devServer: {
+        static: {
+            directory: path.join(__dirname, 'dist')
+        },
+        historyApiFallback: true,
+        compress: true,
+        port: 3000,
+        hot: true,
+        proxy: {
+            '/lore/api': {
+                target: 'http://127.0.0.1:5002',
+                pathRewrite: { '^/lore/api': '' },  // remove /lore/api prefix before forwarding
+                changeOrigin: true
+            }
+        }
+
+    }
 };

@@ -1,8 +1,8 @@
 import React, { useEffect } from "react";
 import { useTable, useExpanded, usePagination } from "react-table";
 import '../css/table.css';
-
-function CustomReactTable({ columns, data, SubComponent, hiddenColumns }) {
+import { useSearchFilters } from "../hooks/useSearchFilters";
+function CustomReactTable({ columns, data, SubComponent, hiddenColumns, columnFilters, setColumnFilters }) {
     const {
         getTableProps,
         getTableBodyProps,
@@ -34,6 +34,14 @@ function CustomReactTable({ columns, data, SubComponent, hiddenColumns }) {
     useEffect(() => {
         setHiddenColumns(hiddenColumns || []);  // set the hidden columns whenever the prop changes
     }, [hiddenColumns, setHiddenColumns]);
+
+
+    //not empty values will be shown in select
+    function uniqueValuesForColumn(columnId, data) {
+        const values = new Set(data.map(row => row[columnId]).filter(Boolean));
+        return [...values];
+    }
+
     return (
         <div className="table-container">
 
@@ -48,8 +56,22 @@ function CustomReactTable({ columns, data, SubComponent, hiddenColumns }) {
                                 <th
                                     {...column.getHeaderProps()}
                                     style={{ backgroundColor: column.color ? column.color : 'inherit' }}
+
                                 >
                                     {column.render('Header')}
+                                    {/* drop down box to conditionally get a list of values and when user click it will filter the rows */}
+                                    {
+                                        uniqueValuesForColumn(column.id, data).length > 1 &&
+                                        <select
+                                            onChange={e => setColumnFilters({ ...columnFilters, [column.id]: e.target.value })}
+                                            className="select-dropdown"
+                                        >
+                                            <option value="">All</option>
+                                            {uniqueValuesForColumn(column.id, data).map(value => (
+                                                <option value={value}>{value}</option>
+                                            ))}
+                                        </select>
+                                    }
                                 </th>
                             ))}
                         </tr>

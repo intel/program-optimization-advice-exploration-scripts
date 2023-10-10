@@ -157,7 +157,9 @@ def setup_database(database_url):
         # if not db_exists:
         os.system(f"sudo mysql -u root -e \"CREATE DATABASE {database_name};\"")
         os.system(f"sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON {database_name}.* TO '{username}'@'localhost';\"")
-
+        os.system("sudo mysql -u root -e \"FLUSH PRIVILEGES;\"")
+        os.system(f"sudo mysql -u root -e \"CREATE DATABASE lore;\"")
+        os.system(f"sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON lore.* TO '{username}'@'localhost';\"")
         os.system("sudo mysql -u root -e \"FLUSH PRIVILEGES;\"")
 
         print("Database set up successfully.")
@@ -209,7 +211,7 @@ if __name__ == "__main__":
 
 
     # install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
-    install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
+    # install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
     # install_frontend_dependencies(common_frontend_dir, common_apache_dir)
 
     # # # # #also copy the config folder
@@ -236,9 +238,9 @@ if __name__ == "__main__":
     # give_permission('/etc/apache2/auth', 'www-data')
 
     # # # #setup database
-    # database_url = 'mysql://qaas:qaas-password@localhost/test'
+    database_url = 'mysql://qaas:qaas-password@localhost/test'
 
-    # setup_database(database_url)
+    setup_database(database_url)
 
     # # # #delete default index html
     # delete_index_html(apache_dir)

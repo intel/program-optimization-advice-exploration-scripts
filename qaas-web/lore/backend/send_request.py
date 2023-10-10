@@ -1,6 +1,6 @@
-from ovdb import populate_database, export_data
+# from ovdb import populate_database, export_data
 from lore_migrator import migrate_database
-from sqlalchemy import create_engine
+# from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import sys
 import os

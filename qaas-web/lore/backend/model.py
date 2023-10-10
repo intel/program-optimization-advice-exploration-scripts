@@ -23,6 +23,8 @@ from pickle import dumps, loads
 from gzip import zlib
 import os
 import math
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+
 Base = declarative_base()
 def is_nan(value):
     return isinstance(value, float) and math.isnan(value)
@@ -83,6 +85,20 @@ class Application(QaaSBase):
     def accept(self, accessor):
         accessor.visitApplication(self)
 
+    @classmethod
+    def get_or_create_application(cls, workload, version, program, commit_id, initializer):
+        result = initializer.session.query(cls).filter_by(workload = workload, version = version, program = program, commit_id = commit_id).first()
+        if result:
+            return result
+        else:
+            new_os_obj = cls(initializer)
+            new_os_obj.workload = workload 
+            new_os_obj.version = version 
+            new_os_obj.program = program 
+            new_os_obj.commit_id = commit_id 
+
+            return new_os_obj
+        
 class Execution(QaaSBase):
     __tablename__ = "execution"
     #TODO generate this one from universal
@@ -522,17 +538,26 @@ class SrcLoop(QaaSBase):
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
     fk_mutation_id = Column(Integer, ForeignKey('mutation.table_id'))
     #self referiental
-    # fk_orig_src_loop_id = Column(Integer, ForeignKey('src_loop.table_id'), nullable=True)
+    fk_orig_src_loop_id = Column(Integer, ForeignKey('src_loop.table_id'), nullable=True)
 
     loops = relationship("Loop", back_populates="src_loop")
     source = relationship("Source", back_populates="src_loops")
     execution  = relationship("Execution", back_populates="src_loops")
     mutation = relationship("Mutation", back_populates="src_loops")
     #self referiental
-    # orig_src_loop = relationship("SrcLoop", remote_side='SrcLoop.table_id')
+    orig_src_loop = relationship("SrcLoop", remote_side='SrcLoop.table_id')
 
     def __init__(self, initializer):
         super().__init__(initializer.session)
+
+    @classmethod
+    def get_src_loop_by_id(cls, initializer, id):
+        try:
+            res = initializer.session.query(SrcLoop).filter_by(table_id=id).one()
+            return res
+        except (NoResultFound, MultipleResultsFound):
+            return None
+        
 
 
    
@@ -845,16 +870,10 @@ class VprofBucketMeasure(QaaSBase):
     vprof_measure = relationship("VprofMeasure", back_populates="vprof_bucket_measures")
     def __init__(self, initializer):
         super().__init__(initializer.session)
-def connect_db(config):
-    engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI"])
-    engine.connect()
-    return engine
 
-def create_all_tables(config):
-    engine = connect_db(config)
+def create_all_tables(engine):
     Base.metadata.create_all(engine)
     mapper_registry.configure()
-
     print("created all tables")
 
 def bulk_insert_data(table, data, Session):

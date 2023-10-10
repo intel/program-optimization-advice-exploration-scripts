@@ -22,18 +22,14 @@ export const APPLICATION_TABLE_COLUMNS = [
         Header: 'Run Info',
         id: 'run_info',
         accessor: 'run_info',
-
+        groupName: 'runInfo',
+        color: '#FFDA8D',
         columns: [
             {
                 Header: 'Application',
                 id: 'application',
                 columns: [
-                    {
-                        Header: 'Workload',
-                        accessor: 'workload',
-                        id: 'workload',
-
-                    },
+                    { Header: 'Workload', accessor: 'workload', id: 'workload', show: false },
                     { Header: 'Program', accessor: 'program', id: 'program' },
 
 
@@ -45,8 +41,8 @@ export const APPLICATION_TABLE_COLUMNS = [
                 id: 'configuration',
                 columns: [
 
-                    { Header: 'Experiment Name', accessor: 'experiment_name', id: 'experiment_name' },
-                    { Header: 'Commit ID', accessor: 'commit_id', id: 'commit_id', width: 80 },
+                    { Header: 'Experiment Name', accessor: 'experiment_name', id: 'experiment_name', show: false },
+                    { Header: 'Commit ID', accessor: 'commit_id', id: 'commit_id', show: false },
 
                 ]
 
@@ -58,7 +54,7 @@ export const APPLICATION_TABLE_COLUMNS = [
         groupName: 'time',
         id: 'time',
 
-        color: '#FFDA8D',
+        color: '#FFB6C1',
 
         columns: [
 

@@ -5,27 +5,11 @@ import "react-table-6/react-table.css";
 import '../css/table.css'
 import { useMemo } from 'react';
 import CustomReactTable from "./CustomReactTable";
+import { useSearchFilters } from "../hooks/useSearchFilters";
 function Table({ data, columns, SubComponent, defaultPageSize, hiddenColumns }) {
 
     const [filterInput, setFilterInput] = useState("");
-
-    const filteredData = filterInput ? (() => {
-        const [searchText, header] = filterInput.split(" in ");
-        const flattenedCols = flattenColumns(columns);
-
-        const matchingColumns = header === 'All' ? flattenedCols : [flattenedCols.find(col => col.Header === header)];
-
-        return data.filter(row => {
-            return matchingColumns.some(column => {
-                const value = typeof column.accessor === 'function' ? column.accessor(row) : row[column.accessor];
-                return value && value.toString().toLowerCase().includes(searchText.toLowerCase());
-            });
-        });
-    })() : data;
-
-
-
-
+    const { filteredData, setColumnFilters, columnFilters } = useSearchFilters(data);
 
     //the columns are now nested
     function flattenColumns(columns) {
@@ -58,6 +42,8 @@ function Table({ data, columns, SubComponent, defaultPageSize, hiddenColumns }) 
                     hiddenColumns={hiddenColumns}
 
                     SubComponent={SubComponent}
+                    setColumnFilters={setColumnFilters}
+                    columnFilters={columnFilters}
                 />
             </div>
         </div>
