@@ -112,7 +112,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     
         # Start unicore runs
         to_backplane.send(qm.GeneralStatus("QAAS running logic: Compilers Parameters Exploration/Tuning"))
-        rc,compile_best_opt,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
+        rc,compile_best_opt,bestcomp,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                          orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults, flops, parallel_compiler_runs)
         if rc != 0: 
             to_backplane.send(qm.GeneralStatus(msg))
@@ -139,7 +139,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
             # App implements classic strong scaling: FLOPS is invariant
             flops_per_app = flops
         rc,mp_best_opt,msg = run_qaas_MP(user_target, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
-                     orig_user_CC, run_cmd, compiled_options, compile_best_opt, qaas_reports_dir,
+                     orig_user_CC, run_cmd, compiled_options, compile_best_opt, bestcomp, qaas_reports_dir,
                      has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app)
         if rc != 0:
             to_backplane.send(qm.GeneralStatus(msg))
