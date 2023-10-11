@@ -5,7 +5,7 @@ import gfcorImage from '../imgs/gfcor.png';
 export default function Gfcor() {
     return (
         <div className="textPageContainer">
-            <h1>C1.3.1 Gf / Core</h1>
+            <h1>Best system computer technology [Gf perf/core] per app  HM DK replace the dummy material with new numbers</h1>
             <p>
                 To capture architectural characteristics, including uniprocessor and MP, as well as compilers,
                 we start with the best compiler/MP scalability flags and core counts. Then we compare the
