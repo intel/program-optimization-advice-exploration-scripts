@@ -302,7 +302,8 @@ def generate_ov_config_multiruns(ov_run_dir, has_mpi, has_omp):
     config += f'base_run_name = "{run_prefix}{base_cores}"\n'
     config += f'number_processes = '
     config += f'{base_cores}\n' if has_mpi else "1\n"
-    config += f'envv_OMP_NUM_THREADS="1"\n\n' 
+    config += f'envv_OMP_NUM_THREADS='
+    config += '1\n\n' if has_mpi else f"{base_cores}\n\n"
     mpi_command_processes = "<number_processes>" if has_mpi else "1"
     config += f'mpi_command = "mpirun -np {mpi_command_processes}"\n\n'
     # Print multi runs params
