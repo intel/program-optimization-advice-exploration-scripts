@@ -84,16 +84,17 @@ class OneviewRunner(BaseRunner):
 
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         true_run_cmd = run_cmd.replace('<binary>', binary_path)
-        pinning_cmd = "" if mpi_command else f"--pinning-command=\"{self.get_pinning_cmd()}\""
+        pinning_cmd = "" if mpi_command or self.ov_config != "unused" else f"--pinning-command=\"{self.get_pinning_cmd()}\""
 
         self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
         os.makedirs(self.ov_result_dir)
 
         ov_mpi_command = f"--mpi-command=\"{mpi_command}\"" if mpi_command else ""
+        ov_config_option = "" if self.ov_config == "unused" else f"-WC -c={self.ov_config}"
         ov_filter_option = '--filter="{type=\\\"number\\\", value=4}"' if self.level != 1 else ''
         ov_extra_libs_option = '--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"' if self.found_so_libs else ""
 
-        ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} '\
+        ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} {ov_config_option}'\
             f' --with-FLOPS ' \
             f' {ov_extra_libs_option} '\
             f'--run-directory="{run_dir}" {pinning_cmd} '\

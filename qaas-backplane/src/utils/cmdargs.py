@@ -84,6 +84,9 @@ def parse_cli_args(argv):
     # Force usage of parallel run for compiler search
     global_parser.add_argument('-p', '--parallel-compiler-runs', choices=['off', 'mpi', 'openmp', 'hybrid'], default='off',
                                help="Force multiprocessing [MPI, OpenMP or hybrid] for compiler search runs")
+
+    # Turn ON multicore/parallel scalability runs
+    global_parser.add_argument('-s', '--enable-parallel-scale', action="store_true", help="Turn on multicore scalability runs", required=False)
     
     # parse arguments
     args = global_parser.parse_args()
