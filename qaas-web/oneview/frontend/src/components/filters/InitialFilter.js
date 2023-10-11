@@ -19,6 +19,17 @@ export const INITIAL_FILTERS = {
 
     },
     'Global': {
+        //new operator
+        'Run Info': {
+            "Program": {
+                'accessor': 'program',
+                'selected': false,
+                'operator': 'is',
+                'mode': 'all',
+                'value': '',
+                'choices': []
+            },
+        },
         'Time': {
             "Total Time (s)": {
                 'accessor': 'total_time',

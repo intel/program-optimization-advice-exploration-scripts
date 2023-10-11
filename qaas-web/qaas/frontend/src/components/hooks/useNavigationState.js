@@ -17,9 +17,17 @@ export const useNavigationState = (drawerItems, initialHash) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [expandedSections, setExpandedSections] = useState([]);
-    const [selectedItem, setSelectedItem] = useState(initialHash || '/');
+    //keep stack of selected item so when go back to multiple levels items will still be selected not overriden
+    const [selectedItemsStack, setSelectedItemsStack] = useState([initialHash || '/']);
     const [navStack, setNavStack] = useState([drawerItems]);
-
+    const [isGoingBack, setIsGoingBack] = useState(false);
+    //get current level
+    useEffect(() => {
+        const savedNavStack = localStorage.getItem('navStack');
+        if (savedNavStack) {
+            setNavStack(JSON.parse(savedNavStack));
+        }
+    }, []);
 
     useEffect(() => {
         let initialPath = localStorage.getItem('selectedItem');
@@ -29,29 +37,46 @@ export const useNavigationState = (drawerItems, initialHash) => {
 
         const result = findMatchingItemAndParents(drawerItems, initialPath);
         if (result) {
-            setSelectedItem(initialPath);
+            setSelectedItemsStack([initialPath]);
             setExpandedSections(result.parentPaths);
         }
     }, []);
 
     useEffect(() => {
         const currentPath = location.pathname;
+        const currentSelectedItem = selectedItemsStack[selectedItemsStack.length - 1];
 
-        if (currentPath !== selectedItem) {
+
+        if (!isGoingBack && currentPath !== currentSelectedItem) {
             const result = findMatchingItemAndParents(drawerItems, currentPath);
             if (result) {
-                setSelectedItem(currentPath);
+                setSelectedItemsStack(prevStack => [...prevStack, currentPath]);  // Push the current path to the stack
                 localStorage.setItem('selectedItem', currentPath);
                 setExpandedSections(result.parentPaths);
             }
         }
-    }, [location.pathname, selectedItem]);
+        setIsGoingBack(false);
 
-    const navigateToSection = (path, children, drillDown) => {
+
+    }, [location.pathname, selectedItemsStack, isGoingBack]);
+
+
+
+    const navigateToSection = (path, text, parent, children, drillDown) => {
         navigate(path);
-        setSelectedItem(path);
+        // clear expandedSections if we are drilling down
         if (drillDown && children) {
-            setNavStack(prevStack => [...prevStack, children]);
+            //also put parent into the new level
+            const selfCopy = { text: text, path: path, children: [] }; // copy of the item itself to the chilren's stack
+            const newStack = [selfCopy, ...children];
+            setNavStack(prevStack => {
+                const nextStack = [...prevStack, newStack];
+                localStorage.setItem('navStack', JSON.stringify(nextStack));
+                return nextStack;
+            });
+            setSelectedItemsStack(prevStack => [...prevStack, path]);
+
+
         } else {
             if (children) {
                 if (!expandedSections.includes(path)) {
@@ -62,14 +87,44 @@ export const useNavigationState = (drawerItems, initialHash) => {
             }
         }
     };
+
+
     const goBack = () => {
+        let newNavStack, newSelectedItemsStack;
+
         setNavStack(prevStack => {
+            newNavStack = [...prevStack];
+            newNavStack.pop();
+            localStorage.setItem('navStack', JSON.stringify(newNavStack));
+            return newNavStack;
+        });
+
+        setExpandedSections(prevSections => {
+            const newSections = [...prevSections];
+            newSections.pop();
+            return newSections;
+        });
+
+        console.log("Before going back, selectedItemsStack: ", selectedItemsStack);
+
+        setSelectedItemsStack(prevStack => {
             const newStack = [...prevStack];
             newStack.pop();
+            const newSelected = newStack[newStack.length - 1];
+            navigate(newSelected);
+            console.log("After going back, selectedItemsStack should be: ", newStack);
             return newStack;
         });
+        setIsGoingBack(true);
+
+
     };
 
-    return { expandedSections, selectedItem, navigateToSection, goBack, navStack };
+
+
+
+
+    const currentSelectedItem = selectedItemsStack[selectedItemsStack.length - 1];
+    return { expandedSections, selectedItem: currentSelectedItem, navigateToSection, goBack, navStack };
 
 };

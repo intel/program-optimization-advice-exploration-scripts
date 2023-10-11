@@ -34,6 +34,7 @@ const MainPage = () => {
             console.error('Error fetching data:', error);
         }
         setIsLoading(false);
+
     };
 
     const handleFilter = (newFilters) => {

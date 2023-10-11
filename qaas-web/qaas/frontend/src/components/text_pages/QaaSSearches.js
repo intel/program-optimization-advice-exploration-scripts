@@ -7,7 +7,7 @@ export default function QaaSSearches() {
             <h1>QaaS Searches</h1>
 
 
-           
+            <p>Click down to level 3 somewhere</p>
             <p>
                 The contest we are staging for each app compares the performance results for each potential compiler choice (3 currently) and its default flag settings,
                 with all other compilers and their flag settings. For each compiler, we use a good default setting, together with 16 expert-chosen flag candidates.
@@ -44,6 +44,7 @@ export default function QaaSSearches() {
             <div className='imageContainer'>
                 <img src={CompareImage} alt="Compare Image Description" />
             </div>
+            <p>For the full details about table compare, see level 3.</p>
             <p>
                 End Oct 4 Miniapps compiler Low level outline - pop back up.. Note we come down later for Apps
             </p>

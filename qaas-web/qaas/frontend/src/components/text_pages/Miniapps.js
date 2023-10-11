@@ -72,6 +72,16 @@ export default function Miniapps() {
                 for similar discussions about applications.
             </p>
 
+            <h2>
+                MP performance
+            </h2>
+            <p>
+                Explain a bit about the runs on MP to get these numbers. And Gf columns.
+            </p>
+            <p>
+                New table
+            </p>
+
 
 
 

@@ -6,74 +6,72 @@ import DrawerItemsList from './DrawerItemList';
 import ListItemButton from '@mui/material/ListItemButton';
 import { useNavigationState } from '../hooks/useNavigationState';
 const drawerItems = [
-    { level: 1, text: 'Overview', path: '/' },
+    { text: 'Overview', path: '/' },
     {
-        level: 1, text: 'A. Quality definitions', path: '/quality_definitions', children: [
-            { level: 2, text: 'A.1 Detailed Definitions', path: '/quality_detailed_definitions', status: 'empty' },
+        text: 'A. Quality definitions', path: '/quality_definitions', children: [
+            { text: 'A.1 Detailed Definitions', path: '/quality_detailed_definitions', status: 'empty' },
         ]
     },
-    { level: 1, text: 'B. Constraints and Scope', path: '/constraints_and_scope' },
+    { text: 'B. Constraints and Scope', path: '/constraints_and_scope' },
     {
-        level: 1, text: 'C. Initial QaaS offerings', path: '/initial_qaas_offerings', children: [
-            // level: 1, text: 'C. Initial QaaS offerings', path: '/initial_qaas_offerings', children: [
-
+        text: 'C. Initial QaaS offerings', path: '/initial_qaas_offerings', children: [
             {
-                level: 2, text: 'C1. CQ Overview', path: '/cq_overview', children: [
+                text: 'C1. CQ Overview', path: '/cq_overview', children: [
                     {
-                        level: 3, text: 'C1.1 Performance vs. compilers', path: '/cq_overview_performance', children: [
+                        text: 'C1.1 Performance vs. compilers', path: '/cq_overview_performance', children: [
                             {
-                                level: 4, text: 'C1.1.1 Miniapps', path: '/miniapps', children: [
+                                text: 'C1.1.1 Miniapps', path: '/miniapps', children: [
                                     {
-                                        level: 5, text: 'C1.1.1.A Compiler Details', path: '/compiler_details', drillDown: true, children: [
-                                            { level: 6, text: 'L2.1: Multi-Compiler Gains', path: '/multi_compiler_gains'},
-                                            { 
-                                                level: 6, text: 'L2.2: QaaS Searches', path: '/qaas_searches_l2', drillDown: true, children: [
-                                                { level: 7, text: 'L3.1: QaaS Searches', path: '/qaas_searches', },
-                                            ] 
-                                        },
-                                        { level: 4, text: 'C1.1.2 Applications', path: '/apps' },
-                                        { level: 4, text: 'C1.1.3 Libraries', path: '/libraries' },
+                                        text: 'C1.1.1.A Compiler Details', path: '/compiler_details', drillDown: true, children: [
+                                            { text: 'L2.1: Multi-Compiler Gains', path: '/multi_compiler_gains' },
+                                            {
+                                                text: 'L2.2: QaaS Searches L2', path: '/qaas_searches_l2', drillDown: true, children: [
+                                                    { text: 'L3.1: QaaS Searches', path: '/qaas_searches', },
+                                                ]
+                                            },
+                                            { text: 'C1.1.2 Applications', path: '/apps' },
+                                            { text: 'C1.1.3 Libraries', path: '/libraries' },
                                         ]
 
                                     },
 
                                 ]
                             },
-                            { level: 4, text: 'C1.1.2 Applications', path: '/apps' },
-                            { level: 4, text: 'C1.1.3 Libraries', path: '/libraries' },
+                            { text: 'C1.1.2 Applications', path: '/apps' },
+                            { text: 'C1.1.3 Libraries', path: '/libraries' },
                         ]
                     },
                     {
-                        level: 3, text: 'C1.2 Portability across systems', path: '/cq_overview_portability', children: [
-                            { level: 4, text: 'C1.2.1 Intel', path: '/intel', status: 'empty' },
-                            { level: 4, text: 'C1.2.2 AMD', path: '/amd', status: 'empty' },
-                            { level: 4, text: 'C1.2.3 Arm', path: '/arm', status: 'empty' },
+                        text: 'C1.2 Portability across systems', path: '/cq_overview_portability', children: [
+                            { text: 'C1.2.1 Intel', path: '/intel', status: 'empty' },
+                            { text: 'C1.2.2 AMD', path: '/amd', status: 'empty' },
+                            { text: 'C1.2.3 Arm', path: '/arm', status: 'empty' },
                         ]
                     },
                     {
-                        level: 3, text: 'C1.3 Multiprocessor', path: '/cq_overview_multiprocessor', children: [
-                            { level: 4, text: 'C1.3.1Best system computer technology [Gf perf/core] per app', path: '/gf_cor' },
-                            { level: 4, text: 'C1.3.2 Best system efficient total MP Performance per App. & Domain [tot Gf/system]', path: '/gf_system' },
-                            { level: 4, text: 'C1.3.3 Architectural performance ratios showing top performer by [Gf]', path: '/gf_arch' },
+                        text: 'C1.3 Multiprocessor', path: '/cq_overview_multiprocessor', children: [
+                            { text: 'C1.3.1Best system computer technology [Gf perf/core] per app', path: '/gf_cor' },
+                            { text: 'C1.3.2 Best system efficient total MP Performance per App. & Domain [tot Gf/system]', path: '/gf_system' },
+                            { text: 'C1.3.3 Architectural performance ratios showing top performer by [Gf]', path: '/gf_arch' },
 
                         ]
                     },
                     {
-                        level: 3, text: 'C1.4 Performance by scalability type', path: '/perf_by_scalability_type', children: [
-                            { level: 4, text: 'C1.4.1.a Best arch perf/cost implicit w. various numbers of cores for optimal scalability', path: '/gf_cost' },
-                            { level: 4, text: 'C1.4.1.b  Type of scaling – replication factors', path: '/type_of_scaling_replication_factors' },
+                        text: 'C1.4 Performance by scalability type', path: '/perf_by_scalability_type', children: [
+                            { text: 'C1.4.1.a Best arch perf/cost implicit w. various numbers of cores for optimal scalability', path: '/gf_cost' },
+                            { text: 'C1.4.1.b  Type of scaling – replication factors', path: '/type_of_scaling_replication_factors' },
                         ]
                     },
-                    { level: 3, text: 'C1.5 Oneview ', path: '/oneview' },
-                    { level: 3, text: 'C1.6 Best App insights per domain ', path: '/best_app_insights_per_domain' },
+                    { text: 'C1.5 Oneview ', path: '/oneview' },
+                    { text: 'C1.6 Best App insights per domain ', path: '/best_app_insights_per_domain' },
 
                 ]
             },
-            { level: 2, text: 'C2. Automatic application analysis', path: '/automatic_application_analysis' },
-            { level: 2, text: 'C3. Manual Interactive Mode', path: '/manual_interactive_mode' },
+            { text: 'C2. Automatic application analysis', path: '/automatic_application_analysis' },
+            { text: 'C3. Manual Interactive Mode', path: '/manual_interactive_mode' },
             {
-                level: 2, text: 'C4. Quality 10-year trend realities', path: '/quality_10_year_trend_realities', children: [
-                    { level: 3, text: 'C4.1 Conclusions', path: '/quality_10_year_trend_conclusions' },
+                text: 'C4. Quality 10-year trend realities', path: '/quality_10_year_trend_realities', children: [
+                    { text: 'C4.1 Conclusions', path: '/quality_10_year_trend_conclusions' },
                 ]
             },
         ]
@@ -105,6 +103,9 @@ const WelcomePageTableOfContentsDrawer = () => {
                         navigateToSection={navigateToSection}
                         selectedItem={selectedItem}
                         expandedSections={expandedSections}
+                        parent={selectedItem}
+                        level={navStack.length === 1 ? 0 : 1}
+
                     />
                 </List>
 

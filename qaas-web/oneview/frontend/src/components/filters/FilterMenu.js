@@ -8,6 +8,9 @@ export default function FilterMenu({ category, filterOptions, handleInputChange 
         if (filterOptions[subCategory][filterType].operator === 'like') {
             return <p>Like</p>
         }
+        if (filterOptions[subCategory][filterType].operator === 'is') {
+            return <p>is</p>
+        }
         return (
             <Select
                 defaultValue={filterOptions[subCategory][filterType].operator}
@@ -18,6 +21,17 @@ export default function FilterMenu({ category, filterOptions, handleInputChange 
                 <Select.Option value="equal to">Equal To</Select.Option>
             </Select>
         )
+    }
+    const renderChoicesDropdown = (category, subCategory, filterType) => {
+        if (filterOptions[subCategory][filterType].operator === 'is') {
+            return (
+                <Select>
+                    {filterOptions[subCategory][filterType].choices.map(choice => (
+                        <Select.Option value={choice}>{choice}</Select.Option>
+                    ))}
+                </Select>
+            );
+        }
     }
 
     const renderModeSelector = (category, subCategory, filterType) => {

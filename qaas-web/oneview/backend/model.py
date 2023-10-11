@@ -203,7 +203,7 @@ class HwSystem(QaaSBase):
     uarchitecture = Column(String(50), nullable = True)
     proc_name = Column(String(50), nullable = True)
     #new colime
-    # sockets = Column(Integer, nullable = True)
+    sockets = Column(Integer, nullable = True)
 
     executions  = relationship("Execution", back_populates="hwsystem")
     def __init__(self, initializer):

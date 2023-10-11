@@ -518,6 +518,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
         hwsystem.architecture =  local_vars_dict.get('architecture', None)
         hwsystem.uarchitecture =  local_vars_dict.get('uarchitecture', None)
         hwsystem.proc_name =  local_vars_dict.get('proc_name', None)
+        hwsystem.sockets =  local_vars_dict.get('sockets', None)
+
 
     def visitMaqao(self, maqao):
         local_vars_path=self.get_os_path()
@@ -1087,6 +1089,8 @@ class OneViewModelExporter(OneviewModelAccessor):
         create_or_update_localvar_df('architecture', hwsystem.architecture, local_vars_path)
         create_or_update_localvar_df('uarchitecture', hwsystem.uarchitecture, local_vars_path)
         create_or_update_localvar_df('proc_name', hwsystem.proc_name, local_vars_path)
+        create_or_update_localvar_df('sockets', hwsystem.sockets, local_vars_path)
+
 
      
 
