@@ -82,6 +82,19 @@ def dump_compilers_csv_file(qaas_reports_dir, file_name, table, defaults, best_o
             writer.writerow(table[compiler][best_options[compiler]])
     csv_compiler.close()
 
+def find_best_compiler(table, best_opt, i_time):
+    '''Find best compiler across QaaS options'''
+
+    bestcomp = None
+    min_time = 0.0
+    for compiler,best_opt in best_opt.items():
+        time = table[compiler][best_opt][i_time]
+        if min_time == 0.0 or time < min_time:
+            min_time = time
+            bestcomp = compiler
+
+    return bestcomp
+
 def compute_compilers_speedups(t_compilers, defaults, i_time):
     '''Compute Speedups w/r original and different compiler defaults'''
 
@@ -174,4 +187,7 @@ def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir
     # Run oneview on best options
     run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, parallel_runs)
 
-    return rc,qaas_best_opt,""
+    # Find best compiler
+    qaas_best_comp = find_best_compiler(qaas_table, qaas_best_opt, index)
+
+    return rc,qaas_best_opt,qaas_best_comp,""
