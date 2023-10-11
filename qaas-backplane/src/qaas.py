@@ -62,7 +62,8 @@ def main():
     # Command line just print the message for service message, GUI will act on message differently.
     rc, _ = launch_qaas(args.app_params, args.logic, 
                         container, user_ns_root, 
-                        args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs,
+                        args.no_compiler_default, args.no_compiler_flags, 
+                        args.parallel_compiler_runs, args.enable_parallel_scale,
                         lambda msg: print(msg.str()))
 
     exitcode = 1
@@ -72,12 +73,13 @@ def main():
     sys.exit(exitcode)
 
 def launch_qaas_web(qaas_message_queue, app_params, launch_output_dir='/tmp/qaas_out'):
-   launch_qaas(app_params, "demo", True, False, False, False, "off", lambda msg: qaas_message_queue.put(msg), launch_output_dir)
+   launch_qaas(app_params, "demo", True, False, False, False, "off", False, lambda msg: qaas_message_queue.put(msg), launch_output_dir)
 
 # Webfront will call this to launch qaas for a submission
 def launch_qaas(app_params, logic, 
                 container, user_ns_root, 
-                no_compiler_default, no_compiler_flags, parallel_compiler_runs,
+                no_compiler_default, no_compiler_flags, 
+                parallel_compiler_runs, enable_parallel_scale,
                 service_msg_recv_handler, launch_output_dir='/tmp/qaas_out'):
     # Better api to send back message 
     service_msg_recv_handler(qm.BeginQaas())
@@ -89,6 +91,9 @@ def launch_qaas(app_params, logic,
     logging.debug("QaaS System Config:\n\t%s", params.system)
     # get QaaS user's configuration
     params.read_user_config(app_params)
+    # check if runtime section is added
+    if "runtime" not in params.user.keys():
+        params.user["runtime"] = {"MPI":"no", "OPENMP":"no"}
     logging.debug("QaaS User Config:\n\t%s", params.user)
 
     if user_ns_root and params.system["machines"]["QAAS_USER"] == "root":
@@ -127,9 +132,13 @@ def launch_qaas(app_params, logic,
     job = QAASJobSubmit(params.system["compilers"],
                         params.user["compiler"],
                         params.user["application"],
+                        params.user["runtime"],
                         prov,
                         logic,
-                        no_compiler_default, no_compiler_flags, parallel_compiler_runs)
+                        no_compiler_default, 
+                        no_compiler_flags, 
+                        parallel_compiler_runs,
+                        enable_parallel_scale)
 
     rc = job.run_job(container, user_ns_root)
     #rc = job.build_default()
