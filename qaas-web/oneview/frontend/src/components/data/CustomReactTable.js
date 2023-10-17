@@ -42,6 +42,7 @@ function CustomReactTable({ columns, data, SubComponent, hiddenColumns, columnFi
         return [...values];
     }
 
+
     return (
         <div className="table-container">
 
@@ -61,11 +62,21 @@ function CustomReactTable({ columns, data, SubComponent, hiddenColumns, columnFi
                                     {column.render('Header')}
                                     {/* drop down box to conditionally get a list of values and when user click it will filter the rows */}
                                     {
-                                        uniqueValuesForColumn(column.id, data).length > 1 &&
+                                        uniqueValuesForColumn(column.id, data).length > 0 &&
                                         <select
-                                            onChange={e => setColumnFilters({ ...columnFilters, [column.id]: e.target.value })}
+                                            onChange={e => {
+                                                const value = e.target.value;
+                                                if (value === "") {
+                                                    const newFilters = { ...columnFilters };
+                                                    delete newFilters[column.id];
+                                                    setColumnFilters(newFilters);
+                                                } else {
+                                                    setColumnFilters({ ...columnFilters, [column.id]: value });
+                                                }
+                                            }}
                                             className="select-dropdown"
                                         >
+                                            <option value="select" hidden>Select</option>
                                             <option value="">All</option>
                                             {uniqueValuesForColumn(column.id, data).map(value => (
                                                 <option value={value}>{value}</option>

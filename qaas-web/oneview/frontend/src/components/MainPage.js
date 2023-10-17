@@ -19,11 +19,34 @@ const MainPage = () => {
 
     useEffect(() => {
         fetchData();
+        fetchRunInfo();
     }, []);
+    useEffect(() => {
+        fetchRunInfo();
+    }, [filters.Global['Run Info'].Program.value, filters.Global['Run Info']['Experiment Name'].value]);
 
 
+    const fetchRunInfo = async () => {
+        setIsLoading(true);
+        console.log("program", filters.Global['Run Info'].Program.value, "exp name", filters.Global['Run Info']['Experiment Name'].value)
+        try {
+            const currentFilters = {
+                program: filters.Global['Run Info'].Program.value,
+                version: filters.Global['Run Info']['Experiment Name'].value,
+            };
+            const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/filter_run_info`, { filters: currentFilters });
+            const newFilters = { ...filters };
+            newFilters.Global['Run Info'].Program.choices = response.data.programs;
+            newFilters.Global['Run Info']['Experiment Name'].choices = response.data.experiment_names;
+
+            setFilters(newFilters); // update the state
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+        setIsLoading(false);
+
+    };
     const fetchData = async (filters = []) => {
-        console.log
         setIsLoading(true);
         try {
             const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_application_table_info_ov`, {

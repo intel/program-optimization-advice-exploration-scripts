@@ -42,10 +42,12 @@ class EqualToFilterStrategy(FilterStrategy):
 
 class LikeFilterStrategy(FilterStrategy):
     def apply(self, data):
-        print(data, self.value)
         return self.apply_with_mode(lambda d: self.value in d, data)
 
-
+class ISFilterStrategy(FilterStrategy):
+    def apply(self, data):
+        return self.apply_with_mode(lambda d: self.value == d, data)
+    
 class FilterContext:
     def __init__(self, filters_info, session):
         self.filters = [self.create_filter_strategy(f) for f in filters_info]
@@ -65,6 +67,8 @@ class FilterContext:
             return EqualToFilterStrategy(type, operator, value, mode)
         elif operator == 'like':
             return LikeFilterStrategy(type, operator, value, mode)
+        elif operator == 'is':
+            return ISFilterStrategy(type, operator, value, mode)
         else:
             raise ValueError(f'Invalid operator: {filter_info["operator"]}')
 
