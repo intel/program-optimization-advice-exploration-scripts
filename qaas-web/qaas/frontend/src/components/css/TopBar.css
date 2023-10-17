@@ -19,6 +19,12 @@
     color: #ffffff;
     cursor: pointer;
 
+
+}
+
+.home-link {
+    text-decoration: none;
+    color: inherit;
 }
 
 
@@ -32,7 +38,8 @@
     gap: 20px;
 }
 
-.nav-link {
+.nav-link,
+.nav-group {
     padding: 10px;
     font-size: 16px;
     font-weight: 500;
@@ -49,7 +56,8 @@
     gap: 20px;
 }
 
-.nav-link:hover {
+.nav-link:hover,
+.nav-group:hovers {
     background-color: rgba(255, 255, 255, 0.2);
 }
 

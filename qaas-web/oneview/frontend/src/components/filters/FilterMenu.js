@@ -3,7 +3,7 @@ import { Collapse, Select, Input, Space, Checkbox } from 'antd';
 
 const { Panel } = Collapse;
 
-export default function FilterMenu({ category, filterOptions, handleInputChange }) {
+export default function FilterMenu({ category, filterOptions, handleInputChange, resetFilters }) {
     const renderOperatorSelector = (category, subCategory, filterType) => {
         if (filterOptions[subCategory][filterType].operator === 'like') {
             return <p>Like</p>
@@ -14,7 +14,9 @@ export default function FilterMenu({ category, filterOptions, handleInputChange 
         return (
             <Select
                 defaultValue={filterOptions[subCategory][filterType].operator}
-                onChange={(operator) => handleInputChange(category, subCategory, filterType, 'operator', operator)}
+                onChange={(selectedChoice) => {
+                    handleInputChange(category, subCategory, filterType, 'value', selectedChoice);
+                }}
             >
                 <Select.Option value="less than">Less Than</Select.Option>
                 <Select.Option value="bigger than">Bigger Than</Select.Option>
@@ -25,7 +27,14 @@ export default function FilterMenu({ category, filterOptions, handleInputChange 
     const renderChoicesDropdown = (category, subCategory, filterType) => {
         if (filterOptions[subCategory][filterType].operator === 'is') {
             return (
-                <Select>
+                <Select
+                    placeholder="Select"
+                    value={filterOptions[subCategory][filterType].value || "Select"}
+                    onChange={(selectedChoice) => handleInputChange(category, subCategory, filterType, 'value', selectedChoice)}
+
+
+                >
+
                     {filterOptions[subCategory][filterType].choices.map(choice => (
                         <Select.Option value={choice}>{choice}</Select.Option>
                     ))}
@@ -58,14 +67,20 @@ export default function FilterMenu({ category, filterOptions, handleInputChange 
                             {Object.keys(subCategories[subCategory]).map((filterType) => (
                                 <Space key={filterType} className="space-container">
                                     <Checkbox
+                                        checked={!resetFilters && filterOptions[subCategory][filterType].selected}
+
                                         onChange={(e) => handleInputChange(category, subCategory, filterType, 'selected', e.target.checked)}
                                     />
                                     <span>{filterType}</span>
                                     {renderOperatorSelector(category, subCategory, filterType)}
-                                    <Input
-                                        value={subCategories[subCategory][filterType].value}
-                                        onChange={(e) => handleInputChange(category, subCategory, filterType, 'value', e.target.value)}
-                                    />
+                                    {/* conditionally render a input or selection based on the opertaor */}
+                                    {filterOptions[subCategory][filterType].operator === 'is' ?
+                                        renderChoicesDropdown(category, subCategory, filterType) :
+                                        <Input
+                                            value={subCategories[subCategory][filterType].value}
+                                            onChange={(e) => handleInputChange(category, subCategory, filterType, 'value', e.target.value)}
+                                        />
+                                    }
                                     {renderModeSelector(category, subCategory, filterType)}
                                 </Space>
                             ))}

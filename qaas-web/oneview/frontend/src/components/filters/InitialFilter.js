@@ -29,7 +29,17 @@ export const INITIAL_FILTERS = {
                 'value': '',
                 'choices': []
             },
+            "Experiment Name": {
+                'accessor': 'experiment_name',
+                'selected': false,
+                'operator': 'is',
+                'mode': 'all',
+                'value': '',
+                'choices': []
+
+            },
         },
+
         'Time': {
             "Total Time (s)": {
                 'accessor': 'total_time',

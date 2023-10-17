@@ -8,7 +8,7 @@ EXECUTION_METRIC_TYPES = [
                     'time_in_user_code', 'compilation_options_score',
                     'perfect_flow_complexity', 'perfect_openmp_mpi_pthread',
                     'perfect_openmp_mpi_pthread_load_distribution','compilation_flags',
-                    'iterations_count'
+                    'iterations_count', 'program','experiment_name'
                 ]
 
 CQA_LOOP_METRIC_TYPES = [

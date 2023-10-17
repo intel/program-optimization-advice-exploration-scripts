@@ -1598,7 +1598,10 @@ class MetricGetter(ModelAccessor):
             'perfect_openmp_mpi_pthread_load_distribution': global_metrics['speedup_if_perfect_MPI_OMP_PTHREAD_LOAD_DISTRIBUTION'],
             'compilation_flags': global_metrics['compilation_flags'],
             'iterations_count': global_metrics['iterations_count'],
-            'speedup_if_L1': global_metrics['speedup_if_L1']
+            'speedup_if_L1': global_metrics['speedup_if_L1'],
+            'program': execution.application.program,
+            'experiment_name': execution.application.version,
+
         }
 
         value = metric_mapper.get(self.metric_type)

@@ -3,9 +3,12 @@ import React, { useState, useEffect } from 'react';
 import FilterMenu from './FilterMenu';
 import '../css/filter.css'
 import { Row, Col } from 'antd';
+import { INITIAL_FILTERS } from './InitialFilter';
+
 export default function FilterComponent({ onFilter, filters, setFilters }) {
 
     const [selectedFilters, setSelectedFilters] = useState([]);
+    const [resetFilters, setResetFilters] = useState(false);
 
 
     //count how many filters are selected
@@ -29,10 +32,22 @@ export default function FilterComponent({ onFilter, filters, setFilters }) {
         setSelectedFilters(selected);
     }, [filters]);
 
+
+    //reset filters check
+    useEffect(() => {
+        if (resetFilters) {
+            setResetFilters(false);  // reset the reset state after it has been processed
+        }
+    }, [resetFilters]);
+
+
+
+
     const applyFilter = () => {
         onFilter(selectedFilters);
     }
     const handleInputChange = (category, subCategory, filterType, attribute, value) => {
+
         setFilters(prevState => {
             const newState = {
                 ...prevState,
@@ -49,8 +64,14 @@ export default function FilterComponent({ onFilter, filters, setFilters }) {
             };
             return newState;
         });
+
     };
 
+    const resetAllFilters = () => {
+        setFilters(INITIAL_FILTERS);
+        setSelectedFilters([])
+        setResetFilters(true);
+    };
 
 
     return (
@@ -63,12 +84,14 @@ export default function FilterComponent({ onFilter, filters, setFilters }) {
                             category={category}
                             filterOptions={filters[category]}
                             handleInputChange={handleInputChange}
+                            resetFilters={resetFilters}
                         />
                     </Col>
                 ))}
             </Row>
 
             <button onClick={applyFilter}>Apply {selectedFilters.length} Filters</button>
+            <button onClick={resetAllFilters}>Reset Filters</button>
 
         </div>
     );

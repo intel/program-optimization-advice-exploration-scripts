@@ -78,22 +78,33 @@ def create_app(config):
                         timestamps= time_list,
                         statusCode= 200,
                         )
-    @app.route('/stream')
-    def stream():
 
-        def get_data():
+    @app.route('/filter_run_info', methods=['GET','POST'])
+    def filter_run_info():
+        filters = request.json.get('filters', {})
+        query_filters = []
 
-            while True:
-                #gotcha
-                msg = qaas_message_queue.get()
-                print(msg.str())
-                time.sleep(1) 
-                if msg.is_end_qaas():
-                    break
-                yield f'event: ping\ndata: {msg.str()} \n\n'
+        if 'program' in filters and filters['program']:
+            query_filters.append(Application.program == filters['program'])
+        if 'experiment_name' in filters and filters['experiment_name']:
+            query_filters.append(Application.version == filters['experiment_name'])
 
-        return Response(get_data(), mimetype='text/event-stream')
+        if query_filters:
+            programs_tuples = db.session.query(Application.program).filter(and_(*query_filters)).distinct().all()
+            experiment_names_tuples = db.session.query(Application.version).filter(and_(*query_filters)).distinct().all()
+        else:
+            programs_tuples = db.session.query(Application.program).distinct().all()
+            experiment_names_tuples = db.session.query(Application.version).distinct().all()
 
+        programs = [item[0] for item in programs_tuples]
+        experiment_names = [item[0] for item in experiment_names_tuples]
+      
+        return jsonify(isError= False,
+                        message= "Success",
+                        programs= programs,
+                        experiment_names = experiment_names,
+                        statusCode= 200,
+                        )
 
     @app.route('/ov_get_all_speedup_range', methods=['GET'])
     def ov_get_all_speedup_range():
@@ -185,52 +196,7 @@ def create_app(config):
                     statusCode= 200,
                     data=data,
                     )
-    @app.route('/get_application_table_info_lore', methods=['GET'])
-    def get_application_table_info_lore():
-        data = []
-        applications = db.session.query(Application).all()
-        for application in applications:
-            skip_application = False
 
-            run_data = []
-            for execution in application.executions:
-                if len(execution.maqaos) != 0:
-                    skip_application = True
-                    break  
-
-                #TODO data needs to be read from config column
-                src_loops = execution.src_loops
-                for src_loop in src_loops:
-                    src_metrics = src_loop.source.source_metrics
-                    n_mutations = count_mutations_for_orig_src_loop_id(db.session, src_loop.table_id)
-                    if n_mutations == 0:
-                        continue
-                    loop_data = {
-                        'file': get_metric_value(src_metrics, 'file'),
-                        'function': get_metric_value(src_metrics, 'function'),
-                        'line': get_metric_value(src_metrics, 'line'),
-                        'pluto': 'Yes' if get_metric_value(src_metrics, 'pluto') == '1' else 'No',
-                        'n_mutations': n_mutations
-                    }
-                    run_data.append(loop_data)
-            if skip_application:
-                continue
-
-            application_data = {
-             'program': application.program,
-             'version': application.version,
-             'workload': application.workload,
-             'commit_id': application.commit_id,
-             'n_loops': count_loops_for_application(application),
-             'run_data': run_data
-
-            }
-            data.append(application_data)
-        return jsonify(isError= False,
-                    message= "Success",
-                    statusCode= 200,
-                    data=data,
-                    )
 
 
     @app.route('/compute_speed_up_data_using_baseline_ov', methods=['POST'])
