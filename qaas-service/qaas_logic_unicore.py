@@ -134,7 +134,8 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
             median_value = basic_run.compute_median_exec_time()
             run_log += f"[Compiler Options] (compiler={compiler},option={option}) Median on {DEFAULT_REPETITIONS} runs: {median_value}\n"
             time_values.append(median_value)
-            t_compiler.append([app_name, compiler, option, flags,nb_mpi,nb_omp, median_value, flops/float(median_value)])
+            gflops = flops/float(median_value) if median_value != None else 0.0
+            t_compiler.append([app_name, compiler, option, flags,nb_mpi,nb_omp, median_value, gflops])
 
         # Add the local table to dict
         qaas_table[compiler] = t_compiler
