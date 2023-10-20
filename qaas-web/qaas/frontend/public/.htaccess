@@ -1,13 +1,4 @@
-<Location /input>
-    AuthType Basic
-    AuthName "Restricted Area for Input"
-    AuthUserFile /etc/apache2/auth/.htpasswd
-    Require valid-user
-</Location>
-
-<Location /results>
-    AuthType Basic
-    AuthName "Restricted Area for Results"
-    AuthUserFile /etc/apache2/auth/.htpasswd
-    Require valid-user
-</Location>
+AuthType Basic
+AuthName "Restricted Area"
+AuthUserFile /etc/apache2/auth/.htpasswd
+Require valid-user
