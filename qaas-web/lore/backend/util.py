@@ -564,25 +564,17 @@ def get_all_groups_for_run(loops):
 
 
 ###### lore get data
-def get_metric_value(src_metrics, target_metric_name):
-    for src_metric in src_metrics:
-        metric_name = src_metric.metric_name
-        metric_value = src_metric.metric_value
-
-        if metric_name == target_metric_name:
-            return metric_value
-
-    # Return the default value if the target metric is not found
-    return None
 
 def get_metrics_for_loop(loop):
     current_metrics = loop.lore_loop_measures[0].lore_loop_measure_metrics
+    metrics_dict = {src_metric.metric_name: src_metric.metric_value for src_metric in current_metrics}
+
     all_values = {
-        'novec': float(get_metric_value(current_metrics, 'novec_median')),
-        'sse': float(get_metric_value(current_metrics, 'sse_median')),
-        'avx': float(get_metric_value(current_metrics, 'avx_median')),
-        'avx2': float(get_metric_value(current_metrics, 'avx2_median')),
-        'base': float(get_metric_value(current_metrics, 'base_median'))
+        'novec': float(metrics_dict.get('novec_median', None)),
+        'sse': float(metrics_dict.get('sse_median', None)),
+        'avx': float(metrics_dict.get('avx_median', None)),
+        'avx2': float(metrics_dict.get('avx2_median', None)),
+        'base': float(metrics_dict.get('base_median', None))
     }
     
     return all_values

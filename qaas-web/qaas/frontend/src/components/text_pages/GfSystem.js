@@ -18,9 +18,9 @@ export default function GfSystem() {
                 <img src={totGfImage} alt="totGf Description" />
             </div>
             <p>
-                For more details about these runs, click down (define hierarchy here)
-                Note the similarities in ranking between Figs. Gf/core and totGf, however Cloverleaf Ftn shifted to a lower bin in
-                Fig. totGf meaning that the parallelism in it was relatively weak (see scalability analysis in Sect //).
+                For more details about these runs, click down (define hierarchy here) Note the similarities in ranking between Figs.
+                Gf/core [copy in figs and text p. 17 of UX Sept 30]and totGf, however Cloverleaf Ftn shifted to a lower bin in Fig.
+                totGf meaning that the parallelism in it was relatively weak (see scalability analysis in Sect //).
 
 
             </p>

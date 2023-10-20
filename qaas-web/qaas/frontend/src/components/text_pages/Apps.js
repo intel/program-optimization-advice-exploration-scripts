@@ -1,5 +1,6 @@
 import React from 'react';
 
+import bestcompImage2 from '../imgs/bestcomp2.png';
 
 export default function Apps() {
     return (
@@ -20,6 +21,9 @@ export default function Apps() {
                 QaaS automation for continuous development/release testing over many systems.
 
             </p>
+            <div className='imageContainer'>
+                <img src={bestcompImage2} alt="BestComp Description" />
+            </div>
 
         </div>
     );

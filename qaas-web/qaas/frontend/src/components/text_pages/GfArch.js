@@ -5,7 +5,7 @@ import arcompImage from '../imgs/arcomp.png';
 export default function GfArch() {
     return (
         <div className="textPageContainer">
-            <h1>C1.3.3 Gf / Architecture</h1>
+            <h1>C1.3.3 Architectural performance ratios showing top performer by [Gf]</h1>
             <p>
                 We can effectively display ratios of architectures as bins for any comparable set,
                 i.e. whose performances win/lose in some cases. ICL (now), SKL (uvsq) , as well as SPR (HM).

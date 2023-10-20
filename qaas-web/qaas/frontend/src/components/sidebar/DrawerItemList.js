@@ -19,6 +19,7 @@ const DrawerItemsList = ({ items, navigateToSection, selectedItem, expandedSecti
                     navigateToSection={navigateToSection}
                     selectedItem={selectedItem}
                     hasChildren={hasChildren}
+                    expandedSections={expandedSections}
                 />
 
                 {expandedSections.includes(item.path) && hasChildren && (

@@ -4,12 +4,7 @@ export default function WelcomePage() {
         <div className="textPageContainer">
             <h1 >Welcome to QaaS (Quality as a Service):</h1>
             <h2>Why computational quality services are important  this is good for the opening = covers all 3 : intro, automatic jobs,manual OV work. </h2>
-            <p >
-                Welcome to the QaaS Computational Quality (CQ) overview. The website focuses on comparing CQ results across computer systems and application areas,
-                both current and over the past ten years. Our first goal is to allow users to understand both the state of the art in HPC,
-                as well as recent progress trends. Our major goals are to provide automatic analyses and improvement of developer submitted apps,
-                followed by manual interactive advice.
-            </p>
+
             <p>
                 A. QaaS importance and introduction.  Oct. 7, 2023
 
@@ -95,10 +90,11 @@ export default function WelcomePage() {
                 HW/SW performance scaling, and energy consumption. The cost of purchase is included indirectly, by allowing users to enter cost estimates to allow the tool to make comparative tradeoffs.
             </p>
             <p>
-                <strong>Compilation </strong>(Section x) includes the choice of compiler by manufacturer (e.g. Intel ICX, Gnu GCC, AMD ??) and then the flags used per system.
-                These control the transformation of input code (via a cost model) as well as the selection of an instruction set (e.g. vector length) for code generation.
-                How these choices are made per app and system can have major performance effects,
-                but choices may be constrained in practice, leading to quality tradeoffs. So the conclusions are not always straightforward.
+                <strong>Compilation </strong>(Section x) includes the choice of compiler by manufacturer (e.g. Intel ICX, Gnu GCC, AMD AOCC??, ARM clang, LLVM clang)
+                and then the flags used per system. These control the transformation of input code (via a cost model) as well as the selection of an instruction set
+                (e.g. vector length) for code generation. How these choices are made per app and system can have major performance effects, but choices may be
+                constrained in practice, leading to quality tradeoffs. So the conclusions are not always straightforward.
+
             </p>
             <p>
                 <strong>Architecture  </strong> (Section Y) choices are basic determiners of quality offering diverse paths. General vs.
