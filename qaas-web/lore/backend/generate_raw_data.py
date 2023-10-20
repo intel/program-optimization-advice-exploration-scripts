@@ -20,6 +20,7 @@ import pickle
 import numpy as np
 import pymysql
 import time
+import psutil
 lore_database_uri = 'mysql://qaas:qaas-password@localhost/lore'
 db = SQLAlchemy()
 app = Flask(__name__)
@@ -33,148 +34,6 @@ def with_app_context(func):
     return wrapper
 
 #this session is about getting raw data for first time
-
-
-@lru_cache(maxsize=None)
-def get_ref_from_loop(loop):
-    return float(get_metrics_for_loop(loop)['novec'])
-
-def get_key_from_src_loop(src_loop):
-    if not src_loop:
-        return None
-    filename, function_name, line_number, mutation_number = extract_info_from_lore_source_code_file_name(src_loop.file)
-    program = src_loop.execution.application.program
-    return (program, filename, function_name, line_number)
-
-@with_app_context
-# for original loops
-# DF1 = <source loop> *<representative source loop>* <mutation> *<compiler>* <time>
-#   -- need to look at src table to figure out loops with same rep source loop
-# for all loops (including original loops?)
-# DF2 = <source loop> *<representative orig source loop>* <mutation>  *<compiler>* <time>
-#  DF1.join(DF2, key=[<representative source loop>, <compiler>])
-#
-def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version):
-    #
-    refs_per_orig_loop_key = {}
-
-    loops = (db.session.query(Loop)
-                         .join(Loop.compiler)
-                         .filter(Compiler.vendor == compiler_vendor, Compiler.version == compiler_version)
-                         .distinct().all())[:2000]
-    
-    print(len(loops))
-
-    start_time = time.time()
-    loop_count = 0
-    for loop in loops:
-        #get loop's src loop
-        src_loop = loop.src_loop
-        ref_value = get_ref_from_loop(loop)
-        loop_key = get_key_from_src_loop(src_loop)
-        loop_id = src_loop.table_id
-        mutation_number = src_loop.mutation_number
-        #if it is orig loop and it appear first time
-        if mutation_number == 0 and loop_key not in refs_per_orig_loop_key:
-            refs_per_orig_loop_key[loop_key] = [{f'{loop_id}_base' : ref_value}]
-            continue
-
-
-        #get its orig src loop
-        orig_src_loop = src_loop.orig_src_loop
-        orig_loop_key = get_key_from_src_loop(orig_src_loop)
-
-        #loop showed up before its orig loop is added
-        if orig_loop_key not in refs_per_orig_loop_key:
-            #don't add the ref value because it might not be the correct compiler
-            refs_per_orig_loop_key[orig_loop_key] = []
-
-        #if it is orig loop it should be base value
-        if mutation_number == 0:
-            refs_per_orig_loop_key[orig_loop_key].append({f'{loop_id}_base' : ref_value})
-        else:
-            refs_per_orig_loop_key[orig_loop_key].append({loop_id : ref_value})
-        loop_count += 1
-        if loop_count % 1000 == 0:
-            print(loop_count)
-
-
-    print("total size", len(refs_per_orig_loop_key))
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print(f"The entire compiler_version combination took {elapsed_time} seconds to run.")
-    return refs_per_orig_loop_key
-
-
-
-    
-
-
-CHUNK_SIZE = 100
-# @with_app_context
-# def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version):
-
-#     #it will save the ref per orig loop, the index will represent the mutation number, the len is the mutaiton count
-#     refs_per_orig_loop_key = {}
-    
-#     #load source loops in chunks into memory 
-#     last_id = 0
-#     iteration_number = 0
-#     start_time1 = time.time()
-
-#     while True:
-#         start_time = time.time()
-#         src_loops_chunk = (db.session.query(SrcLoop)
-#                          .join(SrcLoop.loops)
-#                          .join(Loop.compiler)
-#                          .join(SrcLoop.execution)
-#                          .join(Execution.application)
-#                          .filter(Compiler.vendor == compiler_vendor, Compiler.version == compiler_version, SrcLoop.table_id > last_id)
-#                          .order_by(Application.table_id, asc(SrcLoop.mutation_number), SrcLoop.table_id)
-#                          .limit(CHUNK_SIZE)
-#                          .all())
-#         if not src_loops_chunk:
-#             break
-        
-#         print(len(src_loops_chunk))
-#         loop_count = 0
-#         for src_loop in src_loops_chunk:
-#             orig_filename, orig_function_name, orig_line_number, mutation_number = extract_info_from_lore_source_code_file_name(src_loop.file)
-#             program = src_loop.execution.application.program
-
-#             orig_loop_key = (program, orig_filename, orig_function_name, orig_line_number)
-
-#             # get refs for each orig_loop_key
-#             ref_value = get_ref_from_loop(src_loop.loops[0])
-#             if orig_loop_key not in refs_per_orig_loop_key:
-#                 refs_per_orig_loop_key[orig_loop_key] = []
-#             refs_per_orig_loop_key[orig_loop_key].append(ref_value)
-#             loop_count += 1
-#             if loop_count % 1000 == 0:
-#                 print(loop_count)
-
-#         last_id = src_loops_chunk[-1].table_id
-#         iteration_number += 1
-#         print(last_id, iteration_number)
-#         end_time = time.time()
-#         elapsed_time = end_time - start_time
-#         print(f"The entire iteration took {elapsed_time} seconds to run.")
-#         # if iteration_number == 10:
-            
-#         #     break
-
-
-#     raw_data = {
-#         'refs_per_orig_loop_key': refs_per_orig_loop_key
-#     }
-#     end_time1 = time.time()
-
-#     elapsed_time1 = end_time1 - start_time1
-#     print(f"The entire compiler_version combination took {elapsed_time1} seconds to run.")
-#     print("total size", len(raw_data['refs_per_orig_loop_key']))
-#     return raw_data
-
-
 #load and cache realtions functions
 @with_app_context
 def get_all_compiler_vendors_and_versions():
@@ -185,20 +44,130 @@ cache_directory = os.path.join(os.getcwd(), 'cache')
 if not os.path.exists(cache_directory):
     os.makedirs(cache_directory)
 
+def get_ref_from_loop(loop):
+    metrics = loop.lore_loop_measures[0].lore_loop_measure_metrics
+    novec_value = None
+    for metric in metrics:
+        if metric.metric_name == 'novec_median':
+            novec_value = float(metric.metric_value)
+            break
+
+    return novec_value
 
 
-def cache_all_loops_raw_speedup_data_per_compiler(compiler_vendor, compiler_version):
-    raw_data = get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version)
+@with_app_context
+def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version):
+    db.session.expunge_all()
+    BATCH_SIZE = 5000
     cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_{compiler_vendor}_{compiler_version}.pkl")
-    with open(cache_filename, 'wb') as cache_file:
-        pickle.dump(raw_data, cache_file)
-    return raw_data
+    if os.path.exists(cache_filename):
+        os.remove(cache_filename)
+    count = 0
+    
+    
+    loop_count = (db.session.query(Loop)
+             .join(Loop.compiler)
+             .filter(Compiler.vendor == compiler_vendor, Compiler.version == compiler_version)
+             .distinct().count())
+
+    
+    # Process loops in batches
+    for i in range(0, loop_count, BATCH_SIZE):
+        #load the batch file
+        if os.path.exists(cache_filename):
+            with open(cache_filename, 'rb') as cache_file:
+                refs_per_source = pickle.load(cache_file)
+        else:
+            refs_per_source = {}
+        db.session.expunge_all()
+
+        batch_loops = (db.session.query(Loop)
+                       .join(Loop.compiler)
+                       .filter(Compiler.vendor == compiler_vendor, Compiler.version == compiler_version)
+                       .slice(i, i + BATCH_SIZE).distinct().all())
+        
+        for loop in batch_loops:
+            # loop's src loop
+            src_loop = loop.src_loop  
+            ref_value = get_ref_from_loop(loop)
+            mutation_number = src_loop.mutation_number
+            orig_src_loop = src_loop.orig_src_loop
+            source_id = src_loop.source.table_id if not orig_src_loop else orig_src_loop.source.table_id
+            refs_per_source.setdefault(source_id, []).append({mutation_number: ref_value})
+
+            count += 1
+
+            if count % 1000 == 0:
+                print(f"Batch count: {count}")
+                memory_usage = psutil.Process().memory_info().rss / (1024 ** 2)
+                print(f"Memory usage: {memory_usage} MB")
+                
+          # Save to cache
+        with open(cache_filename, 'wb') as cache_file:
+            pickle.dump(refs_per_source, cache_file)
+            
+    
+    return refs_per_source
+
+# for original loops
+# DF1 = <source loop> *<representative source loop>* <mutation> *<compiler>* <time>
+#   -- need to look at src table to figure out loops with same rep source loop
+# for all loops (including original loops?)
+# DF2 = <source loop> *<representative orig source loop>* <mutation>  *<compiler>* <time>
+#  DF1.join(DF2, key=[<representative source loop>, <compiler>])
+#
+# def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version):
+#     #
+#     refs_per_source = {}
+
+#     loops = (db.session.query(Loop)
+#                          .join(Loop.compiler)
+#                          .filter(Compiler.vendor == compiler_vendor, Compiler.version == compiler_version)
+#                          .distinct().all())[:2000]
+
+    
+#     print(len(loops))
+#     BATCH_SIZE = 5000
+
+#     start_time = time.time()
+#     loop_count = 0
+#     for loop in loops:
+#         #get loop's src loop
+#         src_loop = loop.src_loop
+#         ref_value = get_ref_from_loop(loop)
+#         mutation_number = src_loop.mutation_number
+            
+#         #get its orig src loop
+#         orig_src_loop = src_loop.orig_src_loop
+#         #default to be orig loop i.e. mutation = 0
+#         source_id = src_loop.source.table_id
+#         if orig_src_loop:
+#             source_id = orig_src_loop.source.table_id
+
+#         #loop showed up before its orig loop is added
+#         if source_id not in refs_per_source:
+#             #don't add the ref value because it might not be the correct compiler
+#             refs_per_source[source_id] = []
+
+       
+#         refs_per_source[source_id].append({mutation_number : ref_value})
+#         loop_count += 1
+#         if loop_count % 1000 == 0:
+#             memory_usage = psutil.Process().memory_info().rss / (1024 ** 2)  # RSS value converted to MB
+#             print(f"Memory usage: {memory_usage} MB")
+
+
+#     print("total size", len(refs_per_source))
+#     # end_time = time.time()
+#     # elapsed_time = end_time - start_time
+#     # print(f"The entire compiler_version combination took {elapsed_time} seconds to run.")
+#     return refs_per_source
 
 def create_cache_for_all_compiler_mutations_time_per_orig_loop():
     # compiler_vendors_and_versions = get_all_compiler_vendors_and_versions()
     compiler_vendors_and_versions = [('icc', '17.0.1')]
     for vendor, version in compiler_vendors_and_versions:
-        cache_all_loops_raw_speedup_data_per_compiler(vendor, version)
+        get_all_mutations_time_per_orig_loop_per_compiler(vendor, version)
 
 
     

@@ -1,5 +1,9 @@
 import React from 'react';
 import CompareImage from '../imgs/compare.png';
+import CompilerComparisonHistogram from '../graph/CompilerComparisonHistogram'
+import TableCompareImage from '../imgs/table_compare.png';
+import TableCompareImage1 from '../imgs/table_compare1.png';
+import TableCompareImage2 from '../imgs/table_compare2.png';
 
 export default function QaaSSearches() {
     return (
@@ -41,13 +45,59 @@ export default function QaaSSearches() {
 
             </p>
 
-            <div className='imageContainer'>
+            {/* <div className='imageContainer'>
                 <img src={CompareImage} alt="Compare Image Description" />
-            </div>
+            </div> */}
+            {/* <CompilerComparisonHistogram /> */}
             <p>For the full details about table compare, see level 3.</p>
             <p>
                 End Oct 4 Miniapps compiler Low level outline - pop back up.. Note we come down later for Apps
             </p>
+            <h2>
+                QaaS overall performance benefit analysis
+
+            </h2>
+            <p>
+                Table compare is a histogram that counts all wins by default runs, as shown in Table win-lose, as well as the details of QaaS wins.
+                Each cell here contains the name of a code and 2 compilation runs x/y, which means that for this contest, option x led to better performance than option y.
+                Its column then tells by how much it won the contest. The legend on the far right shows the color code for which compiler won or tied in each contest.
+                So, in the second column (1.1 - 1.2X) we see that 5 contests led to small performance gains, and 2 were won by GCC, 3 by ICX. the top case listed in
+                this range is miniqmc, for which ICX QaaS run beat the default ICX run. In the 1.5 - 2X column, we see that for miniqmc, ICX default beat GCC default.
+            </p>
+
+            <p>
+                Consider the number of entries in Table compare.  For each code, we have 3 default compiler comparisons (all pairs),
+                plus one QaaS best result. So we are examining 4 numbers pairwise, for a total of 4 choose 2, or 3 + 2 + 1 =  6 cases.
+                Then, times 7 miniapps again yields 42 outcomes. The table has 32 cells marked, but HACC and AMG represent ties, so subtracting them,
+                we have 5 miniapps X 6 cases = 30 cells.
+
+            </p>
+
+            <p>
+                There is one more important consideration – the magnitude of the gains.
+                If we consider the last 3 columns to examine all wins greater than 50%, we can see that ICC is a clear winner,
+                with 5/10 cases. But if we drop the threshold to 20% wins, then ICC has 5/14 wins, but so does ICX. At 10% gains,
+                ICC wins 5/19, GCC wins 6/14, and ICX wins 8/14 cases. Furthermore the following two figures show the effects of lowering
+                the 1.1X bar to 3% gains (which in some cases is of interest). For that case, ICX dominates in wins for 8/19 cases.
+
+            </p>
+
+            <div className='imageContainer'>
+                <img src={TableCompareImage} alt="Compare Image Description" />
+            </div>
+            <h2>Table compare</h2>
+            <div className='imageContainer'>
+                <img src={TableCompareImage1} alt="Compare Image Description" />
+            </div>
+            <div className='imageContainer'>
+                <img src={TableCompareImage2} alt="Compare Image Description" />
+            </div>
+
+            <p>
+                For the full details about table compare, see level 3. In particular explain how counts of wins here and in Table sept8 differ.
+            </p>
+
+
         </div>
     );
 

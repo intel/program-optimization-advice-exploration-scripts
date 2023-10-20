@@ -29,8 +29,8 @@ const drawerItems = [
                                                     { text: 'L3.1: QaaS Searches', path: '/qaas_searches', },
                                                 ]
                                             },
-                                            { text: 'C1.1.2 Applications', path: '/apps' },
-                                            { text: 'C1.1.3 Libraries', path: '/libraries' },
+                                            // { text: 'C1.1.2 Applications', path: '/apps' },
+                                            // { text: 'C1.1.3 Libraries', path: '/libraries' },
                                         ]
 
                                     },
@@ -49,7 +49,7 @@ const drawerItems = [
                         ]
                     },
                     {
-                        text: 'C1.3 Multiprocessor', path: '/cq_overview_multiprocessor', children: [
+                        text: 'C1.3 Multiprocessing', path: '/cq_overview_multiprocessor', children: [
                             { text: 'C1.3.1Best system computer technology [Gf perf/core] per app', path: '/gf_cor' },
                             { text: 'C1.3.2 Best system efficient total MP Performance per App. & Domain [tot Gf/system]', path: '/gf_system' },
                             { text: 'C1.3.3 Architectural performance ratios showing top performer by [Gf]', path: '/gf_arch' },

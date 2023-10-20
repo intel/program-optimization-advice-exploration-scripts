@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Dropdown, Menu, Space } from 'antd';
 import './css/TopBar.css';
 import { DownOutlined, CheckOutlined } from '@ant-design/icons';
@@ -12,18 +12,39 @@ const pageGroups = {
         { page: 'ref', label: 'References' },
     ],
     'About QaaS': [
-        { page: 'login', label: 'Login' },
-        { page: 'signup', label: 'Sign Up' },
+        // { page: 'login', label: 'Login' },
+        // { page: 'signup', label: 'Sign Up' },
         { page: 'catalog', label: 'Catalog' },
-        { page: 'input', label: 'Job Submission' },
-        { page: 'result', label: 'Results' },
+
         { page: 'contributors', label: 'Contributors' },
         { page: 'legal', label: 'Legal' },
+    ],
+    'Use QaaS': [
+        { page: 'input', label: 'Job Submission' },
+        { page: 'result', label: 'Results' },
+
     ]
 };
 
 function TopBar() {
     const [selectedPage, setSelectedPage] = useState('');
+    const location = useLocation();
+
+    //this is to get all the text pages under / to be under qaas content overview unless specify in page groups
+    const allPages = Object.values(pageGroups).flat().map(({ page }) => page);
+
+    //listen to path change
+    useEffect(() => {
+        const currentPage = location.pathname.replace('/', '').split('/')[0];
+
+        // check if currentPage is a predefined page, if not set it to under home page
+        if (allPages.includes(currentPage)) {
+            setSelectedPage(currentPage);
+        } else {
+            setSelectedPage("");
+        }
+    }, [location]);
+
 
     const handleTabClick = (page) => {
         setSelectedPage(page);
@@ -61,7 +82,10 @@ function TopBar() {
                         >
                             <Space>
                                 {groupName}
+                                <DownOutlined />
+
                             </Space>
+
                         </a>
                     </Dropdown>
                 ))}
