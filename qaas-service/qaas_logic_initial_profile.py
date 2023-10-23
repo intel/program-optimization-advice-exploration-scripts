@@ -82,12 +82,20 @@ def dump_defaults_csv_file(qaas_reports_dir, file_name, table, app_name, nb_mpi,
 
     # Write execution times to csv format
     for compiler in table:
-        row = [app_name, compiler, 0, 'default', nb_mpi, nb_omp, table[compiler], flops/float(table[compiler])]
+        #row = [app_name, compiler, 0, 'default', nb_mpi, nb_omp, table[compiler], flops/float(table[compiler])]
+        # Dump general information
+        row = [app_name, compiler, 0, 'default', nb_mpi, nb_omp]
+        # Dump time and gflops
+        if table[compiler] != None:
+            row.extend([table[compiler], flops/float(table[compiler])])
+        else:
+            row.extend([0.0, 0.0])
+        # Dump speedups 
         for compiler_compare in table:
-            if table[compiler] != None:
+            if table[compiler] != None and table[compiler_compare] != None:
                 row.append(float(table[compiler_compare])/float(table[compiler]))
             else:
-                row.append(0.0, 0.0)
+                row.append(0.0)
         writer.writerow(row)
     csv_defaults.close()
 
