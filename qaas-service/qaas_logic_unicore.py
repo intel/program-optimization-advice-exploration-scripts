@@ -89,6 +89,8 @@ def find_best_compiler(table, best_opt, i_time):
     min_time = 0.0
     for compiler,best_opt in best_opt.items():
         time = table[compiler][best_opt][i_time]
+        if time == None:
+            continue
         if min_time == 0.0 or time < min_time:
             min_time = time
             bestcomp = compiler
@@ -101,7 +103,7 @@ def compute_compilers_speedups(t_compilers, defaults, i_time):
     for compiler in t_compilers:
         for row  in t_compilers[compiler]:
             for item in defaults:
-                if row[i_time] != None:
+                if row[i_time] != None and defaults[item] != None:
                     # Compare to user provided compiler and flags
                     row.append(float(defaults[item])/float(row[i_time]))
                     #row.append(float(t_unicore[list(t_unicore.keys())[0]][0][i_time])/float(row[i_time]))
