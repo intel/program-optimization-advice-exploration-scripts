@@ -45,10 +45,7 @@ export default function QaaSSearches() {
 
             </p>
 
-            {/* <div className='imageContainer'>
-                <img src={CompareImage} alt="Compare Image Description" />
-            </div> */}
-            {/* <CompilerComparisonHistogram /> */}
+
             <p>For the full details about table compare, see level 3.</p>
             <p>
                 End Oct 4 Miniapps compiler Low level outline - pop back up.. Note we come down later for Apps
@@ -82,16 +79,11 @@ export default function QaaSSearches() {
 
             </p>
 
-            <div className='imageContainer'>
-                <img src={TableCompareImage} alt="Compare Image Description" />
-            </div>
             <h2>Table compare</h2>
-            <div className='imageContainer'>
-                <img src={TableCompareImage1} alt="Compare Image Description" />
-            </div>
-            <div className='imageContainer'>
-                <img src={TableCompareImage2} alt="Compare Image Description" />
-            </div>
+
+            <CompilerComparisonHistogram />
+
+
 
             <p>
                 For the full details about table compare, see level 3. In particular explain how counts of wins here and in Table sept8 differ.

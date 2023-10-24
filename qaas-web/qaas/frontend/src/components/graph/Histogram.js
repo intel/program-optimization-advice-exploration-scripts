@@ -13,7 +13,12 @@ export default function Histogram({ data, options }) {
                     display: true,
                     text: data.xAxis,
                 },
+
+
+
+
                 stacked: true,
+
             },
             y: {
                 title: {
@@ -31,7 +36,7 @@ export default function Histogram({ data, options }) {
     };
 
     return (
-        <div style={{ height: '40vh' }}>
+        <div style={{ height: '70vh' }}>
             <Bar
                 data={data}
                 options={{ ...defaultOptions, ...options }}
