@@ -15,6 +15,7 @@ qaas-web/lore/backend/venv
 qaas-web/lore/frontend/node_modules/
 qaas-web/lore/frontend/package-lock.json
 qaas-web/lore/frontend/dist/
+qaas-web/lore/backend/cache
 qaas-web/common/landing/node_modules/
 qaas-web/common/landing/dist/
 qaas-web/common/landing/package-lock.json/
