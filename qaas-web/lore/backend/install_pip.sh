@@ -7,5 +7,4 @@ cd $FLASK_DIR
 # python3 -m venv ./venv
 # source ./venv/bin/activate
 echo Using Proxy: $http_proxy
-pip3 install --proxy $http_proxy -r requirements.txt
-sudo apt-get install clang-format
+pip3 install  -r requirements.txt

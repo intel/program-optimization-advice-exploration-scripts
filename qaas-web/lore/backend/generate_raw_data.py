@@ -8,10 +8,7 @@ import json
 import os
 from model import * 
 from util import *
-import seaborn as sns
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import time 
 from sqlalchemy.orm import aliased
 from sqlalchemy import asc
@@ -109,63 +106,13 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
     
     return refs_per_source
 
-# for original loops
-# DF1 = <source loop> *<representative source loop>* <mutation> *<compiler>* <time>
-#   -- need to look at src table to figure out loops with same rep source loop
-# for all loops (including original loops?)
-# DF2 = <source loop> *<representative orig source loop>* <mutation>  *<compiler>* <time>
-#  DF1.join(DF2, key=[<representative source loop>, <compiler>])
-#
-# def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version):
-#     #
-#     refs_per_source = {}
-
-#     loops = (db.session.query(Loop)
-#                          .join(Loop.compiler)
-#                          .filter(Compiler.vendor == compiler_vendor, Compiler.version == compiler_version)
-#                          .distinct().all())[:2000]
-
-    
-#     print(len(loops))
-#     BATCH_SIZE = 5000
-
-#     start_time = time.time()
-#     loop_count = 0
-#     for loop in loops:
-#         #get loop's src loop
-#         src_loop = loop.src_loop
-#         ref_value = get_ref_from_loop(loop)
-#         mutation_number = src_loop.mutation_number
-            
-#         #get its orig src loop
-#         orig_src_loop = src_loop.orig_src_loop
-#         #default to be orig loop i.e. mutation = 0
-#         source_id = src_loop.source.table_id
-#         if orig_src_loop:
-#             source_id = orig_src_loop.source.table_id
-
-#         #loop showed up before its orig loop is added
-#         if source_id not in refs_per_source:
-#             #don't add the ref value because it might not be the correct compiler
-#             refs_per_source[source_id] = []
-
-       
-#         refs_per_source[source_id].append({mutation_number : ref_value})
-#         loop_count += 1
-#         if loop_count % 1000 == 0:
-#             memory_usage = psutil.Process().memory_info().rss / (1024 ** 2)  # RSS value converted to MB
-#             print(f"Memory usage: {memory_usage} MB")
-
-
-#     print("total size", len(refs_per_source))
-#     # end_time = time.time()
-#     # elapsed_time = end_time - start_time
-#     # print(f"The entire compiler_version combination took {elapsed_time} seconds to run.")
-#     return refs_per_source
 
 def create_cache_for_all_compiler_mutations_time_per_orig_loop():
     # compiler_vendors_and_versions = get_all_compiler_vendors_and_versions()
-    compiler_vendors_and_versions = [('icc', '17.0.1')]
+    # compiler_vendors_and_versions = [('icc', '17.0.1')]
+    compiler_vendors_and_versions = [('gcc','6.2.0')]
+
+    #('icc', '17.0.1'),('icc','15.0.6'),('gcc','6.2.0'),('gcc','4.8.5'),('gcc','4.7.4'),('clang','4.0.0'),('clang','3.6.2'),('clang','3.4.2')
     for vendor, version in compiler_vendors_and_versions:
         get_all_mutations_time_per_orig_loop_per_compiler(vendor, version)
 

@@ -4,7 +4,7 @@ import pandas as pd
 from flask import Flask
 from flask_cors import CORS
 from flask import jsonify
-
+import numpy as np
 def calculate_speedup(time_comp, baseline_compiler):
     baseline_time = time_comp.get(baseline_compiler, 0)
     if baseline_time == 0:
@@ -22,6 +22,27 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
 
+    @app.route('/get_qaas_unicore_perf_gflops_data', methods=['GET'])
+    def get_qaas_unicore_perf_gflops_data():
+        df = pd.read_csv('/host/home/yjiao/ArchComp.Unicore.csv')
+
+        #sort by x axis
+        df['Mean'] = df.drop(columns=['Apps']).mean(axis=1)
+        df.sort_values('Mean', inplace=True)
+        df.drop('Mean', axis=1, inplace=True)
+
+
+        data_dict = df.to_dict(orient='list')
+        # replace NaN with None (null in JSON)
+        for key in data_dict.keys():
+            data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
+
+   
+
+
+        # print(applications)
+        return jsonify(data_dict)
+    
     @app.route('/get_qaas_compiler_comparison_historgram_data', methods=['GET'])
     def get_qaas_compiler_comparison_historgram_data():
         df = pd.read_excel('/host/home/yjiao/QaaS_Min_Max_Unicore_Perf_Default.xlsx', header=3)
@@ -90,7 +111,7 @@ def create_app():
                 'win_lose': all_win_lose,
                 'is_n_way_tie': is_n_way_tie
             })
-        print(applications)
+        # print(applications)
 
         # print(applications)
         return jsonify({

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
-export default function Histogram({ data, options }) {
+export default function Histogram({ data, options, plugins }) {
     const defaultOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -36,11 +36,10 @@ export default function Histogram({ data, options }) {
     };
 
     return (
-        <div style={{ height: '70vh' }}>
-            <Bar
-                data={data}
-                options={{ ...defaultOptions, ...options }}
-            />
-        </div>
+        <Bar
+            data={data}
+            options={{ ...defaultOptions, ...options }}
+            plugins={plugins}
+        />
     );
 }
