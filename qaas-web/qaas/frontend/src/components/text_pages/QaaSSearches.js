@@ -4,7 +4,7 @@ import CompilerComparisonHistogram from '../graph/CompilerComparisonHistogram'
 import TableCompareImage from '../imgs/table_compare.png';
 import TableCompareImage1 from '../imgs/table_compare1.png';
 import TableCompareImage2 from '../imgs/table_compare2.png';
-
+import UnicorePerfGFlopsLinkGraph from '../graph/UnicorePerfGFlopsLinkGraph';
 export default function QaaSSearches() {
     return (
         <div className="textPageContainer">
@@ -79,10 +79,9 @@ export default function QaaSSearches() {
 
             </p>
 
-            <h2>Table compare</h2>
 
             <CompilerComparisonHistogram />
-
+            <UnicorePerfGFlopsLinkGraph />
 
 
             <p>

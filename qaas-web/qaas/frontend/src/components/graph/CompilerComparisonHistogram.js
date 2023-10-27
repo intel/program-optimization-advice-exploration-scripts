@@ -7,6 +7,8 @@ import { DEFAULT_COLOR_SCHEME } from "../Constants";
 import { Chart, registerables } from "chart.js"
 import HistogramBinSlider from './HistogramBinSlider';
 import { BarTextPlugin } from './GraphPlugin';
+Chart.register(...registerables);
+
 export default function CompilerComparisonHistogram() {
     const [chartData, setChartData] = useState(null);
     const [leftMostBin, setLeftMostBin] = useState(1.1);
@@ -91,7 +93,6 @@ export default function CompilerComparisonHistogram() {
                 counts[dynamicRanges.indexOf(range)] = 1;
 
                 let compilerLabel = is_use_winer_color ? winLoseData.winner.substring(0, 3) : winLoseData.loser.substring(0, 3);
-                console.log(compilerLabel)
                 datasets.push({
                     label: addedToLegend.has(compilerLabel) ? "" : compilerLabel,
                     data: counts,
@@ -116,6 +117,12 @@ export default function CompilerComparisonHistogram() {
 
     const chartOptions = {
         plugins: {
+            title: {
+                display: true,
+                text: 'Table Compare',
+
+            },
+
             legend: {
                 labels: {
                     filter: function (item, chart) {
@@ -126,17 +133,21 @@ export default function CompilerComparisonHistogram() {
             tooltip: {
                 enabled: false
             },
-            barText: BarTextPlugin
-        }
+
+
+        },
     };
 
-    Chart.register(...registerables, BarTextPlugin);
+
+
 
 
     return (
-        <div>
+        <div >
+            <div className='graphContainer'>
 
-            <Histogram data={chartData.winerData} options={chartOptions} />
+                <Histogram data={chartData.winerData} options={chartOptions} plugins={[BarTextPlugin]} />
+            </div>
             <HistogramBinSlider onChange={handleSliderChange} />
 
         </div >
