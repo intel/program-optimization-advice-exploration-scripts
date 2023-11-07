@@ -91,7 +91,7 @@ class OneviewRunner(BaseRunner):
 
         ov_mpi_command = f"--mpi-command=\"{mpi_command}\"" if mpi_command else ""
         ov_config_option = "" if self.ov_config == "unused" else f"-WC -c={self.ov_config}"
-        ov_filter_option = '--filter="{type=\\\"number\\\", value=4}"' if self.level != 1 else ''
+        ov_filter_option = '--filter="{type=\\\"number\\\", value=1}"' if self.level != 1 else ''
         ov_extra_libs_option = '--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"' if self.found_so_libs else ""
 
         ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} {ov_config_option}'\
@@ -102,36 +102,22 @@ class OneviewRunner(BaseRunner):
             f'{ov_filter_option} '\
             f'-of={self.ov_of} '\
             f'-- {true_run_cmd}'
-        print(ov_run_cmd)
         print(self.ov_result_dir)
         run_env["LD_LIBRARY_PATH"] = run_env.get("LD_LIBRARY_PATH") + ":" + self.maqao_lib_dir
-        result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.ov_result_root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode == 0:
-            return True
 
-        print(f"OneView Level {self.level} failed! Fallback to lower level")
-        new_level = self.level - 1
-        if new_level == 0:
-            return False
-        ov_run_cmd = ov_run_cmd.replace(f"-R{self.level}", "-R{new_level}")
-        self.level = new_level
-        print(ov_run_cmd)
-        result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.ov_result_root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode == 0:
-            return True
+        while self.level != 0:
+            print(ov_run_cmd)
+            result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if result.returncode == 0:
+                return True
 
-        print(f"OneView Level {self.level} failed! Fallback to lower level")
-        new_level = self.level - 1
-        if new_level == 0:
-            return False
-        ov_run_cmd = ov_run_cmd.replace(f"-R{self.level}", "-R{new_level}")
-        self.level = new_level
-        print(ov_run_cmd)
-        result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.ov_result_root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode == 0:
-            return True
-        else:
-            return False
+            print(f"OneView Level {self.level} failed! Fallback to lower level")
+            print(result.stderr.decode('utf-8'))
+            new_level = self.level - 1
+            if new_level == 0:
+                return False
+            ov_run_cmd = ov_run_cmd.replace(f"-R{self.level}", f"-R{new_level}")
+            self.level = new_level
 
 def exec(env, binary_path, data_path, ov_result_root, run_cmd, maqao_path, ov_config, mode, 
              level=1, mpi_run_command=None, mpi_num_processes=1, omp_num_threads=1, 
