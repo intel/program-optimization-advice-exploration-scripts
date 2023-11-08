@@ -68,7 +68,9 @@ def install_common_dependencies(apache_common_dir):
 def install_backend_dependencies(backend_dir, apache_html_dir):
     try:
         print(f"Installing backend dependencies in {backend_dir}...")
-        os.system(f"cd {backend_dir} && bash install_pip.sh")
+        script_path = os.path.join(backend_dir, "install_pip.sh")
+        if os.path.exists(script_path):
+            os.system(f"cd {backend_dir} && bash install_pip.sh")
         #also copy the config
         print("Backend dependencies installed successfully.")
        
@@ -196,52 +198,55 @@ if __name__ == "__main__":
     qaas_backend_dir = os.path.join(target_qaas_dir, 'qaas',"backend")
     qaas_frontend_dir = os.path.join(target_qaas_dir,'qaas', "frontend")
     common_frontend_dir = os.path.join(target_qaas_dir,'common','landing')
+    common_backend_dir = os.path.join(target_qaas_dir,'common','backend')
 
-    ov_apache_dir = os.path.join(apache_dir, 'merge', 'oneview')
-    qaas_apache_dir = os.path.join(apache_dir, 'merge', 'qaas')
-    common_apache_dir = os.path.join(apache_dir, 'common','landing')
+    ov_apache_dir = os.path.join(apache_dir, 'oneview')
+    qaas_apache_dir = os.path.join(apache_dir,  'qaas')
+    common_apache_dir = os.path.join(apache_dir, 'common')
 
     output_dir = os.path.join(apache_dir, 'private')
     create_directory(output_dir)
-    maqao_package_dir = os.path.join(target_qaas_dir, 'maqao_package')
+    maqao_package_dir = f'/host/home/yjiao/package/2.17.10'
 
-    install_packages()
+    # install_packages()
 
-    http_proxy, https_proxy = get_proxy()
-    set_node_proxy(http_proxy, https_proxy)
+    # http_proxy, https_proxy = get_proxy()
+    # set_node_proxy(http_proxy, https_proxy)
 
 
-    install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
-    install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
-    install_frontend_dependencies(common_frontend_dir, common_apache_dir)
+    # install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
+    # install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
+    # install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
 
-    # # # #also copy the config folder
-    os.system(f"sudo cp -r {config_dir} {apache_dir}")
+    # install_frontend_dependencies(common_frontend_dir, common_apache_dir)
 
-    # # # #also copy maqao package to output folder
+    # # # # #also copy the config folder
+    # os.system(f"sudo cp -r {config_dir} {apache_dir}")
+
+    # # # # #also copy maqao package to output folder
     os.system(f"sudo cp -r {os.path.join(maqao_package_dir, 'lib')} {os.path.join(maqao_package_dir, 'bin')} {output_dir}")
  
 
-    # # # # #set the environment path
-    os.environ["PATH"] = f"{os.path.join(output_dir, 'bin')}" + os.pathsep + os.environ["PATH"]
-    os.environ["LD_LIBRARY_PATH"] = f"{os.path.join(output_dir, 'lib')}"
+    # # # # # #set the environment path
+    # os.environ["PATH"] = f"{os.path.join(output_dir, 'bin')}" + os.pathsep + os.environ["PATH"]
+    # os.environ["LD_LIBRARY_PATH"] = f"{os.path.join(output_dir, 'lib')}"
 
 
     # # # # # #permission for the www-data to wrtie to apache dir
  
-    create_apache_config()
+    # create_apache_config()
 
-    # # # #give permissions
-    os.system(f"sudo a2enmod wsgi")
-    os.system(f"sudo a2enmod rewrite")
-    give_permission(output_dir, 'www-data')
-    give_permission(apache_dir, 'www-data')
-    give_permission('/etc/apache2/auth', 'www-data')
+    # # # # #give permissions
+    # os.system(f"sudo a2enmod wsgi")
+    # os.system(f"sudo a2enmod rewrite")
+    # give_permission(output_dir, 'www-data')
+    # give_permission(apache_dir, 'www-data')
+    # give_permission('/etc/apache2/auth', 'www-data')
 
-    # # #setup database
-    database_url = 'mysql://qaas:qaas-password@localhost/test'
+    # # # #setup database
+    # database_url = 'mysql://qaas:qaas-password@localhost/test'
 
-    setup_database(database_url)
+    # setup_database(database_url)
 
-    # # #delete default index html
-    delete_index_html(apache_dir)
+    # # # #delete default index html
+    # delete_index_html(apache_dir)

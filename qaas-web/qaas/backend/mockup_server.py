@@ -37,9 +37,29 @@ def create_app():
         for key in data_dict.keys():
             data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
 
-   
+        # print(applications)
+        return jsonify(data_dict)
 
+    @app.route('/get_qaas_multicore_perf_gflops_data', methods=['GET'])
+    def get_qaas_multicore_perf_gflops_data():
+        df = pd.read_csv('/host/home/yjiao/ArchComp.Multicore.csv')
 
+        #sort by x axis
+        df['Mean'] = df.drop(columns=['Apps']).mean(axis=1)
+        df.sort_values('Mean', inplace=True)
+        df.drop('Mean', axis=1, inplace=True)
+        df['ICL per-core GFlops'] = df['ICL.Gf'] / df['ICL.cores']
+        df['SPR per-core GFlops'] = df['SPR.Gf'] / df['SPR.cores']
+        df.drop('ICL.cores', axis=1, inplace=True)
+        df.drop('SPR.cores', axis=1, inplace=True)
+        df.rename({'ICL.Gf':'ICL total GFLops', 'SPR.Gf':'SPR total GFLops'}, axis=1, inplace=True)
+
+        data_dict = df.to_dict(orient='list')
+        # replace NaN with None (null in JSON)
+        for key in data_dict.keys():
+            data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
+
+        print(data_dict)
         # print(applications)
         return jsonify(data_dict)
     
@@ -90,7 +110,8 @@ def create_app():
                 applications.append({
                 'application': app_name,
                 'is_n_way_tie': is_n_way_tie,
-                'n_way' : len(best_compiler_set)
+                'n_way' : len(best_compiler_set),
+                'win_lose': [],
                 })
                 continue
 
@@ -113,7 +134,6 @@ def create_app():
             })
         # print(applications)
 
-        # print(applications)
         return jsonify({
             'compilers': compilers,
             'applications': applications

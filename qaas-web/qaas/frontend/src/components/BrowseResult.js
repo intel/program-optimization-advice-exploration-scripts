@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
-import CompilerComparisonHistogram from './graph/CompilerComparisonHistogram';
+import CompilerComparisonHistogram from './graph/histogram/CompilerComparisonHistogram';
 export default function BrowseResult({ isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
 
 

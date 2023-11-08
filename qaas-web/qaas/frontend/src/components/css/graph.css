@@ -1,0 +1,28 @@
+.filter-box {
+    display: inline-block;
+    margin: 5px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s;
+    text-align: center;
+
+    /* optional hover effect */
+    &:hover {
+        transform: translateY(-3px);
+        box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* checkbox style */
+.ant-checkbox-checked .ant-checkbox-inner {
+    background-color: #277383;
+    border-color: #1e5a66;
+}
+
+.filter-menu-container .ant-checkbox-wrapper:hover .ant-checkbox-checked .ant-checkbox-inner,
+.filter-menu-container .ant-checkbox-wrapper .ant-checkbox-checked .ant-checkbox-inner:hover {
+    background-color: #1e5a66 !important;
+    border-color: #1e5a66 !important;
+}

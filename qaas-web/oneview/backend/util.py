@@ -7,13 +7,18 @@ import pandas as pd
 import zlib
 import hashlib
 import struct
-from model import *
 from datetime import datetime
 import configparser
 from sqlalchemy import distinct, func
 from sqlalchemy.sql import and_
 import csv
 import numpy as np
+import sys
+current_directory = os.path.dirname(os.path.abspath(__file__))
+base_directory = os.path.join(current_directory, '../../common/backend/')
+base_directory = os.path.normpath(base_directory)  
+sys.path.insert(0, base_directory)
+from model import *
 level_map = {0: 'Single', 1: 'Innermost', 2: 'InBetween', 3: 'Outermost'}
 reverse_level_map = {v: k for k, v in level_map.items()}
 

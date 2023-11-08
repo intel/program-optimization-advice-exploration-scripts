@@ -1,21 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import Histogram from './Histogram';
 import axios from "axios";
-import { RANGES } from '../Constants';
-import { categorizeSpeedupDynamic, COMPILER_COLORS, getCompilerColor } from '../Constants';
-import { DEFAULT_COLOR_SCHEME } from "../Constants";
+import { RANGES } from '../../Constants';
+import { categorizeSpeedupDynamic, COMPILER_COLORS, getCompilerColor } from '../../Constants';
+import { DEFAULT_COLOR_SCHEME } from "../../Constants";
 import { Chart, registerables } from "chart.js"
 import HistogramBinSlider from './HistogramBinSlider';
-import { BarTextPlugin } from './GraphPlugin';
+import { BarTextPlugin } from '../GraphPlugin';
+import FilterMenu from './FilterMenu';
+import '../../css/graph.css'
+import { INITIAL_FILTERS, getUnselectedFilters } from './FilterConstant';
 Chart.register(...registerables);
 
 export default function CompilerComparisonHistogram() {
     const [chartData, setChartData] = useState(null);
     const [leftMostBin, setLeftMostBin] = useState(1.1);
     const [rawData, setRawData] = useState(null);
+    const [selectedFilters, setSelectedFilters] = useState(INITIAL_FILTERS);
 
 
+    const applyFilters = () => {
+        if (rawData) {
+            console.log("apply filter", selectedFilters)
+            const filteredData = filterData(rawData, selectedFilters);
+            console.log(filteredData)
+            setChartData(processData(filteredData, leftMostBin));
+        }
+    };
+    //filter data that has selected = false
+    const filterData = (data, filters) => {
+        const unselectedFilters = getUnselectedFilters(filters);
+        console.log(unselectedFilters)
+        //filer unselected applicaiton
+        let filteredApplications = data.applications.filter((app) =>
+            !unselectedFilters.includes(app.application)
+        );
+        //filter unselected compiler
+        filteredApplications = filteredApplications.map((app) => {
+            if (app.win_lose && app.win_lose.length) {
+                const filteredWinLose = app.win_lose.filter(wl =>
+                    !unselectedFilters.includes(wl.winner) &&
+                    !unselectedFilters.includes(wl.loser)
+                );
 
+                // Return a new object if win_lose was modified, otherwise return the original app object
+                return filteredWinLose.length === app.win_lose.length ? app : { ...app, win_lose: filteredWinLose };
+            }
+            return app;
+        });
+        //filter applications that have an empty win_lose array unless they are tied
+        filteredApplications = filteredApplications.filter((app) => {
+            return app.is_n_way_tie || (app.win_lose && app.win_lose.length > 0);
+        });
+        console.log("data after filtered", filteredApplications)
+
+        return {
+            ...data,
+            applications: filteredApplications,
+        };
+    };
+
+
+    //slide change set bin
     const handleSliderChange = (newValue) => {
         setLeftMostBin(newValue);
     };
@@ -34,14 +80,12 @@ export default function CompilerComparisonHistogram() {
     }, [])
 
 
+
+
     //change data when slide
     useEffect(() => {
-        if (rawData) { // check if rawData exists
-            const newChartData = {
-                winerData: processData(rawData, true, leftMostBin),
-                loserData: processData(rawData, false, leftMostBin)
-            };
-            setChartData(newChartData);
+        if (rawData) {
+            setChartData(processData(rawData, leftMostBin));
         }
     }, [rawData, leftMostBin]);
 
@@ -52,7 +96,7 @@ export default function CompilerComparisonHistogram() {
 
 
 
-    function processData(data, is_use_winer_color, leftMostBin) {
+    function processData(data, leftMostBin) {
         const dynamicRanges = [
             `< ${leftMostBin}X`,
             `${leftMostBin}-1.2X`,
@@ -62,17 +106,16 @@ export default function CompilerComparisonHistogram() {
             '> 4X'
         ];
         let datasets = [];
-        let addedToLegend = new Set(); // unique legends
 
         data.applications.forEach(app => {
             if (app.is_n_way_tie) {
                 let counts = dynamicRanges.map(() => 0);
-                let bestCompilerSpeedup = 1; // Assuming speedup is 1 in case of a tie
+                let bestCompilerSpeedup = 1;
                 let range = categorizeSpeedupDynamic(bestCompilerSpeedup, leftMostBin);
                 counts[dynamicRanges.indexOf(range)] = 1;
 
                 datasets.push({
-                    label: addedToLegend.has("TIE") ? "" : "TIE",
+                    label: "TIE",
                     data: counts,
                     backgroundColor: COMPILER_COLORS['TIE'],
                     barText: dynamicRanges.map(r => r === range ? `${app.application}: ${app.n_way}-way tie` : ""),
@@ -80,7 +123,6 @@ export default function CompilerComparisonHistogram() {
                     categoryPercentage: 1.0,
                 });
 
-                addedToLegend.add("TIE");
                 return;
             }
 
@@ -92,17 +134,17 @@ export default function CompilerComparisonHistogram() {
                 let range = categorizeSpeedupDynamic(winLoseData.speedup, leftMostBin);
                 counts[dynamicRanges.indexOf(range)] = 1;
 
-                let compilerLabel = is_use_winer_color ? winLoseData.winner.substring(0, 3) : winLoseData.loser.substring(0, 3);
+                let compilerLabel = winLoseData.winner.substring(0, 3)
                 datasets.push({
-                    label: addedToLegend.has(compilerLabel) ? "" : compilerLabel,
+                    label: compilerLabel,
                     data: counts,
                     backgroundColor: getCompilerColor(compilerLabel),
                     barText: dynamicRanges.map(r => r === range ? `${app.application}: ${winLoseData.winner}/${winLoseData.loser}` : ""),
+                    //bin no space in bt
                     barPercentage: 1.0,
                     categoryPercentage: 1.0,
                 });
 
-                addedToLegend.add(compilerLabel); // avoid repeating legends
             });
         });
 
@@ -125,28 +167,32 @@ export default function CompilerComparisonHistogram() {
 
             legend: {
                 labels: {
-                    filter: function (item, chart) {
-                        return ['ICX', 'ICC', 'GCC', 'TIE'].includes(item.text); //make sure it is unqiue
+                    //map compiler to the corresponding color
+                    generateLabels: function () {
+                        const compilerNames = ['ICX', 'ICC', 'GCC', 'TIE'];
+                        return compilerNames.map((name) => ({
+                            text: name,
+                            fillStyle: getCompilerColor(name),
+                            color: 'black'
+                        }));
                     }
                 }
             },
             tooltip: {
                 enabled: false
             },
-
-
         },
+
     };
 
-
-
-
+    console.log("chart data", chartData)
 
     return (
         <div >
+            <FilterMenu setSelectedFilters={setSelectedFilters} selectedFilters={selectedFilters} applyFilters={applyFilters} />
             <div className='graphContainer'>
 
-                <Histogram data={chartData.winerData} options={chartOptions} plugins={[BarTextPlugin]} />
+                <Histogram data={chartData} options={chartOptions} plugins={[BarTextPlugin]} />
             </div>
             <HistogramBinSlider onChange={handleSliderChange} />
 
