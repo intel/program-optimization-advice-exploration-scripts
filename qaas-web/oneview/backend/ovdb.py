@@ -1,5 +1,4 @@
 import os
-from model import *
 from util import *
 from model_accessor import OneViewModelInitializer,OneViewModelExporter
 from qaas_database import QaaSDatabase

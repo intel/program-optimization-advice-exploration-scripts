@@ -17,17 +17,16 @@ sys.path.append(qaas_dir)
 qaas_web_backend_dir = os.path.join(script_dir, '..', '..','qaas-web','oneview','backend')
 # Add the backend directory to sys.path
 sys.path.append(qaas_web_backend_dir)
+qaas_web_backend_common_dir = os.path.join(script_dir, '..', '..','qaas-web','common','backend')
+sys.path.append(qaas_web_backend_common_dir)
 
 from ovdb import populate_database, export_data
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import qaas
-from server import app 
 import configparser
 
-from server import update_html, run_comparison_report
-from model import create_all_tables
 from model import create_all_tables
 
 def read_from_folder(folder_path):
@@ -55,6 +54,7 @@ def read_from_folder(folder_path):
                 for sub_version in os.listdir(version_path):
                     sub_version_path = os.path.join(version_path, sub_version)
                     for result in os.listdir(sub_version_path):
+                        print(result)
                         if "oneview_results_" in result:
                             version_prefix = f"{os.path.relpath(sub_version_path, os.path.join(folder_path, workload, program))}/"
                             process_result(os.path.join(sub_version_path, result), version_prefix)

@@ -41,6 +41,11 @@ import SkyLake from './text_pages/SkyLake';
 import MultiCompilerGains from './text_pages/MultiCompilerGains';
 import QaaSSearches from './text_pages/QaaSSearches';
 import QaaSSearchesL2 from './text_pages/QaaSSearchesL2';
+import NavigationPage from './navigation/NavigationPage';
+import OverViewQaaS from './text_pages/OverViewQaaS';
+import UnicorePerfContents from './text_pages/UnicorePerfContents';
+import MultiprocessorCompContents from './text_pages/MultiprocessorCompContents';
+import MultiprocessorPerfContents from './text_pages/MultiprocessorPerfContents';
 export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const location = useLocation();
 
@@ -59,47 +64,46 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
                 <Route path="/result" element={<BrowseResult isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML} />} />
                 <Route path="/definitions" element={<DefinitionsTab />} />
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/" element={<NavigationPage />} />
 
                 <Route path="*" element={
                     <FixedMenuLayout drawerContent={drawerContent} mainContent={
                         <Routes>
-                            <Route path="/" element={<WelcomePage />} />
-                            <Route path="/generated" element={<GeneratedPage />} />
-                            <Route path="/quality_definitions" element={<QualityDefinitions />} />
-                            <Route path="/constraints_and_scope" element={<ConstraintsAndScope />} />
-                            <Route path="/initial_qaas_offerings" element={<InitialQaaSOfferings />} />
-                            <Route path="/cq_overview" element={<CQOverview />} />
+                            <Route path="/qaas" element={<WelcomePage />} />
+                            <Route path="/qaas/quality_definitions" element={<QualityDefinitions />} />
+                            <Route path="/qaas/constraints_and_scope" element={<ConstraintsAndScope />} />
+                            <Route path="/qaas/initial_qaas_offerings" element={<InitialQaaSOfferings />} />
+                            <Route path="/qaas/overview" element={<OverViewQaaS />} />
+                            <Route path="/qaas/overview/unicore_perf_contents" element={<UnicorePerfContents />} />
+                            <Route path="/qaas/overview/multiprocessor_comp_contents" element={<MultiprocessorCompContents />} />
+                            <Route path="/qaas/overview/multiprocessor_perf_contents" element={<MultiprocessorPerfContents />} />
 
-                            <Route path="/cq_overview_performance" element={<CQOverviewPerformance />} />
-                            <Route path="/miniapps" element={<Miniapps />} />
-                            <Route path="/apps" element={<Apps />} />
-                            <Route path="/libraries" element={<Libraries />} />
-                            <Route path="/cq_overview_portability" element={<Portability />} />
-                            <Route path="/gf_cor" element={<Gfcor />} />
-                            <Route path="/gf_system" element={<GfSystem />} />
-                            <Route path="/gf_arch" element={<GfArch />} />
-
-                            <Route path="/cq_overview_multiprocessor" element={<Multiprocessor />} />
-                            <Route path="/compiler_details" element={<CompilerDetails />} />
-                            <Route path="/quality_10_year_trend_conclusions" element={<Quality10YearTrendConclusions />} />
-
-                            <Route path="/perf_by_scalability_type" element={<PerfByScalabilityType />} />
-                            <Route path="/gf_cost" element={<GfCost />} />
-                            <Route path="/type_of_scaling_replication_factors" element={<TypeOfScaling />} />
-                            <Route path="/oneview" element={<Oneview />} />
-                            <Route path="/best_app_insights_per_domain" element={<BestAppInsightsPerDomain />} />
-
-                            <Route path="/automatic_application_analysis" element={<AutomaticApplicationAnalysis />} />
-                            <Route path="/manual_interactive_mode" element={<ManualInteractiveMode />} />
-                            <Route path="/quality_10_year_trend_realities" element={<Quality10YearTrendRealities />} />
-                            <Route path="/multi_compiler_gains" element={<MultiCompilerGains />} />
-                            <Route path="/qaas_searches" element={<QaaSSearches />} />
-
-                            <Route path="/qaas_searches_l2" element={<QaaSSearchesL2 />} />
+                            <Route path="/qaas/cq_overview" element={<CQOverview />} />
+                            <Route path="/qaas/cq_overview_performance" element={<CQOverviewPerformance />} />
+                            <Route path="/qaas/miniapps" element={<Miniapps />} />
+                            <Route path="/qaas/apps" element={<Apps />} />
+                            <Route path="/qaas/libraries" element={<Libraries />} />
+                            <Route path="/qaas/cq_overview_portability" element={<Portability />} />
+                            <Route path="/qaas/gf_cor" element={<Gfcor />} />
+                            <Route path="/qaas/gf_system" element={<GfSystem />} />
+                            <Route path="/qaas/gf_arch" element={<GfArch />} />
+                            <Route path="/qaas/cq_overview_multiprocessor" element={<Multiprocessor />} />
+                            <Route path="/qaas/compiler_details" element={<CompilerDetails />} />
+                            <Route path="/qaas/quality_10_year_trend_conclusions" element={<Quality10YearTrendConclusions />} />
+                            <Route path="/qaas/perf_by_scalability_type" element={<PerfByScalabilityType />} />
+                            <Route path="/qaas/gf_cost" element={<GfCost />} />
+                            <Route path="/qaas/type_of_scaling_replication_factors" element={<TypeOfScaling />} />
+                            <Route path="/qaas/oneview" element={<Oneview />} />
+                            <Route path="/qaas/best_app_insights_per_domain" element={<BestAppInsightsPerDomain />} />
+                            <Route path="/qaas/automatic_application_analysis" element={<AutomaticApplicationAnalysis />} />
+                            <Route path="/qaas/manual_interactive_mode" element={<ManualInteractiveMode />} />
+                            <Route path="/qaas/quality_10_year_trend_realities" element={<Quality10YearTrendRealities />} />
+                            <Route path="/qaas/multi_compiler_gains" element={<MultiCompilerGains />} />
+                            <Route path="/qaas/qaas_searches" element={<QaaSSearches />} />
+                            <Route path="/qaas/qaas_searches_l2" element={<QaaSSearchesL2 />} />
 
                             <Route path="/system_config" element={<SystemConfig />} />
                             <Route path="/system_config/sky_lake" element={<SkyLake />} />
-
                             <Route path="/system_config/ice_lake" element={<IceLake />} />
                             <Route path="/system_config/sapphire_rapids" element={<SapphireRapids />} />
 

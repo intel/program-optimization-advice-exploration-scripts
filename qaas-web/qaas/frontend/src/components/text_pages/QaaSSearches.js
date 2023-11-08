@@ -1,10 +1,10 @@
 import React from 'react';
 import CompareImage from '../imgs/compare.png';
-import CompilerComparisonHistogram from '../graph/CompilerComparisonHistogram'
+import CompilerComparisonHistogram from '../graph/histogram/CompilerComparisonHistogram'
 import TableCompareImage from '../imgs/table_compare.png';
 import TableCompareImage1 from '../imgs/table_compare1.png';
 import TableCompareImage2 from '../imgs/table_compare2.png';
-import UnicorePerfGFlopsLinkGraph from '../graph/UnicorePerfGFlopsLinkGraph';
+import UnicorePerfGFlopsLineGraph from '../graph/line/UnicorePerfGFlopsLineGraph';
 export default function QaaSSearches() {
     return (
         <div className="textPageContainer">
@@ -81,7 +81,7 @@ export default function QaaSSearches() {
 
 
             <CompilerComparisonHistogram />
-            <UnicorePerfGFlopsLinkGraph />
+            <UnicorePerfGFlopsLineGraph />
 
 
             <p>

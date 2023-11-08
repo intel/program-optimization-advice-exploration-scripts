@@ -1,74 +1,17 @@
-from abc import ABC, abstractmethod
 from util import *
 import os
 import pandas as pd
+import shutil
+import sys
+
+current_directory = os.path.dirname(os.path.abspath(__file__))
+base_directory = os.path.join(current_directory, '../../common/backend/')
+base_directory = os.path.normpath(base_directory)  
+sys.path.insert(0, base_directory)
+from model_accessor_base import ModelAccessor
 from model import *
 from model_collection import *
-import shutil
-# qaas_database = QaaSDatabase()
-# qaas_database.accept(ov_initilizer)
 
-class ModelAccessor(ABC):
-    def __init__(self, session):
-        self.session = session
-
-    @abstractmethod
-    def visitQaaSDataBase(self, qaas_database):
-        pass
-    @abstractmethod
-    def visitApplication(self, application):
-        pass
-    @abstractmethod
-    def visitExecution(self, execution):
-        pass
-    @abstractmethod
-    def visitEnvironment(self, environment):
-        pass
-    @abstractmethod
-    def visitOs(self, os):
-        pass
-    @abstractmethod
-    def visitHwSystem(self, hwsystem):
-        pass
-    @abstractmethod
-    def visitMaqao(self, maqao):
-        pass
-    @abstractmethod
-    def visitDecanCollection(self, decan_collection):
-        pass
-    @abstractmethod
-    def visitVprofCollection(self, vprof_collection):
-        pass
-    @abstractmethod
-    def visitLprofCategorizationCollection(self, lprof_categorization_collection):
-        pass
-    @abstractmethod
-    def visitModuleCollection(self, module_collection):
-        pass
-    @abstractmethod
-    def visitBlockCollection(self, block_collection):
-        pass
-    @abstractmethod
-    def visitFunctionCollection(self, function_collection):
-        pass
-    @abstractmethod
-    def visitLoopCollection(self, loop_collection):
-        pass
-    @abstractmethod
-    def visitLprofMeasurementCollection(self, lprof_measurement_collection):
-        pass
-    @abstractmethod
-    def visitCqaCollection(self, cqa_collection):
-        pass
-    @abstractmethod
-    def visitAsmCollection(self, asm_collection):
-        pass
-    @abstractmethod
-    def visitGroupCollection(self, group_collection):
-        pass
-    @abstractmethod
-    def visitSourceCollection(self, source_collection):
-        pass
 
 class OneviewModelAccessor(ModelAccessor):
     def __init__(self, session, qaas_data_dir):
@@ -356,6 +299,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
             'compilation_options': compilation_options_df.to_json(orient="split")
         }
         execution.global_metrics = global_metrics_dict
+        execution.threads_per_core = local_vars_dict.get('threads_per_core', None)
 
 
     def visitOs(self, os):
@@ -364,9 +308,11 @@ class OneViewModelInitializer(OneviewModelAccessor):
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         os.os_version = local_vars_dict.get('os_version', None)
         os.hostname = local_vars_dict.get('hostname', None)
+        os.huge_pages = local_vars_dict.get('huge_pages', None)
+        os.driver_frequency = local_vars_dict.get('driver_frequency', None)
 
     def visitHwSystem(self, hwsystem):
-        local_vars_path = self.get_os_path()
+        local_vars_path = self.get_hwsystem_path()
         local_vars_df = read_file(local_vars_path)
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         hwsystem.cpui_model_name =  local_vars_dict.get('cpui_model_name', None)
@@ -378,10 +324,11 @@ class OneViewModelInitializer(OneviewModelAccessor):
         hwsystem.uarchitecture =  local_vars_dict.get('uarchitecture', None)
         hwsystem.proc_name =  local_vars_dict.get('proc_name', None)
         hwsystem.sockets =  local_vars_dict.get('sockets', None)
+        hwsystem.cores_per_socket =  local_vars_dict.get('cores_per_socket', None)
 
 
     def visitMaqao(self, maqao):
-        local_vars_path=self.get_os_path()
+        local_vars_path=self.get_maqao_path()
         local_vars_df = read_file(local_vars_path)
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         maqao.global_instances_per_bucket = local_vars_dict.get('global_instances_per_bucket', None)
@@ -396,6 +343,11 @@ class OneViewModelInitializer(OneviewModelAccessor):
         maqao.maqao_build = local_vars_dict.get('maqao_build', None)
         maqao.maqao_version = local_vars_dict.get('maqao_version', None)
         maqao.exp_version = local_vars_dict.get('exp_version', None)
+        maqao.nb_filtered_functions = local_vars_dict.get('nb_filtered_functions', None)
+        maqao.cov_filtered_loops = local_vars_dict.get('cov_filtered_loops', None)
+        maqao.nb_filtered_loops = local_vars_dict.get('nb_filtered_loops', None)
+        maqao.config_count = local_vars_dict.get('config_count', None)
+        maqao.cov_filtered_functions = local_vars_dict.get('cov_filtered_functions', None)
 
     def visitDecanCollection(self, decan_collection):
         decan_path = self.get_decan_path()
@@ -848,6 +800,9 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 src_function_obj.source = source_obj
 
             source_collection.add_obj(source_obj)
+    def visitCompilerCollection(self, compilerCollection):
+        pass
+
 
 #TODO write to part of the file
 class OneViewModelExporter(OneviewModelAccessor):
@@ -857,6 +812,8 @@ class OneViewModelExporter(OneviewModelAccessor):
         pass
     def visitApplication(self, application):
         pass
+  
+ 
     def visitExecution(self, execution, qaas_timestamp = None, version = None):
         local_vars_path, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,fct_locations_path,\
             loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
@@ -914,11 +871,16 @@ class OneViewModelExporter(OneviewModelAccessor):
         convert_callchain_python_to_binary(execution.loop_callchain, loop_callchain_path, self.session)
         convert_callchain_python_to_binary(execution.fct_callchain, fct_callchain_path, self.session)
 
+        create_or_update_localvar_df('threads_per_core', execution.threads_per_core, local_vars_path)
+
     def visitOs(self, os_obj):
         local_vars_path=self.get_os_path()
         # Read existing data
         create_or_update_localvar_df('os_version', os_obj.os_version, local_vars_path)
         create_or_update_localvar_df('hostname', os_obj.hostname, local_vars_path)
+        create_or_update_localvar_df('huge_pages', os_obj.huge_pages, local_vars_path)
+        create_or_update_localvar_df('driver_frequency', os_obj.driver_frequency, local_vars_path)
+
 
     def visitMaqao(self, maqao):
         local_vars_path=self.get_maqao_path()
@@ -935,10 +897,16 @@ class OneViewModelExporter(OneviewModelAccessor):
         create_or_update_localvar_df('maqao_build', maqao.maqao_build, local_vars_path)
         create_or_update_localvar_df('maqao_version', maqao.maqao_version, local_vars_path)
         create_or_update_localvar_df('exp_version', maqao.exp_version, local_vars_path)
+        create_or_update_localvar_df('nb_filtered_functions', maqao.nb_filtered_functions, local_vars_path)
+        create_or_update_localvar_df('cov_filtered_loops', maqao.cov_filtered_loops, local_vars_path)
+        create_or_update_localvar_df('nb_filtered_loops', maqao.nb_filtered_loops, local_vars_path)
+        create_or_update_localvar_df('config_count', maqao.config_count, local_vars_path)
+        create_or_update_localvar_df('cov_filtered_functions', maqao.cov_filtered_functions, local_vars_path)
+
 
 
     def visitHwSystem(self, hwsystem):
-        local_vars_path=self.get_os_path()
+        local_vars_path=self.get_hwsystem_path()
         # Read existing data
         create_or_update_localvar_df('cpui_model_name', hwsystem.cpui_model_name, local_vars_path)
         create_or_update_localvar_df('cpui_cpu_cores', hwsystem.cpui_cpu_cores, local_vars_path)
@@ -949,6 +917,7 @@ class OneViewModelExporter(OneviewModelAccessor):
         create_or_update_localvar_df('uarchitecture', hwsystem.uarchitecture, local_vars_path)
         create_or_update_localvar_df('proc_name', hwsystem.proc_name, local_vars_path)
         create_or_update_localvar_df('sockets', hwsystem.sockets, local_vars_path)
+        create_or_update_localvar_df('cores_per_socket', hwsystem.cores_per_socket, local_vars_path)
 
 
      
@@ -1419,6 +1388,9 @@ class OneViewModelExporter(OneviewModelAccessor):
                 write_file(group_df.head(0),file_path)
             else:
                 write_file(group_df,file_path)
+    def visitCompilerCollection(self, compilerCollection):
+        pass
+
 
 
 #this class is used to find a specfic metrc throught the execution
@@ -1519,4 +1491,6 @@ class MetricGetter(ModelAccessor):
     def visitGroupCollection(self, group_collection):
         pass
     def visitSourceCollection(self, source_collection):
+        pass
+    def visitCompilerCollection(self, compilerCollection):
         pass

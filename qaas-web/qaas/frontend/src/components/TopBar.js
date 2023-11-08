@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Dropdown, Menu, Space } from 'antd';
 import './css/TopBar.css';
-import { DownOutlined, CheckOutlined } from '@ant-design/icons';
+import { DownOutlined, CheckOutlined, HomeOutlined } from '@ant-design/icons';
 
 const pageGroups = {
     'Quality content explanations': [
-        { page: '', label: 'QaaS Content Overview' },
+        { page: 'qaas', label: 'QaaS Content Overview' },
         { page: 'system_config', label: 'System Configurations' },
         { page: 'definitions', label: 'Definitions' },
         { page: 'ref', label: 'References' },
@@ -69,7 +69,7 @@ function TopBar() {
         <div className="top-bar">
             <div className="home">
                 <Link onClick={() => handleTabClick('')} to="/" className="home-link">
-                    QaaS: Quality as a Service
+                    <HomeOutlined /> QaaS: Quality as a Service
                 </Link>
             </div>
             <div className="nav-links">
@@ -89,6 +89,7 @@ function TopBar() {
                         </a>
                     </Dropdown>
                 ))}
+
             </div>
             <div className="right-section">
                 {/* <input type="text" className="search-bar" placeholder="Search..." /> */}
