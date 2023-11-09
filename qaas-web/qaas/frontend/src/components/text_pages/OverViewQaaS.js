@@ -38,13 +38,13 @@ export default function OverViewQaaS() {
             </h2>
 
             <p>
-                To see multiprocessor performance results,
+                For an introductory multicore system comparison,
                 {' '}
                 <Link className='link'
                     to="/qaas/overview/multiprocessor_perf_contents"
                 > click here </Link>
                 .
-                Combine foils 8 and 10 – common cols out in merging.
+                This extends the unicore introduction above, and introduces some basicmultiprocessing metrics.
             </p>
             <h2>
                 Summary points

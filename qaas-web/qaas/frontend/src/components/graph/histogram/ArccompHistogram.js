@@ -75,20 +75,19 @@ const histogramData = {
 
 
 const chartOptions = {
-    plugins: {
-        title: {
-            display: true,
-            text: 'Fig Arccomp',
 
-        },
-
-
-    },
     scales: {
         x: {
             title: {
                 display: true,
-                text: 'Time Ratio',
+                text: 'Fig. Arccomp         Architecture Comparison [GF/core]: SPR/ICL wins in green, ICL/SPR wins in blue',
+                font: {
+                    size: 24
+                },
+                padding: {
+                    top: 30,
+                    bottom: 30
+                }
             },
             stacked: true,
         },

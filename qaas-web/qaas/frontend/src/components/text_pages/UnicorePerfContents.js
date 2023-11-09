@@ -1,6 +1,6 @@
 import React from 'react';
 import UnicorePerfGFlopsLineGraph from '../graph/line/UnicorePerfGFlopsLineGraph';
-
+import UnicorePerfTable from '../graph/table/UnicorePerfTable';
 export default function UnicorePerfContents() {
     return (
         <div className="textPageContainer">
@@ -18,10 +18,8 @@ export default function UnicorePerfContents() {
                 that performance leadership and ranking varies a lot across application types and architectures.
             </p>
             <UnicorePerfGFlopsLineGraph />
+            <UnicorePerfTable />
 
-            <p>
-                Fig. uni		Performance [Gf] of 7 miniapps on 4 current unicore processors
-            </p>
 
 
         </div>
