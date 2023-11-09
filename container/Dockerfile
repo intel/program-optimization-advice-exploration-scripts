@@ -44,7 +44,7 @@ RUN apt-get install --no-install-recommends -y \
    make gcc g++ gfortran && \
 # Need to install gcc-4.9 
 # See https://askubuntu.com/questions/1235819/ubuntu-20-04-gcc-version-lower-than-gcc-7
-   echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe" >> /etc/apt/sources.list && \
+   echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial universe" >> /etc/apt/sources.list && \
    add-apt-repository ppa:rosecompiler/rose-development && \
    apt-get update && apt-get install --no-install-recommends -y \
 # Following steps from ROSE website: https://github.com/rose-compiler/rose/wiki/Install-Using-apt-get
