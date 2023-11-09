@@ -63,17 +63,20 @@ export default function UnicorePerfGFlopsLineGraph() {
                     usePointStyle: true,  // use the point style as legend symbol
                 }
             },
-            title: {
-                display: true,
-                text: 'Unicore Performance: GFlops',
 
-            },
         },
         scales: {
             x: {
                 title: {
                     display: true,
-                    text: 'apps',
+                    text: 'Fig. uni         Performance [Gf] of 7 miniapps on 4 current unicore processors',
+                    font: {
+                        size: 24
+                    },
+                    padding: {
+                        top: 30,
+                        bottom: 30
+                    }
                 }
             },
 

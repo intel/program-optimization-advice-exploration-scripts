@@ -73,20 +73,19 @@ const histogramData = {
 
 
 const chartOptions = {
-    plugins: {
-        title: {
-            display: true,
-            text: 'Appgain',
 
-        },
-
-
-    },
     scales: {
         x: {
             title: {
                 display: true,
-                text: 'QaaS gain vs. other 2 baselines',
+                text: 'Fig Appgain QaaS gain vs. other 2 baselines',
+                font: {
+                    size: 24
+                },
+                padding: {
+                    top: 30,
+                    bottom: 30
+                }
             },
             stacked: true,
         },

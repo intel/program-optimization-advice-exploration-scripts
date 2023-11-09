@@ -23,6 +23,12 @@ const data = [
     { miniApp: 'Ratios r=max/min', language: '', bestCompiler: '', time: 'r = 8.4', gflops: 'r =40.66', gflopsPerCore: 'r =27.15', unicoreGf: 'r =17.4', coresUsed: 'Eff. > .5' },
 ];
 
+function processData(data) {
+    //sort table by flops
+    return [...data].sort((a, b) => parseFloat(a.gflops) - parseFloat(b.gflops));
+}
+const sortedData = processData(data);
+
 //ability to give row color
 function getCellStyles(cell) {
     //apply styles only to the 'bestCompiler' column cells
@@ -40,7 +46,9 @@ function BestCompTable() {
     return (
         <div className='graphContainer'>
 
-            <CustomReactTable columns={columns} data={data} getCellProps={getCellStyles} />
+            <CustomReactTable columns={columns} data={sortedData} getCellProps={getCellStyles} />
+            <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '24px', padding: '20px 0' }}>Fig Bestcomp</div>
+
 
         </div>
     );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from "axios";
 import { Chart, registerables } from "chart.js"
 import LineGraph from './LineGrapah';
-import { minMaxMultipleLineLabelPlugin } from '../GraphPlugin';
+import { minMaxMultipleLineLabelPlugin, multicorePerformanceHtmlLegendPlugin } from '../GraphPlugin';
 import { getProcessorColor } from '../../Constants';
 Chart.register(...registerables);
 
@@ -77,42 +77,47 @@ export default function MulticorePerfGFlopsLineGraph() {
     const chartOptions = {
         plugins: {
             legend: {
-                labels: {
-                    usePointStyle: true,  // use the point style as legend symbol
-                    useLineStyle: true,
-                    generateLabels: function (chart) {
-                        const defaultLegendItems = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-                        return defaultLegendItems.map(legendItem => {
-                            const dataset = chart.data.datasets[legendItem.datasetIndex];
-                            if (dataset.borderDash && dataset.borderDash.length > 0) {
-                                legendItem.text = `-- ${legendItem.text} --`; //  dashed lines
-                            } else {
-                                legendItem.text = `— ${legendItem.text} —`; //  solid lines
-                            }
-                            return legendItem;
-                        });
-                    }
-                }
-            },
-            title: {
-                display: true,
-                text: 'Multicore Performance: System vs per-core GFlops',
+                display: false,
 
             },
+
         },
         scales: {
             x: {
                 title: {
                     display: true,
-                    text: 'apps',
+                    text: 'Fig. MPperf          Multicore Performance: System vs per-core GFlops',
+                    font: {
+                        size: 24
+                    },
+                    padding: {
+                        top: 30,
+                        bottom: 30
+                    }
                 }
             },
 
             y: {
+                type: 'logarithmic',
+
                 title: {
                     display: true,
                     text: 'GFlops',
+
+
                 },
+                ticks: {
+                    min: 10,
+                    max: 2000,
+                    // For a category axis, the val is the index so the lookup via getLabelForValue is needed
+                    callback: function (val, index, values) {
+                        // Hide every 2nd tick label
+                        const ticks = [10, 20, 50, 100, 500, 2000]
+                        if (ticks.includes(val)) {
+                            return val;
+                        }
+                    },
+                }
 
             }
         }
@@ -125,8 +130,10 @@ export default function MulticorePerfGFlopsLineGraph() {
             <LineGraph
                 data={chartData}
                 options={chartOptions}
-                plugins={[minMaxMultipleLineLabelPlugin]}
+                plugins={[minMaxMultipleLineLabelPlugin, multicorePerformanceHtmlLegendPlugin]}
             />
+            <div id="js-legend" className="chart-legend"></div>
+
         </div>
     );
 

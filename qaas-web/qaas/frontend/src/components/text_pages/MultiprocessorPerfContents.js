@@ -22,6 +22,7 @@ export default function MultiprocessorPerfContents() {
                 Table mpratio lists MP performance differences and many of their contributing factors. At this point, we merely list the details; understanding them
                 requires probing this website more deeply. A main takeaway is to observe the diversity of optimal cases for these 7 simple miniapps (randomly chosen from the web).
             </p>
+            <MulticorePerfGFlopsLineGraph />
 
 
             <p>
@@ -37,13 +38,9 @@ export default function MultiprocessorPerfContents() {
                 for the latter, searches can at least provide validation for expertly configured computations.
             </p>
 
-            <MulticorePerfGFlopsLineGraph />
-            <h2>Fig MPperf</h2>
 
             <ArccompHistogram />
-            <h2>Fig arccomp</h2>
             <MpratioTable />
-            <h2>Table mpratio sorted by total Gf</h2>
 
         </div>
     );

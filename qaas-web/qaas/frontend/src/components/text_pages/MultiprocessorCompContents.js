@@ -28,14 +28,9 @@ export default function MultiprocessorCompContents() {
             </p>
 
             <AppgainHistogram />
-            <h2>
-                Fig Appgain
-            </h2>
+
 
             <BestCompTable />
-            <h2>
-                Fig Bestcomp
-            </h2>
 
 
 

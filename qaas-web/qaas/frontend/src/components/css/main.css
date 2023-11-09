@@ -39,7 +39,7 @@ h2 {
 }
 
 p {
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.6;
     margin-bottom: 15px;
 }
@@ -83,14 +83,14 @@ li {
 }
 
 .graphContainer {
-    height: 40vh;
+    height: 50vh;
     margin: 10px auto;
     padding: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     max-width: 1000px;
-    width: 100%;
+    width: 60%;
 
 }
 
