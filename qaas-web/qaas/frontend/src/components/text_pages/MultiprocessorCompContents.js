@@ -53,7 +53,7 @@ export default function MultiprocessorCompContents() {
                 a low ratio, and Cloverleaf++, as a C++ code, seems to have extra parallelism overhead instructions.
                 CHECK details it is a good oppy to discuss parallel ohd.
             </p>
-            <div className='multipleGraphContainer'>
+            <div className='multiple-graph-container'>
 
 
                 <BestCompTable />

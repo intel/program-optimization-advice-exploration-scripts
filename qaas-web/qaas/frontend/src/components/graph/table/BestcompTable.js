@@ -2,8 +2,8 @@ import React from "react";
 import CustomReactTable from "./CustomReactTable";
 import { getCompilerColor } from "../../Constants";
 const columns = [
-    { Header: 'MiniApp', accessor: 'miniApp' },
-    { Header: 'Language', accessor: 'language' },
+    { Header: 'MiniApp', accessor: 'miniApp', },
+    { Header: 'Language', accessor: 'language', },
     { Header: 'Best Compiler', accessor: 'bestCompiler' },
     { Header: 'Time (s)', accessor: 'time' },
     { Header: 'GFLOPs', accessor: 'gflops' },

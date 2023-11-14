@@ -28,7 +28,7 @@ export default function MultiprocessorPerfContents() {
                 requires probing this website more deeply. A main takeaway is to observe the diversity of optimal cases for these 7 simple miniapps (randomly chosen from the web).
             </p>
 
-            <div className='multipleGraphContainer'>
+            <div className='multiple-graph-container'>
                 <MulticorePerfGFlopsLineGraph />
 
                 <MpratioTable />

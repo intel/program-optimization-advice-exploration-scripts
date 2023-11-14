@@ -29,7 +29,7 @@ export default function UnicorePerfContents() {
                 we can see that G3E and Zen4 are within 10% of each other. Both figures illustrate the fact
                 that performance leadership and ranking varies a lot across application types and architectures.
             </p>
-            <div className='multipleGraphContainer'>
+            <div className='multiple-graph-container'>
                 <UnicorePerfGFlopsLineGraph />
                 <UnicorePerfTable />
             </div>

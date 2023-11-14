@@ -39,13 +39,13 @@
 .graphContainer {
     flex: 0 1 auto;
     width: 100%;
-    max-width: 600px;
+    max-width: 700px;
     padding: 20px;
     word-wrap: break-word;
 
 }
 
-.multipleGraphContainer {
+.multiple-graph-container {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -54,7 +54,7 @@
 
 
 
-.graphContainerShortHistogram {
+.graph-container-short-histogram {
 
     width: 100%;
     max-width: 300px;
@@ -64,7 +64,7 @@
     word-wrap: break-word;
 }
 
-.plotTitleShortHistogram {
+.plot-title-short-histogram {
     text-align: center;
     font-weight: bold;
     font-size: 15px;

@@ -110,10 +110,10 @@ const chartLayout = {
 
 export default function AppgainHistogram() {
     return (
-        <div className='graphContainerShortHistogram'>
+        <div className='graph-container-short-histogram'>
             <PlotlyHistogram data={processedData} layout={chartLayout} />
 
-            <div className="plot-title">
+            <div className="plot-title-short-histogram">
                 Fig. appgain
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 QaaS gain vs. other 2 baselines

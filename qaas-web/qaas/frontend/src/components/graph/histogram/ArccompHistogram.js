@@ -110,10 +110,10 @@ const chartLayout = {
 };
 export default function ArccompHistogram() {
     return (
-        <div className='graphContainerShortHistogram'>
+        <div className='graph-container-short-histogram'>
             <PlotlyHistogram data={processedData} layout={chartLayout} />
 
-            <div className="plotTitleShortHistogram">
+            <div className="plot-title-short-histogram">
                 Fig. Arccomp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Architecture Comparison [GF/core]: SPR/ICL wins in green, ICL/SPR wins in blue
 
             </div>

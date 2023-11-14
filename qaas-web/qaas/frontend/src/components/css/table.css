@@ -12,8 +12,9 @@ td {
     border: 1px solid #ddd;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
     text-align: center;
+    word-break: break-word;
 }
 
 th {
@@ -43,22 +44,4 @@ tr:hover {
     width: 100%;
     max-height: 500px;
     overflow-x: auto;
-}
-
-/* tootip style */
-.tooltip {
-    position: relative;
-}
-
-.tooltip:hover:after {
-    content: attr(title);
-    position: absolute;
-    left: 0;
-    top: 100%;
-    white-space: pre-wrap;
-    z-index: 1;
-    background: black;
-    color: white;
-    padding: 5px;
-    border-radius: 3px;
 }
