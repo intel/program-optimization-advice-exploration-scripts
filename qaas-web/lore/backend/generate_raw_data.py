@@ -51,12 +51,30 @@ def get_ref_from_loop(loop):
 
     return novec_value
 
+def get_min_ref_from_loop(loop):
+    metrics = loop.lore_loop_measures[0].lore_loop_measure_metrics
+    metrics_dict = {src_metric.metric_name: src_metric.metric_value for src_metric in metrics}
+    all_values = {
+        'novec': float(metrics_dict.get('novec_median', None)),
+        'sse': float(metrics_dict.get('sse_median', None)),
+        'avx': float(metrics_dict.get('avx_median', None)),
+        'avx2': float(metrics_dict.get('avx2_median', None)),
+        'o3': float(metrics_dict.get('o3_median', None)),
+        'base': float(metrics_dict.get('base_median', None))
+    }
+    all_values = {key: float(value) for key, value in all_values.items() if value is not None}
+    min_key = min(all_values, key=all_values.get)
+    min_value = all_values[min_key]
+
+    return (min_key, min_value)
 
 @with_app_context
 def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version):
     db.session.expunge_all()
     BATCH_SIZE = 5000
-    cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_{compiler_vendor}_{compiler_version}.pkl")
+    # cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_{compiler_vendor}_{compiler_version}.pkl")
+    cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_best_option_{compiler_vendor}_{compiler_version}.pkl")
+
     if os.path.exists(cache_filename):
         os.remove(cache_filename)
     count = 0
@@ -86,7 +104,9 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
         for loop in batch_loops:
             # loop's src loop
             src_loop = loop.src_loop  
-            ref_value = get_ref_from_loop(loop)
+            # ref_value = get_ref_from_loop(loop)
+            vec_type, ref_value = get_min_ref_from_loop(loop)
+
             mutation_number = src_loop.mutation_number
             orig_src_loop = src_loop.orig_src_loop
             source_id = src_loop.source.table_id if not orig_src_loop else orig_src_loop.source.table_id
@@ -110,7 +130,8 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
 def create_cache_for_all_compiler_mutations_time_per_orig_loop():
     # compiler_vendors_and_versions = get_all_compiler_vendors_and_versions()
     # compiler_vendors_and_versions = [('icc', '17.0.1')]
-    compiler_vendors_and_versions = [('gcc','6.2.0')]
+    # compiler_vendors_and_versions = [('gcc','6.2.0')]
+    compiler_vendors_and_versions = [('clang','4.0.0')]
 
     #('icc', '17.0.1'),('icc','15.0.6'),('gcc','6.2.0'),('gcc','4.8.5'),('gcc','4.7.4'),('clang','4.0.0'),('clang','3.6.2'),('clang','3.4.2')
     for vendor, version in compiler_vendors_and_versions:

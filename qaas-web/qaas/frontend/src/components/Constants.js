@@ -27,12 +27,29 @@ export const COMPILER_COLORS = {
 export const PROCESSOR_COLORS = {
     'ICL': '#FF6B6B',
     'SPR': '#89CFF0',
-    'Zen4': '#E2F0CB',
-    'G3E': '#C5C6C7',
-    'ICLLIGHT': 'rgba(255, 107, 107, 0.5)',
-    'SPRLIGHT': 'rgba(137, 207, 240, 0.5)',
+    'Zen4': '#60d394',
+    'G3E': '#FFD700',
+    'Intel ICL': '#FF6B6B',
+    'Intel SPR': '#89CFF0',
+    'AMD Zen4': '#60d394',
+    'AWS G3E': '#FFD700'
 }
 
+export const PROCESSOR_POINT_SHAPE = {
+    'ICL': 'circle',
+    'SPR': 'square',
+    'Zen4': 'diamond',
+    'G3E': 'cross',
+    'Intel ICL': 'circle',
+    'Intel SPR': 'square',
+    'AMD Zen4': 'diamond',
+    'AWS G3E': 'cross'
+}
+
+export function getProcessorPointStyle(processor) {
+    return PROCESSOR_POINT_SHAPE[processor];
+
+}
 export function getProcessorColor(processor) {
     return PROCESSOR_COLORS[processor];
 }
@@ -65,3 +82,63 @@ export function categorizeSpeedupDynamic(speedup, leftMostBin) {
     if (speedup < 4) return '2-4X';
     return '> 4X';
 }
+
+export const plotStyle = {
+    family: "'Lato', Calibri, Arial, sans-serif",
+    titleFontSize: '18px',
+    gridcolor: '#CCCCCC',
+};
+
+export const baseLineLayout = {
+    autosize: true,
+
+    legend: {
+        x: 0.2,
+        xanchor: 'center',
+        y: 0.9,
+        yanchor: 'top',
+        orientation: 'v'
+    },
+    margin: {
+        l: 40,
+        r: 40,
+        b: 50,
+        pad: 4
+    },
+    xaxis: {
+        font: {
+            family: plotStyle.fontFamily,
+        },
+    },
+    yaxis: {
+        font: {
+            family: plotStyle.fontFamily,
+        },
+    },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)'
+};
+
+export const baseHistogramLayout = {
+    bargap: 0, // no space between bars
+    xaxis: {
+        font: {
+            family: plotStyle.fontFamily,
+        },
+    },
+    yaxis: {
+        font: {
+            family: plotStyle.fontFamily,
+        },
+    },
+    margin: {
+        l: 40,
+        r: 40,
+        b: 10,
+        t: 10,
+        pad: 4
+    },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+
+    plot_bgcolor: 'rgba(0,0,0,0)',
+};

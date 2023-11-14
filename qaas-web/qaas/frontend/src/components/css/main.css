@@ -41,7 +41,6 @@ h2 {
 p {
     font-size: 16px;
     line-height: 1.6;
-    margin-bottom: 15px;
 }
 
 li {
@@ -52,12 +51,27 @@ li {
 .link {
     color: #2f889a;
     text-decoration: none;
+    font-weight: bold;
+
 }
 
 .link:hover {
     color: #1a4a5a;
     text-decoration: underline;
 }
+
+.textPageContainer .tooltip-trigger {
+    color: #2f889a;
+    font-weight: bold;
+    cursor: help;
+}
+
+
+.textPageContainer .tooltip-box {
+    background-color: #2f889a;
+    color: white;
+}
+
 
 .textPageContainer {
     margin: 20px;
@@ -82,17 +96,7 @@ li {
     margin: 0 auto;
 }
 
-.graphContainer {
-    height: 50vh;
-    margin: 10px auto;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    max-width: 1000px;
-    width: 60%;
 
-}
 
 
 

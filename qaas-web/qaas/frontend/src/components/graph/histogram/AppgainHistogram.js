@@ -1,113 +1,124 @@
 import React from "react";
 import { getAppColor } from "../../Constants";
-import Histogram from "./Histogram";
-import { BarTextPlugin } from "../GraphPlugin";
-const histogramData = {
-    labels: ['tie', '1.1-1.2', '1.2-1.5', '1.5-2X', '2X – 4X', '4X <'],
-    datasets: [
-        {
-            label: 'AMG',
-            backgroundColor: getAppColor('AMG'),
-
-            data: [1, 0, 0, 0, 0, 0],
-            barText: ['AMG', '', '', '', '', ''],
-            barPercentage: 1.0,
-            categoryPercentage: 1.0,
+import '../../css/graph.css'
+import PlotlyHistogram from "./PlotlyHistogram";
+import { baseHistogramLayout } from "../../Constants";
+const range = ['tie', '1.1-1.2', '1.2-1.5', '1.5-2X', '2X – 4X', '4X <']
+const histogramData = [
+    {
+        x: range,
+        y: [1, 0, 0, 0, 0, 0],
+        type: 'bar',
+        name: 'AMG',
+        marker: {
+            color: getAppColor('AMG'),
         },
-        {
-            label: 'HACC',
-            backgroundColor: getAppColor('HACC'),
-
-            data: [1, 0, 0, 0, 0, 0],
-            barText: ['HACC', '', '', '', '', ''],
-            barPercentage: 1.0,
-            categoryPercentage: 1.0,
-        },
-        {
-            label: 'CoMD',
-            backgroundColor: getAppColor('CoMD'),
-
-            data: [0, 1, 0, 0, 0, 0],
-            barText: ['', 'CoMD', '', '', '', ''],
-            barPercentage: 1.0,
-            categoryPercentage: 1.0,
-        },
-        {
-            label: 'ClovF',
-            backgroundColor: getAppColor('ClovF'),
-
-            data: [0, 0, 1, 0, 0, 0],
-            barText: ['', '', 'ClovF', '', '', ''],
-            barPercentage: 1.0,
-            categoryPercentage: 1.0,
-        },
-        {
-            label: 'Miniqmc',
-            backgroundColor: getAppColor('Miniqmc'),
-
-            data: [0, 0, 0, 1, 0, 0],
-            barText: ['', '', '', 'Miniqmc', '', ''],
-            barPercentage: 1.0,
-            categoryPercentage: 1.0,
-        },
-        {
-            label: 'Kripke',
-            backgroundColor: getAppColor('Kripke'),
-
-            data: [0, 0, 0, 0, 1, 0],
-            barText: ['', '', '', '', 'Kripke', ''],
-            barPercentage: 1.0,
-            categoryPercentage: 1.0,
-        },
-        {
-            label: 'Clov++',
-            backgroundColor: getAppColor('Clov++'),
-
-            data: [0, 0, 0, 0, 0, 1],
-            barText: ['', '', '', '', '', 'Clov++'],
-            barPercentage: 1.0,
-            categoryPercentage: 1.0,
-        },
-    ]
-};
-
-
-const chartOptions = {
-
-    scales: {
-        x: {
-            title: {
-                display: true,
-                text: 'Fig Appgain QaaS gain vs. other 2 baselines',
-                font: {
-                    size: 24
-                },
-                padding: {
-                    top: 30,
-                    bottom: 30
-                }
-            },
-            stacked: true,
-        },
-        y: {
-            title: {
-                display: true,
-                text: 'Cases Count',
-            },
-            stacked: true,
-            ticks: {
-                stepSize: 1,
-            },
-        },
+        text: ['AMG', '', '', '', '', ''],
     },
+    {
+        x: range,
+        y: [1, 0, 0, 0, 0, 0],
+        type: 'bar',
+        name: 'HACC',
+        marker: {
+            color: getAppColor('HACC'),
+        },
+        text: ['HACC', '', '', '', '', ''],
+    },
+    {
+        x: range,
+        y: [0, 1, 0, 0, 0, 0],
+        type: 'bar',
+        name: 'CoMD',
+        marker: {
+            color: getAppColor('CoMD'),
+        },
+        text: ['', 'CoMD', '', '', '', ''],
+    },
+    {
+        x: range,
+        y: [0, 0, 1, 0, 0, 0],
+        type: 'bar',
+        name: 'ClovF',
+        marker: {
+            color: getAppColor('ClovF'),
+        },
+        text: ['', '', 'ClovF', '', '', ''],
+    },
+    {
+        x: range,
+        y: [0, 0, 0, 1, 0, 0],
+        type: 'bar',
+        name: 'Miniqmc',
+        marker: {
+            color: getAppColor('Miniqmc'),
+        },
+        text: ['', '', '', 'Miniqmc', '', ''],
+    },
+    {
+        x: range,
+        y: [0, 0, 0, 0, 1, 0],
+        type: 'bar',
+        name: 'Kripke',
+        marker: {
+            color: getAppColor('Kripke'),
+        },
+        text: ['', '', '', '', 'Kripke', ''],
+    },
+    {
+        x: range,
+        y: [0, 0, 0, 0, 0, 1],
+        type: 'bar',
+        name: 'Clov++',
+        marker: {
+            color: getAppColor('Clov++'),
+        },
+        text: ['', '', '', '', '', 'Clov++'],
+    },
+];
+
+
+function processData(dataset) {
+    return {
+        ...dataset,
+        textposition: 'inside',
+        insidetextanchor: 'middle',
+        textangle: 0,
+    };
+}
+const processedData = histogramData.map(processData);
+
+const chartLayout = {
+    ...baseHistogramLayout,
+    barmode: 'stack',
+    showlegend: false,
+    xaxis: {
+        tickmode: 'array',
+
+    },
+    yaxis: {
+        title: 'Cases Count',
+        automargin: true,
+
+
+    },
+    height: 120,
+    width: 400,
+
 
 };
+
 export default function AppgainHistogram() {
     return (
-        <div className='graphContainer'>
-            <Histogram data={histogramData} options={chartOptions} plugins={[BarTextPlugin]} />
+        <div className='graphContainerShortHistogram'>
+            <PlotlyHistogram data={processedData} layout={chartLayout} />
 
+            <div className="plot-title">
+                Fig. appgain
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                QaaS gain vs. other 2 baselines
 
+            </div>
         </div>
     );
 }

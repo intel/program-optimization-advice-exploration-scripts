@@ -1,6 +1,7 @@
 import React from "react";
 import CustomReactTable from "./CustomReactTable";
 import { getCompilerColor } from "../../Constants";
+import '../../css/graph.css'
 const columns = [
     { Header: 'Mini-Apps', accessor: 'miniApp' },
     { Header: 'Intel SKL 2015', accessor: 'skl' },
@@ -32,8 +33,10 @@ export default function UnicorePerfTable() {
     return (
         <div className='graphContainer'>
 
+
+
             <CustomReactTable columns={columns} data={sortedData} />
-            <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '24px', padding: '20px 0' }}>Fig. utab 	Performance [Gf] for 7 miniapps on 5 systems</div>
+            <div className="plot-title">Fig. utab&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Performance [Gf] for 7 miniapps on 5 systems</div>
 
         </div>
     );

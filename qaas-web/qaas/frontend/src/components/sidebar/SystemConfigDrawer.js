@@ -7,9 +7,13 @@ import { useNavigationState } from '../hooks/useNavigationState';
 
 const drawerItems = [
     { level: 1, text: 'Overview', path: '/system_config', status: 'empty' },
-    { level: 1, text: 'Sky Lake', path: '/system_config/sky_lake' },
-    { level: 1, text: 'Ice Lake', path: '/system_config/ice_lake' },
-    { level: 1, text: 'Sapphire Rapids', path: '/system_config/sapphire_rapids' },
+    { level: 1, text: 'Architectures', path: '/system_config/architecture' },
+
+    { level: 2, text: 'Sky Lake', path: '/system_config/sky_lake' },
+    { level: 2, text: 'Ice Lake', path: '/system_config/ice_lake' },
+    { level: 2, text: 'Sapphire Rapids', path: '/system_config/sapphire_rapids' },
+    { level: 1, text: 'Compilers', path: '/system_config/compilers' },
+
 ];
 
 const SystemConfigDrawer = () => {
