@@ -37,6 +37,7 @@ def create_app():
         for key in data_dict.keys():
             data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
 
+        # print(data_dict)
         # print(applications)
         return jsonify(data_dict)
 

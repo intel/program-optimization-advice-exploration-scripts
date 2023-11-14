@@ -7,9 +7,10 @@ const columns = [
     { Header: 'Best Compiler', accessor: 'bestCompiler' },
     { Header: 'Time (s)', accessor: 'time' },
     { Header: 'GFLOPs', accessor: 'gflops' },
+    { Header: '#Cores used/48', accessor: 'coresUsed' },
+
     { Header: 'GFLOPs/core', accessor: 'gflopsPerCore' },
     { Header: 'Unicore Gf', accessor: 'unicoreGf' },
-    { Header: '#Cores used/48', accessor: 'coresUsed' },
 ];
 
 const data = [
@@ -36,6 +37,7 @@ function getCellStyles(cell) {
         return {
             style: {
                 backgroundColor: getCompilerColor(cell.value),
+
             },
         };
     }
@@ -47,8 +49,10 @@ function BestCompTable() {
         <div className='graphContainer'>
 
             <CustomReactTable columns={columns} data={sortedData} getCellProps={getCellStyles} />
-            <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '24px', padding: '20px 0' }}>Fig Bestcomp</div>
+            <div className="plot-title">
+                Fig Bestcomp
 
+            </div>
 
         </div>
     );

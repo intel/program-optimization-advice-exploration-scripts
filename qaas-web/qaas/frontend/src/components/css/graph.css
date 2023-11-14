@@ -1,3 +1,4 @@
+/* win lose compiler compare histogram */
 .filter-box {
     display: inline-block;
     margin: 5px;
@@ -25,4 +26,47 @@
 .filter-menu-container .ant-checkbox-wrapper .ant-checkbox-checked .ant-checkbox-inner:hover {
     background-color: #1e5a66 !important;
     border-color: #1e5a66 !important;
+}
+
+/* table */
+.plot-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 20px;
+    margin: 5px;
+}
+
+.graphContainer {
+    flex: 0 1 auto;
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+    word-wrap: break-word;
+
+}
+
+.multipleGraphContainer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+
+
+.graphContainerShortHistogram {
+
+    width: 100%;
+    max-width: 300px;
+    margin: auto;
+    padding: 30px;
+    float: right;
+    word-wrap: break-word;
+}
+
+.plotTitleShortHistogram {
+    text-align: center;
+    font-weight: bold;
+    font-size: 15px;
+    margin: 5px;
 }

@@ -47,8 +47,10 @@ export default function MpratioTable() {
     return (
         <div className='graphContainer'>
             <CustomReactTable columns={columns} data={data} />
-            <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '24px', padding: '30px 0' }}>Table MPratio Sorted by total Gf</div>
+            <div className="plot-title">
+                Table MPratio Sorted by total Gf
 
+            </div>
         </div>
     );
 }

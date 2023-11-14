@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
 import { Chart, registerables } from "chart.js"
-import LineGraph from './LineGrapah';
-import { minMaxLineLabelPlugin } from '../GraphPlugin';
+import { createMinMaxAnnotations } from '../GraphPlugin';
+import PlotlyLineGraph from './PlotlyLineGraph';
+import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout } from '../../Constants';
 Chart.register(...registerables);
 
 
 export default function UnicorePerfGFlopsLineGraph() {
     const [chartData, setChartData] = useState(null);
-
+    const [annotations, setAnnotations] = useState([]);
 
     //set raw data first time
     useEffect(() => {
@@ -17,7 +18,10 @@ export default function UnicorePerfGFlopsLineGraph() {
 
                 const rawData = response.data
                 const preparedData = processRawData(rawData);
+                console.log(preparedData)
+                const newAnnotations = createMinMaxAnnotations(preparedData);
                 setChartData(preparedData);
+                setAnnotations(newAnnotations)
 
 
 
@@ -28,76 +32,65 @@ export default function UnicorePerfGFlopsLineGraph() {
 
 
 
-
     const processRawData = (rawData) => {
-        const pointStyles = ['circle', 'rectRot', 'triangle', 'rect'];
-        let pointStyleIndex = 0;
-        const preparedData = {
-            labels: rawData['Apps'].map((app) => `${app}`),
-            datasets: Object.keys(rawData).filter(key => key !== 'Apps').map(key => {
-                const style = pointStyles[pointStyleIndex % pointStyles.length];
-                pointStyleIndex++;
-                return {
-                    label: key,
-                    data: rawData[key],
-                    fill: false,
-                    pointStyle: style,
-                    pointRadius: 5,
-
-
-                };
-            })
-        };
-        return preparedData;
+        const { Apps, ...processors } = rawData;
+        return Object.keys(processors).map(processor => {
+            const processorData = processors[processor];
+            const symbol = getProcessorPointStyle(processor); // get the point symbol 
+            const color = getProcessorColor(processor);
+            return {
+                type: 'scatter',
+                mode: 'markers+lines',
+                name: processor,
+                x: Apps,
+                y: processorData.map(value => value === null ? undefined : value),
+                line: {
+                    color: color,
+                },
+                marker: {
+                    symbol: symbol,
+                    color: color,
+                    size: 8,
+                }
+            };
+        });
     };
 
     if (chartData === null) {
         return <div>Loading Unicore GFLops graph...</div>;
     }
 
+    const chartLayout = {
+        ...baseLineLayout,
 
-    const chartOptions = {
-        plugins: {
-            legend: {
-                labels: {
-                    usePointStyle: true,  // use the point style as legend symbol
-                }
-            },
+
+        yaxis: {
+            title: 'GFlops',
+            type: 'log',
+            tickvals: [1, 2, 5, 10, 20, 40],
+            ticktext: ['1', '2', '5', '10', '20', '40'],
+            range: [0, 2],
+
 
         },
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Fig. uni         Performance [Gf] of 7 miniapps on 4 current unicore processors',
-                    font: {
-                        size: 24
-                    },
-                    padding: {
-                        top: 30,
-                        bottom: 30
-                    }
-                }
-            },
 
-            y: {
-                title: {
-                    display: true,
-                    text: 'GFlops',
-                }
-            }
-        }
+        annotations: annotations,
+
     };
 
 
 
     return (
         <div className='graphContainer'>
-            <LineGraph
+
+            <PlotlyLineGraph
                 data={chartData}
-                options={chartOptions}
-                plugins={[minMaxLineLabelPlugin]}
+                layout={chartLayout}
             />
+            <div className="plot-title">
+                Fig. uni&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Performance [Gf] of 7 miniapps on 4 current unicore processors
+
+            </div>
         </div>
     );
 

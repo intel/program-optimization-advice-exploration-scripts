@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
 import { Chart, registerables } from "chart.js"
-import LineGraph from './LineGrapah';
-import { minMaxMultipleLineLabelPlugin, multicorePerformanceHtmlLegendPlugin } from '../GraphPlugin';
-import { getProcessorColor } from '../../Constants';
+import { } from '../GraphPlugin';
+import PlotlyLineGraph from './PlotlyLineGraph';
+import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout } from '../../Constants';
+import { createMultileMinMaxAnnotations } from '../GraphPlugin';
 Chart.register(...registerables);
 
 
 export default function MulticorePerfGFlopsLineGraph() {
     const [chartData, setChartData] = useState(null);
+    const [annotations, setAnnotations] = useState([]);
 
 
     //set raw data first time
@@ -18,7 +20,9 @@ export default function MulticorePerfGFlopsLineGraph() {
 
                 const rawData = response.data
                 const preparedData = processRawData(rawData);
+                const newAnnotations = createMultileMinMaxAnnotations(preparedData);
                 setChartData(preparedData);
+                setAnnotations(newAnnotations)
 
 
 
@@ -28,112 +32,92 @@ export default function MulticorePerfGFlopsLineGraph() {
 
 
 
+    function getProcessor(processorName) {
+        let processType = '';
+        const nameLower = processorName.toLowerCase();
 
-    //create 2 groups one for total gflops and one for gflops per core
+        if (nameLower.includes('icl')) {
+            processType = 'ICL';
+        } else if (nameLower.includes('spr')) {
+            processType = 'SPR';
+        }
+
+        return processType;
+    }
     const processRawData = (rawData) => {
-        const styles = {
-            'ICL': {
-                borderColor: getProcessorColor('ICL'),
-                backgroundColor: getProcessorColor('ICLLIGHT'),
-                pointStyle: 'circle',
-            },
-            'SPR': {
-                borderColor: getProcessorColor('SPR'),
-                backgroundColor: getProcessorColor('SPRLIGHT'),
-                pointStyle: 'rectRot',
-            }
-        };
-        const datasets = Object.keys(rawData).filter(key => key !== 'Apps').map(key => {
-            const isICLData = key.includes('ICL');
-            const isCoreData = key.includes('per-core');
-
-            // Determine the style based on ICL or SPR data
-            const dataSetStyle = isICLData ? styles['ICL'] : styles['SPR'];
-
+        const { Apps, ...processors } = rawData;
+        return Object.keys(processors).map(processor => {
+            const processorData = processors[processor];
+            const processType = getProcessor(processor);
+            const symbol = getProcessorPointStyle(processType); // get the point symbol 
+            const color = getProcessorColor(processType);
+            console.log(processor, typeof (processor), color, symbol)
+            const isTotalGFlops = processor.toLowerCase().includes('total');
+            const yAxis = isTotalGFlops ? 'y' : 'y2';
             return {
-                label: key,
-                data: rawData[key],
-                fill: false,
-                borderColor: dataSetStyle.borderColor,
-                backgroundColor: dataSetStyle.backgroundColor,
-                // Apply dashed line if it's core data, solid otherwise
-                borderDash: isCoreData ? [5, 5] : [],
-                pointStyle: dataSetStyle.pointStyle,
-                pointRadius: 5,
+                type: 'scatter',
+                mode: 'markers+lines',
+                name: processor,
+                x: Apps,
+                y: processorData.map(value => value === null ? undefined : value),
+                yaxis: yAxis,
+                line: {
+                    color: color,
+                    dash: isTotalGFlops ? 'solid' : 'dash'
+                },
+                marker: {
+                    symbol: symbol,
+                    color: color,
+                    size: 8,
+                }
             };
         });
-
-        return {
-            labels: rawData['Apps'],
-            datasets: datasets
-        };
     };
+
 
     if (chartData === null) {
         return <div>Loading MulticoreS GFLops graph...</div>;
     }
 
 
-    const chartOptions = {
-        plugins: {
-            legend: {
-                display: false,
+    const chartLayout = {
+        ...baseLineLayout,
 
-            },
+        yaxis: {
+            title: 'GFlops',
+            type: 'log',
+            tickvals: [10, 20, 50, 100, 500, 2000],
+            ticktext: ['10', '20', '50', '100', '500', '2000'],
+            range: [1, Math.log10(2000) + 0.1],//a bit more space to show the text
+
 
         },
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Fig. MPperf          Multicore Performance: System vs per-core GFlops',
-                    font: {
-                        size: 24
-                    },
-                    padding: {
-                        top: 30,
-                        bottom: 30
-                    }
-                }
-            },
+        yaxis2: {
+            title: 'GFlops',
+            type: 'linear',
+            overlaying: 'y',
+            side: 'right',
+            tickvals: [0, 10, 20, 30, 40],
+            ticktext: ['0', '10', '20', '30', '40'],
+            range: [0, 40],
+        },
 
-            y: {
-                type: 'logarithmic',
-
-                title: {
-                    display: true,
-                    text: 'GFlops',
+        annotations: annotations,
 
 
-                },
-                ticks: {
-                    min: 10,
-                    max: 2000,
-                    // For a category axis, the val is the index so the lookup via getLabelForValue is needed
-                    callback: function (val, index, values) {
-                        // Hide every 2nd tick label
-                        const ticks = [10, 20, 50, 100, 500, 2000]
-                        if (ticks.includes(val)) {
-                            return val;
-                        }
-                    },
-                }
-
-            }
-        }
     };
 
 
-    console.log("chartdata", chartData)
     return (
         <div className='graphContainer'>
-            <LineGraph
+            <PlotlyLineGraph
                 data={chartData}
-                options={chartOptions}
-                plugins={[minMaxMultipleLineLabelPlugin, multicorePerformanceHtmlLegendPlugin]}
+                layout={chartLayout}
             />
-            <div id="js-legend" className="chart-legend"></div>
+            <div className="plot-title">
+                Fig. MPperf &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Multicore Performance: System vs per-core GFlops
 
+            </div>
         </div>
     );
 

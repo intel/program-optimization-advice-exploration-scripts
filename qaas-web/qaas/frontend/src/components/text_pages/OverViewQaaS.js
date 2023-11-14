@@ -22,7 +22,7 @@ export default function OverViewQaaS() {
                 This is also an introduction to the QaaS service of Section 2 (Automatic Application Improvement).
             </p>
 
-            <h2>Multiprocessor comparisons of 3 compilers</h2>
+            <h2>Compiler Comparison</h2>
             <p>
                 Most computers have multiple processors/cores today, and applications can take advantage of them in various ways.
                 Compilers play larger roles as computations become more complex, so we continue the discussion on these topics
