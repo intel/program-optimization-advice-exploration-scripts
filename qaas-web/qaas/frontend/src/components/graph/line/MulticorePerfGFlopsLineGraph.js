@@ -51,7 +51,6 @@ export default function MulticorePerfGFlopsLineGraph() {
             const processType = getProcessor(processor);
             const symbol = getProcessorPointStyle(processType); // get the point symbol 
             const color = getProcessorColor(processType);
-            console.log(processor, typeof (processor), color, symbol)
             const isTotalGFlops = processor.toLowerCase().includes('total');
             const yAxis = isTotalGFlops ? 'y' : 'y2';
             return {

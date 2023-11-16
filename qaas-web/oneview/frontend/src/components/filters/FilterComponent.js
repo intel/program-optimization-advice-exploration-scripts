@@ -77,7 +77,7 @@ export default function FilterComponent({ onFilter, filters, setFilters }) {
     return (
         <div>
             <h2>Filters</h2>
-            <Row>
+            <Row gutter={16}>
                 {Object.keys(filters).map((category) => (
                     <Col key={category}>
                         <FilterMenu

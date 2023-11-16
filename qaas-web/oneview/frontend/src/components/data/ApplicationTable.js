@@ -67,10 +67,8 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
 
     const renderSubComponent = (row) => {
         return (
-            <div style={{ padding: "20px" }}>
-                <ApplicationSubTable data={row.row.original['run_data']} setSelectedRows={setSelectedRows} selectedRows={selectedRows}
-                    baseline={baseline} setBaseline={setBaseline} />
-            </div>
+            <ApplicationSubTable data={row.row.original['run_data']} setSelectedRows={setSelectedRows} selectedRows={selectedRows}
+                baseline={baseline} setBaseline={setBaseline} />
         );
     };
 

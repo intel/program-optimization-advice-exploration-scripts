@@ -37,10 +37,42 @@ def create_app():
         for key in data_dict.keys():
             data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
 
-        # print(data_dict)
-        # print(applications)
+     
         return jsonify(data_dict)
 
+    @app.route('/get_arccomp_data', methods=['GET'])
+    def get_arccomp_data():
+        df = pd.read_csv('/host/home/yjiao/ArchComp.Multicore.csv')
+
+        df['ICL per-core GFlops'] = df['ICL.Gf'] / df['ICL.cores']
+        df['SPR per-core GFlops'] = df['SPR.Gf'] / df['SPR.cores']
+
+        df['coreICL/coreSPR'] = df['ICL per-core GFlops'] / df['SPR per-core GFlops']
+        df['coreSPR/coreICL'] = df['SPR per-core GFlops'] / df['ICL per-core GFlops']
+        df['winner'] = np.where(df['coreICL/coreSPR'] > 1, 'ICL', 'SPR')
+        df['winner ratio'] = df[['coreICL/coreSPR', 'coreSPR/coreICL']].max(axis=1)
+        result_df = df[['Apps', 'winner', 'winner ratio']]
+
+        data_dict = result_df.to_dict(orient='list')
+        # replace NaN with None (null in JSON)
+        for key in data_dict.keys():
+            data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
+
+        return jsonify(data_dict)
+    
+    @app.route('/get_appgain_data', methods=['GET'])
+    def get_appgain_data():
+        df = pd.read_excel('/host/home/yjiao/QaaS_Min_Max_Unicore_Perf_Default.xlsx', header=3).dropna()
+        df['largest_gain'] = df[['ICX: -O3 -march=native', 'ICC: -O3 -march=native', 'GCC: -O3 -march=native']].max(axis=1)
+        df['app'] = df['Unnamed: 0']
+        result_df = df[['app', 'largest_gain']]
+        data_dict = result_df.to_dict(orient='list')
+        # replace NaN with None (null in JSON)
+        for key in data_dict.keys():
+            data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
+        print(result_df)
+        return jsonify(data_dict)
+    
     @app.route('/get_qaas_multicore_perf_gflops_data', methods=['GET'])
     def get_qaas_multicore_perf_gflops_data():
         df = pd.read_csv('/host/home/yjiao/ArchComp.Multicore.csv')
@@ -60,8 +92,6 @@ def create_app():
         for key in data_dict.keys():
             data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
 
-        print(data_dict)
-        # print(applications)
         return jsonify(data_dict)
     
     @app.route('/get_qaas_compiler_comparison_historgram_data', methods=['GET'])
@@ -133,7 +163,6 @@ def create_app():
                 'win_lose': all_win_lose,
                 'is_n_way_tie': is_n_way_tie
             })
-        # print(applications)
 
         return jsonify({
             'compilers': compilers,

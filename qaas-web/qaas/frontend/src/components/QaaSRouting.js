@@ -46,6 +46,7 @@ import OverViewQaaS from './text_pages/OverViewQaaS';
 import UnicorePerfContents from './text_pages/UnicorePerfContents';
 import MultiprocessorCompContents from './text_pages/MultiprocessorCompContents';
 import MultiprocessorPerfContents from './text_pages/MultiprocessorPerfContents';
+import PerfImprove from './text_pages/PerfImprove';
 export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const location = useLocation();
 
@@ -77,6 +78,7 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
                             <Route path="/qaas/overview/unicore_perf_contents" element={<UnicorePerfContents />} />
                             <Route path="/qaas/overview/multiprocessor_comp_contents" element={<MultiprocessorCompContents />} />
                             <Route path="/qaas/overview/multiprocessor_perf_contents" element={<MultiprocessorPerfContents />} />
+                            <Route path="/qaas/overview/perf_improve" element={<PerfImprove />} />
 
                             <Route path="/qaas/cq_overview" element={<CQOverview />} />
                             <Route path="/qaas/cq_overview_performance" element={<CQOverviewPerformance />} />

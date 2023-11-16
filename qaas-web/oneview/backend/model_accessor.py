@@ -400,6 +400,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
             current_vprof.cycles_per_iteration_mean = dic.get('cycles_per_iteration_mean', None)  
 
             current_loop = get_loop_by_maqao_id_module(self.get_current_execution(),  dic.get('loop_id', None),  dic.get('module', None) )
+            print(current_loop)
+
             current_vprof.loop = current_loop
 
             for bucket_range in self.vprof_bucket_range:
@@ -930,7 +932,6 @@ class OneViewModelExporter(OneviewModelAccessor):
     def visitDecanCollection(self, decan_collection):
         decan_path = self.get_decan_path()
         decan_data = []
-
         for decan in decan_collection.get_objs():
             metric = DecanMetric.get_metric_by_decan(decan, self)
             decan_dict = {
@@ -1333,7 +1334,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                 module_name = os.path.basename(loop.function.module.name)
 
                 content = source.content
-                file_name = '{}_{}.csv'.format(module_name, loop.maqao_loop_id)
+                file_name = 'src_{}_{}.txt'.format(module_name, loop.maqao_loop_id)
                 path = os.path.join(source_dir_path, file_name)
                 with open(path, 'wb') as f:
                     f.write(decompress_file(content))

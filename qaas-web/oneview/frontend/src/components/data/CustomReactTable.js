@@ -46,6 +46,36 @@ function CustomReactTable({ columns, data, SubComponent, hiddenColumns, columnFi
     return (
         <div className="table-container">
 
+            {/* componet to pagniation and show number of lines */}
+            <div>
+
+                <button onClick={() => previousPage()} disabled={!canPreviousPage}>
+                    {'<'}
+                </button>{' '}
+                <button onClick={() => nextPage()} disabled={!canNextPage}>
+                    {'>'}
+                </button>{' '}
+
+                <span>
+                    Page{' '}
+                    <strong>
+                        {pageIndex + 1} of {pageOptions.length}
+                    </strong>{' '}
+                </span>
+
+                <select
+                    value={pageSize}
+                    onChange={e => {
+                        setPageSize(Number(e.target.value));
+                    }}
+                >
+                    {[10, 20, 30, 40, 50].map(pageSize => (
+                        <option key={pageSize} value={pageSize}>
+                            Show {pageSize}
+                        </option>
+                    ))}
+                </select>
+            </div>
 
             <table {...getTableProps()}>
                 <thead>
@@ -112,6 +142,7 @@ function CustomReactTable({ columns, data, SubComponent, hiddenColumns, columnFi
                                     })}
 
                                 </tr>
+                                {console.log("expanded", row.isExpanded)}
                                 {row.isExpanded ? (
                                     <tr>
                                         <td colSpan={columns.length + 1}>
@@ -127,35 +158,7 @@ function CustomReactTable({ columns, data, SubComponent, hiddenColumns, columnFi
                 </tbody>
 
             </table>
-            <div>
 
-                <button onClick={() => previousPage()} disabled={!canPreviousPage}>
-                    {'<'}
-                </button>{' '}
-                <button onClick={() => nextPage()} disabled={!canNextPage}>
-                    {'>'}
-                </button>{' '}
-
-                <span>
-                    Page{' '}
-                    <strong>
-                        {pageIndex + 1} of {pageOptions.length}
-                    </strong>{' '}
-                </span>
-
-                <select
-                    value={pageSize}
-                    onChange={e => {
-                        setPageSize(Number(e.target.value));
-                    }}
-                >
-                    {[10, 20, 30, 40, 50].map(pageSize => (
-                        <option key={pageSize} value={pageSize}>
-                            Show {pageSize}
-                        </option>
-                    ))}
-                </select>
-            </div>
 
         </div>
 

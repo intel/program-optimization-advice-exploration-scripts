@@ -1,8 +1,8 @@
 export const RANGES = ['< 1.1X', '1.1-1.2X', '1.2-1.5X', '1.5-2X', '2-4X', '> 4X'];
 
 export const GENERAL_COLORS = {
-    'Win': '#FFABAB',
-    'Lose': '#B9FFC9',
+    'Win': '#B9FFC9',
+    'Lose': '#FFABAB',
 };
 
 export const APP_COLORS = {
@@ -13,6 +13,8 @@ export const APP_COLORS = {
     'Miniqmc': '#FDFFAB',
     'Kripke': '#F9C0C0',
     'Clov++': '#B4A7D6',
+    'Gromcas': '#A0D9D9',
+    'Qmcpack': '#FFD1BA',
 
 };
 
@@ -45,6 +47,29 @@ export const PROCESSOR_POINT_SHAPE = {
     'AMD Zen4': 'diamond',
     'AWS G3E': 'cross'
 }
+const APP_NAME_MAP = {
+    'amg': 'AMG',
+    'AMG': 'AMG',
+    'Amg': 'AMG',
+    'haccmk': 'HACC',
+    'HACCmk': 'HACC',
+    'HACC': 'HACC',
+    'comd': 'CoMD',
+    'CoMD': 'CoMD',
+    'cloverleaf cxx': 'Clov++',
+    'CloverLeaf CXX': 'Clov++',
+    'cloverleaf fc': 'ClovF',
+    'CloverLeaf FC': 'ClovF',
+    'miniqmc': 'Miniqmc',
+    'Miniqmc': 'Miniqmc',
+    'kripke': 'Kripke',
+    'Kripke': 'Kripke',
+    'gromcas': 'Gromcas',
+    'Gromcas': 'Gromcas',
+    'qmcpack': 'Qmcpack',
+    'Qmcpack': 'Qmcpack',
+};
+
 
 export function getProcessorPointStyle(processor) {
     return PROCESSOR_POINT_SHAPE[processor];
@@ -59,7 +84,8 @@ export function getGeneralColor(type) {
 }
 
 export function getAppColor(app) {
-    return APP_COLORS[app];
+    const correct_app_name = APP_NAME_MAP[app] || app;
+    return APP_COLORS[correct_app_name];
 }
 export function categorizeSpeedup(speedup) {
     if (speedup < 1.1) return '< 1.1X';
@@ -83,6 +109,45 @@ export function categorizeSpeedupDynamic(speedup, leftMostBin) {
     return '> 4X';
 }
 
+export function categorizeIntoBin(dataPoint, bins) {
+    let foundBin = null;
+
+    bins.forEach(bin => {
+        //remove all x or X
+        const cleanBin = bin.replace(/[Xx]/g, '');
+        if (cleanBin.includes('<')) {
+            //  '<number' 
+            const max = parseFloat(cleanBin.substring(1));
+            if (dataPoint < max) {
+                foundBin = bin;
+            }
+        } else if (cleanBin.includes('-')) {
+            //  'start-end' 
+            const [start, end] = cleanBin.split('-').map(Number);
+
+            if (dataPoint >= start && dataPoint < end) {
+                foundBin = bin;
+            }
+        } else if (cleanBin.includes('tie')) {
+            //  'tie' 
+            const tieBinUpperBound = parseFloat(bins[1].split('-')[0]);
+
+            if (dataPoint < tieBinUpperBound) {
+                foundBin = bin;
+            }
+        } else if (cleanBin.includes('>')) {
+            //  '>' 
+            const min = parseFloat(cleanBin.substring(1));
+            if (dataPoint > min) {
+                foundBin = bin;
+            }
+
+        }
+    });
+
+    return foundBin || 'out of range';
+}
+
 export const plotStyle = {
     family: "'Lato', Calibri, Arial, sans-serif",
     titleFontSize: '18px',
@@ -100,10 +165,10 @@ export const baseLineLayout = {
         orientation: 'v'
     },
     margin: {
-        l: 40,
-        r: 40,
+        l: 30,
+        r: 30,
         b: 50,
-        pad: 4
+        t: 0,
     },
     xaxis: {
         font: {
@@ -134,9 +199,8 @@ export const baseHistogramLayout = {
     margin: {
         l: 40,
         r: 40,
-        b: 10,
-        t: 10,
-        pad: 4
+        b: 20,
+        t: 0,
     },
     paper_bgcolor: 'rgba(0,0,0,0)',
 

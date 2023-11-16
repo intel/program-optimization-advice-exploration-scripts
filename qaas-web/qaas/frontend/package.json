@@ -51,6 +51,7 @@
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
     "react-iframe": "^1.8.0",
+    "react-katex": "^3.0.1",
     "react-listbox": "^1.2.13",
     "react-plotly.js": "^2.6.0",
     "react-router-dom": "^6.4.3",

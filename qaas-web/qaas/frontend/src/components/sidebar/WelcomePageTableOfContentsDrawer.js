@@ -19,7 +19,7 @@ const drawerItems = [
 
             {
 
-                text: 'C1. CQ Overview', path: '/qaas/cq_overview', children: [
+                text: 'C1. CQ Overview[Broad QaaS Introduction]', path: '/qaas/cq_overview', children: [
                     {
                         text: 'C1.1 Performance vs. compilers', path: '/qaas/cq_overview_performance', children: [
                             {
