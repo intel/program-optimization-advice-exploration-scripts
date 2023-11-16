@@ -1,15 +1,27 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
 export default function OverViewQaaS() {
     return (
         <div className="textPageContainer">
             <h1>Overview of QaaS: Summaries of past runs   </h1>
             <p>
                 This section uses key views of performance results to orient new QaaS users.
-                As an example, QaaS can search across architectures and compilers to find the best performance results per code.
+                For a philosophical background of our approach,
+                {' '}
+                <Link className='link'
+                    to="/qaas/overview/perf_improve"
+                > click here </Link>
+                .
+
+                To proceed with the discussion of QaaS typical results,
+                please continue. As examples, QaaS can search across architectures and compilers to find the best performance
+                results per code, and we present unicore, compiler and multicore comparisons.
+
 
             </p>
+
+
+
             <h2>Unicore performance comparisons</h2>
             <p>
                 For an introductory unicore discussion
@@ -49,11 +61,7 @@ export default function OverViewQaaS() {
             <h2>
                 Summary points
             </h2>
-            <p>
-                This brief introduction to QaaS has covered many topics that are expanded to fuller explanations in the click Broad QaaS Introduction.
-                If your main interest is in submitting your own job to run, you may proceed to Section 2 job submission. The Broad QaaS Introduction [BQI]
-                should serve as a reference document to further questions that may arise about QaaS analyses, as you proceed.
-            </p>
+
 
             <p>
                 Above, we have covered unicore and MP architectural basics, as well as compilation basics. We used only a few simple miniapplications.

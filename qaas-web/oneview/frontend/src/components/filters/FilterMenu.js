@@ -1,5 +1,6 @@
 import React from 'react';
 import { Collapse, Select, Input, Space, Checkbox } from 'antd';
+import { Row, Col } from 'antd';
 
 const { Panel } = Collapse;
 
@@ -15,11 +16,11 @@ export default function FilterMenu({ category, filterOptions, handleInputChange,
             <Select
                 defaultValue={filterOptions[subCategory][filterType].operator}
                 onChange={(selectedChoice) => {
-                    handleInputChange(category, subCategory, filterType, 'value', selectedChoice);
+                    handleInputChange(category, subCategory, filterType, 'operator', selectedChoice);
                 }}
             >
                 <Select.Option value="less than">Less Than</Select.Option>
-                <Select.Option value="bigger than">Bigger Than</Select.Option>
+                <Select.Option value="bigger than">Greater Than</Select.Option>
                 <Select.Option value="equal to">Equal To</Select.Option>
             </Select>
         )
@@ -60,33 +61,43 @@ export default function FilterMenu({ category, filterOptions, handleInputChange,
     return (
         <Collapse className="panel-container">
             <Panel header={category} key={category} className="panel">
-                {Object.keys(subCategories).map((subCategory) => (
-                    // each subcategory
-                    <Collapse key={subCategory}>
-                        <Panel header={subCategory} key={subCategory}>
-                            {Object.keys(subCategories[subCategory]).map((filterType) => (
-                                <Space key={filterType} className="space-container">
-                                    <Checkbox
-                                        checked={!resetFilters && filterOptions[subCategory][filterType].selected}
 
-                                        onChange={(e) => handleInputChange(category, subCategory, filterType, 'selected', e.target.checked)}
-                                    />
-                                    <span>{filterType}</span>
-                                    {renderOperatorSelector(category, subCategory, filterType)}
-                                    {/* conditionally render a input or selection based on the opertaor */}
-                                    {filterOptions[subCategory][filterType].operator === 'is' ?
-                                        renderChoicesDropdown(category, subCategory, filterType) :
-                                        <Input
-                                            value={subCategories[subCategory][filterType].value}
-                                            onChange={(e) => handleInputChange(category, subCategory, filterType, 'value', e.target.value)}
-                                        />
-                                    }
-                                    {renderModeSelector(category, subCategory, filterType)}
-                                </Space>
-                            ))}
-                        </Panel>
-                    </Collapse>
-                ))}
+                <Row gutter={16}>
+                    {/* each subcategory */}
+                    {Object.keys(subCategories).map((subCategory) => (
+
+                        <Col key={subCategory} >
+                            <Collapse key={subCategory}>
+                                <Panel header={subCategory} key={subCategory}>
+
+                                    {/* actual filter */}
+                                    {Object.keys(subCategories[subCategory]).map((filterType) => (
+                                        <Space key={filterType} className="space-container">
+                                            <Checkbox
+                                                checked={!resetFilters && filterOptions[subCategory][filterType].selected}
+
+                                                onChange={(e) => handleInputChange(category, subCategory, filterType, 'selected', e.target.checked)}
+                                            />
+                                            <span>{filterType}</span>
+                                            {renderOperatorSelector(category, subCategory, filterType)}
+                                            {/* conditionally render a input or selection based on the opertaor */}
+                                            {filterOptions[subCategory][filterType].operator === 'is' ?
+                                                renderChoicesDropdown(category, subCategory, filterType) :
+                                                <Input
+                                                    value={subCategories[subCategory][filterType].value}
+                                                    onChange={(e) => handleInputChange(category, subCategory, filterType, 'value', e.target.value)}
+                                                />
+                                            }
+                                            {renderModeSelector(category, subCategory, filterType)}
+                                        </Space>
+                                    ))}
+
+                                </Panel>
+                            </Collapse>
+                        </Col>
+                    ))}
+
+                </Row>
             </Panel>
         </Collapse>
     );

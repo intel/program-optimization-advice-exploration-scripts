@@ -183,6 +183,7 @@ export default function CompilerComparisonHistogram() {
             },
         },
 
+
     };
 
     console.log("chart data", chartData)
@@ -190,7 +191,7 @@ export default function CompilerComparisonHistogram() {
     return (
         <div >
             <FilterMenu setSelectedFilters={setSelectedFilters} selectedFilters={selectedFilters} applyFilters={applyFilters} />
-            <div className='graphContainer'>
+            <div className='graph-container-tall-histogram'>
 
                 <Histogram data={chartData} options={chartOptions} plugins={[BarTextPlugin]} />
             </div>

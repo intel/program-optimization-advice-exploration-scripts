@@ -11,7 +11,7 @@ const columns = [
                 Header: 'ICL /48',
                 accessor: 'coresUsedICL',
                 Cell: ({ value }) => {
-                    const color = value.includes('1/3') ? getGeneralColor('Win') : value.includes('All') ? getGeneralColor('Lose') : 'inherit'; //  Red for '1/3 = 16',  Green for 'All 48'
+                    const color = value.includes('1/3') ? getGeneralColor('Lose') : value.includes('All') ? getGeneralColor('Win') : 'inherit'; //  Red for '1/3 = 16',  Green for 'All 48'
                     return <div style={{ backgroundColor: color }}>{value}</div>;
                 }
             },
@@ -19,7 +19,7 @@ const columns = [
                 Header: 'SPR /64',
                 accessor: 'coresUsedSPR',
                 Cell: ({ value }) => {
-                    const color = value.includes('1/4') ? getGeneralColor('Win') : value.includes('All') ? getGeneralColor('Lose') : 'inherit'; //  Red for '1/4 = 16',  Green for 'All 64'
+                    const color = value.includes('1/4') ? getGeneralColor('Lose') : value.includes('All') ? getGeneralColor('Win') : 'inherit'; //  Red for '1/4 = 16',  Green for 'All 64'
                     return <div style={{ backgroundColor: color }}>{value}</div>;
                 }
             },
@@ -27,7 +27,14 @@ const columns = [
     },
     {
         Header: 'Ratios SPR/ICL: Freq ratio = .79', columns: [
-            { Header: 'SPR/ICL Total cores ratio', accessor: 'totalCoresRatio' }
+            {
+                Header: 'SPR/ICL Total cores ratio',
+                accessor: 'totalCoresRatio',
+                Cell: ({ value }) => {
+                    const color = value.includes('1.33') ? getGeneralColor('Win') : 'inherit'; //  1.33 green 
+                    return <div style={{ backgroundColor: color }}>{value}</div>;
+                }
+            }
         ]
     }
 ];
@@ -48,7 +55,7 @@ export default function MpratioTable() {
         <div className='graphContainer'>
             <CustomReactTable columns={columns} data={data} />
             <div className="plot-title">
-                Table MPratio Sorted by total Gf
+                Fig. MPratio&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICL and SPR Multicore Use Differences for 7 Miniapps
 
             </div>
         </div>

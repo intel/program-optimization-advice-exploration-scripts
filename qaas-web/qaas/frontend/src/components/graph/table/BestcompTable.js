@@ -6,7 +6,7 @@ const columns = [
     { Header: 'Language', accessor: 'language', },
     { Header: 'Best Compiler', accessor: 'bestCompiler' },
     { Header: 'Time (s)', accessor: 'time' },
-    { Header: 'GFLOPs', accessor: 'gflops' },
+    { Header: 'Best total Gf for ICL with Ec > .5', accessor: 'gflops' },
     { Header: '#Cores used/48', accessor: 'coresUsed' },
 
     { Header: 'GFLOPs/core', accessor: 'gflopsPerCore' },
@@ -46,15 +46,16 @@ function getCellStyles(cell) {
 
 function BestCompTable() {
     return (
-        <div className='graphContainer'>
+        < >
 
-            <CustomReactTable columns={columns} data={sortedData} getCellProps={getCellStyles} />
+            <div className='graphContainer'><CustomReactTable columns={columns} data={sortedData} getCellProps={getCellStyles} /></div>
             <div className="plot-title">
-                Fig Bestcomp
+                Fig. Bestcomp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                High-level architectural differences between SPR and ICL miniapp runs
 
             </div>
 
-        </div>
+        </>
     );
 }
 

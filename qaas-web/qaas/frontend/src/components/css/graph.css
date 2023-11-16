@@ -37,11 +37,12 @@
 }
 
 .graphContainer {
-    flex: 0 1 auto;
     width: 100%;
     max-width: 700px;
-    padding: 20px;
     word-wrap: break-word;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
 
 }
 
@@ -49,7 +50,7 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
 }
 
 
@@ -57,11 +58,23 @@
 .graph-container-short-histogram {
 
     width: 100%;
-    max-width: 300px;
-    margin: auto;
-    padding: 30px;
+    max-width: 400px;
     float: right;
     word-wrap: break-word;
+
+
+}
+
+.graph-container-tall-histogram {
+
+    width: 100%;
+    width: 700px;
+    height: 600px;
+    word-wrap: break-word;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
+
 }
 
 .plot-title-short-histogram {
@@ -69,4 +82,30 @@
     font-weight: bold;
     font-size: 15px;
     margin: 5px;
+}
+
+/* historm slider */
+.graph-container-short-histogram .ant-slider-rail,
+.graph-container-short-histogram .ant-slider-track,
+.graph-container-short-histogram .ant-slider-handle {
+    background-color: #277383 !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.graph-container-short-histogram .ant-slider-handle:focus::after,
+.graph-container-short-histogram .ant-slider-handle:focus::before,
+.graph-container-short-histogram .ant-slider-handle::after,
+.graph-container-short-histogram .ant-slider-handle::before {
+    content: none !important;
+    /* remove pseudo-elements */
+}
+
+
+.graph-container-short-histogram .ant-slider-handle:hover,
+.graph-container-short-histogram .ant-slider-handle:focus,
+.graph-container-short-histogram .ant-slider-handle:active,
+.graph-container-short-histogram .ant-slider-handle-dragging {
+    border-color: #1e5a66 !important;
+    background-color: #1e5a66 !important;
 }

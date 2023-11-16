@@ -5,9 +5,11 @@ class QaaSDatabase:
     def __init__(self):
         #put as parameter
         self.data_list = []
+        print("4database created")
 
     @classmethod
     def find_database(cls, timestamp, session):
+        print("in find database")
         qaas_database = cls()
         current_execution = Execution.get_obj(timestamp, session)
         qaas_database.add_to_data_list(current_execution)

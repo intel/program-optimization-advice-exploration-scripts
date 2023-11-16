@@ -2,7 +2,7 @@ import React from 'react';
 import UnicorePerfGFlopsLineGraph from '../graph/line/UnicorePerfGFlopsLineGraph';
 import UnicorePerfTable from '../graph/table/UnicorePerfTable';
 import { Link } from 'react-router-dom';
-
+import IntroLink from './IntroLink';
 export default function UnicorePerfContents() {
     return (
         <div className="textPageContainer">
@@ -33,6 +33,8 @@ export default function UnicorePerfContents() {
                 <UnicorePerfGFlopsLineGraph />
                 <UnicorePerfTable />
             </div>
+
+            <IntroLink />
 
 
 
