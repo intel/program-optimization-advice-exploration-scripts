@@ -3,8 +3,8 @@ import { getAppColor, baseHistogramLayout, categorizeIntoBin, getProcessorColor 
 import PlotlyHistogram from "./PlotlyHistogram";
 import '../../css/graph.css'
 import axios from "axios";
+import HistogramBinSlider from "./HistogramBinSlider";
 
-const range = ['<1.05', '1.05-1.1', '1.1-1.2', '1.2-1.5x']
 
 const chartLayout = {
     ...baseHistogramLayout,
@@ -26,11 +26,37 @@ const chartLayout = {
 };
 export default function ArccompHistogram() {
     const [data, setData] = useState(null);
+    const [rawData, setRawData] = useState(null);
+
+    const [range, setRange] = useState(['<1.05', '1.05-1.1', '1.1-1.2', '1.2-1.5x']);
+    const handleSliderChange = (newValue) => {
+        const updatedFirstRange = `<${newValue}`;
+
+        const secondRangeParts = range[1].split('-');
+        secondRangeParts[0] = newValue;
+        const updatedSecondRange = secondRangeParts.join('-');
+        const updatedRange = [
+            updatedFirstRange, //  before the second item
+            updatedSecondRange,
+            ...range.slice(2) //  after the second item
+        ];
+        setRange(updatedRange);
+    };
+
+    useEffect(() => {
+        if (rawData) { // only when rawData is not null
+            const processedData = processRawData(rawData);
+            setData(processedData);
+        }
+    }, [range]);
+
     useEffect(() => {
         axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_arccomp_data`)
             .then((response) => {
 
                 const rawData = response.data
+                setRawData(response.data);
+
                 const processedData = processRawData(rawData)
                 setData(processedData);
 
@@ -57,7 +83,7 @@ export default function ArccompHistogram() {
                 },
                 text: range.map((key) => (key === binKey ? app : '')),
                 hoverinfo: 'text',
-                hovertext: `Ratio: ${rawData['winner ratio'][index]} Winner: ${rawData['winner'][index]}`,
+                hovertext: `Ratio: ${rawData['winner ratio'][index].toFixed(2)} Winner: ${rawData['winner'][index]}`,
 
                 textposition: 'inside',
                 insidetextanchor: 'middle',
@@ -73,7 +99,14 @@ export default function ArccompHistogram() {
     return (
         <div className='graph-container-short-histogram' style={{ maxWidth: '300px' }}>
             <PlotlyHistogram data={data} layout={chartLayout} />
+            <HistogramBinSlider
+                onChange={handleSliderChange}
+                min={1.02}
+                max={1.05}
+                step={0.01}
+                defaultValue={1.05}
 
+            />
             <div className="plot-title-short-histogram">
                 Fig. Arccomp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Architecture Comparison [GF/core]: SPR/ICL wins in blue, ICL/SPR wins in red
 

@@ -83,7 +83,7 @@ export default function AppgainHistogram() {
                 },
                 text: range.map((key) => (key === binKey ? app : '')),
                 hoverinfo: 'text',
-                hovertext: `Largest Gain: ${largestGain}`,
+                hovertext: `Largest Gain: ${largestGain.toFixed(2)}`,
 
                 textposition: 'inside',
                 insidetextanchor: 'middle',
@@ -109,7 +109,7 @@ export default function AppgainHistogram() {
             <div className="plot-title-short-histogram">
                 Fig. appgain
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                QaaS gain vs. other 2 baselines
+                QaaS compiler gain vs. other 2 baselines
 
             </div>
         </div>

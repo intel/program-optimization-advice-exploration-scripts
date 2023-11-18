@@ -6,7 +6,7 @@ import TooltipComponent from '../TooltipComponent';
 import { InlineMath, BlockMath } from 'react-katex';
 import IntroLink from './IntroLink';
 export default function MultiprocessorCompContents() {
-    const efficiencyFormula = "E_c = \\frac{T_1}{C \\times T_c}";
+    const efficiencyFormula = "E_c = \\frac{T_1}{c \\times T_c}";
 
     return (
         <div className="textPageContainer">
@@ -67,7 +67,6 @@ export default function MultiprocessorCompContents() {
             <BestCompTable />
 
 
-            <IntroLink />
 
 
         </div>

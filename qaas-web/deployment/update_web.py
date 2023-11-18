@@ -1,20 +1,12 @@
 import os
 import sys
-import subprocess
 
-from urllib.parse import urlparse
-
-
-
-script_dir=os.path.dirname(os.path.realpath(__file__))
 def install_backend_dependencies(backend_dir, apache_html_dir):
     try:
         print(f"Installing backend dependencies in {backend_dir}...")
         script_path = os.path.join(backend_dir, "install_pip.sh")
         if os.path.exists(script_path):
             os.system(f"cd {backend_dir} && bash install_pip.sh")
-        #also copy the config
-        print("Backend dependencies installed successfully.")
        
         target_cp_path = os.path.join(apache_html_dir, 'backend')
         create_directory(target_cp_path)
@@ -37,11 +29,6 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
 
         os.system(f"sudo rm -rf {target_cp_path}")
         os.system(f"sudo cp -r {frontend_dir}/dist {target_cp_path}") 
-
-
-
-        print("Frontend dependencies installed successfully.")
-
         
     except Exception as e:
         print("Error installing frontend dependencies:", e)
@@ -61,11 +48,11 @@ def install_web_dependencies(backend_dir, frontend_dir, apache_dir):
     install_frontend_dependencies(frontend_dir, apache_dir)
 
 
-if __name__ == "__main__":
+#update dependency+copy to apache
+def update_web():
+    script_dir=os.path.dirname(os.path.realpath(__file__))
     apache_dir = f"/var/www/html"
-   
     target_qaas_dir = os.path.join(script_dir, '..',)
-    config_dir =  os.path.join(target_qaas_dir, "config")
 
     ov_backend_dir = os.path.join(target_qaas_dir, 'oneview',"backend")
     ov_frontend_dir = os.path.join(target_qaas_dir,'oneview', "frontend")
@@ -78,11 +65,9 @@ if __name__ == "__main__":
     qaas_apache_dir = os.path.join(apache_dir, 'qaas')
     common_apache_dir = os.path.join(apache_dir, 'common')
 
-    output_dir = os.path.join(apache_dir, 'private')
-    create_directory(output_dir)
-    maqao_package_dir = os.path.join(target_qaas_dir, 'maqao_package')
-
-
-    # install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
+    install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
     install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
-    # install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
+    install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
+
+if __name__ == "__main__":
+    update_web()

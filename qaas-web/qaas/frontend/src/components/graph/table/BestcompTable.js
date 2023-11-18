@@ -9,8 +9,10 @@ const columns = [
     { Header: 'Best total Gf for ICL with Ec > .5', accessor: 'gflops' },
     { Header: '#Cores used/48', accessor: 'coresUsed' },
 
-    { Header: 'GFLOPs/core', accessor: 'gflopsPerCore' },
+    { Header: 'GF/core', accessor: 'gflopsPerCore' },
     { Header: 'Unicore Gf', accessor: 'unicoreGf' },
+    { Header: 'Ratio of Unicore GF / GF/core', accessor: 'ratioUnicoreGfPerCore' }
+
 ];
 
 const data = [
@@ -26,7 +28,23 @@ const data = [
 
 function processData(data) {
     //sort table by flops
-    return [...data].sort((a, b) => parseFloat(a.gflops) - parseFloat(b.gflops));
+    return data.map(row => {
+        const unicoreGf = parseFloat(row.unicoreGf);
+        const gflopsPerCore = parseFloat(row.gflopsPerCore);
+        let ratio;
+
+        if (!isNaN(unicoreGf) && !isNaN(gflopsPerCore) && gflopsPerCore !== 0) {
+            ratio = (unicoreGf / gflopsPerCore).toFixed(2);
+        } else {
+            ratio = '';
+        }
+
+        // Add the new property to the row
+        return {
+            ...row,
+            ratioUnicoreGfPerCore: ratio
+        };
+    }).sort((a, b) => parseFloat(b.gflops) - parseFloat(a.gflops));
 }
 const sortedData = processData(data);
 
@@ -51,7 +69,7 @@ function BestCompTable() {
             <div className='graphContainer'><CustomReactTable columns={columns} data={sortedData} getCellProps={getCellStyles} /></div>
             <div className="plot-title">
                 Fig. Bestcomp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                High-level architectural differences between SPR and ICL miniapp runs
+                High-level architectural differences between ICL miniapp runs
 
             </div>
 

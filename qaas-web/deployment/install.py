@@ -4,7 +4,7 @@ import subprocess
 
 from urllib.parse import urlparse
 
-
+from update_web import update_web, create_directory
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
@@ -52,58 +52,18 @@ def set_node_proxy(http_proxy, https_proxy):
     except Exception as e:
         print("Error setting Node.js/npm proxy configuration:", e)
 def set_proxy(proxy_server, proxy_port):
-    # Set environment variables for the proxy
+    # set environment variables for the proxy
     os.environ['http_proxy'] = f'http://{proxy_server}:{proxy_port}'
     os.environ['https_proxy'] = f'http://{proxy_server}:{proxy_port}'
 
 def get_proxy():
-    # Get environment variables for the proxy
+    # get environment variables for the proxy
     return os.environ.get('http_proxy'), os.environ.get('https_proxy')
 
 def install_common_dependencies(apache_common_dir):
     os.system(f"sudo rm -rf {apache_common_dir}")
     apache_parent_dir = os.path.dirname(apache_common_dir)
     os.system(f"sudo cp -r {script_dir}/../common {apache_parent_dir}/") 
-
-def install_backend_dependencies(backend_dir, apache_html_dir):
-    try:
-        print(f"Installing backend dependencies in {backend_dir}...")
-        script_path = os.path.join(backend_dir, "install_pip.sh")
-        if os.path.exists(script_path):
-            os.system(f"cd {backend_dir} && bash install_pip.sh")
-        #also copy the config
-        print("Backend dependencies installed successfully.")
-       
-        target_cp_path = os.path.join(apache_html_dir, 'backend')
-        create_directory(target_cp_path)
-
-        os.system(f"sudo rm -rf {target_cp_path}")
-        os.system(f"sudo cp -r {backend_dir} {target_cp_path}")
-      
-    except Exception as e:
-        print("Error installing backend dependencies:", e)
-        sys.exit(1)
-
-def install_frontend_dependencies(frontend_dir, apache_html_dir):
-    try:
-        print(f"Installing frontend dependencies in {frontend_dir}...")
-        os.system(f"cd {frontend_dir} && npm i --legacy-peer-deps")
-        os.system(f"cd {frontend_dir} && npm run build")
-      
-        target_cp_path = os.path.join(apache_html_dir, 'dist')
-        create_directory(target_cp_path)
-
-        os.system(f"sudo rm -rf {target_cp_path}")
-        os.system(f"sudo cp -r {frontend_dir}/dist {target_cp_path}") 
-
-
-
-        print("Frontend dependencies installed successfully.")
-
-        
-    except Exception as e:
-        print("Error installing frontend dependencies:", e)
-        sys.exit(1)
 
 
 def create_apache_config():
@@ -117,16 +77,6 @@ def create_apache_config():
     except Exception as e:
         print("Error creating Apache configuration file:", e)
         sys.exit(1)
-
-def create_directory(directory):
-    if not os.path.exists(directory):
-        try:
-            print(f"Creating directory: {directory}")
-            os.system(f"sudo mkdir -p {directory}")
-            print("Directory created successfully.")
-        except Exception as e:
-            print("Error creating directory:", e)
-            sys.exit(1)
 
 
 def give_permission(folder, user):
@@ -145,17 +95,17 @@ def setup_database(database_url):
         password = result.password
         database_name = result.path[1:]  # remove the leading '/'
         
-        # Check if the user alread,y exists
+        # check if the user alread,y exists
         user_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{username}');\"", shell=True).decode().strip()
 
-        # If the user doesn't exist, create it
+        #  user doesn't exist, create it
         # if user_exists == '0':
         os.system(f"sudo mysql -u root -e \"CREATE USER '{username}'@'localhost' IDENTIFIED BY '{password}';\"")
 
-        # Check if the database already exists
+        # check if the database already exists
         db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SHOW DATABASES LIKE '{database_name}';\"", shell=True).decode().strip()
 
-        # If the database doesn't exist, create it
+        # if the database doesn't exist, create it
         # if not db_exists:
         os.system(f"sudo mysql -u root -e \"CREATE DATABASE {database_name};\"")
         os.system(f"sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON {database_name}.* TO '{username}'@'localhost';\"")
@@ -181,11 +131,6 @@ def delete_index_html(apache_dir):
             print("Error deleting index.html:", e)
             sys.exit(1)
 
-def install_web_dependencies(backend_dir, frontend_dir, apache_dir):
-    install_backend_dependencies(backend_dir, apache_dir)
-    install_frontend_dependencies(frontend_dir, apache_dir)
-
-
 
 if __name__ == "__main__":
     apache_dir = f"/var/www/html"
@@ -193,19 +138,11 @@ if __name__ == "__main__":
     target_qaas_dir = os.path.join(script_dir, '..',)
     config_dir =  os.path.join(target_qaas_dir, "config")
 
-    ov_backend_dir = os.path.join(target_qaas_dir, 'oneview',"backend")
-    ov_frontend_dir = os.path.join(target_qaas_dir,'oneview', "frontend")
-    qaas_backend_dir = os.path.join(target_qaas_dir, 'qaas',"backend")
-    qaas_frontend_dir = os.path.join(target_qaas_dir,'qaas', "frontend")
-    common_frontend_dir = os.path.join(target_qaas_dir,'common','landing')
-    common_backend_dir = os.path.join(target_qaas_dir,'common','backend')
-
-    ov_apache_dir = os.path.join(apache_dir, 'oneview')
-    qaas_apache_dir = os.path.join(apache_dir,  'qaas')
-    common_apache_dir = os.path.join(apache_dir, 'common')
 
     output_dir = os.path.join(apache_dir, 'private')
     create_directory(output_dir)
+
+    #TODO hardcoded should move this to system dir
     maqao_package_dir = f'/host/home/yjiao/package/2.17.10'
 
     install_packages()
@@ -213,12 +150,7 @@ if __name__ == "__main__":
     http_proxy, https_proxy = get_proxy()
     set_node_proxy(http_proxy, https_proxy)
 
-
-    install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
-    install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
-    install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
-
-    install_frontend_dependencies(common_frontend_dir, common_apache_dir)
+    update_web()
 
     # # # #also copy the config folder
     os.system(f"sudo cp -r {config_dir} {apache_dir}")

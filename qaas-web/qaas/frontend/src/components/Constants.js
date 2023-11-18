@@ -165,8 +165,8 @@ export const baseLineLayout = {
         orientation: 'v'
     },
     margin: {
-        l: 30,
-        r: 30,
+        l: 40,
+        r: 40,
         b: 50,
         t: 0,
     },

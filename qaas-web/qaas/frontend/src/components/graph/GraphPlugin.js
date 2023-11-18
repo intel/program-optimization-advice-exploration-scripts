@@ -86,7 +86,7 @@ export const createMinMaxAnnotations = (chartData) => {
 export const createMultileMinMaxAnnotations = (chartData) => {
     const annotations = [];
     const totalLabel = 'total';
-    const perCoreLabel = 'per-core';
+    const perCoreLabel = 'core';
 
     if (chartData.length > 0 && chartData[0].x.length > 0) {
         const labelCount = chartData[0].x.length;

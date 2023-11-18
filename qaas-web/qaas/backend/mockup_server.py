@@ -81,11 +81,11 @@ def create_app():
         df['Mean'] = df.drop(columns=['Apps']).mean(axis=1)
         df.sort_values('Mean', inplace=True)
         df.drop('Mean', axis=1, inplace=True)
-        df['ICL per-core GFlops'] = df['ICL.Gf'] / df['ICL.cores']
-        df['SPR per-core GFlops'] = df['SPR.Gf'] / df['SPR.cores']
+        df['ICL Gf/core'] = df['ICL.Gf'] / df['ICL.cores']
+        df['SPR Gf/core'] = df['SPR.Gf'] / df['SPR.cores']
         df.drop('ICL.cores', axis=1, inplace=True)
         df.drop('SPR.cores', axis=1, inplace=True)
-        df.rename({'ICL.Gf':'ICL total GFLops', 'SPR.Gf':'SPR total GFLops'}, axis=1, inplace=True)
+        df.rename({'ICL.Gf':'ICL total Gf', 'SPR.Gf':'SPR total Gf'}, axis=1, inplace=True)
 
         data_dict = df.to_dict(orient='list')
         # replace NaN with None (null in JSON)
