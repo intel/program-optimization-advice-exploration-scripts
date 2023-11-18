@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import IntroLink from './IntroLink';
 export default function OverViewQaaS() {
     return (
         <div className="textPageContainer">
@@ -46,7 +47,7 @@ export default function OverViewQaaS() {
             </p>
 
             <h2>
-                Multiprocessor performance comparisons
+                Multicore performance comparisons
             </h2>
 
             <p>
@@ -56,7 +57,7 @@ export default function OverViewQaaS() {
                     to="/qaas/overview/multiprocessor_perf_contents"
                 > click here </Link>
                 .
-                This extends the unicore introduction above, and introduces some basicmultiprocessing metrics.
+                This extends the unicore introduction above, and introduces some basic multicore metrics.
             </p>
             <h2>
                 Summary points
@@ -70,10 +71,12 @@ export default function OverViewQaaS() {
             </p>
 
             <p>
-                Our orientation is to find performance improvements and show users how to take advantage of our findings. We view as less important,
+                Our orientation is to find performance improvements and show users how to take advantage of our findings. We view as less important
                 a detailed explanation of why we come to certain conclusions. The main reason for this is that because QaaS contains many tools,
                 explanations can become intricate. However, in BQI, we do cover some explanations.
             </p>
+            <IntroLink />
+
 
 
         </div>

@@ -60,7 +60,6 @@ export default function PerfImprove() {
                 but are not central to the purpose of QaaS.
             </p>
 
-            <IntroLink />
         </div>
     );
 

@@ -41,15 +41,15 @@ cache_directory = os.path.join(os.getcwd(), 'cache')
 if not os.path.exists(cache_directory):
     os.makedirs(cache_directory)
 
-def get_ref_from_loop(loop):
+def get_metric_from_loop(loop, metric_name):
     metrics = loop.lore_loop_measures[0].lore_loop_measure_metrics
-    novec_value = None
+    value = None
     for metric in metrics:
-        if metric.metric_name == 'novec_median':
-            novec_value = float(metric.metric_value)
+        if metric.metric_name == metric_name and metric.metric_value:
+            value = float(metric.metric_value)
             break
 
-    return novec_value
+    return value
 
 def get_min_ref_from_loop(loop):
     metrics = loop.lore_loop_measures[0].lore_loop_measure_metrics
@@ -67,13 +67,12 @@ def get_min_ref_from_loop(loop):
     min_value = all_values[min_key]
 
     return (min_key, min_value)
-
 @with_app_context
 def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version):
     db.session.expunge_all()
     BATCH_SIZE = 5000
-    # cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_{compiler_vendor}_{compiler_version}.pkl")
-    cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_best_option_{compiler_vendor}_{compiler_version}.pkl")
+    cache_filename = os.path.join(cache_directory, f"test_all_mutations_time_per_orig_loop_{compiler_vendor}_{compiler_version}.pkl")
+    # cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_best_option_{compiler_vendor}_{compiler_version}.pkl")
 
     if os.path.exists(cache_filename):
         os.remove(cache_filename)
@@ -104,13 +103,18 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
         for loop in batch_loops:
             # loop's src loop
             src_loop = loop.src_loop  
-            # ref_value = get_ref_from_loop(loop)
-            vec_type, ref_value = get_min_ref_from_loop(loop)
+            ref_value = get_metric_from_loop(loop, "base_median")
+            hwcounter_value = get_metric_from_loop(loop, "base_CPU_CLK_UNHALTED_THREAD")
+            loop_data = {
+                'base_median' : ref_value,
+                'base_CPU_CLK_UNHALTED_THREAD' : hwcounter_value
+            }
+            # vec_type, ref_value = get_min_ref_from_loop(loop)
 
             mutation_number = src_loop.mutation_number
             orig_src_loop = src_loop.orig_src_loop
             source_id = src_loop.source.table_id if not orig_src_loop else orig_src_loop.source.table_id
-            refs_per_source.setdefault(source_id, []).append({mutation_number: ref_value})
+            refs_per_source.setdefault(source_id, []).append({mutation_number: loop_data})
 
             count += 1
 

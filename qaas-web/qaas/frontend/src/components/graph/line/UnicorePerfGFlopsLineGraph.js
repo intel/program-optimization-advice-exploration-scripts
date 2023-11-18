@@ -51,7 +51,9 @@ export default function UnicorePerfGFlopsLineGraph() {
                     symbol: symbol,
                     color: color,
                     size: 8,
-                }
+                },
+                hovertemplate: `%{x}: %{y:.2f}<extra>${processor}</extra>`
+
             };
         });
     };

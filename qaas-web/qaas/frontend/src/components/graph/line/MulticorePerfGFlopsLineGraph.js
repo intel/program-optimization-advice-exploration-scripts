@@ -68,7 +68,9 @@ export default function MulticorePerfGFlopsLineGraph() {
                     symbol: symbol,
                     color: color,
                     size: 8,
-                }
+                },
+                hovertemplate: `%{x}: %{y:.2f}<extra>${processor}</extra>`
+
             };
         });
     };
@@ -83,7 +85,7 @@ export default function MulticorePerfGFlopsLineGraph() {
         ...baseLineLayout,
 
         yaxis: {
-            title: 'GFlops',
+            title: 'Total Gf',
             type: 'log',
             tickvals: [10, 20, 50, 100, 500, 2000],
             ticktext: ['10', '20', '50', '100', '500', '2000'],
@@ -92,7 +94,7 @@ export default function MulticorePerfGFlopsLineGraph() {
 
         },
         yaxis2: {
-            title: 'GFlops',
+            title: 'Gf/core',
             type: 'linear',
             overlaying: 'y',
             side: 'right',
@@ -114,7 +116,7 @@ export default function MulticorePerfGFlopsLineGraph() {
                 layout={chartLayout}
             />
             <div className="plot-title">
-                Fig. MPperf &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Multicore Performance: System vs per-core GFlops
+                Fig. MPperf &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Multicore Performance: Total System Gf vs. Gf/core
 
             </div>
         </div>

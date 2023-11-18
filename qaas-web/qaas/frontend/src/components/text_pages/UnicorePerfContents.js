@@ -26,7 +26,7 @@ export default function UnicorePerfContents() {
             <p>
                 The second unicore view, Fig. utab, gives background information about the codes and systems,
                 together with exact Gf performance values for each machine plotted in Fig. uni. In this view,
-                we can see that G3E and Zen4 are within 10% of each other. Both figures illustrate the fact
+                we can see that G3E and Zen4 both have portability(compilation) difficulties on some miniapps. Both figures illustrate the fact
                 that performance leadership and ranking varies a lot across application types and architectures.
             </p>
             <div className='multiple-graph-container'>
@@ -34,7 +34,6 @@ export default function UnicorePerfContents() {
                 <UnicorePerfTable />
             </div>
 
-            <IntroLink />
 
 
 
