@@ -125,6 +125,8 @@ def map_compiler_flag(orig_compiler, new_compiler, orig_flag):
         return None
 
 def map_compiler_flags(orig_compiler, new_compiler, orig_flags):
+    if orig_compiler == new_compiler:
+        return orig_flags
     orig_flag_list = flag_str_to_list(orig_flags)
     mapped_flag_list = [map_compiler_flag(orig_compiler, new_compiler, flag) for flag in orig_flag_list]
     # remove those unmappable flags
