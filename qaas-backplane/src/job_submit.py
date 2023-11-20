@@ -36,10 +36,6 @@ import tempfile
 
 # define constants
 
-compiler_subdir_map = { 'icc:2022': 'intel/2022', 'icc:19.1': 'intel/19.1',
-                       'icx:2022': 'intel/2022', 'icx:19.1': 'intel/19.1',
-                       'gcc:11.1': 'gcc/gcc-11.1', 'gcc:11.1': 'gcc/gcc-11.1' }
-
 class QAASJobException(Exception):
     def __init__(self, rc):
         self.rc = rc
@@ -143,9 +139,12 @@ class QAASJobSubmit:
             raise QAASJobException(rc)
 
     def run_remote_job_cmd(self, job_cmd):
-        logging.debug("job_cmd=%s", job_cmd)
         rc = 0
-        rc, cmdout = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine, self.provisioner.ssh_port, self.provisioner.user).run_remote_cmd(job_cmd)
+        cmd_runner = QAASRunCMD(self.provisioner.comm_port, self.provisioner.machine, self.provisioner.ssh_port, self.provisioner.user)
+        if self.provisioner.remote_job:
+            rc, cmdout = cmd_runner.run_remote_cmd(job_cmd)
+        else:
+            rc, cmdout = cmd_runner.run_local_cmd(job_cmd)
         if rc == 0:
             logging.debug(cmdout)
             return 0, cmdout

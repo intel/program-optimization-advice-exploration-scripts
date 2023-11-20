@@ -65,8 +65,12 @@ QAAS_RUN_TYPES = ["base_runs", "oneview_runs", "locus_runs"]
 
 class QAASEnvProvisioner:
     """Object to manage environment setup."""
-    def __init__(self, service_dir, script_root, account, app_name, git_params, access_params, container,
-                 compilers, compiler_mappings, comm_port, service_msg_recv_handler,
+    def __init__(self, service_dir, script_root,
+                 account, app_name, git_params,
+                 access_params, container,
+                 compilers, compiler_mappings, comm_port,
+                 remote_job, 
+                 service_msg_recv_handler,
                  launch_output_dir):
         logging.debug("QAASEnvProvisioner Constructor")
         # save mete information
@@ -106,8 +110,9 @@ class QAASEnvProvisioner:
         self.machine = access_params["QAAS_MACHINES_POOL"]
         self.image_name = container["QAAS_CONTAINER_IMAGE"] + ":" + container["QAAS_CONTAINER_TAG"]
         self.image_uid = container["QAAS_CONTAINER_UID"]
-        self.comm_port = comm_port
-        self.msg_server = ServiceMessageReceiver(("localhost", self.comm_port), service_msg_recv_handler=service_msg_recv_handler) 
+        self.remote_job = remote_job
+        self.comm_port = int(comm_port) if self.remote_job else 0
+        self.msg_server = ServiceMessageReceiver(("localhost", self.comm_port), service_msg_recv_handler=service_msg_recv_handler) if remote_job else None 
         self.compiler_root = compilers["QAAS_COMPILERS_ROOT_DIRECTORY"]
         self.intel_compiler_root = compilers["QAAS_INTEL_COMPILERS_DIRECTORY"] if compilers["QAAS_INTEL_COMPILERS_DIRECTORY"] else ""
         self.gnu_compiler_root = compilers["QAAS_GNU_COMPILERS_DIRECTORY"] if compilers["QAAS_GNU_COMPILERS_DIRECTORY"] else ""
@@ -170,11 +175,15 @@ class QAASEnvProvisioner:
         """Create working directories."""
         logging.info("Create Working Directories on %s", self.machine)
         # craete dirs
-        cmds = "'" + "mkdir -p " + self.work_dirs[0]
+        cmds = "mkdir -p " + self.work_dirs[0]
         for index in range(1, len(self.work_dirs), 1): 
             cmds = cmds + " && " + "mkdir -p " + self.work_dirs[index]
-        cmds = cmds + "'"
-        rc, cmdout = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user).run_remote_cmd(cmds)
+        cmds = "'" + cmds + "'"
+        cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
+        if self.remote_job:
+            rc, cmdout = cmd_runner.run_remote_cmd(cmds)
+        else:
+            rc, cmdout = cmd_runner.run_local_cmd(cmds)
         if rc != 0:
             return rc
         # update ownership rights for container runs
@@ -185,7 +194,11 @@ class QAASEnvProvisioner:
     def update_workdir_owner(self):
         """Update working directories ownership rights to build & run in a container."""
         cmdline = "podman unshare chown -R :" + self.image_uid + " " + self.get_workdir("root")
-        rc, cmdout = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user).run_remote_cmd(cmdline)
+        cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
+        if self.remote_job:
+            rc, cmdout = cmd_runner.run_remote_cmd(cmdline)
+        else:
+            rc, cmdout = cmd_runner.run_local_cmd(cmdline)
         return rc
 
     def clone_source_repo(self):
@@ -201,7 +214,11 @@ class QAASEnvProvisioner:
                   f" && if [[ -f .gitmodules ]]; then git submodule update --init --recursive; fi" + \
                   " && cd .." + \
                   " && rm -rf " + self.app_name + "/.git; fi'"
-        rc, cmdout = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user).run_remote_cmd(cmdline)
+        cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
+        if self.remote_job:
+            rc, cmdout = cmd_runner.run_remote_cmd(cmdline)
+        else:
+            rc, cmdout = cmd_runner.run_local_cmd(cmdline)
         return rc
 
     def clone_data_repo(self):
@@ -223,7 +240,11 @@ class QAASEnvProvisioner:
             cmdline = "'cd " + self.get_workdir("dataset") + \
                 " && if [[ ! -d " + self.app_name + " ]]; then" + \
                f" mkdir {self.app_name}; fi'" 
-        rc, cmdout = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user).run_remote_cmd(cmdline)
+        cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
+        if self.remote_job:
+            rc, cmdout = cmd_runner.run_remote_cmd(cmdline)
+        else:
+            rc, cmdout = cmd_runner.run_local_cmd(cmdline)
         return rc
 
     def copy_data_from_fs(self):
@@ -239,8 +260,11 @@ class QAASEnvProvisioner:
                            " else  cp -rf " + self.git_data_copy_from_fs + "/*" + self.git_data_download_path + ";fi'"
             else:
                 cmdline += " && cp -rf " + self.git_data_copy_from_fs + "/* ./'"
-                self.git_data_download_path = "./"
-            rc, cmdout = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user).run_remote_cmd(cmdline)
+            cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
+            if self.remote_job:
+                rc, cmdout = cmd_runner.run_remote_cmd(cmdline)
+            else:
+                rc, cmdout = cmd_runner.run_local_cmd(cmdline)
         return rc
 
     def generate_git_url_branch(self, branch, url, user, token):
@@ -260,25 +284,35 @@ class QAASEnvProvisioner:
 
         cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
 
-        tar_cmd = f"'cd {ov_run_dir} && tar --ignore-failed-read -czvf {remote_gz_file} $(find ./ -name \"oneview_results*\")' ../qaas_reports"
-        rc, cmdout = cmd_runner.run_remote_cmd(tar_cmd)
+        tar_cmd = f"'cd {ov_run_dir} && tar --ignore-failed-read -czvf {remote_gz_file} $(find ./ -name \"oneview_results*\") ../qaas_reports'"
+        if self.remote_job:
+            rc, cmdout = cmd_runner.run_remote_cmd(tar_cmd)
+        else:
+            rc, cmdout = cmd_runner.run_local_cmd(tar_cmd)
         if rc != 0:
             return rc
 
         os.makedirs(local_out_dir, exist_ok=True)
 
-        rc, cmdout = cmd_runner.copy_remote_file(remote_gz_file, local_out_dir)
+        if self.remote_job:
+            rc, cmdout = cmd_runner.copy_remote_file(remote_gz_file, local_out_dir)
+        else:
+            rc, cmdout = cmd_runner.copy_local_file(remote_gz_file, local_out_dir)
         if rc != 0:
             return rc
 
-        untar_cmd = f"cd {local_out_dir} && tar xvfz {gz_file}"
+        untar_cmd = f"'cd {local_out_dir} && tar xvfz {gz_file}'"
         rc, cmdout = cmd_runner.run_local_cmd(untar_cmd)
         if rc != 0:
             return rc
 
-        rm_gz_cmd = f"rm -f {remote_gz_file}"
-        rc, cmdout = cmd_runner.run_remote_cmd(rm_gz_cmd)
+        rm_gz_cmd = f"'rm -f {remote_gz_file}'"
+        if self.remote_job:
+            rc, cmdout = cmd_runner.run_remote_cmd(rm_gz_cmd)
+        else:
+            rc, cmdout = cmd_runner.run_local_cmd(rm_gz_cmd)
         return rc
     
     def finish(self):
-        self.msg_server.shutdown()
+        if self.remote_job:
+            self.msg_server.shutdown()
