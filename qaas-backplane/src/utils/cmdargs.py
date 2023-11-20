@@ -88,6 +88,9 @@ def parse_cli_args(argv):
     # Turn ON multicore/parallel scalability runs
     global_parser.add_argument('-s', '--enable-parallel-scale', action="store_true", help="Turn on multicore scalability runs", required=False)
     
+    # Specify whether QaaS runs are to be perfomed on the local system (avoid ssh) 
+    global_parser.add_argument('-l', '--local-job', action="store_true", help="Enable ssh-less job runs on the local machine", required=False)
+
     # parse arguments
     args = global_parser.parse_args()
 

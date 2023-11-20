@@ -54,6 +54,12 @@ class QAASRunCMD:
              logging.debug(runcmd.out.decode("utf-8"))
         return runcmd.returncode, runcmd.out.decode("utf-8")
 
+    def copy_local_file(self, local_file, local_dir):
+        cp_cmd = f"/usr/bin/cp {local_file} {local_dir}"
+        logging.debug("cmdline=%s", cp_cmd)
+        rc, cmdout = self.run_cmd(cp_cmd)
+        return rc, cmdout
+
     def copy_remote_file(self, remote_file, local_dir):
         scp_cmd = f"/usr/bin/scp -P {self.ssh_port} " + self.user + "@" + self.machine + f":{remote_file} {local_dir}"
         logging.debug("cmdline=%s", scp_cmd)
@@ -62,7 +68,7 @@ class QAASRunCMD:
     
     def run_local_cmd(self, local_cmd):
         """Run a local command."""
-        cmdline = local_cmd
+        cmdline = "/usr/bin/bash -c " + local_cmd
         logging.debug("cmdline=%s", cmdline)
         rc, cmdout = self.run_cmd(cmdline)
         return rc, cmdout
