@@ -17,6 +17,16 @@ USER root
 # Install more packages for experiments/local needs
 # Uncomment follow line and add more packages
 #RUN apt-get install -y libssl-dev
+RUN apt-get update && apt-get install --no-install-recommends -y apache2 mariadb-server \ 
+  python3-pip  \
+  libmysqlclient-dev \
+  python3-certbot-apache curl
+  #libmariadbclient-dev \
+
+RUN curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+RUN apt-get install -y nodejs git libapache2-mod-wsgi-py3
+RUN a2enmod proxy && a2enmod proxy_http
+
 # Install sudo, netcat (git behind proxy) for development needs
 RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then apt-get install -y sudo netcat; fi
 WORKDIR /root
