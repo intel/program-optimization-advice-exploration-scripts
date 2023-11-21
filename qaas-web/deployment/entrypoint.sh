@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Navigate to the script directory
-cd "$(dirname "$0")"
+script_dir="$(dirname "$0")"
+cd $script_dir
 
 echo "test hello world"
 
@@ -10,6 +11,12 @@ echo "test hello world"
 python3 install.py
 
 python3 start_server.py
+
+ov_dir=${script_dir}/../oneview
+ov_backend_dir=${ov_dir}/backend
+cd ${ov_backend_dir}; su qaas ./run_server.sh &
+ov_frontend_dir=${ov_dir}/frontend
+cd ${ov_frontend_dir}; su qaas -c "npm start" &
 
 exec su qaas
 # # # # start apache
