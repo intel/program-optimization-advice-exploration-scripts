@@ -9,7 +9,7 @@ import app_mutator
 import oneview_runner
 from logger import log, QaasComponents
 from app_builder import build_argparser as app_builder_builder_argparser
-from util import parse_env_map 
+from util import parse_env_map
 
 this_script=os.path.realpath(__file__)
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -29,15 +29,15 @@ def run_in_container(src_dir, data_dir, ov_config, ov_run_dir, locus_run_dir, co
     #relative_binary_path = get_binary_path(ov_config)
     ov_run_dir_orig = os.path.join(ov_run_dir, 'orig')
     orig_binary = os.path.join(ov_run_dir_orig, 'exec')
-    app_builder_env = app_builder.exec(src_dir, compiler_dir, orig_binary, 
+    app_builder_env = app_builder.exec(src_dir, compiler_dir, orig_binary,
                                    orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                                    user_link_flags, user_target, user_target_location, 'both')
     oneview_runner.exec(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, ov_dir, ov_config, 'both', None)
     ov_run_dir_opt = os.path.join(ov_run_dir, 'opt')
     opt_binary = os.path.join(ov_run_dir_opt, 'exec')
-    mutator_env = app_mutator.exec(src_dir, compiler_dir, opt_binary, orig_user_CC, target_CC, 
+    mutator_env = app_mutator.exec(src_dir, compiler_dir, opt_binary, orig_user_CC, target_CC,
          user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
-         data_dir, run_cmd, env_var_map, user_target_location) 
+         data_dir, run_cmd, env_var_map, user_target_location)
     #                 locus_run_dir)
     oneview_runner.exec(mutator_env, opt_binary, data_dir, ov_run_dir_opt, run_cmd, ov_dir, ov_config, 'both', None)
 
@@ -60,7 +60,7 @@ def launch(machine, src_dir, data_dir, ov_config, ov_run_dir, locus_run_dir, doc
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Run a job at the machine in a container.')
-    parser.add_argument('--data_dir', nargs='?', required=True) 
+    parser.add_argument('--data_dir', nargs='?', required=True)
     parser.add_argument('--ov_config', nargs='?', required=True)
     parser.add_argument('--ov_run_dir', nargs='?', required=True)
     parser.add_argument('--locus_run_dir', nargs='?', required=True)

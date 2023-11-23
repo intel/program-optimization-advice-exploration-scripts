@@ -1,0 +1,38 @@
+{
+    "account": {
+        "QAAS_ACCOUNT": "intel"
+    },
+    "application": {
+        "APP_NAME": "Kripke",
+        "GIT": {
+            "USER":   "",
+            "TOKEN":  "",
+            "BRANCH": "master",
+            "SRC_URL": "https://github.com/LLNL/Kripke.git",
+            "DATA_USER":   "",
+            "DATA_TOKEN":  "",
+            "DATA_URL": "",
+            "DATA_BRANCH": "",
+            "DATA_DOWNLOAD_PATH": ""
+        },
+        "RUN": {
+            "APP_RUN_CMD": "<binary> --groups 32",
+            "APP_ENV_MAP": { }
+        }
+    },
+    "compiler": {
+        "USER_CC": "mpiicc-icx",
+        "USER_CC_VERSION": "2023",
+        "USER_C_FLAGS": "",
+        "USER_CXX_FLAGS": "-cxx=icpx -O3 -march=native",
+        "USER_FC_FLAGS": "",
+        "USER_LINK_FLAGS": "",
+        "USER_EXTRA_CMAKE_FLAGS": "-DENABLE_MPI=1 -DENABLE_OPENMP=1",
+        "USER_TARGET": "kripke.exe",
+        "USER_TARGET_LOCATION": "bin/kripke.exe"
+    },
+    "runtime": {
+        "MPI": "strong",
+        "OPENMP": "strong"
+    }
+}

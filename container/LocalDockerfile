@@ -1,7 +1,7 @@
 ARG IMG_NAME
 FROM ${IMG_NAME}
 
-LABEL description="Local CapeScripts" 
+LABEL description="Local CapeScripts"
 
 ARG LOCAL_UID
 ARG LOCAL_GID
@@ -28,7 +28,7 @@ COPY ssh.tar.gz /root
 RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then tar xvfz ssh.tar.gz && chown -R root .ssh && chgrp -R root .ssh; fi
 
 
-#RUN groupadd -g $LOCAL_GID runner 
+#RUN groupadd -g $LOCAL_GID runner
 RUN groupmod -g $LOCAL_GID qaas
 # Create /tmp/groups to store the group names to add to runner
 #RUN echo -n "" > /tmp/groups
@@ -48,9 +48,9 @@ RUN echo -n "" > /tmp/groups \
 #RUN getent group
 #RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g $LOCAL_GID -G sudo $LOCAL_GNAMES
 # The tr command will output a trailing ',' being used to be a delimiter just before sudo
-#RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g runner -G $(tr '\n' ',' < /tmp/groups)sudo runner 
-#RUN usermod -m -d /app/runner -s /bin/bash -u $LOCAL_UID -g qaas -G $(tr '\n' ',' < /tmp/groups)sudo qaas 
-RUN usermod -m -d /home/qaas -s /bin/bash -u "$LOCAL_UID" -g qaas -G "$(tr '\n' ',' < /tmp/groups)"sudo qaas 
+#RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g runner -G $(tr '\n' ',' < /tmp/groups)sudo runner
+#RUN usermod -m -d /app/runner -s /bin/bash -u $LOCAL_UID -g qaas -G $(tr '\n' ',' < /tmp/groups)sudo qaas
+RUN usermod -m -d /home/qaas -s /bin/bash -u "$LOCAL_UID" -g qaas -G "$(tr '\n' ',' < /tmp/groups)"sudo qaas
 
 RUN echo "qaas:${QAAS_PASSWORD}" | chpasswd
 
