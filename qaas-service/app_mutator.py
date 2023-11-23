@@ -1,4 +1,33 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+###############################################################################
+# MIT License
+
+# Copyright (c) 2023 Intel-Sandbox
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+###############################################################################
+# HISTORY
+# Created October 2022
 # Contributors: Padua/Yoonseo
+
 import argparse
 import datetime
 import json
@@ -16,7 +45,7 @@ from profiler_runner import ProfilerRunner
 from base_runner import get_last_core_and_node
 from logger import QaasComponents, log
 from utils.util import generate_timestamp_str
-from utils.util import parse_env_map 
+from utils.util import parse_env_map
 from fdo_lib import LocusRunner
 from fdo_lib import LProfProfiler
 from fdo_lib import LocusDbAccess
@@ -40,7 +69,7 @@ QAAS_LOCUS_TEMPLATE_FILE_NAME="scop.locus.template.demo"
 #    iceorig_file, locus_outfile_suffix, build_cmd_sh_file, timing_script_file, timing_fn_name = generate_build_run_timing_scripts(run_dir, src_file, codelet_name, locus_bin_run_dir)
 #
 #    locus_file, preproc_folders, locus_run_cmd = generate_locus_command(dbfile, src_file, codelet_name, inc_flags, locus_outfile_suffix, timing_script_file, timing_fn_name)
-#                    
+#
 #    # returning iceorig_file to be restored by build_cmd script after each Locus search step
 #    # Also return locus_run_cmd to be used
 #    return iceorig_file, locus_run_cmd, dbfile, locus_file, preproc_folders, build_cmd_sh_file
@@ -51,7 +80,7 @@ QAAS_LOCUS_TEMPLATE_FILE_NAME="scop.locus.template.demo"
 #     preproc_folders = [part.strip() for part in inc_flags.split("-I") if part]
 
 #     locus_run_cmd, locus_file = generate_locus_run_cmd(dbfile, src_file, 'qaas', locus_outfile_suffix, timing_fn_name, timing_script_file, ntests, preproc_folders)
-                    
+
 #     return locus_file,preproc_folders,locus_run_cmd
 
 
@@ -94,7 +123,7 @@ def generate_build_cmd():
 		+ f" --user-target-location \"$QAAS_user_target_location\""
     return make_cmd
 
-# def generate_locus_scripts(run_dir, names, build_cmd_sh_file, 
+# def generate_locus_scripts(run_dir, names, build_cmd_sh_file,
 #                            run_cmd_sh_file, insert_pragma_before_line,
 #                            locus_bin, locus_bin_run_dir):
 #     new_loop_head_line_num = insert_pragma_before_line + 1
@@ -104,32 +133,32 @@ def generate_build_cmd():
 #         'locus_run_dir': run_dir,
 #         "locus_bin_run_dir": locus_bin_run_dir
 #     })
-#     timing_fn_name='getTimingQaas' 
+#     timing_fn_name='getTimingQaas'
 #     timing_script_file = generate_timing_and_locus_scripts(names, run_dir, build_cmd_sh_file, run_cmd_sh_file, timing_fn_name)
 #     return timing_script_file, timing_fn_name
 
 # Execution scheme:
-# 
+#
 # Given original file <file>
 # 1. save <file> to <file>.orig to restore at the end
 #
 # 2. Change, in place, file <file> original pragma to ICE pragma  (<file> now updated to contain ICE pragma)
 # 3. Copy <file> to <file>.iceorig
-# 3.5 setup build (set up CMake build directory) 
+# 3.5 setup build (set up CMake build directory)
 # 4. Invoke Locus with <file> as input and suffix .opt so output <file>.opt
-# 5. In build command (NOT IN PYTHON SCRIPT), 
+# 5. In build command (NOT IN PYTHON SCRIPT),
 #   a. mv <file>.opt to <file>
 #   b. proceed to normal building procedure (so LORE output file will be used)
 #   c. cp <file>.iceorig to <file> to restore it for next steps of search
 # 6. after all is done
 #   mv <file>.orig <file>
-def exec(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC, 
+def exec(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC,
          user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
-         data_path, run_cmd, env_var_map, target_location, 
+         data_path, run_cmd, env_var_map, target_location,
          mpi_run_command=None, mpi_num_processes=1, omp_num_threads=1,
          mpi_envs={"I_MPI_PIN_PROCESSOR_LIST":"all:map=spread"}, omp_envs={}):
     # Will be created by Locus
-    helper = QaaSLocusRunner(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC, 
+    helper = QaaSLocusRunner(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC,
          user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
          data_path, run_cmd, env_var_map, target_location,
          mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs)
@@ -140,7 +169,7 @@ def exec(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, 
         # Best variant regenerated in place, so rebuild will produce opt executable
         os.remove(helper.locus_bin)
         build_binary(user_target, helper.build_dir, target_location, helper.env, helper.output_dir, helper.output_name)
-        # Copy the binary to result directory 
+        # Copy the binary to result directory
         os.makedirs(os.path.dirname(output_binary_path), exist_ok=True)
         print(f'Copying mutator output binary to {output_binary_path} from {helper.locus_bin}')
         shutil.copy2(helper.locus_bin, output_binary_path)
@@ -221,15 +250,15 @@ def setup_locus_run_dir(locus_run_root, src_dir, compiler_dir, orig_user_CC, use
     # copy source tree to run_dir for Locus processing
     shutil.copytree(src_dir, locus_src_dir, symlinks=True)
 
-    
-    build_dir, output_dir, output_name, env = setup_build(locus_src_dir, compiler_dir, locus_bin, orig_user_CC, user_CC, 
+
+    build_dir, output_dir, output_name, env = setup_build(locus_src_dir, compiler_dir, locus_bin, orig_user_CC, user_CC,
                                                           user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags)
 
     env.update(env_var_map)
     return run_dir,locus_src_dir,locus_bin_run_dir,locus_bin,locus_result_dir,output_dir,output_name,env
 
 class QaaSLocusRunner(LocusRunner):
-    def __init__(self, locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC, 
+    def __init__(self, locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, orig_user_CC, user_CC,
         user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags, user_target,
         data_path, app_run_cmd, env_var_map, target_location,
         mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs):
@@ -275,7 +304,7 @@ class QaaSLocusRunner(LocusRunner):
         else:
             env['PYTHONPATH'] = script_dir
 
-            
+
     @property
     def user_locus_file(self):
         return os.path.join(template_dir, QAAS_LOCUS_TEMPLATE_FILE_NAME)
@@ -289,7 +318,7 @@ class QaaSLocusRunner(LocusRunner):
     #     #engine='exhaustive'
 
     #     locus_run_cmd, self.locus_file = generate_locus_run_cmd(dbfile, full_src_file, self.suffixinfo, locus_outfile_suffix, timing_fn_name, timing_script_file, ntests, self.preproc_folders)
-                    
+
     #     return locus_run_cmd
 
     def setup_dep_files(self, full_src_file):
@@ -304,7 +333,7 @@ class QaaSLocusRunner(LocusRunner):
             "locus_bin_run_dir": self.locus_bin_run_dir,
             "maqao_path": self.maqao_path
             })
-        timing_fn_name='getTimingQaas' 
+        timing_fn_name='getTimingQaas'
         return timing_fn_name
 
     @property
@@ -348,7 +377,7 @@ class QaaSLocusRunner(LocusRunner):
     @property
     def suffixinfo(self):
         return 'qaas'
-        
+
 
 def inc_flags_to_folders(inc_flags):
     return [part.strip() for part in inc_flags.split("-I") if part]
@@ -364,14 +393,14 @@ def inc_flags_to_folders(inc_flags):
 #     # full_src_file now have ICE pragma instead
 #     # save to iceorig file.  Note this file will be used by build_cmd scrpt to restore it after each Locus search step
 #     full_iceorig_file=os.path.join(run_dir, iceorig_file)
-#     shutil.copy2(full_src_file, full_iceorig_file) 
+#     shutil.copy2(full_src_file, full_iceorig_file)
 
 # # 4. Invoke Locus with <file> as input and suffix .opt so output <file>.opt
-# # 5. In build command (NOT IN PYTHON SCRIPT), 
+# # 5. In build command (NOT IN PYTHON SCRIPT),
 # #   a. mv <file>.opt to <file>
 # #   b. proceed to normal building procedure (so LORE output file will be used)
 # #   c. cp <file>.iceorig to <file> to restore it for next steps of search
-    
+
 #     set_locus_env(env)
 #     subprocess.run(locus_run_cmd, shell=True, env=env, cwd=run_dir)
 
@@ -437,7 +466,7 @@ def setup_dep_files(compile_command_json_file, full_src_file):
                     match_include = re.match('#include\s+"([^"]+)"', line.strip())
                     if match_include:
                         inc_file = match_include.groups()[0]
-                        if inc_file_match_src_file(inc_file, full_src_file, inc_folders): 
+                        if inc_file_match_src_file(inc_file, full_src_file, inc_folders):
                             with open(dep_file, 'w') as f: f.write(inc_flags)
                             return inc_flags
 
@@ -451,7 +480,7 @@ def setup_dep_files(compile_command_json_file, full_src_file):
 #         env['PYTHONPATH'] = script_dir
 
 def inc_file_match_src_file(inc_file, src_file, inc_folders):
-    for inc_folder in inc_folders: 
+    for inc_folder in inc_folders:
         cnt_inc_file = os.path.join(inc_folder, inc_file)
         if os.path.isfile(cnt_inc_file) and os.path.samefile(cnt_inc_file, src_file):
             return True
@@ -507,5 +536,5 @@ def main():
          args.user_c_flags, args.user_cxx_flags, args.user_fc_flags, args.user_link_flags, args.user_target,
          args.data_path, args.run_cmd, env_var_map, args.user_target_location)
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     main()

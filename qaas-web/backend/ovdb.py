@@ -1,3 +1,33 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+###############################################################################
+# MIT License
+
+# Copyright (c) 2023 Intel-Sandbox
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+###############################################################################
+# HISTORY
+# Created October 2022
+# Contributors: Yue/David
+
 from sqlalchemy import all_, create_engine, null
 import pandas
 import os
@@ -28,7 +58,7 @@ def get_tablename_and_ext_from_path(file_path):
     ext = os.path.splitext(file_path)[1]
     return table_name, ext
 
-#get all csv file from dir and cp files to des if not 
+#get all csv file from dir and cp files to des if not
 def get_all_csv_from_dir( path, new_path, ext='.csv' ):
     all_csv = []
     for root, dirs, files in os.walk(path):
@@ -48,7 +78,7 @@ def get_loop_id(filename):
         return -1
 def create_asm_table(dir_path, new_path, timestamp, engine):
     #add timestamps as foriegn key, and table id as a primary key
-    # when access/filter will 
+    # when access/filter will
     if os.path.exists(dir_path) ==False:
         print(dir_path, " does not exist")
         return
@@ -74,12 +104,12 @@ def create_asm_table(dir_path, new_path, timestamp, engine):
         elif file_type == 'fct':
             cur_df["type"] = "fct"
         else:
-            cur_df["module"] = "_".join(fn_parts[0:-1])   
+            cur_df["module"] = "_".join(fn_parts[0:-1])
         dfs.append(cur_df)
     df = pandas.concat(dfs)
     table_name = "asm"
     if engine.has_table(table_name):
-        #read sql 
+        #read sql
         old_df = pandas.read_sql(sql = table_name, con=engine)
         append_dataframe_rows(old_df, df)
         old_df.to_sql(name= table_name, con=engine, if_exists='replace',index=False)
@@ -94,9 +124,9 @@ def create_table_from_file(file_path, new_path, timestamp, engine):
     if ext == ".csv":
         cur_df = pandas.read_csv(file_path, sep=';')
         cur_df["timestamp"] = timestamp
-        
+
         if engine.has_table(table_name):
-            #read sql 
+            #read sql
             old_df = pandas.read_sql(sql = table_name, con=engine)
             append_dataframe_rows(old_df, cur_df)
             old_df.to_sql(name= table_name, con=engine, if_exists='replace',index=False)
@@ -203,7 +233,7 @@ def run_ovdb(exp_dir):
             sub_path =  full_path[len(exp_dir)+1:] if os.path.isabs(path) else ''
             new_path = os.path.join(target_path ,sub_path)
             os.makedirs(os.path.dirname(new_path), exist_ok=True)
-            
+
 
             if path_type == "dir":
                 if "asm" in path:
@@ -214,10 +244,10 @@ def run_ovdb(exp_dir):
                 #     create_table_from_dir(path, new_path, "groups", -5)
                 else:
                     copyDir(full_path, new_path)
-            elif path_type == "file": 
+            elif path_type == "file":
                 create_table_from_file(full_path, new_path, timestamp, engine)
     connection.close()
-    
+
 
 def populate_database(exp_dir):
     generate_manifest_csv(exp_dir)

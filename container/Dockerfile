@@ -85,7 +85,9 @@ RUN python3 -m pip install --no-cache-dir sympy \
   && python3 -m pip install --no-cache-dir et_xmlfile \
   && python3 -m pip install --no-cache-dir Cheetah3 \
   && python3 -m pip install --no-cache-dir parse \
-  && python3 -m pip install --no-cache-dir pytrie 
+  && python3 -m pip install --no-cache-dir pytrie \
+  && python3 -m pip install --no-cache-dir pandas \
+  && python3 -m pip install --no-cache-dir py-cpuinfo
 
 # Build cmake
 # NOTE: WHY WE NEED A SPECFIC VERSION instead of apt install cmake
