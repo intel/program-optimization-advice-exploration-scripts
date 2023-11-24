@@ -19,6 +19,15 @@ options:
   -q, --quiet           quiet mode
   -r, --as-root-in-container
                         Run host users as root in container [permissive rootless mode in podman]. Not allowed for true root users.
+  -ncd, --no-compiler-default
+                        Disable search for best default compiler
+  -ncf, --no-compiler-flags
+                        Disable search for best compiler flags
+  -p {off,mpi,openmp,hybrid}, --parallel-compiler-runs {off,mpi,openmp,hybrid}
+                        Force multiprocessing [MPI, OpenMP or hybrid] for compiler search runs
+  -s, --enable-parallel-scale
+                        Turn on multicore scalability runs
+  -l, --local-job       Enable ssh-less job runs on the local machine
 ```
 
 # Configuration
@@ -33,28 +42,27 @@ sudo apt-get install -y git git-lfs python3-pip numactl cmake ninja-build
 pip3 install pytrie numpy py-cpuinfo
 ```
 
+**NOTE:** These dependencies are only need for the non-conatiner running mode.
+
 ## Install compilers for Intel X86 platforms
 Current version of QaaS relies exclusively on Intel's oneapi software (compiler + MPI) and GNU compilers.
 Consequently, these must be installed prior to any use of QaaS on all compute nodes.
 
----
-**NOTE:**
-
-Compilers and parallel runtime configuration is necessary on each machine if the management (where QaaS backplane scripts are installed node and compute nodes are the same.
----
-
-Compilers configuration can be acheived by running the experimental `setup_compilers.sh` script.
+Compilers and runtime configuration can be acheived by running the experimental `scripts/setup_compilers.sh` script.
 ```
 cd /<path where qaas git is cloned>/scripts
 sudo ./setup_compilers.sh
 ```
+
+**NOTE:** 
+`scripts/setup_compilers.sh` was tested only on `Ubuntu 22.XX` GNU/Linux flavors.
 
 If the compilers configuration step works correctly you should see the following:
 ```
 tree /opt/compilers/
 /opt/compilers/
 ├── gcc
-│   └── gcc-11.3
+│   └── gcc-11.4
 │       └── Linux
 │           ├── install
 │           │   ├── g++ -> /usr/bin/g++-11
@@ -82,19 +90,48 @@ Users must modify the following parameters:
 # Running QaaS
 
 In order to perform QaaS runs on a target application, a json specfication must be available.
-`<path to qaas root>/demo/json_inputs/` contains multiple examples of apps to runs.
+`<path to qaas root>/demo/json_inputs/` contains multiple examples of apps to run.
 
+- Run the QaaS strategizer (only unicore logic for now) using the debug mode but with container mode disabled.
 ```
-cd qaas
+cd <path to qaas root>/qaas-backplane/src
 ./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer --no-container -D
+is similar to
+./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer --no-container -D --parallel-compiler-runs off
 ```
-
-Will run the QaaS strategizer (only unicore logic for now) using the debug mode but with container mode disabled.
+- Use `MPI` to multi-compiler search runs (multicore runs for each tested compiler and compiler flags pair) using as many `MPI` ranks as physical cores are available.
+```
+./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer -p mpi --no-container -D
+```
+- Use `OpenMP` to multi-compiler search runs (multicore runs for each tested compiler and compiler flags pair) using as many `OpenMP` threads as physical cores are available.
+```
+./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer -p mpi --no-container -D
+```
+- Use a hybrid `MPI`/`OpenMP` running mode for  multi-compiler search runs. A run is started by setting `MPI` ranks equals to the number of sockets and `OpenMP` threads equals to the number of physical cores per socket.
+```
+./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer -p hybrid --no-container -D
+```
+- Enable scalability runs in QaaS logic after the multi-compiler search procedure. 
+```
+./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer -p mpi --enable-parallel-scale --no-container -D
+```
+- To avoid `ssh` and submit jobs on the local machine.
+```
+./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer --local-job --no-container -D 
+```
 
 # Running QaaS in a container
 
 To run QaaS in a container (prefered way), users must follow the steps below:
 - Install `podman` (rootless mode).
-- Pull container image: `podman pull registry.gitlab.com/davidwong/qaas:sdp`
+- Build container image: `container/build-image.sh`
+- Pull container image: `podman pull <registery>/qaas:production`
 - Setup compiler scripts structure similar to what the `setup_compilers.sh` is doing (see above)
 - Run QaaS: `./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer --as-root-in-container -D`
+
+# QaaS backplane limitations
+- Hardware support limited to:
+    - x86 architectures
+    - Intel architectutes: tested on SkyLake, IceLake and Sapphire Rapids servers
+- Compiler integration limited to `icx/icpx/ifx`, `icc/icpc/ifort` and `gcc/g++/gfortran`
+- `MPI` support limited to `IntelMPI` 

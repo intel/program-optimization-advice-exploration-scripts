@@ -8,62 +8,37 @@ echo "deb https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.li
 fi
 apt-get update
 
-apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2022.2.1 intel-oneapi-compiler-fortran-2022.2.1
-apt-get install -y intel-oneapi-mkl-2022.2.1 intel-oneapi-mkl-devel-2022.2.1
-apt-get install -y intel-oneapi-mpi-2021.7.1 intel-oneapi-mpi-devel-2021.7.1
-
-apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-compiler-fortran
-apt-get install -y intel-oneapi-mkl intel-oneapi-mkl-devel
-apt-get install -y intel-oneapi-mpi intel-oneapi-mpi-devel
-
-mkdir -p /opt/compilers
-cd /opt/compilers
-mkdir -p intel/2023/Linux/intel64/
-echo "source /opt/intel/oneapi/compiler/2023.1.0/env/vars.sh" >  intel/2023/Linux/intel64/load.sh
-echo "source /opt/intel/oneapi/mkl/2023.1.0/env/vars.sh"      >> intel/2023/Linux/intel64/load.sh
-echo "source /opt/intel/oneapi/mpi/2021.9.0/env/vars.sh"     >> intel/2023/Linux/intel64/load.sh
-mkdir -p intel/2022/Linux/intel64/
-echo "source /opt/intel/oneapi/compiler/2022.2.1/env/vars.sh" >  intel/2022/Linux/intel64/load.sh
-echo "source /opt/intel/oneapi/mkl/2022.2.1/env/vars.sh"      >> intel/2022/Linux/intel64/load.sh
-echo "source /opt/intel/oneapi/mpi/2021.7.1/env/vars.sh"     >> intel/2022/Linux/intel64/load.sh
-
-#Install gcc
-
-ubuntu_version=$(cat /etc/os-release | grep UBUNTU_CODENAME | cut -d'=' -f2)
-
-if [[ ! -f "/etc/apt/sources.list.d/ubuntu-toolchain-r-ubuntu-test-${ubuntu_version}.list" ]]; then
-	add-apt-repository -y ppa:ubuntu-toolchain-r/test
+if [[ ! -d "/opt/intel/oneapi/compiler" ]]; then
+	apt-get install -y intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-compiler-fortran
+fi
+if [[ ! -d "/opt/intel/oneapi/mkl" ]]; then
+	apt-get install -y intel-oneapi-mkl intel-oneapi-mkl-devel
+fi
+if [[ ! -d "/opt/intel/oneapi/mpi" ]]; then
+	apt-get install -y intel-oneapi-mpi intel-oneapi-mpi-devel
 fi
 
-apt-get install -y gcc-11 g++-11 gfortran-11
-if [[ "${ubuntu_version}" == "jammy" ]]; then
-	apt-get install -y gcc-12 g++-12 gfortran-12
-fi
+PREFIX=/opt/compilers
+mkdir -p $PREFIX 
+cd $PREFIX
+COMPILER_PATH=$(ls -1 /opt/intel/oneapi/compiler/*/env/vars.sh | sed 's:.*latest.*::;/^$/d' | tail -n 1)
+VERSION=$(echo ${COMPILER_PATH} | cut -d'/' -f6)
+YEAR=$(echo $VERSION | cut -d'.' -f1)
+mkdir -p intel/${YEAR}/Linux/intel64/
+echo "source /opt/intel/oneapi/compiler/${VERSION}/env/vars.sh" >  intel/${YEAR}/Linux/intel64/load.sh
+echo "source /opt/intel/oneapi/mkl/${VERSION}/env/vars.sh"      >> intel/${YEAR}/Linux/intel64/load.sh
+MPIVER=$(ls -1 /opt/intel/oneapi/mpi/*/env/vars.sh | sed 's:.*latest.*::;/^$/d' | tail -n 1 | cut -d'/' -f6)
+echo "source /opt/intel/oneapi/mpi/${MPIVER}/env/vars.sh"       >> intel/${YEAR}/Linux/intel64/load.sh
 
-cd /opt/compilers
-gccversion=$(gcc-11 --version | head -n1 | cut -d' ' -f4 | sed 's:\..$::')
+# Install gcc
+cd $PREFIX
+gccversion="11.4"
 mkdir -p gcc/gcc-${gccversion}/Linux/intel64/
 mkdir -p gcc/gcc-${gccversion}/Linux/install/
-ln -s $(which gcc-11) gcc/gcc-${gccversion}/Linux/install/gcc
-ln -s $(which g++-11) gcc/gcc-${gccversion}/Linux/install/g++
-ln -s $(which gfortran-11) gcc/gcc-${gccversion}/Linux/install/gfortran
-echo "export PATH=/opt/compilers/gcc/gcc-${gccversion}/Linux/install:\$PATH" >  gcc/gcc-${gccversion}/Linux/intel64/load.sh
-echo "source /opt/intel/oneapi/mkl/2023.1.0/env/vars.sh"                     >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
-echo "source /opt/intel/oneapi/mpi/2021.9.0/env/vars.sh"                     >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
-echo "source /opt/compilers/gcc/gcc-${gccversion}/Linux/intel64/load.sh"     >> intel/2023/Linux/intel64/load.sh
-echo "source /opt/compilers/gcc/gcc-${gccversion}/Linux/intel64/load.sh"     >> intel/2022/Linux/intel64/load.sh
-
-cd /opt/compilers
-if [[ "${ubuntu_version}" == "jammy" ]]; then
-gccversion=$(gcc-12 --version | head -n1 | cut -d' ' -f4 | sed 's:\..$::')
-mkdir -p gcc/gcc-${gccversion}/Linux/intel64/
-mkdir -p gcc/gcc-${gccversion}/Linux/install/
-ln -s $(which gcc-12) gcc/gcc-${gccversion}/Linux/install/gcc
-ln -s $(which g++-12) gcc/gcc-${gccversion}/Linux/install/g++
-ln -s $(which gfortran-12) gcc/gcc-${gccversion}/Linux/install/gfortran
-echo "export PATH=/opt/compilers/gcc/gcc-${gccversion}/Linux/install:\$PATH" >  gcc/gcc-${gccversion}/Linux/intel64/load.sh
-echo "source /opt/intel/oneapi/mkl/2023.1.0/env/vars.sh"                     >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
-echo "source /opt/intel/oneapi/mpi/2021.9.0/env/vars.sh"                     >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
-echo "source /opt/compilers/gcc/gcc-${gccversion}/Linux/intel64/load.sh"     >> intel/2023/Linux/intel64/load.sh
-echo "source /opt/compilers/gcc/gcc-${gccversion}/Linux/intel64/load.sh"     >> intel/2022/Linux/intel64/load.sh
-fi
+ln -s /usr/bin/gcc-11      gcc/gcc-${gccversion}/Linux/install/gcc
+ln -s /usr/bin/g++-11      gcc/gcc-${gccversion}/Linux/install/g++
+ln -s /usr/bin/gfortran-11 gcc/gcc-${gccversion}/Linux/install/gfortran
+echo "export PATH=${PREFIX}/gcc/gcc-${gccversion}/Linux/install:\$PATH" >  gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "source /opt/intel/oneapi/mkl/${VERSION}/env/vars.sh"              >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "source /opt/intel/oneapi/mpi/${MPIVER}/env/vars.sh"               >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
+echo "source ${PREFIX}/gcc/gcc-${gccversion}/Linux/intel64/load.sh"     >> intel/${YEAR}/Linux/intel64/load.sh
