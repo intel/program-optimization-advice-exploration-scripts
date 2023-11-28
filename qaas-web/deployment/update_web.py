@@ -9,7 +9,8 @@ def install_backend_dependencies(backend_dir, apache_html_dir):
             os.system(f"cd {backend_dir} && bash install_pip.sh")
        
         target_cp_path = os.path.join(apache_html_dir, 'backend')
-        create_directory(target_cp_path)
+        #create_directory(target_cp_path)
+
         print(backend_dir, target_cp_path)
         os.system(f"sudo rm -rf {target_cp_path}")
         os.system(f"sudo cp -r {backend_dir} {target_cp_path}")
@@ -25,7 +26,8 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
         os.system(f"cd {frontend_dir} && npm run build")
       
         target_cp_path = os.path.join(apache_html_dir, 'dist')
-        create_directory(target_cp_path)
+
+        #create_directory(target_cp_path)
 
         os.system(f"sudo rm -rf {target_cp_path}")
         os.system(f"sudo cp -r {frontend_dir}/dist {target_cp_path}") 
