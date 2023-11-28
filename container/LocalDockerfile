@@ -63,6 +63,18 @@ RUN echo "qaas:qaas" | chpasswd
 RUN chgrp -R qaas /home/qaas
 #RUN chown -R runner /share/* && chgrp -R runner /share/*
 
+RUN apt-get update
+RUN mkdir -p /var/www/html/private
+RUN apt-get install -y libmariadbclient-dev
+
+RUN mkdir /share/maqao
+COPY maqao.tar.gz /root
+RUN tar xvf /root/maqao.tar.gz -C /share/maqao
+#COPY ${MAQAO_PACKAGE_DIR}/bin/ /share/maqao
+
+COPY ../qaas-web /root/
+
+
 USER qaas
 WORKDIR /app/runner
 ENV USER=qaas
