@@ -12,13 +12,13 @@ def install_packages():
     try:
         http_proxy, https_proxy = get_proxy()
         set_apt_proxy(http_proxy, https_proxy)
-        os.system("sudo apt-get update")
+        #os.system("sudo apt-get update")
         #assume they already have these
         #os.system("sudo apt-get install -y apache2")
         #os.system("sudo apt-get install -y mariadb-server")
         #os.system("sudo apt-get install -y python3-pip")
         #os.system("sudo apt-get install -y libmysqlclient-dev")
-        os.system("sudo apt-get install -y libmariadbclient-dev")
+        #os.system("sudo apt-get install -y libmariadbclient-dev")
         #os.system("sudo apt-get install -y python3-certbot-apache")
         #os.system('sudo apt-get install -y curl')
         #os.system("curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -")
@@ -56,9 +56,13 @@ def set_proxy(proxy_server, proxy_port):
     os.environ['http_proxy'] = f'http://{proxy_server}:{proxy_port}'
     os.environ['https_proxy'] = f'http://{proxy_server}:{proxy_port}'
 
+def get_proxy_var(var_name):
+    name = os.environ.get(var_name)
+    return name if name.startswith("http://") else "http://"+name
+
 def get_proxy():
     # get environment variables for the proxy
-    return os.environ.get('http_proxy'), os.environ.get('https_proxy')
+    return get_proxy_var('http_proxy'), get_proxy_var('https_proxy')
 
 def install_common_dependencies(apache_common_dir):
     os.system(f"sudo rm -rf {apache_common_dir}")
@@ -140,12 +144,12 @@ if __name__ == "__main__":
 
 
     output_dir = os.path.join(apache_dir, 'private')
-    create_directory(output_dir)
+    #create_directory(output_dir)
 
     #TODO hardcoded should move this to system dir
-    maqao_package_dir = f'/host/home/yjiao/package/2.17.10'
+    #maqao_package_dir = f'/host/home/yjiao/package/2.17.10'
 
-    install_packages()
+    #install_packages()
 
     http_proxy, https_proxy = get_proxy()
     set_node_proxy(http_proxy, https_proxy)
@@ -156,7 +160,7 @@ if __name__ == "__main__":
     os.system(f"sudo cp -r {config_dir} {apache_dir}")
 
     # # # # #also copy maqao package to output folder
-    os.system(f"sudo cp -r {os.path.join(maqao_package_dir, 'lib')} {os.path.join(maqao_package_dir, 'bin')} {output_dir}")
+    #os.system(f"sudo cp -r {os.path.join(maqao_package_dir, 'lib')} {os.path.join(maqao_package_dir, 'bin')} {output_dir}")
  
 
     # # # # #set the environment path
