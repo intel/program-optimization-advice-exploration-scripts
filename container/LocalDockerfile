@@ -57,6 +57,7 @@ RUN LOCAL_GNAME_ARRAY=($LOCAL_GNAMES) \
 #RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g runner -G $(tr '\n' ',' < /tmp/groups)sudo runner 
 #RUN usermod -m -d /app/runner -s /bin/bash -u $LOCAL_UID -g qaas -G $(tr '\n' ',' < /tmp/groups)sudo qaas 
 RUN usermod -m -d /home/qaas -s /bin/bash -u $LOCAL_UID -g qaas -G $(tr '\n' ',' < /tmp/groups)sudo qaas 
+RUN usermod -aG www-data qaas
 
 RUN echo "qaas:qaas" | chpasswd
 
@@ -64,15 +65,20 @@ RUN chgrp -R qaas /home/qaas
 #RUN chown -R runner /share/* && chgrp -R runner /share/*
 
 RUN apt-get update
+# Give write access to www-data group
 RUN mkdir -p /var/www/html/private
+RUN chmod -R g+w /var/www/html
 RUN apt-get install -y libmariadbclient-dev
 
 RUN mkdir /share/maqao
 COPY maqao.tar.gz /root
 RUN tar xvf /root/maqao.tar.gz -C /share/maqao
 #COPY ${MAQAO_PACKAGE_DIR}/bin/ /share/maqao
+COPY local_install_pip.sh /root
+COPY local_requirements.txt /root
+RUN /root/local_install_pip.sh
 
-COPY ../qaas-web /root/
+#COPY ../qaas-web /root/
 
 
 USER qaas

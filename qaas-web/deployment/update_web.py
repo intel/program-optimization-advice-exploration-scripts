@@ -4,9 +4,9 @@ import sys
 def install_backend_dependencies(backend_dir, apache_html_dir):
     try:
         print(f"Installing backend dependencies in {backend_dir}...")
-        script_path = os.path.join(backend_dir, "install_pip.sh")
-        if os.path.exists(script_path):
-            os.system(f"cd {backend_dir} && bash install_pip.sh")
+        #script_path = os.path.join(backend_dir, "install_pip.sh")
+        #if os.path.exists(script_path):
+        #    os.system(f"cd {backend_dir} && bash install_pip.sh")
        
         target_cp_path = os.path.join(apache_html_dir, 'backend')
         #create_directory(target_cp_path)
@@ -23,8 +23,8 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
     try:
         print(f"Installing frontend dependencies in {frontend_dir}...")
         os.system(f"cd {frontend_dir} && npm i --legacy-peer-deps")
+
         os.system(f"cd {frontend_dir} && npm run build")
-      
         target_cp_path = os.path.join(apache_html_dir, 'dist')
 
         #create_directory(target_cp_path)
