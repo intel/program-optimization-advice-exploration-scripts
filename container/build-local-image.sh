@@ -43,6 +43,8 @@ fi
 # TODO Make script input
 MAQAO_PACKAGE_DIR=/nfs/site/proj/alac/software/UvsqTools/2.3.2
 tar cvfz ./maqao.tar.gz -C ${MAQAO_PACKAGE_DIR} .
+cp ../qaas-web/deployment/000-default.conf .
+cp ../qaas-web/config/qaas-web.conf .
 
 #tar cvfz ./qaas-web.tar.gz -C ../qaas-web .
 

@@ -77,6 +77,13 @@ RUN tar xvf /root/maqao.tar.gz -C /share/maqao
 COPY local_install_pip.sh /root
 COPY local_requirements.txt /root
 RUN /root/local_install_pip.sh
+RUN a2enmod wsgi
+RUN a2enmod rewrite
+RUN rm -f /var/www/html/index.html
+COPY 000-default.conf /etc/apache2/sites-available/
+RUN mkdir /var/www/html/config
+COPY qaas-web.conf /var/www/html/config
+RUN a2ensite 000-default.conf
 
 #COPY ../qaas-web /root/
 

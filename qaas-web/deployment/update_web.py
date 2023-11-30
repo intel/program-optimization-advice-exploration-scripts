@@ -10,6 +10,7 @@ def install_backend_dependencies(backend_dir, apache_html_dir):
        
         target_cp_path = os.path.join(apache_html_dir, 'backend')
         #create_directory(target_cp_path)
+        create_directory(apache_html_dir)
 
         print(backend_dir, target_cp_path)
         os.system(f"sudo rm -rf {target_cp_path}")
@@ -28,6 +29,7 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
         target_cp_path = os.path.join(apache_html_dir, 'dist')
 
         #create_directory(target_cp_path)
+        create_directory(apache_html_dir)
 
         os.system(f"sudo rm -rf {target_cp_path}")
         os.system(f"sudo cp -r {frontend_dir}/dist {target_cp_path}") 
@@ -50,8 +52,31 @@ def install_web_dependencies(backend_dir, frontend_dir, apache_dir):
     install_frontend_dependencies(frontend_dir, apache_dir)
 
 
+def get_proxy_var(var_name):
+    name = os.environ.get(var_name)
+    return name if name.startswith("http://") else "http://"+name
+
+def get_proxy():
+    # get environment variables for the proxy
+    return get_proxy_var('http_proxy'), get_proxy_var('https_proxy')
+
+def set_node_proxy(http_proxy, https_proxy):
+    try:
+        os.system(f'npm config set proxy {http_proxy}')
+        os.system(f'npm config set https-proxy {https_proxy}')
+        os.system(f'npm config set registry https://registry.npmjs.org/')
+        print("Node.js/npm proxy configuration set successfully.")
+    except Exception as e:
+        print("Error setting Node.js/npm proxy configuration:", e)
+
 #update dependency+copy to apache
 def update_web():
+
+    
+    http_proxy, https_proxy = get_proxy()
+    set_node_proxy(http_proxy, https_proxy)
+    
+
     script_dir=os.path.dirname(os.path.realpath(__file__))
     apache_dir = f"/var/www/html"
     target_qaas_dir = os.path.join(script_dir, '..',)
@@ -70,6 +95,16 @@ def update_web():
     install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
     install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
     install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
+
+    output_dir = os.path.join(apache_dir, 'private')
+    give_permission(output_dir, 'www-data')
+    give_permission(apache_dir, 'www-data')
+    give_permission('/etc/apache2/auth', 'www-data')
+
+def give_permission(folder, user):
+    os.system(f"sudo chown -R {user}:{user} {folder}")
+    os.system(f"sudo chmod -R 755 {folder}")
+    os.system(f"sudo chmod -R g+w {folder}")
 
 if __name__ == "__main__":
     update_web()
