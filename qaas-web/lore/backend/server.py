@@ -36,6 +36,7 @@ app = Flask(__name__)
 config = configparser.ConfigParser()
 config.read(config_path)
 app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_LORE']
+print(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
@@ -57,6 +58,7 @@ def create_app(config):
   
     @app.route('/get_application_table_info_lore', methods=['POST'])
     def get_application_table_info_lore():
+        print("called api")
         request_data = request.get_json()
         data = []
         filters = request_data.get('filters', []) 

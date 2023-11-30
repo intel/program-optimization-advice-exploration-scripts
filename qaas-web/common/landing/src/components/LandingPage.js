@@ -11,6 +11,9 @@ const App = () => {
                 <LinkBox href="https://qaas-intel.liparad.uvsq.fr">
                     QaaS repository (requires login)
                 </LinkBox>
+                <LinkBox href="https://lore-intel.liparad.uvsq.fr">
+                    Lore repository (requires login)
+                </LinkBox>
             </div>
         </div>
     );

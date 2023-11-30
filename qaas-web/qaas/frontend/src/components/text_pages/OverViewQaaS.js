@@ -74,8 +74,31 @@ export default function OverViewQaaS() {
                 Our orientation is to find performance improvements and show users how to take advantage of our findings. We view as less important
                 a detailed explanation of why we come to certain conclusions. The main reason for this is that because QaaS contains many tools,
                 explanations can become intricate. However, in BQI, we do cover some explanations.
+                <div className='container-next-to-paragraph'>
+                    <p>If QaaS judges a computation as high-quality, it is. <br />
+                        → Believe it and move on. </p>
+                </div>
             </p>
-            <IntroLink />
+
+
+            <p>
+                This brief introduction to QaaS has covered many topics that are expanded to fuller explanations in the
+                Broad QaaS Introduction [BQI].
+                If your main interest is in submitting your own job to run, you may proceed to Section 2
+                {' '}
+                <Link className='link'
+                    to="/input"
+                > click job submission</Link>
+                .
+                {' '}
+                The
+                <Link className='link'
+                    to="/qaas/cq_overview"
+                >   Broad QaaS Introduction </Link>
+                {' '}
+                should serve as a reference document to further questions that may
+                arise about QaaS analyses, as you proceed.
+            </p>
 
 
 
