@@ -1,3 +1,33 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+###############################################################################
+# MIT License
+
+# Copyright (c) 2023 Intel-Sandbox
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+###############################################################################
+# HISTORY
+# Created October 2022
+# Contributors: Yue/David
+
 from glob import glob
 import pandas
 from sqlalchemy import null
@@ -37,7 +67,7 @@ class QaaSThread(threading.Thread):
 
     def run(self):
         self.rc, self.output_ov_dir = launch_qaas (self.json_file, lambda msg: self.qaas_message_queue.put(msg), self.qaas_data_folder)
-        
+
 
 #can move to startup script
 # See: https://flask.palletsprojects.com/en/1.1.x/tutorial/factory/
@@ -113,7 +143,7 @@ def create_app(config):
                 #gotcha
                 msg = qaas_message_queue.get()
                 print(msg.str())
-                time.sleep(1) 
+                time.sleep(1)
                 if msg.is_end_qaas():
                     break
                 yield f'event: ping\ndata: {msg.str()} \n\n'
@@ -136,12 +166,12 @@ def create_app(config):
         ov_data_dir = os.path.join(config['web']['QAAS_DATA_FOLDER'], 'ov_data')
         os.makedirs(ov_data_dir, exist_ok=True)
         json_file = config['web']['INPUT_JSON_FILE']
-        
+
         #call backplane and wait to finish
         # t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
         # t.start()
         # t.join()
-        
+
         # output_ov_dir = t.output_ov_dir
         output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-80-124"
         if not os.path.exists(output_ov_dir):
@@ -164,7 +194,7 @@ def create_app(config):
                 print(f'Selected folder : {current_ov_dir}')
                 query_time = populate_database(current_ov_dir)
                 update_html(query_time, version)
-        
+
         #if True:
         yellow = '\033[93m'
         reset = '\033[39;49m'
@@ -182,7 +212,7 @@ def create_app(config):
     @app.route('/get_html_by_timestamp', methods=['POST'])
     def get_html_by_timestamp():
         #place to put files
-        query_time = request.get_json()['timestamp'] 
+        query_time = request.get_json()['timestamp']
         update_html(query_time, 'orig')
 
         #get table using timestamp
@@ -199,9 +229,9 @@ def create_app(config):
 
         #get manifest file out
         manifest_path = generate_manifest_csv(storage_path)
-        #find manifest file that contains querytime in permanet storage 
+        #find manifest file that contains querytime in permanet storage
         manifest_df = pd.read_csv(manifest_path, sep=';')
-  
+
         if not manifest_df.empty:
             for table in db.metadata.tables:
                 tablename = table.split(".")[1]
@@ -216,7 +246,7 @@ def create_app(config):
                         file_df.to_csv(file_absolute_path, sep=';', index=False)
                         to_delete.append(file_absolute_path)
 
-            
+
         #get asm out
         asm_df = get_df_from_tablename_by_time('test.asm', query_time)
         asm_path = os.path.join(storage_path, "static_data/asm")
@@ -241,7 +271,7 @@ def create_app(config):
                 cur_asm_loop_path =  asm_path + "/"+ get_filename(filename_parts, ".csv")
                 # print(cur_asm_loop_path)
                 cur_asm_loop_df.to_csv(cur_asm_loop_path, sep=';', index=False, columns=asm_header)
-            
+
             run_otter_command(manifest_path, version)
 
         to_delete.append(asm_path)
@@ -283,12 +313,12 @@ def create_app(config):
     def apply_caching(response):
         response.headers["X-Content-Type-Options"] = "nosniff"
         return response
-    
+
     @app.after_request
     def apply_hsts(response):
         response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
         return response
-    
+
     return app
 
 def main():
