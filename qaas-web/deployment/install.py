@@ -86,6 +86,7 @@ def create_apache_config():
 def give_permission(folder, user):
     os.system(f"sudo chown -R {user}:{user} {folder}")
     os.system(f"sudo chmod -R 755 {folder}")
+    os.system(f"sudo chmod -R g+w {folder}")
 
 
 

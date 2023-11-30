@@ -44,7 +44,7 @@ fi
 MAQAO_PACKAGE_DIR=/nfs/site/proj/alac/software/UvsqTools/2.3.2
 tar cvfz ./maqao.tar.gz -C ${MAQAO_PACKAGE_DIR} .
 
-tar cvfz ./qaas-web.tar.gz -C ../qaas-web .
+#tar cvfz ./qaas-web.tar.gz -C ../qaas-web .
 
 docker build --build-arg IMG_NAME=${img_name} --build-arg http_proxy=$http_proxy_arg --build-arg https_proxy=$https_proxy_arg \
   --build-arg LOCAL_UID=$(id -u ${USER}) --build-arg LOCAL_GID=$(id -g ${USER}) --build-arg LOCAL_GIDS="$local_gids" --build-arg LOCAL_GNAMES="$local_gnames" \
