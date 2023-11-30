@@ -11,10 +11,10 @@ export default function CQOverview() {
                 to CQ, their relative magnitudes and their variations. It will continue to expand in response to user interest.
             </p>
             <p>
-                As outlined in Section B., we expose quality problems with specific compilers , architectures , multiprocessor performance
-                and across a broad set of system types . We illustrate the results using various kinds of application SW examples: numerical libraries,
-                HPC-type benchmarks, mini-applications, and whole applications . Wherever practical,
-                we use multiple data sets to expose quality variations.
+                As outlined in Section B., we expose quality problems with specific compilers, architectures,
+                multiprocessor performance and across a broad set of system types. We illustrate the results using
+                various kinds of application SW examples: numerical libraries, HPC-type benchmarks, mini-applications,
+                and whole applications. Wherever practical, we use multiple data sets to expose quality variations.
             </p>
             <p>
 
