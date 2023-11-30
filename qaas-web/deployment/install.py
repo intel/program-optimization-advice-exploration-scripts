@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import configparser
 
 from urllib.parse import urlparse
 
@@ -8,31 +9,31 @@ from update_web import update_web, create_directory
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
-def install_packages():
-    try:
-        http_proxy, https_proxy = get_proxy()
-        set_apt_proxy(http_proxy, https_proxy)
-        #os.system("sudo apt-get update")
-        #assume they already have these
-        #os.system("sudo apt-get install -y apache2")
-        #os.system("sudo apt-get install -y mariadb-server")
-        #os.system("sudo apt-get install -y python3-pip")
-        #os.system("sudo apt-get install -y libmysqlclient-dev")
-        #os.system("sudo apt-get install -y libmariadbclient-dev")
-        #os.system("sudo apt-get install -y python3-certbot-apache")
-        #os.system('sudo apt-get install -y curl')
-        #os.system("curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -")
+# def install_packages():
+#     try:
+#         http_proxy, https_proxy = get_proxy()
+#         set_apt_proxy(http_proxy, https_proxy)
+#         #os.system("sudo apt-get update")
+#         #assume they already have these
+#         #os.system("sudo apt-get install -y apache2")
+#         #os.system("sudo apt-get install -y mariadb-server")
+#         #os.system("sudo apt-get install -y python3-pip")
+#         #os.system("sudo apt-get install -y libmysqlclient-dev")
+#         #os.system("sudo apt-get install -y libmariadbclient-dev")
+#         #os.system("sudo apt-get install -y python3-certbot-apache")
+#         #os.system('sudo apt-get install -y curl')
+#         #os.system("curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -")
 
-        #os.system("sudo apt-get install -y nodejs")
-        #os.system("sudo apt-get install -y git libapache2-mod-wsgi-py3")
-        #os.system("sudo a2enmod proxy")
-        #os.system("sudo a2enmod proxy_http")
+#         #os.system("sudo apt-get install -y nodejs")
+#         #os.system("sudo apt-get install -y git libapache2-mod-wsgi-py3")
+#         #os.system("sudo a2enmod proxy")
+#         #os.system("sudo a2enmod proxy_http")
         
 
-        print("All packages installed successfully.")
-    except Exception as e:
-        print("Error installing packages:", e)
-        sys.exit(1)
+#         print("All packages installed successfully.")
+#     except Exception as e:
+#         print("Error installing packages:", e)
+#         sys.exit(1)
 
 def set_apt_proxy(http_proxy, https_proxy):
     try:
@@ -43,26 +44,11 @@ def set_apt_proxy(http_proxy, https_proxy):
     except Exception as e:
         print("Error setting APT proxy configuration:", e)
 
-def set_node_proxy(http_proxy, https_proxy):
-    try:
-        os.system(f'npm config set proxy {http_proxy}')
-        os.system(f'npm config set https-proxy {https_proxy}')
-        os.system(f'npm config set registry https://registry.npmjs.org/')
-        print("Node.js/npm proxy configuration set successfully.")
-    except Exception as e:
-        print("Error setting Node.js/npm proxy configuration:", e)
 def set_proxy(proxy_server, proxy_port):
     # set environment variables for the proxy
     os.environ['http_proxy'] = f'http://{proxy_server}:{proxy_port}'
     os.environ['https_proxy'] = f'http://{proxy_server}:{proxy_port}'
 
-def get_proxy_var(var_name):
-    name = os.environ.get(var_name)
-    return name if name.startswith("http://") else "http://"+name
-
-def get_proxy():
-    # get environment variables for the proxy
-    return get_proxy_var('http_proxy'), get_proxy_var('https_proxy')
 
 def install_common_dependencies(apache_common_dir):
     os.system(f"sudo rm -rf {apache_common_dir}")
@@ -81,13 +67,6 @@ def create_apache_config():
     except Exception as e:
         print("Error creating Apache configuration file:", e)
         sys.exit(1)
-
-
-def give_permission(folder, user):
-    os.system(f"sudo chown -R {user}:{user} {folder}")
-    os.system(f"sudo chmod -R 755 {folder}")
-    os.system(f"sudo chmod -R g+w {folder}")
-
 
 
 def setup_database(database_url):
@@ -144,7 +123,7 @@ if __name__ == "__main__":
     config_dir =  os.path.join(target_qaas_dir, "config")
 
 
-    output_dir = os.path.join(apache_dir, 'private')
+    #output_dir = os.path.join(apache_dir, 'private')
     #create_directory(output_dir)
 
     #TODO hardcoded should move this to system dir
@@ -152,38 +131,37 @@ if __name__ == "__main__":
 
     #install_packages()
 
-    http_proxy, https_proxy = get_proxy()
-    set_node_proxy(http_proxy, https_proxy)
 
     update_web()
 
     # # # #also copy the config folder
-    os.system(f"sudo cp -r {config_dir} {apache_dir}")
+    #os.system(f"sudo cp -r {config_dir} {apache_dir}")
 
     # # # # #also copy maqao package to output folder
     #os.system(f"sudo cp -r {os.path.join(maqao_package_dir, 'lib')} {os.path.join(maqao_package_dir, 'bin')} {output_dir}")
  
 
     # # # # #set the environment path
-    os.environ["PATH"] = f"{os.path.join(output_dir, 'bin')}" + os.pathsep + os.environ["PATH"]
-    os.environ["LD_LIBRARY_PATH"] = f"{os.path.join(output_dir, 'lib')}"
+    #os.environ["PATH"] = f"{os.path.join(output_dir, 'bin')}" + os.pathsep + os.environ["PATH"]
+    #os.environ["LD_LIBRARY_PATH"] = f"{os.path.join(output_dir, 'lib')}"
 
 
     # # # # #permission for the www-data to wrtie to apache dir
  
-    create_apache_config()
+    #create_apache_config()
 
     # # # #give permissions
-    os.system(f"sudo a2enmod wsgi")
-    os.system(f"sudo a2enmod rewrite")
-    give_permission(output_dir, 'www-data')
-    give_permission(apache_dir, 'www-data')
-    give_permission('/etc/apache2/auth', 'www-data')
+    #os.system(f"sudo a2enmod wsgi")
+    #os.system(f"sudo a2enmod rewrite")
 
     # # #setup database
-    database_url = 'mysql://qaas:qaas-password@localhost/test'
+    config_path = os.path.join(script_dir, "../config/qaas-web.conf")
+    config = configparser.ConfigParser()
+    config.read(config_path)
+    database_url = config['web']['SQLALCHEMY_DATABASE_URI']
+    #database_url = 'mysql://qaas:qaas-password@localhost/test'
 
     setup_database(database_url)
 
     # # #delete default index html
-    delete_index_html(apache_dir)
+    #delete_index_html(apache_dir)
