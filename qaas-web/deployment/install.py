@@ -117,7 +117,7 @@ def delete_index_html(apache_dir):
 
 
 if __name__ == "__main__":
-    apache_dir = f"/var/www/html"
+    #apache_dir = f"/var/www/html"
    
     target_qaas_dir = os.path.join(script_dir, '..',)
     config_dir =  os.path.join(target_qaas_dir, "config")
@@ -134,8 +134,6 @@ if __name__ == "__main__":
 
     update_web()
 
-    # # # #also copy the config folder
-    #os.system(f"sudo cp -r {config_dir} {apache_dir}")
 
     # # # # #also copy maqao package to output folder
     #os.system(f"sudo cp -r {os.path.join(maqao_package_dir, 'lib')} {os.path.join(maqao_package_dir, 'bin')} {output_dir}")

@@ -70,15 +70,27 @@ def set_node_proxy(http_proxy, https_proxy):
         print("Error setting Node.js/npm proxy configuration:", e)
 
 #update dependency+copy to apache
-def update_web():
+def update_web(force_install=False):
+
+    apache_dir = f"/var/www/html"
+    script_dir=os.path.dirname(os.path.realpath(__file__))
+
+    # # # #also copy the config folder
+    target_qaas_dir = os.path.join(script_dir, '..',)
+    config_dir =  os.path.join(target_qaas_dir, "config")
+
+    if os.path.exists(os.path.join(apache_dir, 'config')):
+        if not force_install:
+            return # Already installed
+        # fall through proceed to installation since force_install is True
+
+    os.system(f"sudo cp -r {config_dir} {apache_dir}")
 
     
     http_proxy, https_proxy = get_proxy()
     set_node_proxy(http_proxy, https_proxy)
     
 
-    script_dir=os.path.dirname(os.path.realpath(__file__))
-    apache_dir = f"/var/www/html"
     target_qaas_dir = os.path.join(script_dir, '..',)
 
     ov_backend_dir = os.path.join(target_qaas_dir, 'oneview',"backend")
@@ -107,4 +119,4 @@ def give_permission(folder, user):
     os.system(f"sudo chmod -R g+w {folder}")
 
 if __name__ == "__main__":
-    update_web()
+    update_web(force_install=True)
