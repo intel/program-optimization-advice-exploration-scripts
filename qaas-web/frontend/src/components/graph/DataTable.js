@@ -91,7 +91,7 @@ export default function DataTable({ columns_raw, rows_raw, isLoading, shouldLoad
             />}
             {isLoading && shouldShowLoading && <LoadingAlert text="Loading..." />}
             {!isLoading && shouldLoadHTML &&
-                
+
                 <div style={splitScreen}>
                     <div style={leftPane}>
 

@@ -32,14 +32,14 @@ class OneviewRunner(BaseRunner):
     @property
     def maqao_lib_dir(self):
         return os.path.join(self.maqao_dir, 'lib')
-        
+
     @property
     def maqao_bin(self):
         return os.path.join(self.maqao_bin_dir, 'maqao')
 
 
 
-    # def run(self, binary_path, run_dir, run_cmd, 
+    # def run(self, binary_path, run_dir, run_cmd,
     #         mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs, env):
     #     # incorporate OMP and MPI envs
     #     run_env = env.copy()
@@ -65,10 +65,10 @@ class OneviewRunner(BaseRunner):
         print(ov_run_cmd)
         print(self.ov_result_dir)
         subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.ov_result_root)
-    
-    
-def exec(env, binary_path, data_path, ov_result_root, run_cmd, ov_dir, ov_config, mode, 
-             mpi_run_command=None, mpi_num_processes=1, omp_num_threads=1, 
+
+
+def exec(env, binary_path, data_path, ov_result_root, run_cmd, ov_dir, ov_config, mode,
+             mpi_run_command=None, mpi_num_processes=1, omp_num_threads=1,
              mpi_envs={"I_MPI_PIN_PROCESSOR_LIST":"all:map=spread"}, omp_envs={}):
     ov_runner = OneviewRunner(ov_dir=ov_dir, level=1, ov_result_root=ov_result_root, ov_config=ov_config)
     ov_runner.exec (env, binary_path, data_path, run_cmd, mode, mpi_run_command, mpi_num_processes, omp_num_threads, mpi_envs, omp_envs)
@@ -85,5 +85,5 @@ def main():
     #time_result, unit_result = aggregate_loop_time(args.run_path, args.binary_path, args.src_file, args.loop_line_num)
     pass
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     main()

@@ -24,7 +24,7 @@ function Navbar() {
         setAnchorElNav(null);
     };
 
-  
+
 
     return (
         <AppBar position="fixed">
@@ -123,7 +123,7 @@ function Navbar() {
                         ))}
                     </Box>
 
-                    
+
                 </Toolbar>
             </Container>
         </AppBar>

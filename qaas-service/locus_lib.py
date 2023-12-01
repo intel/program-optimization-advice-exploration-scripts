@@ -1,3 +1,33 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+###############################################################################
+# MIT License
+
+# Copyright (c) 2023 Intel-Sandbox
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+###############################################################################
+# HISTORY
+# Created October 2022
+# Contributors: David
+
 import statistics as stat
 import argparse
 import os
@@ -13,7 +43,7 @@ from icelib.ice import ICE
 from icelib.frontend.optlang.locus.optimizer import replEnvVars
 from icelib.backend.genlocus import GenLocus
 import icelib.tools.search.resultsdb.models as m
-# Library to use Locus 
+# Library to use Locus
 
 # Got this from dbutils.py of chartscripts
 def saveenvvars(se, lfname):
@@ -22,7 +52,7 @@ def saveenvvars(se, lfname):
     for evalue in se.envvalues:
         varname = evalue.envvar.name
         if varname not in envvars:
-            envvars[varname] = evalue.value 
+            envvars[varname] = evalue.value
         else:
             raise RuntimeError(f"Error getting env vars! Multiple values for {varname}!")
         #
@@ -43,15 +73,15 @@ def get_median_metric(variant):
 
 from icelib.ice import argparser as iceargparser
 def regenerate_source_file(all_srcfilenames, locus_out_file, dry_run, header_folders=None):
-    argparser = argparse.ArgumentParser(add_help=True, 
-                formatter_class=argparse.ArgumentDefaultsHelpFormatter, 
+    argparser = argparse.ArgumentParser(add_help=True,
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                 parents=[iceargparser, optlangargparser])
             #srcfile='/host/nfs/site/proj/alac/data/UIUC-LORE/codelets/tmp/lore-codelets/full_src/all/NPB_2.3-OpenACC-C/BT/bt.c_compute_rhs_line1907_0/bt.c_compute_rhs_line1907_loop.c.0.c.iceorig.c'
             # TODO: Check with Thiago: may want to add an option to have no output at all
     output_mode = ICE_OUTPUT_MODE_STDOUT if dry_run else ICE_OUTPUT_MODE_INPLACE
     lp_args = ['--output', output_mode, '--srcfiles', *all_srcfilenames, '--optfile', locus_out_file]
     if header_folders: lp_args.extend(['--preproc', *header_folders])
-    args = argparser.parse_args(lp_args) 
+    args = argparser.parse_args(lp_args)
     from icelib.ice import init_logging as iceinit_logging
     args.rundirpath = iceinit_logging()
             # Have to save the locustree and use the saved optfile as ICE.run() tries to copy optfile
@@ -92,7 +122,7 @@ def regenerate(session, x, topdir, variant_id, header_folders=None):
             print(sf.data, file=open(os.path.join(searchdir, sf.srcfilename), 'w'))
         all_orig_srcfilenames=[os.path.join(searchdir, sf.srcfilename) for sf in se.srcfiles]
         for v in se.variants:
-            if v.id == variant_id: 
+            if v.id == variant_id:
                 workdir=os.path.join(searchdir, f'v-{v.id}')
                 os.makedirs(workdir)
                 # Copy in original source code to be regenerated as transformed code (done by Locus inplace generation)
