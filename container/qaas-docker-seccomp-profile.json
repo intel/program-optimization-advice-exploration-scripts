@@ -7,6 +7,11 @@
 	],
 	"syscalls": [
 		{
+			"name": "ptrace",
+			"action": "SCMP_ACT_ALLOW",
+			"args": []
+		},
+		{
 			"name": "perf_event_open",
 			"action": "SCMP_ACT_ALLOW",
 			"args": []
