@@ -24,7 +24,7 @@ SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
 # OneView paths
 #prefix = "/host/localdisk/cwong29/working/codelet_extractor_work"
 #prefix = "/localdisk/cwong29/working/codelet_extractor_work"
-PREFIX = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+PREFIX = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 
 #pathToCodeletExtractorDir = "/host/localdisk/spyankov/codelet-extractor"
 #pathToCodeletExtractorDir = f"{prefix}/codelet-extractor"
