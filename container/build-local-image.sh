@@ -40,6 +40,9 @@ else
   touch ssh.tar.gz
 fi
 
+rm -rf cere
+git clone git@github.com:benchmark-subsetting/cere.git --config core.autocrlf=input
+
 echo -n "Enter Qaas user password:"
 read -s QAAS_PASSWORD
 
