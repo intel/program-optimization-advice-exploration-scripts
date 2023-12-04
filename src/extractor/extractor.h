@@ -232,12 +232,12 @@ class OutliningExtractor : public Extractor {
 class InvitroExtractor : public OutliningExtractor {
     vector<int> instance_nums;
   public:
-    InvitroExtractor(const vector<string> &argv):OutliningExtractor(argv) {instance_nums.push_back(1);}
+    InvitroExtractor(const vector<string> &argv):OutliningExtractor(argv) {instance_nums.push_back(stoi(LoopExtractor_instance_nums));}
     void generateBaseHeaders(SgGlobal* glb_scope);
     void generateBasePreLoop(SgScopeStatement* loop_scope, SgExprStatement* call_expr_stmt, 
       LoopInfo* loop_info, vector<SgInitializedName *> scope_vars_initName_vec);
     void generateBasePostLoop(SgScopeStatement* loop_scope, SgExprStatement* call_expr_stmt);
-    SgExprListExp* generateDumpArgs(SgFunctionCallExp* call_expr);
+    SgExprListExp* generateDumpArgs(SgFunctionCallExp* call_expr, bool skip_instances);
     void instrumentMain();
     void extractLoop(SgScopeStatement* loop, LoopInfo& curr_loop);
 };
@@ -369,6 +369,7 @@ class LoopInfo {
     //void printLoopFunc(ofstream &loop_file_buf);
     void printNeededTypeDecls(SgGlobal* glb_loop_src) ;
     void printLoopFunc(string loop_file_name) ;
+    void printRdtscRead(string var_name);
     void printLoopReplay(string replay_loop_filename);
     void pushPointersToLocalVars(ofstream &loop_file_buf);
     void popLocalVarsToPointers(ofstream &loop_file_buf);

@@ -49,6 +49,7 @@ const option::Descriptor usage[] = {
   {MACRO_DEFS         , 0, "D" , "DEFS"            ,Arg::Required , "    -D[<arg>]                 Macro definition" },
   {INFO               , 0, ""  , "info"            ,Arg::None     , "    --info                    Print information for LoopExtractor workflow" },
   {WORKDIR            , 0, ""  , "extractwd"       ,Arg::Required , "    --extractwd[<arg>]        Extractor Work directory" },
+  {INSTANCE_NUMS      , 0, ""  , "extractins"      ,Arg::Required , "    --extractins[<arg>]       Extractor Instance number" },
   {MODE               , 0, ""  , "extractmode"     ,Arg::Required , "    --extractmode[<arg>]      Extractor Mode" },
   {SRC_PREFIX         , 0, ""  , "extractsrcprefix",Arg::Required , "    --extractsrcprefix[<arg>] Source path prefix to be removed in loop naming" },
   {0, 0, 0, 0, 0, 0}
@@ -133,6 +134,9 @@ void set_LoopExtractor_options(int argc, char *argv[]) {
       break;
     case WORKDIR:
       LoopExtractor_work_folder = string(opt.arg);
+      break;
+    case INSTANCE_NUMS:
+      LoopExtractor_instance_nums = string(opt.arg);
       break;
     case SRC_PREFIX:
       LoopExtractor_src_prefix = string(opt.arg);

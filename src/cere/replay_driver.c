@@ -10,8 +10,6 @@
 #include "replay.h"
 
 
-
-
 static volatile int want_exit = 0;
 
 void sigcatch(int signal) {
@@ -74,7 +72,10 @@ int main()
 		}
 	}
 	/* run_loop_dummy(call_count, max_seconds); */
-	run_loop(instance_num, call_count, max_seconds);
+	FILE* fp = fopen("cycles.csv", "w");
+	fprintf(fp, "call_count, cycles\n");
+	run_loop(fp, instance_num, call_count, max_seconds);
+	fclose(fp);
 
 	want_exit = 1;
 	exit(0);

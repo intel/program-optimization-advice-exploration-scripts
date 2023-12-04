@@ -53,6 +53,7 @@ typedef enum {
     INFO,
     HELP,
     WORKDIR,
+    INSTANCE_NUMS,
     MODE,
     SRC_PREFIX,
     UNKNOWN
@@ -76,6 +77,7 @@ extern string LoopExtractor_skiplooppragma_str;
 extern string LoopExtractor_unique_str;
 
 extern string LoopExtractor_work_folder;
+extern string LoopExtractor_instance_nums;
 extern string LoopExtractor_data_folder;
 extern string LoopExtractor_data_folder_path;
 extern string LoopExtractor_curr_dir_path;

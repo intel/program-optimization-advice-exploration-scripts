@@ -14,6 +14,7 @@ string LoopExtractor_skiplooppragma_str = "skiploop";
 string LoopExtractor_unique_str = "";
 
 string LoopExtractor_work_folder = "/tmp";
+string LoopExtractor_instance_nums;
 string LoopExtractor_data_folder = "LoopExtractor_data";
 string LoopExtractor_data_folder_path;
 string LoopExtractor_curr_dir_path;
