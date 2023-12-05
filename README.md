@@ -1,11 +1,12 @@
 # QaaS Scripts
-Scripts for QaaS infrastructure
+Scripts for Program Optimization Advice Exploration infrastructure
 
 ## Installation
-- Build local image
-  - `cd container`
-  - `./build-local-image.sh`
-
+1. Clone this repository
+2. Run setup.sh script.  The script will automatically do the following things:
+  1. Build local container image
+  2. Run setup.sh scripts under different components of QaaS scripts.
+  
 ## Run QaaS Scripts
 - Start container
   - `cd container`
