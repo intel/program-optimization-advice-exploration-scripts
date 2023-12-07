@@ -24,6 +24,9 @@ Scripts for Program Optimization Advice Exploration infrastructure
 - Also should enable TLS for further safety in data transfer.
 - To limit message size, set maxContentLength variable (e.g. to 10000) on React async() call to receive request.
 
+## Run Extractor Scripts
+Follow [Using the Loop Extractor section](qaas-extractor/README.md#using-the-loop-extractor) of Loop Extractor document.
+
 ## Container maintance (under `container` directory)
 Generally, there are two special image tags (`qaas:development` and `qaas:production`).
 - `qaas:development` : Most recent image under development
