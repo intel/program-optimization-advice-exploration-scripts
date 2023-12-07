@@ -17,9 +17,9 @@ if [ -e /var/www/html/config/qaas-web.conf ]; then
 
   ov_dir=${script_dir}/../oneview
   ov_backend_dir=${ov_dir}/backend
-  cd ${ov_backend_dir}; su qaas ./run_server.sh &
-  ov_frontend_dir=${ov_dir}/frontend
-  cd ${ov_frontend_dir}; su qaas -c "npm start" &
+  # cd ${ov_backend_dir}; su qaas ./run_server.sh &
+  # ov_frontend_dir=${ov_dir}/frontend
+  # cd ${ov_frontend_dir}; su qaas -c "npm start" &
 fi
 
 exec su qaas
