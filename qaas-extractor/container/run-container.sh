@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 #while getopts ":n" opt; do
 #  case ${opt} in
 #  \?)
@@ -13,7 +12,7 @@
 # Fetch latest image
 #docker pull registry.gitlab.com/davidwong/cape-experiment-scripts:latest
 
-script_dir=$(dirname $0)
+#script_dir=$(dirname $0)
 #root_dir=$(readlink -f ${script_dir}/..)
 #docker run --rm  -v ${root_dir}:/home/appuser/cape-experiment-scripts -it registry.gitlab.com/davidwong/cape-experiment-scripts:latest
 #docker run --rm  -v ${root_dir}:/home/appuser/cape-experiment-scripts -it local_image_qaas:latest
@@ -45,17 +44,15 @@ done
 
 
 
-if [[ $# == 0 ]]; then
-  docker_run_cmd=(-it local_image_qaas:latest )
-else
-  docker_run_cmd=(local_image_qaas:latest $*)
-fi
-
 #docker run --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /usr/src/linux-headers-$(uname -r):/usr/src/linux-headers-$(uname -r) -v /lib/modules:/lib/modules -v /usr/src/linux-headers-4.4.0-62:/usr/src/linux-headers-4.4.0-62 -v /tmp/tmp:/tmp/tmp -v /dev:/dev -v /usr/include:/usr/include --pid=host --ipc=host -w /host/$(pwd) -it --privileged local_image_qaas:latest 
 #docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --cap-add=all -it local_image_qaas:latest 
 #docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=unconfined -it local_image_qaas:latest 
-#docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=${script_dir}/qaas-docker-seccomp-profile.json -it local_image_qaas:latest 
-docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=${script_dir}/qaas-docker-seccomp-profile.json ${docker_run_cmd[*]}
+#docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=./qaas-docker-seccomp-profile.json -it local_image_qaas:latest 
+if [[ $# == 0 ]]; then
+  docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=unconfined -it local_image_qaas:latest 
+else
+  docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=unconfined local_image_qaas:latest $*
+fi
 
 #container_id=$(docker run --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /usr/src/linux-headers-$(uname -r):/usr/src/linux-headers-$(uname -r) -v /lib/modules:/lib/modules -v /usr/src/linux-headers-4.4.0-62:/usr/src/linux-headers-4.4.0-62 -v /tmp/tmp:/tmp/tmp -v /dev:/dev -v /usr/include:/usr/include --pid=host --ipc=host -d -it --privileged local_image_qaas:latest )
 # Run as root to start EMON driver.  Simply give access to docker group
