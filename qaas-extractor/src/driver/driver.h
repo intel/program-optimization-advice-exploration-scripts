@@ -10,9 +10,9 @@ using namespace std;
 
 class Driver {
     string compiler_flags;
-    vector<string> *loop_funcName_vec = new vector<string>;
-    ofstream header_file_buf;
-    ofstream header_code_file_buf;
+    vector<string> loop_funcName_vec ;
+    //ofstream header_file_buf;
+    //ofstream header_code_file_buf;
     src_lang src_type;
 
     // vector<string> filename_vec;
@@ -26,7 +26,7 @@ public:
     vector<LoopInfo> loop_info_vec;
 
 public:
-    Driver(){};
+    Driver() : extr(NULL) { };
     src_lang getSrcType() { return src_type; }
     string getDataFolderPath() { return LoopExtractor_data_folder_path; };
     void createLoopExtractorDataFolder();

@@ -221,11 +221,12 @@ class Extraction(ABC):
         link_app_data_files(cere_profile_data_dir, cere_app_data_files)
         
         # cere profile
-        ENABLE_CERE_PROFILE = True
-        ENABLE_CERE_PROFILE = False
+        #ENABLE_CERE_PROFILE = True
+        #ENABLE_CERE_PROFILE = False
         self.cere_profile_xlsx = None
-        if ENABLE_CERE_PROFILE:
-            self.cere_profile_xlsx = self.run_cere_profile(cere_profile_data_dir)
+        # Commented out for the time being for SDP.
+        #if ENABLE_CERE_PROFILE:
+        #    self.cere_profile_xlsx = self.run_cere_profile(cere_profile_data_dir)
 
         if self.build_app:
             shutil.rmtree(build_dir, ignore_errors=True)

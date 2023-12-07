@@ -135,7 +135,7 @@ class Extractor : public SgTopDownBottomUpProcessing<InheritedAttribute, int> {
     bool mainFuncPresent = false;
     bool copysourcefiles = false;
     int if_else_macro_count;
-    vector<string> *loop_funcName_vec = new vector<string>;
+    vector<string> loop_funcName_vec ;
     map<SgFunctionDeclaration *, string> inline_func_map;
     string loopOMPpragma = "";
     string loopSkipPragma = "";
