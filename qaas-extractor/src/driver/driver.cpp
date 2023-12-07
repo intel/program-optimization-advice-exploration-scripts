@@ -90,15 +90,20 @@ void Driver::initiateExtractor(string file_name) {
     extr = Extractor::createExtractor(LoopExtractor_mode, filename_vec);
     scanLineNumbers(file_name);
     //tr->setFilenameVec(filename_vec);
-    extr->do_extraction();
+    try {
+        extr->do_extraction();
+    } catch(std::regex_error) {
+        cerr << "Exception caught during extraction, quiting." <<endl;
+        exit(-1);
+    }
 
     mainFuncPresent = extr->mainFuncPresent;
     src_type = extr->getSrcType();
 
     /* Keep on collection Loop Functions name - Append two vector */
-    loop_funcName_vec->insert(loop_funcName_vec->end(),
-                              (extr->loop_funcName_vec)->begin(),
-                              (extr->loop_funcName_vec)->end());
+    loop_funcName_vec.insert(loop_funcName_vec.end(),
+                             (extr->loop_funcName_vec).begin(),
+                             (extr->loop_funcName_vec).end());
 
     /* Copy headers that are in same folder as Source to LE data folder */
     copyInFolderHeaders(extr->getFilePath(), extr->copysourcefiles);
@@ -156,24 +161,34 @@ void Driver::scanLineNumbers(string loopFileName) {
 
 int main(int argc, char *argv[]) {
     Driver *driver = new Driver();
-    set_LoopExtractor_options(argc, argv);
+    try {
+        set_LoopExtractor_options(argc, argv);
 
-    /* Get current working directory path */
-    LoopExtractor_curr_dir_path = getAbsolutePath(".") + forward_slash_str;
-    driver->createLoopExtractorDataFolder();
+        /* Get current working directory path */
+        LoopExtractor_curr_dir_path = getAbsolutePath(".") + forward_slash_str;
+        driver->createLoopExtractorDataFolder();
+    } catch (std::runtime_error) {
+        cerr << "Std::runtime_error caught during driver start up, quiting." << endl;
+        exit(-1);
+    }
 
     genRandomStr(LoopExtractor_unique_str, 5);
 
     /* Send all files in the command line for extraction */
-    if (LoopExtractor_enabled_options[EXTRACT]) {
-        vector<string>::iterator iter;
-        for (iter = LoopExtractor_input_file.begin();
-             iter != LoopExtractor_input_file.end(); iter++) {
-            if (*iter == LoopExtractor_input_file.back()) {
-                driver->isLastSrcFile = true;
+    try {
+        if (LoopExtractor_enabled_options[EXTRACT]) {
+            vector<string>::iterator iter;
+            for (iter = LoopExtractor_input_file.begin();
+                iter != LoopExtractor_input_file.end(); iter++) {
+                if (*iter == LoopExtractor_input_file.back()) {
+                    driver->isLastSrcFile = true;
+                }
+                driver->initiateExtractor(*iter);
             }
-            driver->initiateExtractor(*iter);
         }
+    } catch(std::runtime_error) {
+        cerr << "Std::runtime_error caught during extractor initiation, quiting." <<endl;
+        exit(-1);
     }
 
     /* Moving LoopExtractor_data folder from /tmp to current working directory

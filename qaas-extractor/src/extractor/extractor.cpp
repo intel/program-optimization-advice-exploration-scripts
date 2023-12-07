@@ -674,7 +674,9 @@ void LoopInfo::printRdtscRead(string var_name) {
 }
 
 void LoopInfo::printLoopReplay(string replay_file_name) {
-    std::remove(replay_file_name.c_str());
+    if (std::remove(replay_file_name.c_str()) != 0) {
+        cerr << "Error in deleting old replay file:" << replay_file_name << endl;
+    }
     SgSourceFile* my_restore_src_file = isSgSourceFile(
         SageBuilder::buildFile(replay_file_name, replay_file_name, SageInterface::getProject()));
     SgGlobal * glb_restore_src = my_restore_src_file->get_globalScope();
@@ -1195,7 +1197,9 @@ void LoopInfo::printLoopFunc(string outfile_name) {
 
     files_to_compile.insert(outfile_name);
     const char* outfile = outfile_name.c_str();
-    std::remove(outfile);
+    if (std::remove(outfile) != 0) {
+        cerr << "ERROR in deleting old outfile:"<< outfile << endl;
+    }
     SgProject* project = TransformationSupport::getProject(loop);
     //SgSourceFile* src_file_loop = isSgSourceFile(SageBuilder::buildFile(outfile, outfile));
     SgSourceFile* src_file_loop = isSgSourceFile(SageBuilder::buildFile(outfile, outfile, project));
@@ -1225,6 +1229,7 @@ void LoopInfo::printLoopFunc(string outfile_name) {
         SgFunctionDeclaration* fn_decl_copy = NULL;
         if (fn_decl->get_name().getString () == "__builtin_assume_aligned") {
             continue;
+            #if 0
             SgType* ret_type = fn_decl->get_orig_return_type();
             auto args = fn_decl->get_args();
             SgType* void_star_type = SageBuilder::buildPointerType(SageBuilder::buildVoidType()); // void* type
@@ -1234,6 +1239,7 @@ void LoopInfo::printLoopFunc(string outfile_name) {
             );
             SgType* new_ret_type = void_star_type;
             fn_decl_copy = SageBuilder::buildNondefiningFunctionDeclaration(fn_decl->get_name(), new_ret_type, paramList, glb_loop_src);  
+            #endif
         } else {
             fn_decl_copy = SageInterface::deepCopy(fn_decl);
         }
@@ -2103,7 +2109,7 @@ CollectedLoops LoopCollector::evaluateSynthesizedAttribute(SgNode *astNode, Loop
     }
     if (SgScopeStatement *loop = isSgForStatement(astNode) ? isSgForStatement(astNode) : isSgScopeStatement(isSgWhileStmt(astNode))) { 
         int children_depth = children_loops.getLoopDepth();
-        bool check_depth = false;
+        const bool check_depth = false;
         bool depth_test = check_depth ? (children_depth <=2) : true;
 
         if (locs.matches(loop) || (!children_loops.isEmpty() && depth_test)) {
