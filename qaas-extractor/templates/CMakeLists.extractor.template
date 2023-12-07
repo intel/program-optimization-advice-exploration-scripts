@@ -1,0 +1,108 @@
+get_target_property(SRC_LIST $binary SOURCES)
+get_target_property(INC_LIST $binary INCLUDE_DIRECTORIES)
+get_target_property(LIB_LIST $binary LINK_LIBRARIES)
+get_target_property(TRACE_CXX_STANDARD $binary CXX_STANDARD)
+get_target_property(TRACE_C_STANDARD $binary C_STANDARD)
+get_target_property(TRACE_COMPILE_DEFINITIONS $binary COMPILE_DEFINITIONS)
+
+\# Try to build a list of absolute path if SRC_LIST is not
+\# OUTPUT: SRC_LIST_ABS
+set(SRC_LIST_ABS)
+foreach(src \${SRC_LIST})
+  if (NOT IS_ABSOLUTE \${src})
+    file(GLOB_RECURSE full_s \${src})
+    list(APPEND SRC_LIST_ABS \${full_s})
+  else()
+    list(APPEND SRC_LIST_ABS \${src})
+  endif()
+endforeach()
+
+#for $orig_src_path in $orig_src_files
+file(GLOB remove_srcs "$orig_src_path")
+list(REMOVE_ITEM SRC_LIST_ABS \${remove_srcs})
+#end for
+
+\# message("\${SRC_LIST_ABS}")
+\# Below will build some object libraries for each source folder.
+#set $num_obj_libs = len($orig_src_folders)
+#set $zf = len(str($num_obj_libs - 1))
+#set $libnames = [$trace_binary+f'_lib_{str(i).zfill(zf)}' for i in range(0, $num_obj_libs)]
+
+#for $lib_name, $orig_src_folder in zip($libnames, $orig_src_folders)
+\# $lib_name : $orig_src_folder
+#end for
+
+if (BUILD_TRACE_$trace_binary OR BUILD_SAVE_$trace_binary)
+#for $lib_name in $libnames
+    add_library($lib_name OBJECT) 
+#end for
+
+#for $lib_name, $orig_src_folder in zip($libnames, $orig_src_folders)
+    target_sources($lib_name
+        PRIVATE
+        #for $src_for_folder in $srcs_for_folder[$orig_src_folder]
+        "extractor_src/$src_for_folder"
+        #end for
+        )
+#end for
+
+#for $lib_name, $orig_src_folder in zip($libnames, $orig_src_folders)
+    target_include_directories($lib_name BEFORE PRIVATE $orig_src_folder extractor_include)
+#end for
+
+    if (INC_LIST)
+#for $lib_name in $libnames
+        target_include_directories($lib_name PRIVATE \${INC_LIST})
+#end for
+    endif()
+    if (COMPILER_FLAGS)
+#for $lib_name in $libnames
+        set_target_properties($lib_name \${COMPILER_FLAGS})
+#end for
+    endif()
+    
+    if (TRACE_CXX_STANDARD)
+#for $lib_name in $libnames
+        set_property(TARGET $lib_name PROPERTY CXX_STANDARD \${TRACE_CXX_STANDARD})
+#end for
+    endif()
+
+    if (TRACE_C_STANDARD)
+#for $lib_name in $libnames
+        set_property(TARGET $lib_name PROPERTY C_STANDARD \${TRACE_C_STANDARD})
+#end for
+    endif()
+
+    if (TRACE_COMPILE_DEFINTIONS)
+#for $lib_name in $libnames
+        set_property(TARGET $lib_name PROPERTY COMPILE_DEFINITIONS \${TRACE_COMPILE_DEFINITIONS})
+#end for
+    endif()
+endif()
+
+\# Below building trace and save program.  They have actually the same source but when built with updated 
+\# addresses.h file the output will be different.
+if (BUILD_TRACE_$trace_binary)
+    \# Include object library here in case SRC_LIST_ABS is empty
+    #set target_list = " ".join([f'$<TARGET_OBJECTS:{lib}>' for lib in $libnames])
+    add_executable($trace_binary \${SRC_LIST_ABS} $target_list)
+    if (INC_LIST)
+        target_include_directories($trace_binary PRIVATE \${INC_LIST})
+    endif()
+    if (LIB_LIST)
+        target_link_libraries($trace_binary \${LIB_LIST})
+    endif()
+    if (COMPILER_FLAGS)
+        set_target_properties($trace_binary \${COMPILER_FLAGS})
+    endif()
+    target_link_libraries($trace_binary $extra_libs)
+    if (TRACE_CXX_STANDARD)
+        set_property(TARGET $trace_binary PROPERTY CXX_STANDARD \${TRACE_CXX_STANDARD})
+    endif()
+    if (TRACE_C_STANDARD)
+        set_property(TARGET $trace_binary PROPERTY C_STANDARD \${TRACE_C_STANDARD})
+    endif()
+    if (TRACE_COMPILE_DEFINTIONS)
+        set_property(TARGET $trace_binary PROPERTY COMPILE_DEFINITIONS \${TRACE_COMPILE_DEFINITIONS})
+    endif()
+endif()

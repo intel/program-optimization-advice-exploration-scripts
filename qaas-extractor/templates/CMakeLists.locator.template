@@ -1,0 +1,6 @@
+if (TARGET $binary)
+  get_target_property(CMAKE_FOLDER $binary SOURCE_DIR)
+  file(WRITE "$locator_out_file" "\${CMAKE_FOLDER}")
+else()
+  file(WRITE "$locator_out_file" "\${CMAKE_CURRENT_SOURCE_DIR}")
+endif()

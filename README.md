@@ -1,11 +1,12 @@
 # QaaS Scripts
-Scripts for QaaS infrastructure
+Scripts for Program Optimization Advice Exploration infrastructure
 
 ## Installation
-- Build local image
-  - `cd container`
-  - `./build-local-image.sh`
-
+1. Clone this repository
+2. Run setup.sh script.  The script will automatically do the following things:
+  1. Build local container image
+  2. Run setup.sh scripts under different components of QaaS scripts.
+  
 ## Run QaaS Scripts
 - Start container
   - `cd container`
@@ -22,6 +23,9 @@ Scripts for QaaS infrastructure
   - User should follow security tips when deploying current webapp to production web servers.
 - Also should enable TLS for further safety in data transfer.
 - To limit message size, set maxContentLength variable (e.g. to 10000) on React async() call to receive request.
+
+## Run Extractor Scripts
+Follow [Using the Loop Extractor section](qaas-extractor/README.md#using-the-loop-extractor) of Loop Extractor document.
 
 ## Container maintance (under `container` directory)
 Generally, there are two special image tags (`qaas:development` and `qaas:production`).
