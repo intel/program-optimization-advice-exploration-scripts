@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.2.0)
+project($restore_binary LANGUAGES ASM)
+add_executable($restore_binary 
+        "src/replay_driver.c"
+        "src/$replay_loop_src"	
+        "src/$obj_s"	
+        "src/$loop_src"	)
+target_include_directories($restore_binary PRIVATE include)
+target_link_options($restore_binary PRIVATE $restore_linker_flags)
+target_link_libraries($restore_binary cere_load dl)
+# Set the link flags for my_app

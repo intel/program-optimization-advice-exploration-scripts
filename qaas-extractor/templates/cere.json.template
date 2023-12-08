@@ -1,0 +1,6 @@
+{
+        "build_cmd": "cmake --build $cere_build --target $binary",
+        "run_cmd": "./$binary $app_flags",
+        "clean_cmd": "cmake --build $cere_build --target clean",
+        "multiple_trace": false, "omp": false, "regions_infos": "regions.csv"
+}

@@ -13,7 +13,7 @@
 # Fetch latest image
 #docker pull registry.gitlab.com/davidwong/cape-experiment-scripts:latest
 
-#script_dir=$(dirname $0)
+script_dir=$(dirname $0)
 #root_dir=$(readlink -f ${script_dir}/..)
 #docker run --rm  -v ${root_dir}:/home/appuser/cape-experiment-scripts -it registry.gitlab.com/davidwong/cape-experiment-scripts:latest
 #docker run --rm  -v ${root_dir}:/home/appuser/cape-experiment-scripts -it local_image_qaas:latest
@@ -57,13 +57,27 @@ docker volume create www_html_data
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 DEPLOY_DIR=/host/$SCRIPT_DIR/../qaas-web/deployment
 
+if [[ $# == 0 ]]; then
+  #docker_run_cmd=(-it local_image_qaas:latest )
+  docker_run_cmd=(-it local_image_qaas:latest ${DEPLOY_DIR}/entrypoint.sh)
+else
+  docker_run_cmd=(local_image_qaas:latest $*)
+fi
+
+#docker run --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /usr/src/linux-headers-$(uname -r):/usr/src/linux-headers-$(uname -r) -v /lib/modules:/lib/modules -v /usr/src/linux-headers-4.4.0-62:/usr/src/linux-headers-4.4.0-62 -v /tmp/tmp:/tmp/tmp -v /dev:/dev -v /usr/include:/usr/include --pid=host --ipc=host -w /host/$(pwd) -it --privileged local_image_qaas:latest 
+#docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --cap-add=all -it local_image_qaas:latest 
+#docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=unconfined -it local_image_qaas:latest 
+#docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=${script_dir}/qaas-docker-seccomp-profile.json -it local_image_qaas:latest 
 #docker run -p 81:80  --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=./qaas-docker-seccomp-profile.json -it local_image_qaas:latest 
 # docker run --user root -p 81:80 --restart unless-stopped --entrypoint /host/$SCRIPT_DIR/../qaas-web/deployment/entrypoint.sh --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=./qaas-docker-seccomp-profile.json -it local_image_qaas:latest 
 # docker run --user root -p 81:80 --restart on-failure:1 --entrypoint /host/$SCRIPT_DIR/../qaas-web/deployment/entrypoint.sh --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=./qaas-docker-seccomp-profile.json -it local_image_qaas:latest 
 #docker run --user root -p 81:80 --restart unless-stopped --entrypoint /host/$SCRIPT_DIR/../qaas-web/deployment/entrypoint.sh --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=./qaas-docker-seccomp-profile.json -it local_image_qaas:latest 
 # use entrypoint.sh script to wrap various restart command.  The script will end with "su qaas" to start an interactive shell without quitting as qaas user.
-docker run --user root -p 80:80 -p 443:443 -p 3000:3000 --restart unless-stopped  --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v letsencrypt_data:/etc/letsencrypt -v mods_enabled_data:/etc/apache2/mods-enabled -v htpasswd_data:/etc/apache2/auth -v www_html_data:/var/www/html -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) \
-  --security-opt seccomp=./qaas-docker-seccomp-profile.json -it local_image_qaas:latest ${DEPLOY_DIR}/entrypoint.sh
+docker run --user root -p 80:80 -p 443:443 -p 3000:3000 --restart unless-stopped  \
+  --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v letsencrypt_data:/etc/letsencrypt -v mods_enabled_data:/etc/apache2/mods-enabled \
+  -v htpasswd_data:/etc/apache2/auth -v www_html_data:/var/www/html -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) \
+  --security-opt seccomp=${script_dir}/qaas-docker-seccomp-profile.json ${docker_run_cmd[*]}
+
 
 #container_id=$(docker run --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /usr/src/linux-headers-$(uname -r):/usr/src/linux-headers-$(uname -r) -v /lib/modules:/lib/modules -v /usr/src/linux-headers-4.4.0-62:/usr/src/linux-headers-4.4.0-62 -v /tmp/tmp:/tmp/tmp -v /dev:/dev -v /usr/include:/usr/include --pid=host --ipc=host -d -it --privileged local_image_qaas:latest )
 # Run as root to start EMON driver.  Simply give access to docker group

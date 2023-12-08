@@ -34,6 +34,12 @@ if [ ! -d fdo-lib ]; then
   git clone git@gitlab.com:davidwong/fdo-lib.git
 fi
 
+if [ ! -d cere ]; then
+  git clone git@github.com:david-c-wong/cere.git --config core.autocrlf=input
+  cd cere
+  git checkout multi-codelet-capture
+  cd ..
+fi
 
 
 if [ ! -d pocc-1.1 ]; then
@@ -48,7 +54,8 @@ if [ ! -d uiuc-compiler-opts ]; then
   git clone https://bitbucket.org/thiagotei/uiuc-compiler-opts.git --config core.autocrlf=input
 fi
 
-cp ../scripts/app_builder.py ../scripts/app_runner.py .
+cp ../scripts/app_runner.py .
+cp ../qaas-service/app_builder.py .
 
 #docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy --pull --rm -f "container\Dockerfile" -t capeexperimentscripts:latest "container"
 # Below assums proxy servers are needed to access the network

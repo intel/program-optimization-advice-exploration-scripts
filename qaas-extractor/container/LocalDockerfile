@@ -1,0 +1,100 @@
+ARG IMG_NAME
+FROM ${IMG_NAME}
+
+LABEL description="Local CapeScripts" 
+
+ARG LOCAL_UID
+ARG LOCAL_GID
+ARG LOCAL_GIDS
+ARG LOCAL_GNAMES
+ARG ENABLE_DEVELOPMENT
+ARG SEP_DIR
+
+# Use bash for more scripting features
+SHELL ["/bin/bash", "-c"]
+
+USER root
+# Install more packages for experiments/local needs
+# Uncomment follow line and add more packages
+#RUN apt-get install -y libssl-dev
+
+
+# Installing needed software for CERE
+RUN apt-get update && \
+        apt-get -y install llvm-7 llvm-7-dev clang-7 flang-7 llvm-7-tools \
+        autoconf automake build-essential libtool \
+        ruby ruby-dev libgoogle-perftools-dev google-perftools \
+        numactl dc git wget opt pkg-config libtool build-essential  libgmp3-dev \
+        libomp-7-dev \
+        python3-pip  \
+        python3-matplotlib \
+        python3-jinja2 python3-sklearn python3-numpy python3-pulp python3-pydot \
+        libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx 
+
+
+# Ronn is needed even if we don't built CERE document
+RUN gem install ronn-ng
+
+# Set LLVM-config default to llvm7
+RUN update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-7 200
+
+COPY cere /share/cere
+WORKDIR /share/cere
+
+# Don't generate document which will fail
+RUN sed -i 's| doc/||g' Makefile.am 
+
+RUN ./autogen.sh && ./configure && make && make install
+
+# Update library path to include CERE library which is under /usr/local/lib
+RUN ldconfig
+
+
+# Install sudo, netcat (git behind proxy) for development needs
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then apt-get install -y sudo netcat; fi
+WORKDIR /root
+# Copy in ssh tarball (could be empty if ENABLE_DEVELOPMENT != 1)
+COPY ssh.tar.gz /root
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then tar xvfz ssh.tar.gz && chown -R root .ssh && chgrp -R root .ssh; fi
+
+
+#RUN groupadd -g $LOCAL_GID runner 
+RUN groupmod -g $LOCAL_GID qaas
+# Create /tmp/groups to store the group names to add to runner
+RUN echo -n "" > /tmp/groups
+RUN LOCAL_GNAME_ARRAY=($LOCAL_GNAMES) \
+    && LOCAL_GID_ARRAY=($LOCAL_GIDS) \
+    && for index in ${!LOCAL_GID_ARRAY[@]}; do \
+        if [[ ${LOCAL_GID_ARRAY[$index]} != $LOCAL_GID ]]; then \
+          echo groupadd -g ${LOCAL_GID_ARRAY[$index]} ${LOCAL_GNAME_ARRAY[$index]}; \
+          groupadd -g ${LOCAL_GID_ARRAY[$index]} ${LOCAL_GNAME_ARRAY[$index]}; \
+          echo ${LOCAL_GNAME_ARRAY[$index]} >> /tmp/groups; \
+        else \
+          echo Skip ${LOCAL_GID_ARRAY[$index]}; \
+        fi \
+    done
+
+#RUN getent group
+#RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g $LOCAL_GID -G sudo $LOCAL_GNAMES
+# The tr command will output a trailing ',' being used to be a delimiter just before sudo
+#RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g runner -G $(tr '\n' ',' < /tmp/groups)sudo runner 
+#RUN usermod -m -d /app/runner -s /bin/bash -u $LOCAL_UID -g qaas -G $(tr '\n' ',' < /tmp/groups)sudo qaas 
+RUN usermod -m -d /home/qaas -s /bin/bash -u $LOCAL_UID -g qaas -G $(tr '\n' ',' < /tmp/groups)sudo qaas 
+
+RUN echo "qaas:qaas" | chpasswd
+
+RUN chgrp -R qaas /home/qaas
+COPY ssh.tar.gz /home/qaas
+WORKDIR /home/qaas
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then tar xvfz ssh.tar.gz && chown -R qaas .ssh && chgrp -R qaas .ssh; fi
+
+#RUN chown -R runner /share/* && chgrp -R runner /share/*
+
+USER qaas
+WORKDIR /app/runner
+ENV USER=qaas
+ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install
+ENV LC_ALL=C
+#USER root
+#ENTRYPOINT /opt/intel/sep/sepdk/src/insmod-sep -g docker && su runner && /opt/intel/sep/sepdk/src/rmmod-sep
+ENV PYTHONPATH=/usr/local/lib/python3.8/site-packages

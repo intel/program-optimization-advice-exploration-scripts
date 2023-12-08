@@ -21,14 +21,30 @@ RUN apt-get update && \
    git git-lfs \
    python3-pip \
 # perf. tools
-   time cpufrequtils numactl
+   time cpufrequtils numactl curl \
+# needed software for CERE
+   llvm-7 llvm-7-dev clang-7 flang-7 llvm-7-tools \
+   autoconf automake libtool \
+   ruby ruby-dev libgoogle-perftools-dev google-perftools \
+   dc opt libgmp3-dev \
+   libomp-7-dev \
+   python3-matplotlib \
+   python3-jinja2 python3-sklearn python3-numpy python3-pulp python3-pydot \
+   libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx python3-pandas
+
+# Ronn is needed even if we don't built CERE document
+RUN gem install ronn-ng
+
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
 
 RUN apt-get install --no-install-recommends -y \
 # most recent version of compilers
    make gcc g++ gfortran && \
 # Need to install gcc-4.9 
 # See https://askubuntu.com/questions/1235819/ubuntu-20-04-gcc-version-lower-than-gcc-7
-   echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe" >> /etc/apt/sources.list && \
+   echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial universe" >> /etc/apt/sources.list && \
    add-apt-repository ppa:rosecompiler/rose-development && \
    apt-get update && apt-get install --no-install-recommends -y \
 # Following steps from ROSE website: https://github.com/rose-compiler/rose/wiki/Install-Using-apt-get
@@ -56,24 +72,30 @@ RUN apt-get install --no-install-recommends -y \
 # for PROMPT
    binutils-dev libiberty-dev \
 # For fast app build
-   ninja-build
+   ninja-build \
+# web servers
+   nodejs libapache2-mod-wsgi-py3 \
+   apache2 mariadb-server libmysqlclient-dev \
+   && apt-get clean \
+   && rm -rf /var/lib/apt/lists/*
 
-RUN python3 -m pip install sympy \
-  && python3 -m pip install csvkit \
-  && python3 -m pip install openpyxl \
-  && python3 -m pip install et_xmlfile \
-  && python3 -m pip install Cheetah3 \
-  && python3 -m pip install parse \
-  && python3 -m pip install pytrie \
-  && python3 -m pip install pandas
+RUN python3 -m pip install --no-cache-dir sympy \
+   && python3 -m pip install --no-cache-dir csvkit \
+  && python3 -m pip install --no-cache-dir openpyxl \
+  && python3 -m pip install --no-cache-dir et_xmlfile \
+  && python3 -m pip install --no-cache-dir Cheetah3 \
+  && python3 -m pip install --no-cache-dir parse \
+  && python3 -m pip install --no-cache-dir pytrie \
+  && python3 -m pip install --no-cache-dir pandas \
+  && python3 -m pip install --no-cache-dir py-cpuinfo
 
 # Build cmake
 # NOTE: WHY WE NEED A SPECFIC VERSION instead of apt install cmake
-RUN cd /root \
-  && wget https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
-  && tar xvf cmake-3.21.1.tar.gz \
-  && cd cmake-3.21.1 \
-  && ./bootstrap \
+WORKDIR /root
+RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
+  && tar xvf cmake-3.21.1.tar.gz 
+WORKDIR /root/cmake-3.21.1
+RUN ./bootstrap \
   && make \
   && make install
 
@@ -81,6 +103,21 @@ ENV ROSE_HOME=/usr/rose
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 
 RUN mkdir /share && chmod a+rwx /share && chmod +t /share
+
+# Set LLVM-config default to llvm7 (get ready for CERE installation)
+RUN update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-7 200
+
+# Build CERE
+COPY cere /share/cere
+WORKDIR /share/cere
+
+# Don't generate document which will fail
+RUN sed -i 's| doc/||g' Makefile.am
+
+RUN ./autogen.sh && ./configure && make && make install
+
+# Update library path to include CERE library which is under /usr/local/lib
+RUN ldconfig
 
 # Setup ROSE utils
 COPY rose-utils-for-qaas/ /share/rose-utils
@@ -104,7 +141,7 @@ RUN mkdir /share/pips
 COPY gen_svn_servers.sh /share/pips
 WORKDIR /share/pips
 RUN alias g77=gfortran
-RUN wget https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
+RUN wget -q https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
    && chmod +x setup_pips.sh \
    && ./gen_svn_servers.sh \
    && ./setup_pips.sh --dynamic --light --pyconf=python3-config
@@ -114,7 +151,9 @@ COPY pocc-1.1/ /share/pocc-1.1
 WORKDIR /share/pocc-1.1
 ENV CC=gcc-4.9
 ENV CXX=g++-4.9
-RUN ./install.sh && cd analyzers/candl && patch -p1 -i ../../pocc-1.1-candl-0.6.2.patch && make install
+RUN ./install.sh 
+WORKDIR /share/pocc-1.1/analyzers/candl
+RUN patch -p1 -i ../../pocc-1.1-candl-0.6.2.patch && make install
 
 # Build UIUC Compiler Optimizations
 # Ensure using new version of GCC/G++ (should be 9.3.0 for this container)
@@ -125,7 +164,9 @@ ENV CC=gcc-8
 ENV CXX=g++-8
 WORKDIR /share/uiuc-compiler-opts
 # Comment out a line in CMakeLists.txt to use system boost
-RUN mkdir build && mkdir install && cd build && sed -i '/^set(Boost_NO_SYSTEM_PATHS ON)/ s/^/#/' ../src-git/CMakeLists.txt \
+RUN mkdir build && mkdir install 
+WORKDIR /share/uiuc-compiler-opts/build 
+RUN sed -i '/^set(Boost_NO_SYSTEM_PATHS ON)/ s/^/#/' ../src-git/CMakeLists.txt \
    && sed -i 's|#set(POCC_ROOT "/shared/pocc/pocc-1.1")|set(POCC_ROOT "/share/pocc-1.1")|g' ../src-git/CMakeLists.txt \
    && cmake -DROSE_PATH=/usr/rose -DCMAKE_CXX_FLAGS=-std=c++11 -DCMAKE_INSTALL_PREFIX=/share/uiuc-compiler-opts/install ../src-git \
    && make install
@@ -144,6 +185,8 @@ RUN groupadd -g 8888 qaas && \
 USER qaas
 ENV USER=qaas
 ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install
+# CERE install its Python packages to site-packages directory
+ENV PYTHONPATH=/usr/local/lib/python3.8/site-packages
 WORKDIR /app/runner
 
 CMD ["/bin/bash"]

@@ -30,7 +30,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 
 const steps = ['Build Info', 'Run Info', 'Golden Run System Settings', 'Optional Run System Settings', 'Validation and Domain Specific Rate', 'Status Info'];
 
-export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML}) {
+export default function UserInputStepper({ isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const [activeStep, setActiveStep] = React.useState(0);
     const [skipped, setSkipped] = React.useState(new Set());
 
@@ -67,26 +67,20 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
 
         //build connection stream
         const sse = new EventSource('http://localhost:5002/stream')
-        console.log("sse: ", sse)
 
         function handleStream(e) {
-            console.log("got message from backend: ", e)
             setStatusMsg(e.data)
         }
         sse.onopen = e => {
-            console.log("message opened ", e);
         }
         sse.onmessage = e => {
-            console.log("on message")
             handleStream(e)
         }
         sse.addEventListener('ping', e => {
             setStatusMsg(e.data)
-            console.log("in add event listener", statusMsg)
         })
         sse.onerror = e => {
             //GOTCHA - can close stream and 'stall'
-            console.log("error on sse")
             sse.close()
         }
 
@@ -97,7 +91,6 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
             .then((response) => {
                 setSSEStatus(false)
                 return () => {
-                    console.log("colose connection")
                     sse.close()
 
                 }
@@ -258,9 +251,9 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
         return (
             <div >
                 {title}
-                
+
                 <div>
-                    {listItems.map((item, index)=>{
+                    {listItems.map((item, index) => {
 
                     })}
                     Skylake <Checkbox checked={isValueInInput(input.system.SEARCH_OPTIONS.CPU, "Skylake")} onChange={(e) => handleCheckBoxClick(e, "cpu")} />
@@ -907,9 +900,9 @@ export default function UserInputStepper({isLoading, shouldLoadHTML, setIsLoadin
                                             CPU choices
                                             <div>
 
-                                                Skylake <Checkbox  />
-                                                Cascadelake <Checkbox  />
-                                                Ice Lake <Checkbox  />
+                                                Skylake <Checkbox />
+                                                Cascadelake <Checkbox />
+                                                Ice Lake <Checkbox />
                                                 Default <Checkbox defaultChecked />
                                             </div>
                                         </div>
