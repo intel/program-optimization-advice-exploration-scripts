@@ -1,3 +1,33 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+###############################################################################
+# MIT License
+
+# Copyright (c) 2023 Intel-Sandbox
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+###############################################################################
+# HISTORY
+# Created October 2022
+# Contributors: David/Hafid
+
 import argparse
 import socket
 import threading
@@ -21,7 +51,7 @@ class ServiceMessageReceiver(socketserver.TCPServer):
 
 class ServiceMessageHandler(socketserver.BaseRequestHandler):
     DEFAULT_RECV_BUFFSIZEW = 1024
-    DEBUG = True
+    DEBUG = False
     def handle(self):
         data = bytearray()
         # Due to our message sending protocal, we will send 1 message per connection, so read all until end
@@ -44,14 +74,14 @@ class ServiceMessageSender:
             self.msg_sender.sendall(data.encode())
         self.close()
         self.connect()
-        
+
     def connect(self):
         self.msg_sender = socket.create_connection(("localhost", self.comm_port)) if self.comm_port else None
-        
+
     def close(self):
         if self.msg_sender:
             self.msg_sender.close()
-    
+
 # class SshCommunicator:
 #     def __init__(self, port):
 #         self.port = port
@@ -61,7 +91,7 @@ class ServiceMessageSender:
 
 #     def send(self, data):
 #         self.conn.send(str(data).encode())
-    
+
 #     def recv(self):
 #         data = self.conn.recv(1024).decode()
 #         if not data:
@@ -80,8 +110,8 @@ class ServiceMessageSender:
 #         print(f"listen recv {data}")
 #         print(f"listen send 20")
 #         self.send(20)
-        
-    
+
+
 # class SshListener(SshCommunicator):
 #     def __init__(self, listen_port):
 #         super().__init__(listen_port)
@@ -121,5 +151,5 @@ class ServiceMessageSender:
 #         listen = SshListener(args.port)
 #         listen.listen()
 
-# if __name__ == "__main__": 
+# if __name__ == "__main__":
 #     main()

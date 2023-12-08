@@ -18,9 +18,9 @@ export default function QaasPage() {
         <div style={{ marginTop: 80 }}>
             <Box sx={{ width: '100%' }}>
 
-                
+
                 <Typography variant="h6" align="center" gutterBottom>
-                    
+
                     <div>
 
                         Our turnaround time is 24 hours max for jobs submitted through the menu found here

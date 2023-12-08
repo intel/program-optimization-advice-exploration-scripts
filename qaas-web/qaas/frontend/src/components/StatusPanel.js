@@ -23,7 +23,6 @@ function LinearProgressWithLabel(props) {
 }
 export default function StatusPanel({ msg }) {
   const [shouldDisplayProgress, setShouldDisplayProgress] = useState(false);
-  console.log(msg)
   let msgs = [
     "Job Begin ",
     "Start Building orig app ",
@@ -47,9 +46,9 @@ export default function StatusPanel({ msg }) {
   return (
     <div style={{ marginTop: 80 }}>
       StatusPanel
-      { index_of_msg > -1 &&
+      {index_of_msg > -1 &&
         <ProgressBar
-          percent={10*(index_of_msg+1)}
+          percent={10 * (index_of_msg + 1)}
           filledBackground="linear-gradient(to right, #e3f2fd, #0d47a1)"
         >
           {color_arr.map(c =>
@@ -64,7 +63,7 @@ export default function StatusPanel({ msg }) {
         </ProgressBar>
       }
 
-      { index_of_msg > -1 &&
+      {index_of_msg > -1 &&
         <ul>
           {msgs.map((m, i) =>
             <li style={{ color: color_arr[i] }}>
