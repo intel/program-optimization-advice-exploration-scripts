@@ -65,7 +65,7 @@ config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
 # more initializations in main()
 db = SQLAlchemy()
 app = Flask(__name__)
-config = configparser.ConfigParser()
+config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(config_path)
 app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
