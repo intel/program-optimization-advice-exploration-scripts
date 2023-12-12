@@ -1,7 +1,9 @@
 #!/bin/bash
 
+me=$(basename $(pwd))
+
 if [[ ${USER} != "qaas" ]]; then
-  echo "Outside container setting up local image and then resume inside container"
+  echo "Outside container setting up $me"
   ../container/run-container.sh ./setup.sh
   # Done, quit and not the execute code below.
   exit
@@ -13,5 +15,5 @@ echo "Now setting up rest inside container"
 # Build source code extractor
 make clean; make
 
-echo "Finished rest of setup inside the container."
+echo "Finished rest of setup inside the container for $me."
 echo "To use extractor, please run ../container/run-container.sh and try the extractCodelet.py script."

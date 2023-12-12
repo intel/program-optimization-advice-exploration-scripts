@@ -8,8 +8,8 @@ echo "test hello world"
 
 
 # # # # Run install.py
-python3 install.py
-readlink -f install.py > /tmp/readlink.txt
+#python3 install.py
+#readlink -f install.py > /tmp/readlink.txt
 
 # Only start server if web folder is set up
 if [ -e /var/www/html/config/qaas-web.conf ]; then

@@ -18,6 +18,8 @@ fi
 echo "Now setting up rest inside container"
 # Currently under the directory of setup.sh
 
-cd qaas-extractor
-./setup.sh
-cd ..
+for component in qaas-extractor qaas-web; do
+  cd ${component}
+  ./setup.sh
+  cd ..
+done
