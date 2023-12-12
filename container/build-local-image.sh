@@ -47,8 +47,13 @@ echo -n "Enter Qaas user password:"
 read -s QAAS_PASSWORD
 
 # TODO Make script input
-MAQAO_PACKAGE_DIR=/nfs/site/proj/alac/software/UvsqTools/2.3.2
-tar cvfz ./maqao.tar.gz -C ${MAQAO_PACKAGE_DIR} .
+maqao_package_dir=/nfs/site/proj/alac/software/UvsqTools/2.3.2
+echo -n "Enter MAQAO package location [Default to ${maqao_package_dir}]:"
+read -s maqao_package_dir_choice
+if [[ ${maqao_package_dir_choice} != "" ]]; then
+  maqao_package_dir=${maqao_package_dir_choice}
+fi
+tar cvfz ./maqao.tar.gz -C ${maqao_package_dir} .
 cp ../qaas-web/deployment/000-default.conf .
 cp ../qaas-web/config/qaas-web.conf .
 
