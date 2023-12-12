@@ -69,9 +69,9 @@ export default function UnicorePerfGFlopsLineGraph() {
         yaxis: {
             title: 'GFlops',
             type: 'log',
-            tickvals: [1, 2, 5, 10, 20, 40],
-            ticktext: ['1', '2', '5', '10', '20', '40'],
-            range: [0, 2],
+            tickvals: [1, 2, 5, 10, 20, 30],
+            ticktext: ['1', '2', '5', '10', '20','30'],
+            range: [0, 1.6],
 
 
         },

@@ -70,7 +70,6 @@ def create_app():
         # replace NaN with None (null in JSON)
         for key in data_dict.keys():
             data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
-        print(result_df)
         return jsonify(data_dict)
     
     @app.route('/get_qaas_multicore_perf_gflops_data', methods=['GET'])

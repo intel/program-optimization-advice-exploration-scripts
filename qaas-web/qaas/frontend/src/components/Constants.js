@@ -3,6 +3,8 @@ export const RANGES = ['< 1.1X', '1.1-1.2X', '1.2-1.5X', '1.5-2X', '2-4X', '> 4X
 export const GENERAL_COLORS = {
     'Win': '#B9FFC9',
     'Lose': '#FFABAB',
+    'YellowHighlight': '#FFFF00',
+    'BlueHighlight': '#ADD8E6'
 };
 
 export const APP_COLORS = {

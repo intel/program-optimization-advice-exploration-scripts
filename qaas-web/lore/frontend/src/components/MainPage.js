@@ -13,8 +13,6 @@ const MainPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [filters, setFilters] = useState([]);
     // State for handling page changes
-    const [page, setPage] = useState(0);
-    const [pageSize, setPageSize] = useState(10);
     const [totalRecords, setTotalRecords] = useState(0);
 
     //get initial data
@@ -22,10 +20,10 @@ const MainPage = () => {
         fetchData();
     }, []);
 
-    const fetchData = async (page = 0, pageSize = 10) => {
+    const fetchData = async () => {
         setIsLoading(true);
         try {
-            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_application_table_info_lore`, { page, pageSize });
+            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_application_table_info_lore`, {});
             setData(result.data.data);
             setFilteredData(result.data.data);
             setTotalRecords(result.data.totalCount); // replace `totalCount` with the actual property name
@@ -37,12 +35,10 @@ const MainPage = () => {
 
     const handleFilter = (newFilters) => {
         setFilters(newFilters);
-        //  reset to page 0 when filters are applied
-        setPage(0);
-        filterData(page, pageSize, newFilters);
+        filterData(newFilters);
     };
 
-    const filterData = async (page = 0, pageSize = 10, filters) => {
+    const filterData = async (filters) => {
         const filterParams = {};
         filters.forEach(filter => {
             filterParams[filter.type] = `${filter.operator}_${filter.value}`;
@@ -50,7 +46,7 @@ const MainPage = () => {
 
         setIsLoading(true);
         try {
-            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_application_table_info_lore`, { page, pageSize, filters: filterParams });
+            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_application_table_info_lore`, { filters: filterParams });
             setData(result.data.data);
             setFilteredData(result.data.data);
             setTotalRecords(result.data.totalCount); // replace `totalCount` with the actual property name
@@ -60,15 +56,9 @@ const MainPage = () => {
         setIsLoading(false);
     };
 
-    const handlePageChange = (newPage) => {
-        setPage(newPage);
-        fetchData(newPage, pageSize);
-    };
 
-    const handlePageSizeChange = (newPageSize) => {
-        setPageSize(newPageSize);
-        fetchData(page, newPageSize);
-    };
+
+
     return (
         <div>
             <TopBar />
@@ -80,11 +70,7 @@ const MainPage = () => {
                 <ApplicationTable
                     data={filteredData}
                     isLoading={isLoading}
-                    page={page}
-                    pageSize={pageSize}
-                    onPageChange={handlePageChange}
-                    onPageSizeChange={handlePageSizeChange}
-                    numPages={Math.ceil(totalRecords / pageSize)}
+
 
                 />
 

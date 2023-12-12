@@ -16,7 +16,7 @@ from server import app
 import configparser
 
 from server import update_html, run_comparison_report
-from model import create_all_tables
+from loremodel import create_all_tables
 SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH=os.path.join(SCRIPT_DIR, "..", "config", "qaas-web.conf")
 #get the config

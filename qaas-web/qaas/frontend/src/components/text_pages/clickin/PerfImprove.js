@@ -1,5 +1,4 @@
 import React from 'react';
-import IntroLink from '../IntroLink';
 export default function PerfImprove() {
     return (
         <div className="textPageContainer">

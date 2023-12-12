@@ -17,8 +17,8 @@ import AutomaticApplicationAnalysis from './text_pages/AutomaticApplicationAnaly
 import ManualInteractiveMode from './text_pages/ManualInteractiveMode';
 import Quality10YearTrendRealities from './text_pages/Quality10YearTrendRealities';
 import Quality10YearTrendConclusions from './text_pages/Quality10YearTrendConclusions';
-import IceLake from './text_pages/IceLake';
-import SapphireRapids from './text_pages/SapphireRapids';
+import IceLake from './text_pages/systemconfig/IceLake';
+import SapphireRapids from './text_pages/systemconfig/SapphireRapids';
 import SystemConfigDrawer from './sidebar/SystemConfigDrawer';
 import DefinitionsTab from './text_pages/DefinitionsTab';
 import InitialQaaSOfferings from './text_pages/InitialQaaSOfferings';
@@ -36,19 +36,21 @@ import TypeOfScaling from './text_pages/TypeOfScaling';
 import Oneview from './text_pages/Oneview';
 import BestAppInsightsPerDomain from './text_pages/BestAppInsightsPerDomain';
 import CompilerDetails from './text_pages/CompilerDetails';
-import SystemConfig from './text_pages/SystemConfig';
-import SkyLake from './text_pages/SkyLake';
+import SystemConfig from './text_pages/systemconfig/SystemConfig';
+import SkyLake from './text_pages/systemconfig/SkyLake';
 import MultiCompilerGains from './text_pages/MultiCompilerGains';
 import QaaSSearches from './text_pages/QaaSSearches';
 import QaaSSearchesL2 from './text_pages/QaaSSearchesL2';
 import NavigationPage from './navigation/NavigationPage';
 import OverViewQaaS from './text_pages/OverViewQaaS';
-import UnicorePerfContents from './text_pages/UnicorePerfContents';
+import UnicorePerfContents from './text_pages/clickin/UnicorePerfContents';
 import MultiprocessorCompContents from './text_pages/clickin/MultiprocessorCompContents';
 import MultiprocessorPerfContents from './text_pages/clickin/MultiprocessorPerfContents';
 import PerfImprove from './text_pages/clickin/PerfImprove';
-import FlagRecMiniapps from './text_pages/FlagRecMiniapps';
+import FlagRecMiniapps from './text_pages/clickin/FlagRecMiniapps';
 import AMGHACCClickTarget from './text_pages/clickin/AMGHACCClickTarget';
+import ICC from './text_pages/systemconfig/ICC';
+import GCC from './text_pages/systemconfig/GCC';
 export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const location = useLocation();
 
@@ -112,6 +114,8 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
                             <Route path="/system_config/sky_lake" element={<SkyLake />} />
                             <Route path="/system_config/ice_lake" element={<IceLake />} />
                             <Route path="/system_config/sapphire_rapids" element={<SapphireRapids />} />
+                            <Route path="/system_config/icc" element={<ICC />} />
+                            <Route path="/system_config/gcc" element={<GCC />} />
 
                         </Routes>
                     } />
