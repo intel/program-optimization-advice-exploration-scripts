@@ -61,7 +61,7 @@ def safe_division(n, d):
 
 #get the config
 def get_config():
-    config = configparser.ConfigParser()
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     config.read(CONFIG_PATH)
     return config
 

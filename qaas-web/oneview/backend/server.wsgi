@@ -9,7 +9,7 @@ import os
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir,  "..", "..","config", "qaas-web.conf")
-config = configparser.ConfigParser()
+config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(config_path)
 
 
