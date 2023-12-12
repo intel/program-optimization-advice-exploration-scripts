@@ -1,21 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import IntroLink from './IntroLink';
 export default function OverViewQaaS() {
     return (
         <div className="textPageContainer">
             <h1>Overview of QaaS: Summaries of past runs   </h1>
             <p>
                 This section uses key views of performance results to orient new QaaS users.
-                For a philosophical background of our approach,
-                {' '}
+
+                See {' '}
                 <Link className='link'
                     to="/qaas/overview/perf_improve"
-                > click here </Link>
-                .
+                > philosophical background </Link>
 
-                To proceed with the discussion of QaaS typical results,
-                please continue. As examples, QaaS can search across architectures and compilers to find the best performance
+                else proceed with the discussion of QaaS typical results. As examples, QaaS can search across architectures and compilers to find the best performance
                 results per code, and we present unicore, compiler and multicore comparisons.
 
 
@@ -25,25 +22,25 @@ export default function OverViewQaaS() {
 
             <h2>Unicore performance comparisons</h2>
             <p>
-                For an introductory unicore discussion
-                {' '}
+                We begin with
+
                 <Link className='link'
                     to="/qaas/overview/unicore_perf_contents"
-                > click here </Link>
-                .
+                >  introductory unicore results</Link>,
+                because they reveal many basic ideas that can be useful in understanding HPC multicore
+                results on the fastest parallel machines available. This is also an introduction to the QaaS service of Section 2
+                (Automatic Application Improvement).
 
-                This is also an introduction to the QaaS service of Section 2 (Automatic Application Improvement).
             </p>
 
             <h2>Compiler Comparison</h2>
             <p>
                 Most computers have multiple processors/cores today, and applications can take advantage of them in various ways.
-                Compilers play larger roles as computations become more complex, so we continue the discussion on these topics
                 {' '}
                 <Link className='link'
                     to="/qaas/overview/multiprocessor_comp_contents"
-                > click here </Link>
-                .
+                >Compilers </Link>
+                play larger roles as computations become more complex, so we continue the discussion of these topics here.
             </p>
 
             <h2>
@@ -51,54 +48,55 @@ export default function OverViewQaaS() {
             </h2>
 
             <p>
-                For an introductory multicore system comparison,
-                {' '}
+                This extends the unicore introduction above, and introduces some
                 <Link className='link'
                     to="/qaas/overview/multiprocessor_perf_contents"
-                > click here </Link>
-                .
-                This extends the unicore introduction above, and introduces some basic multicore metrics.
+                > introductory multicore system comparison metrics.</Link>
             </p>
             <h2>
-                Summary points
+                Next steps
             </h2>
 
 
             <p>
-                Above, we have covered unicore and MP architectural basics, as well as compilation basics. We used only a few simple miniapplications.
-                The BQI will expand on many of these topics and include whole applications, as well as more systems. Here we have shown only some factual
-                statements about these computations, but have not given many details about the codes, how QaaS works, or why it can be regarded as a reliable tool.
-            </p>
+                Above, we have covered unicore and MP architectural basics, as well as compilation basics. We used a few simple mini-applications to show
+                some factual statements about these computations. We have not given many details about the codes, how QaaS works,
+                or why it can be regarded as a reliable tool.
 
-            <p>
-                Our orientation is to find performance improvements and show users how to take advantage of our findings. We view as less important
-                a detailed explanation of why we come to certain conclusions. The main reason for this is that because QaaS contains many tools,
-                explanations can become intricate. However, in BQI, we do cover some explanations.
                 <div className='container-next-to-paragraph'>
                     <p>If QaaS judges a computation as high-quality, it is. <br />
                         → Believe it and move on. </p>
                 </div>
+                The QaaS goal is to find performance improvements automatically,
+                and show users how to take advantage of our findings. At a high level, results are more important than detailed explanations.
+                Furthermore, because QaaS contains many tools, explanations can become intricate.
             </p>
 
-
             <p>
-                This brief introduction to QaaS has covered many topics that are expanded to fuller explanations in the
-                Broad QaaS Introduction [BQI].
+                This brief introduction to QaaS has covered many topics that are expanded to fuller explanations in the Broad QaaS Introduction [BQI].
                 If your main interest is in submitting your own job to run, you may proceed to Section 2
-                {' '}
                 <Link className='link'
                     to="/input"
                 > click job submission</Link>
                 .
-                {' '}
-                The
+
                 <Link className='link'
                     to="/qaas/cq_overview"
                 >   Broad QaaS Introduction </Link>
                 {' '}
-                should serve as a reference document to further questions that may
-                arise about QaaS analyses, as you proceed.
+                should serve as a reference document to further questions that may arise about QaaS analyses, as you proceed.
+                Otherwise for a continuation of the QaaS discussion, BQI will expand on many of the topics and include whole applications,
+                more systems, and some performance explanations.
+
             </p>
+
+
+
+
+
+
+
+
 
 
 

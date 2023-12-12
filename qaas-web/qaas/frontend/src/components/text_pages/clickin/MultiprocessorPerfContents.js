@@ -38,13 +38,7 @@ export default function MultiprocessorPerfContents() {
                 but the 3X  range of core count/code is the largest effect shown. Despite the potential ~3X effect of all these factors, there remains an order of magnitude Gf differential across the codes.
                 To explore this and fully explain the 40X total Gf range, requires understanding SW (including data structure and size) differences among the codes.
                 At this point, we can merely present the  high level details above. A main takeaway is to observe some diversity in the optimal cases for these 7 simple miniapps (randomly chosen from the web).
-                Highlights of the variations in HW/SW mismatches across these codes are further explored in BQI
-                {' '}
-                <Link className='link'
-                    to="/qaas/overview"
-                > click here</Link>
-                .
-                {' '}
+                Highlights of the variations in HW/SW mismatches across these codes are further explored in BQI.
 
             </p>
 
@@ -66,8 +60,19 @@ export default function MultiprocessorPerfContents() {
             <p>
                 In each run, QaaS chooses parameter values for best performance, so the variations imply potential difficulties that human developers will encounter in balancing these factors per code on each machine.
                 Developers who use “consensus” defaults obtained by word of mouth, web searches, or intuition, can be misled and incur various kinds of performance degradation. Automated searches eventually seem necessary
-                for naïve developers and even experts; for the latter, searches can at least provide validation for expertly configured computations.web). A fuller understanding of these HW/SW mismatches requires probing
+                for naïve developers and even experts; for the latter, searches can at least provide validation for expertly configured computations. A fuller understanding of these HW/SW mismatches requires probing
                 this website more deeply.
+
+                {' '}
+                <Link className='link'
+                    to="/qaas/cq_overview"
+                >BQI</Link>
+                {' '}
+                gives more details about the multicore aspects of these codes. Otherwise you may return to the
+                {' '}
+                <Link className='link'
+                    to="/qaas/overview"
+                >introduction</Link>.
             </p>
 
 

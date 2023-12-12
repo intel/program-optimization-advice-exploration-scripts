@@ -11,7 +11,7 @@ const columns = [
 
     { Header: 'GF/core', accessor: 'gflopsPerCore' },
     { Header: 'Unicore Gf', accessor: 'unicoreGf' },
-    { Header: 'Ratio of Unicore GF / GF/core', accessor: 'ratioUnicoreGfPerCore' }
+    { Header: 'Ratio of Unicore GF over GF/core', accessor: 'ratioUnicoreGfPerCore' }
 
 ];
 
@@ -66,7 +66,7 @@ function BestCompTable() {
     return (
         < >
 
-            <div className='graphContainer'><CustomReactTable columns={columns} data={sortedData} getCellProps={getCellStyles} /></div>
+            <CustomReactTable columns={columns} data={sortedData} getCellProps={getCellStyles} />
             <div className="plot-title">
                 Fig. Bestcomp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 High-level architectural differences between ICL miniapp runs

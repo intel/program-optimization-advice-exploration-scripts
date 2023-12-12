@@ -4,6 +4,7 @@ import TabSelector from "../data/TabSelector";
 import axios from 'axios';
 import Histogram from './Histogram'
 import { RANGES } from "../Constants";
+import { getCompilerColor } from "../Constants";
 export default function SpeedupGraphCompareTab({ current_src_loop_id, data }) {
 
 
@@ -63,13 +64,16 @@ export default function SpeedupGraphCompareTab({ current_src_loop_id, data }) {
     const chartData = {
         labels: RANGES,
         datasets: Object.keys(data).map(compilerName => ({
+
             label: `${compilerName}`,
             data: generateDataForCompiler(data, compilerName),
+            borderColor: getCompilerColor(compilerName.split(' ')[0]), // give color based on the label
+            backgroundColor: getCompilerColor(compilerName.split(' ')[0])
         })),
         xAxis: 'Range',
         yAxis: 'Count Speedup R',
     };
-
+    console.log(data)
 
     return (
         <div className="component-background">

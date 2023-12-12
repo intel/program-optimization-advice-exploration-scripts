@@ -16,6 +16,8 @@ const DrawerItem = ({ level, text, path, status, drillDown, parent, children, na
         case 'empty': statusColor = 'yellow'; break;
         case 'ongoing': statusColor = 'orange'; break;
         case 'finished': statusColor = 'green'; break;
+        case 'unclickable': statusColor = 'grey'; break;
+
         default: statusColor = ''; break;
     }
     //render icon check it if is expanded
@@ -27,12 +29,17 @@ const DrawerItem = ({ level, text, path, status, drillDown, parent, children, na
         const isExpanded = expandedSections.includes(path);
         return isExpanded ? < KeyboardArrowDownIcon /> : < KeyboardArrowRightIcon />;
     };
+    const handleClick = () => {
+        if (status !== 'unclickable') {
+            navigateToSection(path, text, parent, children, drillDown);
+        }
+    };
     return (
         <ListItem className='draweritem-list-button'>
             <ListItemButton
                 className={`level level${level} ${isSelected ? 'highlight-color' : ''} hover-color`}
                 style={{ paddingLeft: `${level * 15}px`, backgroundColor: statusColor }}
-                onClick={() => navigateToSection(path, text, parent, children, drillDown)}
+                onClick={handleClick}
             >
                 <ListItemText primary={text} />
                 {hasChildren && renderIcon()}

@@ -5,6 +5,7 @@ import TabSelector from '../data/TabSelector';
 import LineGraph from './LineGrapah';
 import Histogram from './Histogram'
 import { RANGES } from '../Constants';
+import { SPEEDUP_R_COLOR, SPEEDUP_M_COLOR, assignColorsToRanges } from '../Constants';
 export default function SpeedupGraphsTab({ data }) {
 
     const tabs = ['Pie chart', 'Histogram', 'Unsorted line plot', 'Sorted line plot'];
@@ -30,10 +31,16 @@ export default function SpeedupGraphsTab({ data }) {
             {
                 label: 'Speedup R',
                 data: generateData(data.map(d => d[Object.keys(d)[0]].speedup_r)),
+                backgroundColor: SPEEDUP_R_COLOR,
+                borderColor: SPEEDUP_R_COLOR
+
             },
             {
                 label: 'Speedup M',
                 data: generateData(data.map(d => d[Object.keys(d)[0]].speedup_m)),
+                backgroundColor: SPEEDUP_M_COLOR,
+                borderColor: SPEEDUP_M_COLOR
+
             }
         ]
     };
@@ -45,6 +52,9 @@ export default function SpeedupGraphsTab({ data }) {
             {
                 label: 'Speedup R',
                 data: generateData(data.map(d => d[Object.keys(d)[0]].speedup_r)),
+                backgroundColor: assignColorsToRanges(RANGES)
+
+
             }
         ]
     };
@@ -56,6 +66,9 @@ export default function SpeedupGraphsTab({ data }) {
             {
                 label: 'Speedup M',
                 data: generateData(data.map(d => d[Object.keys(d)[0]].speedup_m)),
+                backgroundColor: assignColorsToRanges(RANGES)
+
+
             }
         ]
     };
@@ -66,10 +79,14 @@ export default function SpeedupGraphsTab({ data }) {
             {
                 label: 'Speedup R',
                 data: data.map(d => d[Object.keys(d)[0]].speedup_r),
+                backgroundColor: SPEEDUP_R_COLOR,
+                borderColor: SPEEDUP_R_COLOR
             },
             {
                 label: 'Speedup M',
                 data: data.map(d => d[Object.keys(d)[0]].speedup_m),
+                backgroundColor: SPEEDUP_M_COLOR,
+                borderColor: SPEEDUP_M_COLOR
             }
         ]
     };
@@ -82,10 +99,14 @@ export default function SpeedupGraphsTab({ data }) {
             {
                 label: 'Speedup R',
                 data: sortedData.map(d => d[Object.keys(d)[0]].speedup_r),
+                backgroundColor: SPEEDUP_R_COLOR,
+                borderColor: SPEEDUP_R_COLOR
             },
             {
                 label: 'Speedup M',
                 data: sortedData.map(d => d[Object.keys(d)[0]].speedup_m),
+                backgroundColor: SPEEDUP_M_COLOR,
+                borderColor: SPEEDUP_M_COLOR
             }
         ]
     };

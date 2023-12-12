@@ -7,7 +7,7 @@ import pandas as pd
 import zlib
 import hashlib
 import struct
-from model import *
+from loremodel import *
 from datetime import datetime
 import configparser
 from sqlalchemy import distinct, func

@@ -1,5 +1,7 @@
 import React from 'react';
 
+import MPminiappPerfVarTable from '../graph/table/MPminiappPerfVarTable';
+import { Link } from 'react-router-dom';
 
 export default function CQOverview() {
     return (
@@ -47,6 +49,42 @@ export default function CQOverview() {
 
                 </ul>
             </p>
+
+            <h2>Ice Lake Multicore Performance Details</h2>
+            <p>
+                Ever-present questions in parallel computing concern scalability: how well-matched is a code to a multicore architecture
+                and what performance levels proceed from this? Fig. parvar shows these latter relevant characteristics for the 7 miniapps
+                running on ICL. The compilers used are documented in Fig. bestcomp (see compiler section). Considering the number of cores
+                leads to a 4th type of QaaS graphs for scalability.
+            </p>
+            <MPminiappPerfVarTable />
+
+            <p>
+                The scalability of codes has two points of focus: the number of processors used effectively, and scaling type in terms of code & data replication factors.
+                Fig. parvar shows that excellent scalability can result from diverse SW approaches: MiniQMC and its data are replicated 32 times, while HACC executes 48 OpenMP
+                threads simultaneously on one data set, and yet both achieve high Gf rates (12.8 and 16.6 Gf/core, respectively).
+                Note that the best affinities for these two codes also differ substantially.
+                Lower Gf results are achieved for the other 5 miniapps, using various kinds of SW scaling and HW configurations.
+            </p>
+
+            <p>
+                Throughout this discussion we show results that maintain parallel efficiency above .5. This is intuitively desirable,
+                but individual machine users may have more or less aggressive attitudes. Some may prefer satisfying an efficiency-knee
+                criterion that considers HW cost, below which efficiency falls sharply. Others with more concern about raw speed than
+                about cost will prefer to focus on a speedup knee, above which performance gains drop sharply with core increase.
+                In the following we will introduce two types of scalability graphs that represent these ideas.
+            </p>
+            <p>
+                Finally, total operating cost includes energy, and we will discuss several tradeoffs between performance and energy.
+                Again, slopes and knees dominate the discussion. No one wants to minimize energy (by turning off the machine),
+                but everyone has some form of constrained optimization in mind - minimal energy subject to pretty good performance
+                (which includes many personal views of “good”). We will see that clock frequency, instruction set used (vector length),
+                and number of cores used interact to influence several metrics that include time, rate and energy.
+            </p>
+            <p>
+                Note to reader: this ends the current demo. We will soon add compiler details and portability detials at this level.
+            </p>
+
 
 
         </div>

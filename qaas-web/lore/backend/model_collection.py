@@ -1,5 +1,5 @@
 import os
-from model import *
+from loremodel import *
 class Collection:
     def __init__(self, objs=None):
         if objs is None:

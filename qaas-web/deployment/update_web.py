@@ -69,9 +69,9 @@ def update_web():
     lore_apache_dir = os.path.join(apache_dir, 'lore')
 
     # install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
-    # install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
-    install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
-    install_web_dependencies(lore_backend_dir, lore_frontend_dir, lore_apache_dir)
+    install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
+    # install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
+    # install_web_dependencies(lore_backend_dir, lore_frontend_dir, lore_apache_dir)
 
 if __name__ == "__main__":
     update_web()

@@ -38,7 +38,6 @@
 
 .graphContainer {
     width: 100%;
-    max-width: 700px;
     word-wrap: break-word;
     justify-content: center;
     margin-left: auto;
@@ -50,15 +49,19 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    align-items: flex-start;
+    align-items: stretch;
+}
+
+.multiple-graph-container .graphContainer {
+    width: 50%;
+
 }
 
 
 
 .graph-container-short-histogram {
 
-    width: 100%;
-    max-width: 400px;
+    margin: 5px;
     float: right;
     word-wrap: break-word;
 

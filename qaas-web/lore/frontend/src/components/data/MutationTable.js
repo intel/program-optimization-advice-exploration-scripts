@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Table from './table';
 import '../css/table.css'
 import axios from 'axios';
-function MutationTable({ current_src_loop_id }) {
+function MutationTable({ source_id }) {
 
     const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -14,7 +14,7 @@ function MutationTable({ current_src_loop_id }) {
         const fetchData = async () => {
             setIsLoading(true);
             const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_mutation_data_for_specific_loop`, {
-                current_src_loop_id
+                source_id
             })
                 .then(response => {
                     setData(response.data);

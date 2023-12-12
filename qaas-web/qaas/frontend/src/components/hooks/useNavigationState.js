@@ -79,11 +79,15 @@ export const useNavigationState = (drawerItems, initialHash) => {
 
         } else {
             if (children) {
-                if (!expandedSections.includes(path)) {
-                    setExpandedSections(prevSections => [...prevSections, path]);
-                } else {
-                    setExpandedSections(prevSections => prevSections.filter(section => section !== path));
-                }
+                setExpandedSections(prevSections => {
+                    if (prevSections.includes(path)) {
+                        // if already expanded, collapse it
+                        return prevSections.filter(section => section !== path);
+                    } else {
+                        // if not expanded, add it to the expanded sections
+                        return [...prevSections, path];
+                    }
+                });
             }
         }
     };

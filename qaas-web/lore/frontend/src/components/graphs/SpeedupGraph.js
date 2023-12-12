@@ -1,9 +1,18 @@
 import React from 'react';
 import Chart from 'chart.js/auto';
 import { Line } from "react-chartjs-2";
-import 'chartjs-adapter-date-fns';
-
+import 'chartjs-adapter-date-fns'
+import { getCompilerColor } from '../Constants';
 const SpeedupGraph = ({ data }) => {
+
+    const chartData = {
+        ...data,
+        datasets: data.datasets.map(dataset => ({
+            ...dataset,
+            borderColor: getCompilerColor(dataset.label), // give color based on the label
+            backgroundColor: getCompilerColor(dataset.label)
+        }))
+    };
 
 
     const options = {
@@ -36,10 +45,10 @@ const SpeedupGraph = ({ data }) => {
             }
         }
     };
-
+    console.log(data)
     return (
         <div className='speedup-graph-container'>
-            <Line data={data} options={options} />
+            <Line data={chartData} options={options} />
         </div>
     );
 };
