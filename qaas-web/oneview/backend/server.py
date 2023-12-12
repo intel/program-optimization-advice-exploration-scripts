@@ -265,13 +265,11 @@ def create_app(config):
         selected_runs = request.get_json()
         data_folder_list = []
         for run in selected_runs:
-            print(run)
             timestamp = run['timestamp']
             universal_timestamp = datetime_to_universal_timestamp(timestamp)
             print(universal_timestamp)
-            output_folder = os.path.join(qaas_output_folder, universal_timestamp)
-            export_data(universal_timestamp, output_folder, db.session)
-            data_folder_list.append(output_folder)
+            export_data(universal_timestamp, qaas_output_folder, db.session)
+            data_folder_list.append(qaas_output_folder)
         create_manifest_comparison(manifest_file_path, data_folder_list)
         manifest_out_path = create_out_manifest(frontend_html_path)
 

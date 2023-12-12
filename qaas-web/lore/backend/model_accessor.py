@@ -31,7 +31,7 @@ from abc import ABC, abstractmethod
 from util import *
 import os
 import pandas as pd
-from model import *
+from loremodel import *
 from model_collection import *
 import csv
 import time

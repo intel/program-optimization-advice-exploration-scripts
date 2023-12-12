@@ -12,7 +12,11 @@ import SpeedupFormula from './formulas/SpeedupFormula';
 import axios from 'axios';
 import SpeedupTable from './data/SpeedupTable';
 import SpeedupGraphsTab from './graphs/SpeedupGraphsTab';
+import { useLocation } from 'react-router-dom';
+
 function LoopPage() {
+    const location = useLocation();
+
     const query_params = new URLSearchParams(location.search);
     const pageIsloading = query_params.get("loading") === "true";
 
@@ -24,12 +28,15 @@ function LoopPage() {
     const file = query_params.get('file');
     const function_name = query_params.get('function');
     const line = query_params.get('line');
+    const source_id = query_params.get('source_id');
+
     //get all speedup data to use across different components
     const [data, setData] = useState([]);
     const [current_src_loop_id, setCurrentSrcLoopId] = useState(null);
 
     //to to open mutation page
 
+    console.log("source_id", source_id)
 
     useEffect(() => {
 
@@ -39,7 +46,7 @@ function LoopPage() {
             line,
             workload,
             program,
-            workload_version: workload_version
+            workload_version: workload_version,
         })
             .then(response => {
                 setData(response.data['speed_up_data']);
@@ -158,7 +165,7 @@ function LoopPage() {
                         <h4 id="ttl3" >List of mutations</h4>
                     </div>
                     <MutationTable
-                        current_src_loop_id={current_src_loop_id}
+                        source_id={source_id}
                         data={data}
 
                     />
