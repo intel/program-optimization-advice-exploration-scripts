@@ -9,7 +9,7 @@ export default function PlotlyHistogram({ data, layout }) {
             data={data}
             layout={layout}
             style={{ width: "100%", height: "100%" }}
-            config={{ displayModeBar: false }}
+            config={{ displayModeBar: false, responsive: true }}
 
         />
     );

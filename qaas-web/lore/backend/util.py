@@ -36,7 +36,7 @@ import pandas as pd
 import zlib
 import hashlib
 import struct
-from model import *
+from loremodel import *
 from datetime import datetime
 import configparser
 from sqlalchemy import distinct, func
@@ -593,6 +593,9 @@ def get_all_groups_for_run(loops):
 
 
 ###### lore get data
+def get_metric_value(metircs, metric_name):
+    metrics_dict = {src_metric.metric_name: src_metric.metric_value for src_metric in metircs}
+    return float(metrics_dict.get(metric_name, None))
 
 def get_metrics_for_loop(loop):
     current_metrics = loop.lore_loop_measures[0].lore_loop_measure_metrics

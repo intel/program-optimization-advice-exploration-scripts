@@ -29,7 +29,7 @@
 # Contributors: Yue/David
 import os
 
-from model import *
+from loremodel import *
 
 from model_accessor import LoreMigrator
 from qaas_database import QaaSDatabase

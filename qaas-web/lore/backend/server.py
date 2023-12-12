@@ -44,14 +44,12 @@ import time
 from pathlib import Path
 import shutil
 from datetime import datetime
-import qaas
 import threading
 import queue
-from qaas import launch_qaas
 import configparser
 from util import *
 from flask_cors import CORS
-from model import *
+from loremodel import *
 from sqlalchemy import select, join
 import luadata
 import re
@@ -65,6 +63,7 @@ app = Flask(__name__)
 config = configparser.ConfigParser()
 config.read(config_path)
 app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_LORE']
+print(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
@@ -89,83 +88,56 @@ def create_app(config):
         request_data = request.get_json()
         data = []
         filters = request_data.get('filters', []) 
-        limit = 2000  # default page size
-        #server side pagniation
-        page = request_data.get('page', 0)  # default to page 0 if not provided
-        pageSize = request_data.get('pageSize', 10)  # default to 10 items per page if not provided
-        offset = page * pageSize
-
-
-        # applications = db.session.query(Application).offset(offset).limit(pageSize).all()
         applications = db.session.query(Application).all()
 
         for application in applications:
-            skip_application = False
-
-            run_data = {}
-
             executions = db.session.query(Execution).filter_by(application=application).all()
-            src_loop_count = 0
-            for execution in executions:
-                #check if it is lore or maqao data
-                if len(execution.maqaos) != 0:
-                    skip_application = True
-                    break  
-       
-                #apply fiters
-                if len(filters) > 0:
-                    if not check_filters(db.session, execution, filters):
-                        continue  
-                
-
-                src_loops = execution.src_loops
-                for src_loop in src_loops:
-                    #only look at the original source loop, i.e mutation number = 0
-                    if src_loop.mutation_number != 0:
-                        continue
-
-                
-                    if src_loop.loops:
-                        static_lore_loop_metrics = src_loop.source.source_metrics
-                        mutations  = get_all_mutations_from_orig_source_loop(src_loop, db.session)
-                        print(len(mutations))
-                        orig_filename, orig_function_name, orig_line_number, mutation_number = extract_info_from_lore_source_code_file_name(src_loop.file)
-
-                        #don't look at same src loop with different compilers
-                        run_data_key = f'{orig_filename}_{orig_function_name}_{orig_line_number}'
-                        if run_data_key in run_data:
-                            continue
-
-                        #count only orig srcloops and not repetting src loops with different compilers
-                        src_loop_count += 1
-
-                        loop_data = {
-                            'file': orig_filename,
-                            'function': orig_function_name,
-                            'line': orig_line_number,
-                            'pluto': 'Yes' if get_metric_value(static_lore_loop_metrics, 'pluto') == '1' else 'No',
-                            'n_mutations': len(mutations)
-                        }
-                        run_data[run_data_key] = loop_data
-
-            if skip_application:
-                continue
-            
             application_data = {
              'program': application.program,
              'version': application.version,
              'workload': application.workload,
              'commit_id': application.commit_id,
-             'n_loops': src_loop_count,
-             'run_data': list(run_data.values())
-
+             'n_loops': len(executions),
+             'application_id': application.table_id
             }
-            if len(run_data) > 0:
-                data.append(application_data)
-
-        total_count = db.session.query(Application).count()
+            data.append(application_data)
         return jsonify(
-                    totalCount= total_count,
+                    data=data,
+                    )
+    
+    @app.route('/get_application_subtable_info_lore', methods=['POST'])
+    def get_application_subtable_info_lore():
+        request_data = request.get_json()
+        data = {}
+        application_id = request_data.get('application_id', []) 
+        executions = db.session.query(Execution).filter_by(fk_application_id = application_id)
+
+        for execution in executions:
+            src_loop = execution.src_loops[0]
+            orig_src_loop = src_loop.orig_src_loop
+            mutation_number = src_loop.mutation_number
+            source_id = src_loop.source.table_id if not orig_src_loop else orig_src_loop.source.table_id
+            orig_filename, orig_function_name, orig_line_number, _ = extract_info_from_lore_source_code_file_name(src_loop.file)
+            data.setdefault(source_id, 
+            {
+            'n_mutations': 0, 
+            'file': orig_filename,
+             'function': orig_function_name,
+             'line': orig_line_number,
+             'mutation_numbers': [],
+             'source_id': source_id
+             }
+             )
+            #only add a new mutation 
+            if mutation_number not in data[source_id]['mutation_numbers']:
+                data[source_id]['n_mutations'] += 1
+                data[source_id]['mutation_numbers'].append(mutation_number)
+
+        
+
+      
+        data = list(data.values())
+        return jsonify(
                     data=data,
                     )
 
@@ -322,52 +294,60 @@ def create_app(config):
     def get_mutation_data_for_specific_loop():
         # Get the parameters from the request
         data = request.get_json()
+        source_id = data.get('source_id')
+        #get orig src loop using the source
+        src_loops = db.session.query(SrcLoop).filter_by(fk_source_id = source_id, mutation_number = 0).all()
+        #check which mutations are using these src)loops
+        mutation_dict = {}
+        for orig_src_loop in src_loops:
+            mutated_src_loops = db.session.query(SrcLoop).filter_by(fk_orig_src_loop_id = orig_src_loop.table_id).all()
+            if not mutated_src_loops:
+                continue
+            
+            #add orignal data to mutation_dict
+            mutation_dict[0] = {
+                    "mutation": 0,
+                    "trans_seq": "Preproccessed baseline",
+                    "interchange": "NA",
+                    "tiling": "NA",
+                    "distrubution": "NA",
+                    "unrolling": "NA",
+                    "unroll_jam": "NA",
+                    }
+
+
+            #found mutated loops
         
-        target_src_loop = get_target_src_loop_from_id(int(data.get('current_src_loop_id'))  , db.session)
+            for mutated_src_loop in mutated_src_loops:
+                mutation = mutated_src_loop.mutation
+                mutated_mutation_number = mutated_src_loop.mutation_number
+                #get trans_seq
+                mutation_elements = [
+                    {"order": mutation.interchange_order, "arg": mutation.interchange_arg},
+                    {"order": mutation.tiling_order, "arg": mutation.tiling_arg},
+                    {"order": mutation.unrolling_order, "arg": mutation.unrolling_arg},
+                    {"order": mutation.distribution_order, "arg": mutation.distribution_arg},
+                    {"order": mutation.unrolljam_order, "arg": mutation.unrolljam_arg},
+                ]
+                sorted_elements = sorted(
+                    [elem for elem in mutation_elements if elem["order"] >= 0], 
+                    key=lambda x: x["order"]
+                )
+                trans_seq = ','.join([elem["arg"] for elem in sorted_elements if elem["arg"]])
+                #put the value into dict
+                if mutated_mutation_number not in mutation_dict:
+                    mutation_dict[mutated_mutation_number] = {
+                    "mutation": mutated_mutation_number,
+                    "trans_seq": trans_seq,
+                    "interchange": mutation.interchange_arg if mutation.interchange_arg else "NA",
+                    "tiling": mutation.tiling_arg if mutation.tiling_arg else "NA",
+                    "distrubution": mutation.distribution_arg if mutation.distribution_arg else "NA",
+                    "unrolling": mutation.unrolling_arg if mutation.unrolling_arg else "NA",
+                    "unroll_jam": mutation.unrolljam_arg if  mutation.unrolljam_arg else "NA",
+                    }
 
-        orig_filename, orig_function_name, orig_line_number, mutation_number = extract_info_from_lore_source_code_file_name(target_src_loop.file)
 
-        file_pattern = f'{orig_filename}_{orig_function_name}_line{orig_line_number}_loop.c.%'
-        src_loops = db.session.query(
-                SrcLoop.mutation_number, 
-                Mutation.interchange_arg, 
-                Mutation.tiling_arg, 
-                Mutation.distribution_arg, 
-                Mutation.unrolling_arg, 
-                Mutation.unrolljam_arg,
-                func.count(SrcLoop.mutation_number)
-                ).join(
-                    Mutation, SrcLoop.fk_mutation_id == Mutation.table_id
-                ).filter(
-                    SrcLoop.file.like(file_pattern)
-                ).group_by(
-                    SrcLoop.mutation_number,
-                    Mutation.interchange_arg,
-                    Mutation.tiling_arg,
-                    Mutation.distribution_arg,
-                    Mutation.unrolling_arg,
-                    Mutation.unrolljam_arg
-                ).all()
-
-        res = []
-        trans_seq_map = {
-            0: 'Preprocessed baseline',
-            1: 'Unrolling(factor=2)',
-            2: 'Unrolling(factor=4)',
-            3: 'Unrolling(factor=8)'
-        }
-        for mutation_number, interchange_arg, tiling_arg, distribution_arg, unrolling_arg, unroll_jam_arg, count in src_loops:
-            data = {
-                "mutation": mutation_number,
-                "trans_seq": trans_seq_map[mutation_number],
-                "interchange": interchange_arg,
-                "tiling": tiling_arg,
-                "distrubution": distribution_arg,
-                "unrolling": unrolling_arg,
-                "unroll_jam": unroll_jam_arg,
-            }
-            res.append(data)
-
+        res = list(mutation_dict.values())
         return res
 
     @app.route('/lore_get_all_speedup_range', methods=['GET'])
@@ -385,7 +365,6 @@ def create_app(config):
                     all_speedup_data[current_src_loop_id] = speed_up_data
 
 
-        print(all_speedup_data)
         return all_speedup_data
 
     
@@ -400,7 +379,6 @@ def create_app(config):
         workload = data.get('workload')
         program = data.get('program')
         workload_version = data.get('workload_version')
-        
         current_application = db.session.query(Application).filter_by(workload=workload, version=workload_version, program=program).first()
 
         executions = current_application.executions

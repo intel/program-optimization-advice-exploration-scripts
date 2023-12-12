@@ -19,6 +19,7 @@ const chartLayout = {
     yaxis: {
         title: 'Cases Count',
         automargin: true,
+        dtick: 1,
 
 
     },

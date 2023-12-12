@@ -3,7 +3,7 @@ import Table from './table';
 import '../css/table.css'
 import ApplicationSubTable from './ApplicationSubTable';
 
-function ApplicationTable({ data, isLoading, page, pageSize, onPageChange, onPageSizeChange, numPages }) {
+function ApplicationTable({ data, isLoading }) {
 
     const [expanded, setExpanded] = useState({});
 
@@ -14,6 +14,7 @@ function ApplicationTable({ data, isLoading, page, pageSize, onPageChange, onPag
         return (
             <div style={{ padding: "20px" }}>
                 <ApplicationSubTable data={row['run_data']}
+                    application_id={row['application_id']}
                     workload={row['workload']}
                     program={row['program']}
                     workload_version={row['version']}
@@ -68,12 +69,6 @@ function ApplicationTable({ data, isLoading, page, pageSize, onPageChange, onPag
                     SubComponent={(row) => renderSubComponent(row.original)}
                     expanded={expanded}
                     onExpandedChange={handleExpandedChange}
-                    defaultPageSize={pageSize}
-                    page={page}
-                    pageSize={pageSize}
-                    onPageChange={onPageChange}
-                    onPageSizeChange={onPageSizeChange}
-                    numPages={numPages}
 
                 />
             )}

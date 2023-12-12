@@ -35,7 +35,7 @@ import pandas as pd
 import subprocess
 import json
 import os
-from model import * 
+from loremodel import * 
 from util import *
 import pandas as pd
 import time 

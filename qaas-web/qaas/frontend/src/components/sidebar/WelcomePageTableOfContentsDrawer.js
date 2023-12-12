@@ -6,13 +6,13 @@ import DrawerItemsList from './DrawerItemList';
 import ListItemButton from '@mui/material/ListItemButton';
 import { useNavigationState } from '../hooks/useNavigationState';
 const drawerItems = [
-    { text: 'Overview', path: '/qaas' },
+    { text: 'Overview', path: '/qaas', status: 'unclickable' },
     {
         text: 'A. Quality definitions', path: '/qaas/quality_definitions', children: [
-            { text: 'A.1 Detailed Definitions', path: '/qaas/quality_detailed_definitions', status: 'empty' },
-        ]
+            { text: 'A.1 Detailed Definitions', path: '/qaas/quality_detailed_definitions' },
+        ], status: 'unclickable'
     },
-    { text: 'B. Constraints and Scope', path: '/qaas/constraints_and_scope' },
+    { text: 'B. Constraints and Scope', path: '/qaas/constraints_and_scope', status: 'unclickable' },
     {
         text: 'C. Initial QaaS offerings', path: '/qaas/initial_qaas_offerings', children: [
             { text: 'C0 Overview', path: '/qaas/overview' },
@@ -70,12 +70,12 @@ const drawerItems = [
 
                 ]
             },
-            { text: 'C2. Automatic application analysis', path: '/qaas/automatic_application_analysis' },
-            { text: 'C3. Manual Interactive Mode', path: '/qaas/manual_interactive_mode' },
+            { text: 'C2. Automatic application analysis', path: '/qaas/automatic_application_analysis', status: 'unclickable' },
+            { text: 'C3. Manual Interactive Mode', path: '/qaas/manual_interactive_mode', status: 'unclickable' },
             {
                 text: 'C4. Quality 10-year trend realities', path: '/qaas/quality_10_year_trend_realities', children: [
                     { text: 'C4.1 Conclusions', path: '/qaas/quality_10_year_trend_conclusions' },
-                ]
+                ], status: 'unclickable'
             },
         ]
     },

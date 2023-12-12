@@ -31,7 +31,7 @@ import argparse
 from sqlalchemy.orm import sessionmaker
 from model_accessor import LoreMigrator
 from qaas_database import QaaSDatabase
-from model import create_all_tables
+from loremodel import create_all_tables
 import time  
 import pickle
 from util import get_config, connect_db

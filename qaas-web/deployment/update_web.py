@@ -99,14 +99,28 @@ def update_web(force_install=False):
     qaas_frontend_dir = os.path.join(target_qaas_dir,'qaas', "frontend")
     common_frontend_dir = os.path.join(target_qaas_dir,'common','landing')
     common_backend_dir = os.path.join(target_qaas_dir,'common','backend')
+    lore_backend_dir = os.path.join(target_qaas_dir, 'lore',"backend")
+    lore_frontend_dir = os.path.join(target_qaas_dir,'lore', "frontend")
 
     ov_apache_dir = os.path.join(apache_dir,  'oneview')
     qaas_apache_dir = os.path.join(apache_dir, 'qaas')
     common_apache_dir = os.path.join(apache_dir, 'common')
+    lore_apache_dir = os.path.join(apache_dir, 'lore')
 
     install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
     install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
     install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
+    install_web_dependencies(lore_backend_dir, lore_frontend_dir, lore_apache_dir)
+
+    output_dir = os.path.join(apache_dir, 'private')
+    give_permission(output_dir, 'www-data')
+    give_permission(apache_dir, 'www-data')
+    give_permission('/etc/apache2/auth', 'www-data')
+
+def give_permission(folder, user):
+    os.system(f"sudo chown -R {user}:{user} {folder}")
+    os.system(f"sudo chmod -R 755 {folder}")
+    os.system(f"sudo chmod -R g+w {folder}")
 
     output_dir = os.path.join(apache_dir, 'private')
     give_permission(output_dir, 'www-data')
