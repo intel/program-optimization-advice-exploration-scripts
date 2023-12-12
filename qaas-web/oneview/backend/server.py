@@ -67,7 +67,7 @@ db = SQLAlchemy()
 app = Flask(__name__)
 config = configparser.ConfigParser()
 config.read(config_path)
-app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI']
+app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'secret!'
 db.init_app(app)
@@ -92,7 +92,7 @@ def create_app(config):
         conn = db.engine.connect().connection
         # conn = db.engine.connect().connection
         db.Model.metadata.reflect(bind=db.engine,schema='test')
-        db_name = os.path.basename(config['web']['SQLALCHEMY_DATABASE_URI'])
+        db_name = os.path.basename(config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW'])
     #create all tables in the model
     ########################### http request ################################
     @app.route('/get_all_timestamps', methods=['GET','POST'])
