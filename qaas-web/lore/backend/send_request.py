@@ -81,7 +81,7 @@ migrate_database()
 
 #test export data
 # def connect_db(config):
-#     engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI'])
+#     engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
 #     engine.connect()
 #     return engine
 # engine = connect_db(config)

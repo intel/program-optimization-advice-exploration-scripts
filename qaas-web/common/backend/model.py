@@ -948,7 +948,7 @@ class VprofBucketMeasure(QaaSBase):
         super().__init__(initializer.session)
 
 def connect_db(config):
-    engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI"])
+    engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_ONEVIEW"])
     engine.connect()
     return engine
 

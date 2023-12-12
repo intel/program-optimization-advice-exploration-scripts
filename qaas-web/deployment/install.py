@@ -156,7 +156,7 @@ if __name__ == "__main__":
     config_path = os.path.join(script_dir, "../config/qaas-web.conf")
     config = configparser.ConfigParser()
     config.read(config_path)
-    database_url = config['web']['SQLALCHEMY_DATABASE_URI']
+    database_url = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
     #database_url = 'mysql://qaas:qaas-password@localhost/test'
 
     setup_database(database_url)

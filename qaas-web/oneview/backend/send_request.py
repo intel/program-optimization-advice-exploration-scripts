@@ -86,7 +86,7 @@ populate_database(output_ov_dir, qaas_timestamp, workload_version_name, workload
 
 #test export data
 # def connect_db(config):
-#     engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI'])
+#     engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW'])
 #     engine.connect()
 #     return engine
 # engine = connect_db(config)
