@@ -54,7 +54,10 @@ def install_web_dependencies(backend_dir, frontend_dir, apache_dir):
 
 def get_proxy_var(var_name):
     name = os.environ.get(var_name)
-    return name if name.startswith("http://") else "http://"+name
+    if name:
+        return name if name.startswith("http://") else "http://"+name
+    else:
+        return None
 
 def get_proxy():
     # get environment variables for the proxy
@@ -107,10 +110,10 @@ def update_web(force_install=False):
     common_apache_dir = os.path.join(apache_dir, 'common')
     lore_apache_dir = os.path.join(apache_dir, 'lore')
 
-    install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
+    # install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
     install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
-    install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
-    install_web_dependencies(lore_backend_dir, lore_frontend_dir, lore_apache_dir)
+    # install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
+    # install_web_dependencies(lore_backend_dir, lore_frontend_dir, lore_apache_dir)
 
     output_dir = os.path.join(apache_dir, 'private')
     give_permission(output_dir, 'www-data')

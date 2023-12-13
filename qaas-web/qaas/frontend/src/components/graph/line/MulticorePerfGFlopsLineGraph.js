@@ -115,7 +115,7 @@ export default function MulticorePerfGFlopsLineGraph() {
                 data={chartData}
                 layout={chartLayout}
             />
-            <div className="plot-title">
+            <div className="plot-title" id='figmpperf'>
                 Fig. MPperf &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Multicore Performance: Total System Gf vs. Gf/core
 
             </div>

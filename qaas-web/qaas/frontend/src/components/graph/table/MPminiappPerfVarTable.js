@@ -64,8 +64,8 @@ export default function MPminiappPerfVarTable() {
     return (
         <div className='graphContainer'>
             <CustomReactTable columns={columns} data={data} />
-            <div className="plot-title">
-            Fig. Parvar&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mp miniapp performance varieties - 1 node/2 socket HW
+            <div className="plot-title" id="figparvar">
+                Fig. Parvar&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mp miniapp performance varieties - 1 node/2 socket HW
 
             </div>
         </div>

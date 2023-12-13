@@ -81,6 +81,9 @@ def create_app():
         df['winner'] = np.where(df['coreICL/coreSPR'] > 1, 'ICL', 'SPR')
         df['winner ratio'] = df[['coreICL/coreSPR', 'coreSPR/coreICL']].max(axis=1)
         result_df = df[['Apps', 'winner', 'winner ratio']]
+        #sort the result df
+        result_df = result_df.sort_values(by='winner ratio', ascending=True)
+
 
         data_dict = result_df.to_dict(orient='list')
         # replace NaN with None (null in JSON)
@@ -95,6 +98,8 @@ def create_app():
         df['largest_gain'] = df[['ICX: -O3 -march=native', 'ICC: -O3 -march=native', 'GCC: -O3 -march=native']].max(axis=1)
         df['app'] = df['Unnamed: 0']
         result_df = df[['app', 'largest_gain']]
+        result_df = result_df.sort_values(by='largest_gain', ascending=True)
+
         data_dict = result_df.to_dict(orient='list')
         # replace NaN with None (null in JSON)
         for key in data_dict.keys():

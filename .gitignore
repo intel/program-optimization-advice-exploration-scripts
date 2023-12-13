@@ -19,3 +19,4 @@ qaas-web/lore/backend/cache
 qaas-web/common/landing/node_modules/
 qaas-web/common/landing/dist/
 qaas-web/common/landing/package-lock.json/
+container/ssh.tar.gz

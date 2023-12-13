@@ -54,7 +54,7 @@ export default function MpratioTable() {
     return (
         <div className='graphContainer'>
             <CustomReactTable columns={columns} data={data} />
-            <div className="plot-title">
+            <div className="plot-title" id="figmpratio">
                 Fig. MPratio&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICL and SPR Multicore Use Differences for 7 Miniapps
 
             </div>

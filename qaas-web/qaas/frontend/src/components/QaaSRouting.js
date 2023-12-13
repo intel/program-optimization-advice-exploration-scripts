@@ -64,6 +64,7 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
 
     return (
         <>
+
             <Routes>
                 <Route path="/input" element={<UserInputStepper isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML} />} />
                 <Route path="/result" element={<BrowseResult isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML} />} />
@@ -121,6 +122,7 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
                     } />
                 } />
             </Routes>
+
         </>
     );
 }

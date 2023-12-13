@@ -59,7 +59,16 @@ RUN apt-get update && apt-get install --no-install-recommends -y apache2 mariadb
         libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx 
 
 
-RUN curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+RUN if [ -z "$http_proxy" ] || [ "$http_proxy" = "http://" ]; then \
+        echo "not using proxy" $https_proxy; \
+        unset http_proxy; \
+        unset https_proxy; \
+        curl -L https://deb.nodesource.com/setup_16.x | bash -; \
+    else \
+        echo "using proxy" $https_proxy; \
+        curl -x $http_proxy -L https://deb.nodesource.com/setup_16.x | bash -; \
+    fi
+
 RUN apt-get install -y nodejs git libapache2-mod-wsgi-py3
 RUN a2enmod proxy && a2enmod proxy_http
 
