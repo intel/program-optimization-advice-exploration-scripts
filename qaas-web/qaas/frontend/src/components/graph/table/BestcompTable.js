@@ -1,10 +1,19 @@
 import React from "react";
 import CustomReactTable from "./CustomReactTable";
 import { getCompilerColor } from "../../Constants";
+import TooltipComponent from "../../TooltipComponent";
 const columns = [
     { Header: 'MiniApp', accessor: 'miniApp', },
     { Header: 'Language', accessor: 'language', },
-    { Header: 'Best Compiler', accessor: 'bestCompiler' },
+    {
+        Header: () => (
+            <TooltipComponent id="best-compiler-tooltip" content={<span>Best Compiler Definition</span>}>
+                Best Compiler
+            </TooltipComponent>
+        ),
+
+        accessor: 'bestCompiler'
+    },
     { Header: 'Time (s)', accessor: 'time' },
     { Header: 'Best total Gf for ICL with Ec > .5', accessor: 'gflops' },
     { Header: '#Cores used/48', accessor: 'coresUsed' },
@@ -67,7 +76,7 @@ function BestCompTable() {
         < >
 
             <CustomReactTable columns={columns} data={sortedData} getCellProps={getCellStyles} />
-            <div className="plot-title">
+            <div className="plot-title" id="figbestcomp">
                 Fig. Bestcomp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 High-level architectural differences between ICL miniapp runs
 

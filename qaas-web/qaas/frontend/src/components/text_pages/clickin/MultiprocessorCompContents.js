@@ -4,8 +4,11 @@ import AppgainHistogram from '../../graph/histogram/AppgainHistogram';
 import { Link } from 'react-router-dom';
 import TooltipComponent from '../../TooltipComponent';
 import { InlineMath, BlockMath } from 'react-katex';
+import { useHighlightNavigation } from '../../hooks/useHighlightNavigation';
+
 export default function MultiprocessorCompContents() {
     const efficiencyFormula = "E_c = \\frac{T_1}{c \\times T_c}";
+    useHighlightNavigation();
 
     return (
         <div className="textPageContainer">
@@ -19,7 +22,10 @@ export default function MultiprocessorCompContents() {
                     to="/system_config"
                 > compiler version numbers </Link>
                 here.
-                Fig. appgain is another standard QaaS view (histogram)
+                {' '}<Link className='link'
+                    to="/qaas/overview/multiprocessor_comp_contents#figappgain"
+                >Fig. appgain</Link> {' '}
+                is another standard QaaS view (histogram)
                 showing the spread of performance gains found by QaaS over a good baseline default compiler
                 flag setting for Intel Ice Lake runs. Here, QaaS searches among 16 optimizing flag
                 combinations per compiler to find the best performance gain over the baseline.
@@ -34,7 +40,11 @@ export default function MultiprocessorCompContents() {
 
 
             <p>
-                Fig. bestcomp summarizes key points about these miniapp runs. First, we can see the 40X per code range (see last row) for best total Gf,
+
+
+                <Link className='link'
+                    to="/qaas/overview/multiprocessor_comp_contents#figbestcomp"
+                > Fig. bestcomp</Link> {' '} summarizes key points about these miniapp runs. First, we can see the 40X per code range (see last row) for best total Gf,
                 and nearly that (27X) for Gf/core. Also shown is the maximum number of cores for which
                 {' '}
                 <TooltipComponent id="efficiency-formula" content={

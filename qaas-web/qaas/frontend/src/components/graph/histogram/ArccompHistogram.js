@@ -107,7 +107,7 @@ export default function ArccompHistogram() {
                 defaultValue={1.05}
 
             />
-            <div className="plot-title-short-histogram">
+            <div className="plot-title-short-histogram" id="figarccomp">
                 Fig. Arccomp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Architecture Comparison [GF/core]: SPR/ICL wins in blue, ICL/SPR wins in red
 
             </div>

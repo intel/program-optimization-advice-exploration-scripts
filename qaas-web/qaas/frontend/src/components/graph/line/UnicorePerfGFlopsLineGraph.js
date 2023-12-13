@@ -18,7 +18,6 @@ export default function UnicorePerfGFlopsLineGraph() {
 
                 const rawData = response.data
                 const preparedData = processRawData(rawData);
-                console.log(preparedData)
                 const newAnnotations = createMinMaxAnnotations(preparedData);
                 setChartData(preparedData);
                 setAnnotations(newAnnotations)
@@ -70,7 +69,7 @@ export default function UnicorePerfGFlopsLineGraph() {
             title: 'GFlops',
             type: 'log',
             tickvals: [1, 2, 5, 10, 20, 30],
-            ticktext: ['1', '2', '5', '10', '20','30'],
+            ticktext: ['1', '2', '5', '10', '20', '30'],
             range: [0, 1.6],
 
 
@@ -89,7 +88,7 @@ export default function UnicorePerfGFlopsLineGraph() {
                 data={chartData}
                 layout={chartLayout}
             />
-            <div className="plot-title">
+            <div className="plot-title" id='figuni'>
                 Fig. uni&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Performance [Gf] of 7 miniapps on 4 current unicore processors
 
             </div>

@@ -107,7 +107,7 @@ export default function AppgainHistogram() {
                 defaultValue={1.1}
 
             />
-            <div className="plot-title-short-histogram">
+            <div className="plot-title-short-histogram" id="figappgain">
                 Fig. appgain
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 QaaS compiler gain vs. other 2 baselines

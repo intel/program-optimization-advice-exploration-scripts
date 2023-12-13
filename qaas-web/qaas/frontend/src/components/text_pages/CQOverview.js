@@ -2,8 +2,10 @@ import React from 'react';
 
 import MPminiappPerfVarTable from '../graph/table/MPminiappPerfVarTable';
 import { Link } from 'react-router-dom';
-
+import { useHighlightNavigation } from '../hooks/useHighlightNavigation';
 export default function CQOverview() {
+    useHighlightNavigation();
+
     return (
         <div className="textPageContainer">
             <h1>C1. CQ Overview[Broad QaaS Introduction]</h1>
@@ -53,7 +55,12 @@ export default function CQOverview() {
             <h2>Ice Lake Multicore Performance Details</h2>
             <p>
                 Ever-present questions in parallel computing concern scalability: how well-matched is a code to a multicore architecture
-                and what performance levels proceed from this? Fig. parvar shows these latter relevant characteristics for the 7 miniapps
+                and what performance levels proceed from this?
+                {' '} <Link className='link'
+                    to="/qaas/cq_overview#figparvar"
+                >Fig. parvar</Link> {' '}
+
+                shows these latter relevant characteristics for the 7 miniapps
                 running on ICL. The compilers used are documented in Fig. bestcomp (see compiler section). Considering the number of cores
                 leads to a 4th type of QaaS graphs for scalability.
             </p>

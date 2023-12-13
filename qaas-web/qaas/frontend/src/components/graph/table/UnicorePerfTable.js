@@ -36,7 +36,7 @@ export default function UnicorePerfTable() {
 
 
             <CustomReactTable columns={columns} data={sortedData} />
-            <div className="plot-title">Fig. utab&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Performance [Gf] for 7 miniapps on 5 systems</div>
+            <div className="plot-title" id="figutab">Fig. utab&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Performance [Gf] for 7 miniapps on 5 systems</div>
 
         </div>
     );

@@ -3,7 +3,11 @@ import ArccompHistogram from '../../graph/histogram/ArccompHistogram';
 import MpratioTable from '../../graph/table/MpratioTable';
 import MulticorePerfGFlopsLineGraph from '../../graph/line/MulticorePerfGFlopsLineGraph';
 import { Link } from 'react-router-dom';
+import { useHighlightNavigation } from '../../hooks/useHighlightNavigation';
+
 export default function MultiprocessorPerfContents() {
+    useHighlightNavigation();
+
     return (
         <div className="textPageContainer">
 
@@ -22,11 +26,21 @@ export default function MultiprocessorPerfContents() {
 
 
             <p>
-                Fig. MPperf shows plots of Gf/core for ICL and SPR 2-socket MC systems vs. the 7 miniapps plus 4 whole applications,
+                <Link className='link'
+                    to="/qaas/overview/multiprocessor_perf_contents#figmpperf"
+                >Fig. MPperf</Link> {' '}
+                shows plots of Gf/core for ICL and SPR 2-socket MC systems vs. the 7 miniapps plus 4 whole applications,
                 annotated with the best/worst system performance ratio shown in the color of the winner (see legend).
-                Fig. arcomp is a histogram comparing ICL and SPR performance across the codes. It shows that HACC Gf/core is 1.2
+                {' '} <Link className='link'
+                    to="/qaas/overview/multiprocessor_perf_contents#figarccomp"
+                >Fig. Arccomp</Link> {' '}
+                is a histogram comparing ICL and SPR performance across the codes. It shows that HACC Gf/core is 1.2
                 – 1.5 faster on ICL than SPR, while Miniqmc is 1.1 – 1.2 faster on SPR.
-                Table mpratio lists MC performance differences and some of their contributing factors. The first column is the ICL Gf as seen earlier (Fig. Bestcomp),
+
+                {' '} <Link className='link'
+                    to="/qaas/overview/multiprocessor_perf_contents#figmpratio"
+                >Table mpratio</Link> {' '}
+                lists MC performance differences and some of their contributing factors. The first column is the ICL Gf as seen earlier (Fig. Bestcomp),
                 with a 40X range. From Fig. MPperf we know that all of the miniapps (except Kripke) are within 15% total Gf difference on SPR and ICL, and two of the whole apps have &gt; 15% performance differences.
                 These differences shift and are somewhat larger for Gf/core.
             </p>
