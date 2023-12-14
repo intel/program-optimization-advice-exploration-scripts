@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Dropdown, Menu, Space } from 'antd';
 import './css/TopBar.css';
 import { DownOutlined, CheckOutlined, HomeOutlined } from '@ant-design/icons';
-
+import PageSearchBar from './search/PageSearchBar';
 const pageGroups = {
     'Quality content explanations': [
         { page: 'qaas', label: 'QaaS Content Overview' },
@@ -93,6 +93,7 @@ function TopBar() {
             </div>
             <div className="right-section">
                 {/* <input type="text" className="search-bar" placeholder="Search..." /> */}
+                <PageSearchBar />
 
                 <Link to="https://docs.google.com/document/d/1_H7ySm_HwrwR5xhBd4amI-CWN_n6fKYcdVMHb6vDaF4/edit?usp=sharing" className="nav-link">Google Doc Link</Link>
 
