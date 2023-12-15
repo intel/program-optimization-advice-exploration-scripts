@@ -4,7 +4,9 @@ import { useLocation } from "react-router-dom";
 
 const GeneratedPage = () => {
     const myhost = window.location.hostname
-    const iframeSrc = `https://${myhost}/otter_html/index.html`;
+    const myprotocol = window.location.protocol
+
+    const iframeSrc = `${myprotocol}//${myhost}/otter_html/index.html`;
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const loading = queryParams.get("loading") === "true";
