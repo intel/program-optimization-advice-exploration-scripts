@@ -154,7 +154,7 @@ function LoopPage() {
                         {(vendor_version, vendor_data) => (
                             <>
                                 <SpeedupGraphsTab data={vendor_data} />
-                                <SpeedupTable data={vendor_data} current_src_loop_id={current_src_loop_id}
+                                <SpeedupTable data={vendor_data} current_src_loop_id={current_src_loop_id} source_id={source_id}
                                 />
                             </>
                         )}
