@@ -7,7 +7,7 @@ import SpeedupFormula from './formulas/SpeedupFormula';
 import DropdownList from './data/DropdownList';
 import MutationSpeedupGraph from './graphs/MutationSpeedupGraph';
 import DynamicMetricsTables from './data/mutations/DynamicMetricsTables';
-export default function MutationPage({ open, data, onOk, onCancel, current_src_loop_id, mutationPerformanceData }) {
+export default function MutationPage({ open, data, onOk, onCancel, current_src_loop_id, mutationPerformanceData, source_id }) {
 
 
 
@@ -23,7 +23,7 @@ export default function MutationPage({ open, data, onOk, onCancel, current_src_l
                 <div>
                     <h4 id="ttl3" >Mutated source code</h4>
                 </div>
-                <MutatedSourceCode data={data} current_src_loop_id={current_src_loop_id} />
+                <MutatedSourceCode data={data} current_src_loop_id={current_src_loop_id} source_id={source_id} />
 
                 <div>
                     <h4 id="ttl3" >Execution cycles</h4>
