@@ -119,9 +119,9 @@ def update_web(force_install=False):
     landing_apache_dir = os.path.join(apache_dir, 'landing')
 
     install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
-    # install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
-    # install_web_dependencies(common_backend_dir, None, common_apache_dir)
-    # install_web_dependencies(lore_backend_dir, lore_frontend_dir, lore_apache_dir)
+    install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
+    install_web_dependencies(common_backend_dir, None, common_apache_dir)
+    install_web_dependencies(lore_backend_dir, lore_frontend_dir, lore_apache_dir)
     install_web_dependencies(None, landing_frontend_dir, landing_apache_dir)
 
     output_dir = os.path.join(apache_dir, 'private')
