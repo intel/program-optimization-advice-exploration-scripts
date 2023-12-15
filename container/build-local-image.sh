@@ -55,8 +55,8 @@ if [[ ${maqao_package_dir_choice} != "" ]]; then
   maqao_package_dir=${maqao_package_dir_choice}
 fi
 tar cvfz ./maqao.tar.gz -C ${maqao_package_dir} .
-cp ../qaas-web/deployment/000-default.conf .
-cp ../qaas-web/config/qaas-web.conf .
+#cp ../qaas-web/deployment/000-default.conf .
+#cp ../qaas-web/config/qaas-web.conf .
 
 #tar cvfz ./qaas-web.tar.gz -C ../qaas-web .
 

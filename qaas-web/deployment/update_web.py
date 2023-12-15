@@ -96,15 +96,19 @@ def update_web(force_install=False):
 
     # # # #also copy the config folder
     target_qaas_dir = os.path.join(script_dir, '..',)
-    config_dir =  os.path.join(target_qaas_dir, "config")
+    qaas_config_file =  os.path.join(target_qaas_dir, "config", "qaas-web.conf")
+    apache_qaas_config_dir = os.path.join(apache_dir, 'config')
+    apache_qaas_config_file = os.path.join(apache_qaas_config_dir, "qaas-web.conf")
 
-    if os.path.exists(os.path.join(apache_dir, 'config')):
+    if os.path.exists(apache_qaas_config_file):
         if not force_install:
             return # Already installed
         # fall through proceed to installation since force_install is True
 
+    os.system(f"sudo mkdir -p {apache_qaas_config_dir}")
+    os.system(f"sudo cp {qaas_config_file} {apache_qaas_config_file}")
+    # Copy the 000-default.conf to apache folder
     create_apache_config()
-    os.system(f"sudo cp -r {config_dir} {apache_dir}")
 
     
     http_proxy, https_proxy = get_proxy()
