@@ -112,8 +112,8 @@ def delete_index_html(apache_dir):
 if __name__ == "__main__":
     #apache_dir = f"/var/www/html"
    
-    target_qaas_dir = os.path.join(script_dir, '..',)
-    config_dir =  os.path.join(target_qaas_dir, "config")
+    qaas_web_dir = os.path.join(script_dir, '..',)
+    config_dir =  os.path.join(qaas_web_dir, "apps", "config")
 
 
     #output_dir = os.path.join(apache_dir, 'private')
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     #os.system(f"sudo a2enmod rewrite")
 
     # # #setup database
-    config_path = os.path.join(script_dir, "../config/qaas-web.conf")
+    config_path = os.path.join(config_dir, "qaas-web.conf")
     config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     config.read(config_path)
     db_connection_strings = set()
