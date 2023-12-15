@@ -56,7 +56,7 @@ import re
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
 script_dir=os.path.dirname(os.path.realpath(__file__))
-config_path = os.path.join(script_dir, "../../../config/qaas-web.conf")
+config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
 # more initializations in main()
 db = SQLAlchemy()
 app = Flask(__name__)
