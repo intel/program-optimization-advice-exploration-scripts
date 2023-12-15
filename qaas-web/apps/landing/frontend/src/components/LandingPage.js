@@ -2,9 +2,11 @@ import React from 'react';
 import LinkBox from './LinkBox';
 const App = () => {
     const myhost = window.location.hostname
-    const ov = `https://${myhost}/oneview_page`;
-    const qaas = `https://${myhost}/qaas_page`;
-    const lore = `https://${myhost}/lore_page`;
+    const myprotocol = window.location.protocol
+
+    const ov = `${myprotocol}//${myhost}/oneview_page`;
+    const qaas = `${myprotocol}//${myhost}/qaas_page`;
+    const lore = `${myprotocol}//${myhost}/lore_page`;
 
     return (
         <div>
