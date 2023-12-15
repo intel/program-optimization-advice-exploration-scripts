@@ -4,9 +4,12 @@ import subprocess
 import argparse
 import configparser
 script_dir = os.path.dirname(os.path.realpath(__file__))
+qaas_web_dir = os.path.join(script_dir, '..',)
+apps_dir = os.path.join(qaas_web_dir, "apps")
+config_dir =  os.path.join(apps_dir, "config")
 
-qaas_dir = os.path.join(script_dir, '..', '..', 'qaas-backplane', 'src')
-CONFIG_PATH=os.path.join(script_dir, "..", "config", "qaas-web.conf")
+qaas_dir = os.path.join(qaas_web_dir, '..', 'qaas-backplane', 'src')
+CONFIG_PATH = os.path.join(config_dir, "qaas-web.conf")
 #get the config
 config = configparser.ConfigParser()
 config.read(CONFIG_PATH)
@@ -14,10 +17,10 @@ config.read(CONFIG_PATH)
 sys.path.append(qaas_dir)
 # Get the directory of the script
 # Calculate the path to the backend directory
-qaas_web_backend_dir = os.path.join(script_dir, '..', '..','qaas-web','oneview','backend')
+qaas_web_backend_dir = os.path.join(apps_dir, 'oneview', 'backend')
 # Add the backend directory to sys.path
 sys.path.append(qaas_web_backend_dir)
-qaas_web_backend_common_dir = os.path.join(script_dir, '..', '..','qaas-web','common','backend')
+qaas_web_backend_common_dir = os.path.join(apps_dir, 'common','backend')
 sys.path.append(qaas_web_backend_common_dir)
 
 from ovdb import populate_database, export_data
@@ -113,7 +116,7 @@ def main():
 
 
 if __name__ == "__main__":
-    CONFIG_PATH=os.path.join(script_dir, "..", "config", "qaas-web.conf")
+    #CONFIG_PATH=os.path.join(script_dir, "..", "config", "qaas-web.conf")
     config = configparser.ConfigParser()
     config.read(CONFIG_PATH)
     # Create all tables
@@ -122,7 +125,7 @@ if __name__ == "__main__":
         main()
     else:
          # Calculate the path to the backend directory
-        qaas_web_backend_dir = os.path.join(script_dir, '..', '..','qaas-web','oneview','backend')
+        qaas_web_backend_dir = os.path.join(apps_dir, 'oneview','backend')
         # Add the backend directory to sys.path
         sys.path.append(qaas_web_backend_dir)
 

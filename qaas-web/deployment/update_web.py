@@ -95,8 +95,9 @@ def update_web(force_install=False):
     script_dir=os.path.dirname(os.path.realpath(__file__))
 
     # # # #also copy the config folder
-    target_qaas_dir = os.path.join(script_dir, '..',)
-    qaas_config_file =  os.path.join(target_qaas_dir, "config", "qaas-web.conf")
+    qaas_web_dir = os.path.join(script_dir, '..',)
+    config_dir =  os.path.join(qaas_web_dir, "apps", "config")
+    qaas_config_file =  os.path.join(config_dir, "qaas-web.conf")
     apache_qaas_config_dir = os.path.join(apache_dir, 'config')
     apache_qaas_config_file = os.path.join(apache_qaas_config_dir, "qaas-web.conf")
 
@@ -115,19 +116,19 @@ def update_web(force_install=False):
     set_node_proxy(http_proxy, https_proxy)
     
 
-    target_qaas_dir = os.path.join(script_dir, '..','apps')
+    qaas_web_dir = os.path.join(script_dir, '..','apps')
 
-    ov_backend_dir = os.path.join(target_qaas_dir, 'oneview',"backend")
-    ov_frontend_dir = os.path.join(target_qaas_dir,'oneview', "frontend")
+    ov_backend_dir = os.path.join(qaas_web_dir, 'oneview',"backend")
+    ov_frontend_dir = os.path.join(qaas_web_dir,'oneview', "frontend")
 
-    qaas_backend_dir = os.path.join(target_qaas_dir, 'qaas',"backend")
-    qaas_frontend_dir = os.path.join(target_qaas_dir,'qaas', "frontend")
+    qaas_backend_dir = os.path.join(qaas_web_dir, 'qaas',"backend")
+    qaas_frontend_dir = os.path.join(qaas_web_dir,'qaas', "frontend")
     
-    common_backend_dir = os.path.join(target_qaas_dir,'common','backend')
-    landing_frontend_dir = os.path.join(target_qaas_dir,'landing', "frontend")
+    common_backend_dir = os.path.join(qaas_web_dir,'common','backend')
+    landing_frontend_dir = os.path.join(qaas_web_dir,'landing', "frontend")
 
-    lore_backend_dir = os.path.join(target_qaas_dir, 'lore',"backend")
-    lore_frontend_dir = os.path.join(target_qaas_dir,'lore', "frontend")
+    lore_backend_dir = os.path.join(qaas_web_dir, 'lore',"backend")
+    lore_frontend_dir = os.path.join(qaas_web_dir,'lore', "frontend")
 
     ov_apache_dir = os.path.join(apache_dir,  'oneview')
     qaas_apache_dir = os.path.join(apache_dir, 'qaas')
