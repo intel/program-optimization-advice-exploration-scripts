@@ -9,7 +9,7 @@ else
   echo -n "Enter Qaas DB user password:"
   read -s QAAS_DB_PASSWORD
   echo "INSIDE container setting up $me"
-  sed 's/#DB_USER_NAME#/qaas/g ; s/#DB_USER_PASSWD#/'${QAAS_DB_PASSWORD}'/g' ./config/qaas-web.conf.template > ./config/qaas-web.conf
+  sed 's/#DB_USER_NAME#/qaas/g ; s/#DB_USER_PASSWD#/'${QAAS_DB_PASSWORD}'/g' ./apps/config/qaas-web.conf.template > ./apps/config/qaas-web.conf
   cd deployment
   python3 install.py
 fi
