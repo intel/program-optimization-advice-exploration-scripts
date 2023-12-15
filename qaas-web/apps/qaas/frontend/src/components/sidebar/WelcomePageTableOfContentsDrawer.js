@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DrawerItemsList from './DrawerItemList';
 import ListItemButton from '@mui/material/ListItemButton';
 import { useNavigationState } from '../hooks/useNavigationState';
-const drawerItems = [
+export const mainDrawerItems = [
     { text: 'Overview', path: '/qaas', status: 'unclickable' },
     {
         text: 'A. Quality definitions', path: '/qaas/quality_definitions', children: [
@@ -86,7 +86,7 @@ const WelcomePageTableOfContentsDrawer = () => {
 
     const initialHash = window.location.hash.split('#').pop();
 
-    const { expandedSections, selectedItem, navigateToSection, goBack, navStack } = useNavigationState(drawerItems, initialHash);
+    const { expandedSections, selectedItem, navigateToSection, goBack, navStack } = useNavigationState(mainDrawerItems, initialHash);
 
     return (
         <div>

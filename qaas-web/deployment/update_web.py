@@ -1,6 +1,9 @@
 import os
 import sys
 
+#global variable
+apache_dir = f"/var/www/html"
+
 def install_backend_dependencies(backend_dir, apache_html_dir):
     try:
         print(f"Installing backend dependencies in {backend_dir}...")
@@ -48,8 +51,10 @@ def create_directory(directory):
             sys.exit(1)
 
 def install_web_dependencies(backend_dir, frontend_dir, apache_dir):
-    install_backend_dependencies(backend_dir, apache_dir)
-    install_frontend_dependencies(frontend_dir, apache_dir)
+    if backend_dir:
+        install_backend_dependencies(backend_dir, apache_dir)
+    if frontend_dir:
+        install_frontend_dependencies(frontend_dir, apache_dir)
 
 
 def get_proxy_var(var_name):
@@ -87,7 +92,6 @@ def create_apache_config():
 #update dependency+copy to apache
 def update_web(force_install=False):
 
-    apache_dir = f"/var/www/html"
     script_dir=os.path.dirname(os.path.realpath(__file__))
 
     # # # #also copy the config folder
@@ -107,14 +111,17 @@ def update_web(force_install=False):
     set_node_proxy(http_proxy, https_proxy)
     
 
-    target_qaas_dir = os.path.join(script_dir, '..',)
+    target_qaas_dir = os.path.join(script_dir, '..','apps')
 
     ov_backend_dir = os.path.join(target_qaas_dir, 'oneview',"backend")
     ov_frontend_dir = os.path.join(target_qaas_dir,'oneview', "frontend")
+
     qaas_backend_dir = os.path.join(target_qaas_dir, 'qaas',"backend")
     qaas_frontend_dir = os.path.join(target_qaas_dir,'qaas', "frontend")
-    common_frontend_dir = os.path.join(target_qaas_dir,'common','landing')
+    
     common_backend_dir = os.path.join(target_qaas_dir,'common','backend')
+    landing_frontend_dir = os.path.join(target_qaas_dir,'landing', "frontend")
+
     lore_backend_dir = os.path.join(target_qaas_dir, 'lore',"backend")
     lore_frontend_dir = os.path.join(target_qaas_dir,'lore', "frontend")
 
@@ -122,11 +129,13 @@ def update_web(force_install=False):
     qaas_apache_dir = os.path.join(apache_dir, 'qaas')
     common_apache_dir = os.path.join(apache_dir, 'common')
     lore_apache_dir = os.path.join(apache_dir, 'lore')
+    landing_apache_dir = os.path.join(apache_dir, 'landing')
 
-    # install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
+    install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
     install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
-    # install_web_dependencies(common_backend_dir, common_frontend_dir, common_apache_dir)
-    # install_web_dependencies(lore_backend_dir, lore_frontend_dir, lore_apache_dir)
+    install_web_dependencies(common_backend_dir, None, common_apache_dir)
+    install_web_dependencies(lore_backend_dir, lore_frontend_dir, lore_apache_dir)
+    install_web_dependencies(None, landing_frontend_dir, landing_apache_dir)
 
     output_dir = os.path.join(apache_dir, 'private')
     give_permission(output_dir, 'www-data')

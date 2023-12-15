@@ -56,17 +56,6 @@ def install_common_dependencies(apache_common_dir):
     os.system(f"sudo cp -r {script_dir}/../common {apache_parent_dir}/") 
 
 
-def create_apache_config():
-    try:
-        with open('000-default.conf', 'r') as file:
-            config_content = file.read()
-            os.system(f'echo "{config_content}" | sudo tee /etc/apache2/sites-available/000-default.conf')
-            os.system("sudo a2ensite 000-default.conf")
-
-            print("Apache configuration file created successfully.")
-    except Exception as e:
-        print("Error creating Apache configuration file:", e)
-        sys.exit(1)
 
 
 def setup_database(database_url):
@@ -157,7 +146,6 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read(config_path)
     database_url = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
-    #database_url = 'mysql://qaas:qaas-password@localhost/test'
 
     setup_database(database_url)
 
