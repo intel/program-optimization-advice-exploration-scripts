@@ -49,7 +49,8 @@ read -s QAAS_PASSWORD
 # TODO Make script input
 maqao_package_dir=/nfs/site/proj/alac/software/UvsqTools/2.3.2
 echo -n "Enter MAQAO package location [Default to ${maqao_package_dir}]:"
-read -s maqao_package_dir_choice
+read maqao_package_dir_choice
+echo "Will use MAQAO package at: ${maqao_package_dir}..."
 if [[ ${maqao_package_dir_choice} != "" ]]; then
   maqao_package_dir=${maqao_package_dir_choice}
 fi

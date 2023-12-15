@@ -3,7 +3,11 @@ import './css/main.css'
 import { useLocation } from "react-router-dom";
 
 const GeneratedPage = () => {
-    const iframeSrc = `https://oneview-intel.liparad.uvsq.fr/otter_html/index.html`;
+    const myhost = window.location.hostname
+    const myprotocol = window.location.protocol
+    const myport = window.location.port
+
+    const iframeSrc = `${myprotocol}//${myhost}:${myport}/otter_html/index.html`;
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const loading = queryParams.get("loading") === "true";
