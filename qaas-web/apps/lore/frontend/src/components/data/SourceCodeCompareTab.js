@@ -6,7 +6,7 @@ import CodeContainer from './CodeContainer';
 function SourceCodeCompareTab({ current_src_loop_id }) {
 
     const [activeTab, setActiveTab] = useState('Processed baseline');
-    const [code, setCode] = useState({ 'Processed baseline': '', 'Original baseline': '' });
+    const [code, setCode] = useState({ 'Processed baseline': '' });
 
 
     useEffect(() => {
@@ -21,17 +21,15 @@ function SourceCodeCompareTab({ current_src_loop_id }) {
             });
     }, [current_src_loop_id]);
 
-    const tabs = ['Processed baseline', 'Original baseline'];
+    const tabs = ['Processed baseline'];
     return (
         <div className='component-background'>
             <TabSelector activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs} />
             <div className='sub-tab-container'>
-                {tabs.map(tab => (
-                    activeTab === tab &&
-                    <div className="code-container">
-                        <CodeContainer code={code[tab]} />
-                    </div>
-                ))}
+
+                <div className="code-container">
+                    <CodeContainer code={code['Processed baseline']} />
+                </div>
             </div>
         </div>
     );
