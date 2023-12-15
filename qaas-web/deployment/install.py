@@ -60,8 +60,6 @@ def install_common_dependencies(apache_common_dir):
 
 def setup_database(database_url):
     try:
-        print("Setting up the database...")
-        os.system("sudo service mysql start")
         # Parse the database URL
         result = urlparse(database_url)
         username = result.username
@@ -70,25 +68,31 @@ def setup_database(database_url):
         
         # check if the user alread,y exists
         user_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{username}');\"", shell=True).decode().strip()
+        user_exists_lines = user_exists.split('\n')
+        # Drop the query and result is second line
+        user_exist_result = user_exists_lines[1]
 
         #  user doesn't exist, create it
-        # if user_exists == '0':
-        os.system(f"sudo mysql -u root -e \"CREATE USER '{username}'@'localhost' IDENTIFIED BY '{password}';\"")
+        if user_exist_result == '0':
+            print(f'Creating user "{username}"...')
+            os.system(f"sudo mysql -u root -e \"CREATE USER '{username}'@'localhost' IDENTIFIED BY '{password}';\"")
+        else:
+            print(f'User "{username}" already exists, skipping creation of {username} user.')
 
         # check if the database already exists
-        db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SHOW DATABASES LIKE '{database_name}';\"", shell=True).decode().strip()
+        #db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SHOW DATABASES LIKE '{database_name}_';\"", shell=True).decode().strip()
+        db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='{database_name}';\"", shell=True).decode().strip()
 
         # if the database doesn't exist, create it
-        # if not db_exists:
-        os.system(f"sudo mysql -u root -e \"CREATE DATABASE {database_name};\"")
-        os.system(f"sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON {database_name}.* TO '{username}'@'localhost';\"")
-        os.system("sudo mysql -u root -e \"FLUSH PRIVILEGES;\"")
-        os.system(f"sudo mysql -u root -e \"CREATE DATABASE lore;\"")
-        os.system(f"sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON lore.* TO '{username}'@'localhost';\"")
-        os.system("sudo mysql -u root -e \"FLUSH PRIVILEGES;\"")
-
+        if not db_exists:
+            print(f'Creating database "{database_name}"...')
+            os.system(f"sudo mysql -u root -e \"CREATE DATABASE {database_name};\"")
+            os.system(f"sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON {database_name}.* TO '{username}'@'localhost';\"")
+            os.system("sudo mysql -u root -e \"FLUSH PRIVILEGES;\"")
+        else:
+            print(f'Database "{database_name}" already exists, skipping creation of "{database_name}" database.')
         
-        print("Database set up successfully.")
+        print(f'Database "{database_name}" set up successfully.')
     except Exception as e:
         print("Error setting up database:", e)
         sys.exit(1)
@@ -143,11 +147,22 @@ if __name__ == "__main__":
 
     # # #setup database
     config_path = os.path.join(script_dir, "../config/qaas-web.conf")
-    config = configparser.ConfigParser()
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     config.read(config_path)
-    database_url = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
+    db_connection_strings = set()
+    for var, val in config.items("web"):
+        if var.upper().startswith("SQLALCHEMY_DATABASE_URI"):
+            print(f'Will setup database for: {var.upper()}')
+            db_connection_strings.add(val)
+    db_connection_strings = sorted(db_connection_strings)
+    print("Setting up the database...")
+    os.system("sudo service mysql start")
+    for db_connection_string in db_connection_strings: 
+        print(f'Setting up database for connection string: {db_connection_string}')
+        setup_database(db_connection_string)
 
-    setup_database(database_url)
+    #database_url = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
+
 
     # # #delete default index html
     #delete_index_html(apache_dir)
