@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import MutationPage from '../MutationPage';
 import axios from 'axios';
 
-export default function SpeedupTable({ data, current_src_loop_id }) {
+export default function SpeedupTable({ data, current_src_loop_id, source_id }) {
 
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -15,7 +15,8 @@ export default function SpeedupTable({ data, current_src_loop_id }) {
             current_src_loop_id: current_src_loop_id,
             mutation_number: row['mutation'],
             base_ref: row['base_ref'],
-            min_base_ref: row['min_base_ref']
+            min_base_ref: row['min_base_ref'],
+            source_id: source_id
         })
             .then(response => {
                 setMutationPerformanceData(response.data);
@@ -115,6 +116,8 @@ export default function SpeedupTable({ data, current_src_loop_id }) {
                     onOk={handleOk}
                     onCancel={handleCancel}
                     current_src_loop_id={current_src_loop_id}
+                    source_id={source_id}
+
 
 
                 />

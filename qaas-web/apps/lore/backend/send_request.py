@@ -49,7 +49,7 @@ from loremodel import create_all_tables
 SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH=os.path.join(SCRIPT_DIR, "..", "config", "qaas-web.conf")
 #get the config
-config = configparser.ConfigParser()
+config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(CONFIG_PATH)
 output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-80-123"
 ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')

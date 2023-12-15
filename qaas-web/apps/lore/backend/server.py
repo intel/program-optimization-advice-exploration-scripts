@@ -56,11 +56,11 @@ import re
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
 script_dir=os.path.dirname(os.path.realpath(__file__))
-config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
+config_path = os.path.join(script_dir, "../../../config/qaas-web.conf")
 # more initializations in main()
 db = SQLAlchemy()
 app = Flask(__name__)
-config = configparser.ConfigParser()
+config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(config_path)
 app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_LORE']
 print(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
@@ -150,26 +150,13 @@ def create_app(config):
         
         target_src_loop = get_target_src_loop_from_id(int(data.get('current_src_loop_id'))  , db.session)
 
-        orig_filename, orig_function_name, orig_line_number, mutation_number = extract_info_from_lore_source_code_file_name(target_src_loop.file)
-
-
-        workload = target_src_loop.execution.application.workload
-        program = target_src_loop.execution.application.program
-        workload_version = target_src_loop.execution.application.version
-
-        source_dir = os.path.join(config['web']['LORE_SOURCE_DIR'], workload, workload_version, program, 'extractedLoops')
-      
-        orig_src_file_path = os.path.join(source_dir, f'{orig_filename}_{orig_function_name}_line{orig_line_number}_loop.c')
-        processed_src_file_path = os.path.join(source_dir, f'{orig_filename}_{orig_function_name}_line{orig_line_number}_loop.c.preproc.c')
-        with open(orig_src_file_path, 'r') as f:
-            orig_code = f.read()
-
-        with open(processed_src_file_path, 'r') as f:
-            processed_code = f.read()
-        return {
-            'Original baseline': orig_code,
-            'Processed baseline': processed_code
-        }
+        orig_src_loop = target_src_loop.orig_src_loop
+        orig_source_id = target_src_loop.source.table_id if not orig_src_loop else orig_src_loop.source.table_id
+        source = db.session.query(Source).filter_by(table_id = orig_source_id).one()
+        source_file = decompress_file(source.content).decode('utf-8')
+        return json.dumps({
+            'Processed baseline': source_file,
+        })
     @app.route('/get_lore_mutated_source_code_for_specific_mutation', methods=['POST'])
     def get_lore_mutated_source_code_for_specific_mutation():
         data = request.get_json()
@@ -177,22 +164,25 @@ def create_app(config):
         
         current_src_loop_id = int(data.get('current_src_loop_id'))  
         mutation_number = int(data.get('mutation_number'))  
-        target_src_loop = db.session.query(SrcLoop).filter_by(table_id = current_src_loop_id).one()
+        source_id = int(data.get('source_id'))  
+        #find out what is the mutation src loop that is using this source as orig source and mutaiton number
+        orig_src_loops = db.session.query(SrcLoop).filter_by(fk_source_id = source_id).all()
+        for orig_src_loop in orig_src_loops:
+            mutated_src_loop = db.session.query(SrcLoop).filter_by(orig_src_loop = orig_src_loop, mutation_number = mutation_number).first()
+            if not mutated_src_loop:
+                continue
+            
 
-        orig_filename, orig_function_name, orig_line_number, mutation_number = extract_info_from_lore_source_code_file_name(target_src_loop.file)
 
+            source_id = mutated_src_loop.source.table_id
+            source = db.session.query(Source).filter_by(table_id = source_id).one()
+            source_file = decompress_file(source.content).decode('utf-8')
 
-        workload = target_src_loop.execution.application.workload
-        program = target_src_loop.execution.application.program
-        workload_version = target_src_loop.execution.application.version
-
-        source_dir = os.path.join(config['web']['LORE_SOURCE_DIR'], workload, workload_version, program, 'extractedLoops')
-        mutated_code_path = os.path.join(source_dir, f'{orig_filename}_{orig_function_name}_line{orig_line_number}_loop.c_mutations', f'{orig_filename}_{orig_function_name}_line{orig_line_number}_loop.c.{target_src_loop.mutation_number}.c')
-        with open(mutated_code_path, 'r') as f:
-            orig_code = f.read()
-        return {
-            'mutation': orig_code
-        }
+            return json.dumps({
+                'mutation': source_file,
+            })
+        
+        return { 'mutation': '',}
 
     @app.route('/get_lore_mutated_execution_cycels_for_specific_mutation', methods=['POST'])
     def get_lore_mutated_execution_cycels_for_specific_mutation():
@@ -200,6 +190,8 @@ def create_app(config):
 
         
         mutation_number = int(data.get('mutation_number'))  
+        source_id = int(data.get('source_id'))
+
         #orig src loop
         target_src_loop = get_target_src_loop_from_id(int(data.get('current_src_loop_id'))  , db.session)
 
