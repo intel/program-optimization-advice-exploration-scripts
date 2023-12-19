@@ -17,7 +17,7 @@ const findToggleableColumns = (cols) => {
     return toggleable;
 };
 
-function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBaseline }) {
+const ApplicationTable = React.memo(({ data, baseline, setBaseline }) => {
     const [hiddenChildColumns, setHiddenChildColumns] = useState([]);
     useEffect(() => {
         let defaultHiddenColumns = findToggleableColumns(columns);
@@ -67,8 +67,7 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
 
     const renderSubComponent = (row) => {
         return (
-            <ApplicationSubTable data={row.row.original['run_data']} setSelectedRows={setSelectedRows} selectedRows={selectedRows}
-                baseline={baseline} setBaseline={setBaseline} />
+            <ApplicationSubTable data={row.row.original['run_data']} baseline={baseline} setBaseline={setBaseline} />
         );
     };
 
@@ -95,6 +94,7 @@ function ApplicationTable({ data, selectedRows, setSelectedRows, baseline, setBa
             </div>
         </div>
     );
-}
+})
+
 
 export default ApplicationTable;

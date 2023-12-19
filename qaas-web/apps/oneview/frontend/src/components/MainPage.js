@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import TopBar from './TopBar';
 import './css/main.css'
 import Title from './Title';
@@ -9,8 +9,8 @@ import TotalTimeSpeedupGraph from './graph/TotalTimeSpeedupGraph';
 import { INITIAL_FILTERS } from './filters/InitialFilter';
 import { Modal } from 'antd';
 import AllSpeedupRangeGraph from './graph/AllSpeedupRangeGraph';
+import { SelectionProvider } from './contexts/SelectionContext';
 const MainPage = () => {
-    const [selectedRows, setSelectedRows] = useState([]);
     const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filters, setFilters] = useState(INITIAL_FILTERS);
@@ -75,42 +75,42 @@ const MainPage = () => {
     };
 
 
-
-
     if (data.length === 0) {
         return <p>Loading data, please wait...</p>;
     }
     return (
-        <div>
-            <div className="sticky-top">
+        <SelectionProvider>
 
-                <TopBar selectedRows={selectedRows} setSelectedRows={setSelectedRows} baseline={baseline} setBaseline={setBaseline} setShowGraph={setShowGraph} />
-            </div>
+            <div>
+                <div className="sticky-top">
 
-            <div className="page-container">
-                <Title />
-                <div><FilterComponent data={data} onFilter={handleFilter} filters={filters} setFilters={setFilters} /></div>
+                    <TopBar baseline={baseline} setBaseline={setBaseline} setShowGraph={setShowGraph} />
+                </div>
 
-                {isLoading
-                    ? <p>Loading data, please wait...</p>
-                    :
-                    <div>
-                        {/* <AllSpeedupRangeGraph application_table_data={data} /> */}
-                        <ApplicationTable
-                            data={data}
-                            selectedRows={selectedRows}
-                            setSelectedRows={setSelectedRows}
-                            baseline={baseline}
-                            setBaseline={setBaseline}
-                        />
-                    </div>
-                }
+                <div className="page-container">
+                    <Title />
+                    <div><FilterComponent data={data} onFilter={handleFilter} filters={filters} setFilters={setFilters} /></div>
 
-                <Modal title="Comparison" open={showGraph} onOk={handleOk} onCancel={handleCancel}>
+                    {isLoading
+                        ? <p>Loading data, please wait...</p>
+                        :
+                        <div>
+                            {/* <AllSpeedupRangeGraph application_table_data={data} /> */}
+                            <ApplicationTable
+                                data={data}
+
+                                baseline={baseline}
+                                setBaseline={setBaseline}
+                            />
+                        </div>
+                    }
+
+                    {/* <Modal title="Comparison" open={showGraph} onOk={handleOk} onCancel={handleCancel}>
                     <TotalTimeSpeedupGraph selectedRows={selectedRows} baseline={baseline} open={showGraph} />
-                </Modal>
+                </Modal> */}
+                </div>
             </div>
-        </div>
+        </SelectionProvider>
     );
 };
 
