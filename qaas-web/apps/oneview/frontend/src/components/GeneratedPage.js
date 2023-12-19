@@ -8,6 +8,7 @@ const GeneratedPage = () => {
     const myport = window.location.port
 
     const iframeSrc = `${myprotocol}//${myhost}:${myport}/otter_html/index.html`;
+
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const loading = queryParams.get("loading") === "true";

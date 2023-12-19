@@ -1,8 +1,9 @@
 import React from 'react';
 import './css/TopBar.css';
 import SelectedRunsBag from './SelectedRunBag';
-
-function TopBar({ selectedRows, setSelectedRows, baseline, setBaseline, setShowGraph }) {
+import { useSelectionContext } from './contexts/SelectionContext';
+function TopBar({ setSelectedRows, baseline, setBaseline, setShowGraph }) {
+    const { selectedRows } = useSelectionContext();
 
 
     return (

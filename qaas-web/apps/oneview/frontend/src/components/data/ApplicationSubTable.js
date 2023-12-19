@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Table from "./table";
-function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, setBaseline }) {
+import { useSelectionContext } from "../contexts/SelectionContext";
+// const ApplicationSubTable = React.memo(({ data, selectedRows, baseline, setBaseline, handleRowSelection }) => {
+const ApplicationSubTable = React.memo(({ data, baseline, setBaseline }) => {
+    const { selectedRows, handleRowSelection } = useSelectionContext();
+
     const navigate = useNavigate();
     const handleButtonClick = async (timestamp) => {
         // Call your backend API here and fetch data
@@ -20,17 +24,6 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
 
     };
 
-    const handleRowSelection = (event, rowInfo) => {
-        if (rowInfo) {
-            const selected = event.target.checked;
-
-            if (selected) {
-                setSelectedRows(prevSelectedRows => [...prevSelectedRows, rowInfo.original]);
-            } else {
-                setSelectedRows(prevSelectedRows => prevSelectedRows.filter(row => row !== rowInfo.original));
-            }
-        }
-    };
     const handleBaselineRowSelection = (event, rowInfo) => {
         if (rowInfo) {
             const selected = event.target.checked;
@@ -97,6 +90,7 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
             accessor: 'data'
         },
     ];
+    console.log("subtable got rendered")
 
     return (
         <Table
@@ -105,6 +99,6 @@ function ApplicationSubTable({ data, setSelectedRows, selectedRows, baseline, se
             defaultPageSize={5}
         />
     );
-}
+})
 
 export default ApplicationSubTable;

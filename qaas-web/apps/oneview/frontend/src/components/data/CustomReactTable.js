@@ -146,8 +146,6 @@ function CustomReactTable({ columns, data, SubComponent, hiddenColumns, columnFi
                                 {row.isExpanded ? (
                                     <tr>
                                         <td colSpan={columns.length + 1}>
-                                            {console.log("Expanded row data:", row)}
-
                                             <SubComponent row={row} />
                                         </td>
                                     </tr>
