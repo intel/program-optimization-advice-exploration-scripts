@@ -7,32 +7,37 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 qaas_web_dir = os.path.join(script_dir, '..',)
 apps_dir = os.path.join(qaas_web_dir, "apps")
 config_dir =  os.path.join(apps_dir, "config")
+CONFIG_PATH = os.path.join(config_dir, "qaas-web.conf")
 
 qaas_dir = os.path.join(qaas_web_dir, '..', 'qaas-backplane', 'src')
-CONFIG_PATH = os.path.join(config_dir, "qaas-web.conf")
-#get the config
-config = configparser.ConfigParser()
-config.read(CONFIG_PATH)
-# Add the directory to sys.path
 sys.path.append(qaas_dir)
-# Get the directory of the script
-# Calculate the path to the backend directory
-qaas_web_backend_dir = os.path.join(apps_dir, 'oneview', 'backend')
-# Add the backend directory to sys.path
+
+ov_web_backend_dir = os.path.join(apps_dir, 'oneview', 'backend')
+sys.path.append(ov_web_backend_dir)
+
+qaas_web_backend_dir = os.path.join(apps_dir, 'qaas', 'backend')
 sys.path.append(qaas_web_backend_dir)
+
 qaas_web_backend_common_dir = os.path.join(apps_dir, 'common','backend')
 sys.path.append(qaas_web_backend_common_dir)
 
 from ovdb import populate_database, export_data
+from base_util import *
+from qaasdb import populate_database_qaas
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
 import qaas
 import configparser
+#config
+config = get_config()
 
 from model import create_all_tables
 
-def read_from_folder(folder_path):
+def read_qaas(file_path):
+    populate_database_qaas(file_path, config)
+
+
+def read_ov(folder_path):
     
     def process_result(result_folder, version_prefix):
         result = os.path.basename(result_folder)
@@ -62,7 +67,7 @@ def read_from_folder(folder_path):
                             version_prefix = f"{os.path.relpath(sub_version_path, os.path.join(folder_path, workload, program))}/"
                             process_result(os.path.join(sub_version_path, result), version_prefix)
 
-def read_from_folder_french(folder_path):
+def read_ov_french(folder_path):
     for application in os.listdir(folder_path):
         if application in ['README']:
             continue  
@@ -93,40 +98,36 @@ def main():
     parser.add_argument('--version', type=str, help='Workload Version Name')
     parser.add_argument('--program', type=str,  help='Workload Program Name')
     parser.add_argument('--commit_id', type=str, help='Workload Program Commit ID')
-    parser.add_argument('--read_from_folder', type=str, help='Read from a folder instead of arguments')
-    parser.add_argument('--read_from_folder_french', type=str, help='Read from a folder instead of arguments')
+    parser.add_argument('--ov_path', type=str, help='Read from a folder instead of arguments')
+    parser.add_argument('--ov_fr_path', type=str, help='Read from a folder instead of arguments')
+    parser.add_argument('--qaas_path', type=str, help='read qaas data given a file path')
 
     # Parse the arguments
     args = parser.parse_args()
+    
+ 
+    if args.ov_path:
+        # Create all tables
+        create_all_tables(config, db='oneview')
+        read_ov(args.ov_path)
 
-    if args.read_from_folder:
-        read_from_folder(args.read_from_folder)
-    elif args.read_from_folder_french:
-        read_from_folder_french(args.read_from_folder_french)
+    elif args.ov_fr_path:
+        create_all_tables(config, db='oneview')
+        read_ov_french(args.ov_fr_path)
+
+    elif args.qaas_path:
+        create_all_tables(config, db='qaas')
+        read_qaas(args.qaas_path)
+
     else:
-        output_ov_dir = args.data
-        qaas_timestamp = os.path.basename(output_ov_dir)
-        workload_name = args.workload
-        workload_version_name = args.version
-        workload_program_name = args.program
-        workload_program_commit_id = args.commit_id
-
-        populate_database(output_ov_dir, qaas_timestamp, workload_version_name, workload_name, workload_version_name, workload_program_name, workload_program_commit_id)
-
+        print("invalid flags")
 
 
 if __name__ == "__main__":
-    #CONFIG_PATH=os.path.join(script_dir, "..", "config", "qaas-web.conf")
-    config = configparser.ConfigParser()
-    config.read(CONFIG_PATH)
-    # Create all tables
-    create_all_tables(config)
     if len(sys.argv) > 1:
         main()
     else:
-         # Calculate the path to the backend directory
-        qaas_web_backend_dir = os.path.join(apps_dir, 'oneview','backend')
-        # Add the backend directory to sys.path
-        sys.path.append(qaas_web_backend_dir)
+        ov_web_backend_dir = os.path.join(apps_dir, 'oneview','backend')
+        sys.path.append(ov_web_backend_dir)
 
        

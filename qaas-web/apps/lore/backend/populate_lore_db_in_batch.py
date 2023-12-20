@@ -31,7 +31,13 @@ import argparse
 from sqlalchemy.orm import sessionmaker
 from model_accessor import LoreMigrator
 from qaas_database import QaaSDatabase
-from loremodel import create_all_tables
+import os
+import sys
+current_directory = os.path.dirname(os.path.abspath(__file__))
+base_directory = os.path.join(current_directory, '../../common/backend/')
+base_directory = os.path.normpath(base_directory)  
+sys.path.insert(0, base_directory)
+from model import create_all_tables
 import time  
 import pickle
 from util import get_config, connect_db

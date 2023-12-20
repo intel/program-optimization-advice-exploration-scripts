@@ -49,7 +49,11 @@ import queue
 import configparser
 from util import *
 from flask_cors import CORS
-from loremodel import *
+current_directory = os.path.dirname(os.path.abspath(__file__))
+base_directory = os.path.join(current_directory, '../../common/backend/')
+base_directory = os.path.normpath(base_directory)  
+sys.path.insert(0, base_directory)
+from model import *
 from sqlalchemy import select, join
 import luadata
 import re
