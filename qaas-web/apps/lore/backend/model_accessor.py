@@ -31,7 +31,12 @@ from abc import ABC, abstractmethod
 from util import *
 import os
 import pandas as pd
-from loremodel import *
+import sys
+current_directory = os.path.dirname(os.path.abspath(__file__))
+base_directory = os.path.join(current_directory, '../../common/backend/')
+base_directory = os.path.normpath(base_directory)  
+sys.path.insert(0, base_directory)
+from model import *
 from model_collection import *
 import csv
 import time

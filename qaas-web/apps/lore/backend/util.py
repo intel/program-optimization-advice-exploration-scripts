@@ -36,7 +36,12 @@ import pandas as pd
 import zlib
 import hashlib
 import struct
-from loremodel import *
+import sys
+current_directory = os.path.dirname(os.path.abspath(__file__))
+base_directory = os.path.join(current_directory, '../../common/backend/')
+base_directory = os.path.normpath(base_directory)  
+sys.path.insert(0, base_directory)
+from model import *
 from datetime import datetime
 import configparser
 from sqlalchemy import distinct, func

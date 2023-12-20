@@ -130,6 +130,8 @@ class Execution(QaaSBase):
     modules  = relationship("Module", back_populates="execution")
     blocks  = relationship("Block", back_populates="execution")
     src_loops = relationship("SrcLoop", back_populates="execution")
+    qaass = relationship("QaaS", back_populates="orig_execution")
+    qaas_runs = relationship("QaaSRun", back_populates="execution")
     maqaos = relationship("Maqao", back_populates="execution")
     os = relationship("Os", back_populates="executions")
     hwsystem = relationship("HwSystem", back_populates="executions")
@@ -159,6 +161,39 @@ class Execution(QaaSBase):
             return result
         else:
             return None
+
+
+class QaaS(QaaSBase):
+    __tablename__ = "qaas"
+    timestamp = Column(String(50), nullable = True)
+    type = Column(String(50), nullable = True)
+
+    fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
+    orig_execution  = relationship("Execution", back_populates="qaass")
+
+    qaas_runs = relationship("QaaSRun", back_populates="qaas")
+
+
+    def __init__(self, initializer):
+        super().__init__(initializer.session)
+        self.accept(initializer)
+
+
+    def accept(self, accessor):
+        accessor.visitQaaS(self)
+
+class QaaSRun(QaaSBase):
+    __tablename__ = "qaas_run"
+    fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
+    fk_qaas_id = Column(Integer, ForeignKey('qaas.table_id'))
+
+    execution  = relationship("Execution", back_populates="qaas_runs")
+    qaas  = relationship("QaaS", back_populates="qaas_runs")
+
+    def __init__(self, initializer):
+        super().__init__(initializer.session)
+        self.accept(initializer)
+    
 
 
 #used to store all string that is ref by binary file index
@@ -330,30 +365,19 @@ class EnvironmentMetric(QaaSBase):
     environment = relationship("Environment", back_populates="environment_metrics")
 
 class Compiler(QaaSBase):
-    #TODO: not connected to anything
     __tablename__ = "compiler"
     vendor = Column(Text, nullable = True)
     version = Column(String(50), nullable = True)
     release_date = Column(DateTime, nullable = True)
-    base_flags = Column(Text, nullable = True)
-    novec_flags = Column(Text, nullable = True)
-    sse_flags = Column(Text, nullable = True)
-    avx_flags = Column(Text, nullable = True)
-    avx2_flags = Column(Text, nullable = True)
 
-    functions  = relationship("Function", back_populates="compiler")
-    loops  = relationship("Loop", back_populates="compiler")
-    modules  = relationship("Module", back_populates="compiler")
-    blocks  = relationship("Block", back_populates="compiler")
+    compiler_options  = relationship("CompilerOption", back_populates="compiler")
 
     def __init__(self, initializer):
         super().__init__(initializer.session)
 
     @classmethod
-    def get_or_create_compiler_by_compiler_info(cls, vendor, version, initializer, release_date = None, base_flags = None,
-                                                novec_flags = None, sse_flags = None, avx_flags = None, avx2_flags = None):
-        result = initializer.session.query(cls).filter_by(vendor = vendor, version = version, release_date = release_date, base_flags = 
-                                                          base_flags, novec_flags= novec_flags, sse_flags = sse_flags, avx_flags = avx_flags, avx2_flags = avx2_flags).first()
+    def get_or_create_compiler_by_compiler_info(cls, vendor, version, initializer, release_date = None):
+        result = initializer.session.query(cls).filter_by(vendor = vendor, version = version, release_date = release_date).first()
         if result:
             return result
         else:
@@ -361,18 +385,34 @@ class Compiler(QaaSBase):
             new_obj.vendor = vendor 
             new_obj.version = version 
             new_obj.release_date = release_date 
-            new_obj.base_flags = base_flags 
-            new_obj.novec_flags = novec_flags
-            new_obj.sse_flags = sse_flags 
-            new_obj.avx_flags = avx_flags 
-            new_obj.avx2_flags = avx2_flags  
             return new_obj
     @classmethod
     def get_compiler_info(cls, vendor, version, initializer):
         result = initializer.session.query(cls).filter_by(vendor = vendor, version = version).first()
         return result
 
+class CompilerOption(QaaSBase):
+    __tablename__ = "compiler_option"
+    flag = Column(Text, nullable = True)
+    fk_compiler_id = Column(Integer, ForeignKey('compiler.table_id'))
+    compiler  = relationship("Compiler", back_populates="compiler_options")
 
+    functions  = relationship("Function", back_populates="compiler_option")
+    loops  = relationship("Loop", back_populates="compiler_option")
+    modules  = relationship("Module", back_populates="compiler_option")
+    blocks  = relationship("Block", back_populates="compiler_option")
+    def __init__(self, initializer):
+        super().__init__(initializer.session)
+    @classmethod
+    def get_or_create_compiler_option(cls, flag, initializer):
+        result = initializer.session.query(cls).filter_by(flag = flag).first()
+        if result:
+            return result
+        else:
+            new_obj = cls(initializer)
+            new_obj.flag = flag 
+            return new_obj
+        
 class LprofCategorization(QaaSBase):
     __tablename__ = "lprof_categorization"
     node = Column(String(50), nullable = True, name ="Node")
@@ -420,12 +460,12 @@ class Module(QaaSBase):
     cpi_ratio = Column(Float, nullable = True)
 
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
-    fk_compiler_id = Column(Integer, ForeignKey('compiler.table_id'))
+    fk_compiler_option_id = Column(Integer, ForeignKey('compiler_option.table_id'))
 
     functions = relationship("Function", back_populates="module")
     blocks = relationship("Block", back_populates="module")
     execution  = relationship("Execution", back_populates="modules")
-    compiler = relationship("Compiler", back_populates="modules")
+    compiler_option = relationship("CompilerOption", back_populates="modules")
     def __init__(self, initializer):
         super().__init__(initializer.session)
 
@@ -450,12 +490,12 @@ class Block(QaaSBase):
 
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
     fk_module_id = Column(Integer, ForeignKey('module.table_id'))
-    fk_compiler_id = Column(Integer, ForeignKey('compiler.table_id'))
+    fk_compiler_option_id = Column(Integer, ForeignKey('compiler_option.table_id'))
 
     execution  = relationship("Execution", back_populates="blocks")
     lprof_measurements  = relationship("LprofMeasurement", back_populates="block")
     module = relationship("Module", back_populates="blocks")
-    compiler = relationship("Compiler", back_populates="blocks")
+    compiler_option = relationship("CompilerOption", back_populates="blocks")
 
 
     def __init__(self, initializer):
@@ -473,14 +513,14 @@ class Function(QaaSBase):
     hierarchy = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
 
     fk_module_id = Column(Integer, ForeignKey('module.table_id'))
-    fk_compiler_id = Column(Integer, ForeignKey('compiler.table_id'))
+    fk_compiler_option_id = Column(Integer, ForeignKey('compiler_option.table_id'))
     fk_src_function_id = Column(Integer, ForeignKey('src_function.table_id'))
 
     loops = relationship("Loop", back_populates="function")
     asms  = relationship("Asm", back_populates="function")
     module  = relationship("Module", back_populates="functions")
     lprof_measurements  = relationship("LprofMeasurement", back_populates="function")
-    compiler = relationship("Compiler", back_populates="functions")
+    compiler_option = relationship("CompilerOption", back_populates="functions")
     src_function = relationship("SrcFunction", back_populates="functions")
     cqa_measures = relationship("CqaMeasure", back_populates="function")
     def __init__(self, initializer):
@@ -521,11 +561,11 @@ class Loop(QaaSBase):
 
     fk_function_id = Column(Integer,ForeignKey('function.table_id'))
     fk_src_loop_id = Column(Integer, ForeignKey('src_loop.table_id'))
-    fk_compiler_id = Column(Integer, ForeignKey('compiler.table_id'))
+    fk_compiler_option_id = Column(Integer, ForeignKey('compiler_option.table_id'))
 
     function  = relationship("Function", back_populates="loops")
     src_loop  = relationship("SrcLoop", back_populates="loops")
-    compiler = relationship("Compiler", back_populates="loops")
+    compiler_option = relationship("CompilerOption", back_populates="loops")
     lprof_measurements  = relationship("LprofMeasurement", back_populates="loop")
     groups = relationship("Group", back_populates="loop")
     cqa_measures = relationship("CqaMeasure", back_populates="loop")
@@ -947,13 +987,20 @@ class VprofBucketMeasure(QaaSBase):
     def __init__(self, initializer):
         super().__init__(initializer.session)
 
-def connect_db(config):
-    engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_ONEVIEW"])
+def connect_db(config, db="oneview"):
+    engine = ''
+    if db == 'oneview':
+        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_ONEVIEW"])
+    elif db == 'qaas':
+        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_QAAS"])
+    elif db == 'lore':
+        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_LORE"])
+
     engine.connect()
     return engine
 
-def create_all_tables(config):
-    engine = connect_db(config)
+def create_all_tables(config, db="oneview"):
+    engine = connect_db(config, db)
     Base.metadata.create_all(engine)
     mapper_registry.configure()
 
@@ -1001,14 +1048,3 @@ def get_loop_by_maqao_id_module(current_execution, maqao_id, module):
 
 
 
-def compress_file(filename):
-    with open(filename, 'rb') as f:
-        content = f.read()
-    return zlib.compress(content, 9)
-
-def get_file_sha256(filename):
-    with open(filename, 'rb') as f:
-        sha256_hash = hashlib.sha256(f.read()).hexdigest()
-    return sha256_hash
-def decompress_file(compressed_content):
-    return zlib.decompress(compressed_content)
