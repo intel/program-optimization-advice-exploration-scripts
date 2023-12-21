@@ -20,4 +20,6 @@ qaas-web/apps/lore/backend/*.pkl
 qaas-web/apps/landing/frontend/node_modules/
 qaas-web/apps/landing/frontend/dist/
 qaas-web/apps/landing/frontend/package-lock.json
+qaas-web/apps/common/backend/multidb/versions/*
+
 container/ssh.tar.gz
