@@ -34,6 +34,15 @@ from flask import Flask
 from flask_cors import CORS
 from flask import jsonify
 import numpy as np
+import configparser
+import os
+
+script_dir=os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
+
+config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+
+config.read(config_path)
 def calculate_speedup(time_comp, baseline_compiler):
     baseline_time = time_comp.get(baseline_compiler, 0)
     if baseline_time == 0:
@@ -205,5 +214,5 @@ def create_app(config):
     
     return app
 if __name__ == '__main__':
-    app = create_app()
+    app = create_app(config)
     app.run(debug=True,port=5002)

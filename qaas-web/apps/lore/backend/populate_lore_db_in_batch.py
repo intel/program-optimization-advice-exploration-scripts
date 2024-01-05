@@ -53,13 +53,10 @@ if __name__ == '__main__':
 
     # Connect to the database
     config = get_config()
-    engine = connect_db(config)
+    engine = create_all_tables(config, db="lore")
     Session = sessionmaker(bind=engine)
     session = Session()
     start_time = time.time()
-
-    create_all_tables(engine)
-
     # Initialize LoreMigrator
     lore_csv_dir = args.lore_csv_dir
     migrator = LoreMigrator(session, lore_csv_dir)

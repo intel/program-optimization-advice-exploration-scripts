@@ -52,10 +52,14 @@ import numpy as np
 import pymysql
 import time
 import psutil
-lore_database_uri = 'mysql://qaas:qaas-password@localhost/lore'
+import configparser
+script_dir=os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
+config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+config.read(config_path)
 db = SQLAlchemy()
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = lore_database_uri
+app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_LORE']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 def with_app_context(func):
@@ -105,8 +109,7 @@ def get_min_ref_from_loop(loop):
 def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version):
     db.session.expunge_all()
     BATCH_SIZE = 5000
-    cache_filename = os.path.join(cache_directory, f"test_all_mutations_time_per_orig_loop_{compiler_vendor}_{compiler_version}.pkl")
-    # cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_best_option_{compiler_vendor}_{compiler_version}.pkl")
+    cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_{compiler_vendor}_{compiler_version}.pkl")
 
     if os.path.exists(cache_filename):
         os.remove(cache_filename)
@@ -114,10 +117,12 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
     
     
     loop_count = (db.session.query(Loop)
-             .join(Loop.compiler)
+             .join(Loop.compiler_option)
+             .join(CompilerOption.compiler)
              .filter(Compiler.vendor == compiler_vendor, Compiler.version == compiler_version)
              .distinct().count())
 
+    print("total count",loop_count)
     
     # Process loops in batches
     for i in range(0, loop_count, BATCH_SIZE):
@@ -130,7 +135,8 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
         db.session.expunge_all()
 
         batch_loops = (db.session.query(Loop)
-                       .join(Loop.compiler)
+                       .join(Loop.compiler_option)
+                       .join(CompilerOption.compiler)
                        .filter(Compiler.vendor == compiler_vendor, Compiler.version == compiler_version)
                        .slice(i, i + BATCH_SIZE).distinct().all())
         
@@ -167,9 +173,9 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
 
 def create_cache_for_all_compiler_mutations_time_per_orig_loop():
     # compiler_vendors_and_versions = get_all_compiler_vendors_and_versions()
-    # compiler_vendors_and_versions = [('icc', '17.0.1')]
+    compiler_vendors_and_versions = [('icc', '17.0.1')]
     # compiler_vendors_and_versions = [('gcc','6.2.0')]
-    compiler_vendors_and_versions = [('clang','4.0.0')]
+    # compiler_vendors_and_versions = [('clang','4.0.0')]
 
     #('icc', '17.0.1'),('icc','15.0.6'),('gcc','6.2.0'),('gcc','4.8.5'),('gcc','4.7.4'),('clang','4.0.0'),('clang','3.6.2'),('clang','3.4.2')
     for vendor, version in compiler_vendors_and_versions:
