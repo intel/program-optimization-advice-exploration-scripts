@@ -108,9 +108,9 @@ li {
 
 .imageContainer img {
     width: 100%;
-    max-width: 800px;
+    max-width: 600px;
     height: auto;
-    max-height: 400px;
+    max-height: 200px;
     object-fit: contain;
     display: block;
     margin: 0 auto 20px;

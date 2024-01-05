@@ -24,6 +24,7 @@ from pickle import dumps, loads
 from gzip import zlib
 import os
 import math
+from base_util import *
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 Base = declarative_base()
@@ -1004,7 +1005,9 @@ def create_all_tables(config, db="oneview"):
     Base.metadata.create_all(engine)
     mapper_registry.configure()
 
+
     print("created all tables")
+    return engine
 
 def bulk_insert_data(table, data, Session):
     session = Session()
