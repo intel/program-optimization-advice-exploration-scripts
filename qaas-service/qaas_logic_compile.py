@@ -90,7 +90,7 @@ def delete_qaas_flags_from_ninja(ninja_file, compiler, user_CC, flags):
 
 def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
                     user_c_flags, user_cxx_flags, user_fc_flags,
-                    user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map):
+                    user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map, multi_compilers_dirs):
     '''Compile the app using all available compilers.'''
 
     # Get the vendor name of target processor
@@ -110,6 +110,10 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
     # Save environment variables for each build per compiler and per option.
     app_envs = {}
     for compiler in compiler_flags['compilers']:
+        # Nothing to do if compiler if missing environment to load
+        if not compiler in multi_compilers_dirs:
+            print(f"Skip {compiler}. Missing compiler environment")
+            continue
         # Init array of envs
         app_envs[compiler] = []
         # Get list of QaaS target flags for 'compiler'
@@ -140,7 +144,7 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
                 update_extra_cmake_flags += " -DBUILD_SHARED_LIBS=ON"
 
             # Build originl app using user-provided compilation options
-            app_builder_env = app_builder.exec(src_dir, compiler_dir, orig_binary,
+            app_builder_env = app_builder.exec(src_dir, multi_compilers_dirs[compiler], orig_binary,
                                        target_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
                                        user_link_flags, user_target, user_target_location, 'prepare', update_extra_cmake_flags, f"{compiler}_{index}")
             # Add any user-provided environment variables
@@ -151,7 +155,7 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
             delete_qaas_flags_from_ninja(ninja_file, compiler, user_CC, options[option])
 
             # Rerun the make with updated list of flags
-            app_builder.exec(src_dir, compiler_dir, orig_binary,
+            app_builder.exec(src_dir, multi_compilers_dirs[compiler], orig_binary,
                                        target_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
                                        user_link_flags, user_target, user_target_location, 'make', update_extra_cmake_flags, f"{compiler}_{index}", app_builder_env)
             # Add current env to list

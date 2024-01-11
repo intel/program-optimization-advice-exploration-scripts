@@ -103,7 +103,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location,
                      run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir,
-                     disable_compiler_default, parallel_runs):
+                     disable_compiler_default, parallel_runs, multi_compilers_dirs):
     ''' Execute QAAS Running Logic: INITIAL PROFILING AND CLEANING'''
 
     # Parse original user CC
@@ -149,6 +149,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     # Set dict of median values
     defaults = {}
     defaults['orig'] = median_value
+#    return 0,"",defaults,0,nb_mpi,nb_omp
 
     # Check LProf overhead
     lprof_run,_,_ = compiler_run(app_builder_env, orig_binary, data_dir, base_run_dir_orig, run_cmd,
@@ -180,7 +181,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
         # Identify host machine vendor
         vendor = system.get_vendor_name()
         if vendor == 'unknown':
-            printf("Unknown / unsupported vendor")
+            print("Unknown / unsupported vendor")
             return None
         # Get the processor architecture
         processor = system.get_intel_processor_name()
@@ -194,6 +195,10 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             # Nothing to do if user-specified compiler
             if compiler == user_CC:
                 continue
+            # Nothing to do if compiler if missing environment to load
+            if not compiler in multi_compilers_dirs:
+                print(f"Skip {compiler}. Missing compiler environment")
+                continue
 
             # Set target compiler
             target_CC = f"{mpi_wrapper}-{compiler}" if mpi_wrapper else compiler
@@ -202,7 +207,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             binary_path = os.path.join(base_run_bin_dir, 'exec')
 
             # Build originl app using user-provided compilation options
-            app_builder_env = app_builder.exec(src_dir, compiler_dir, binary_path,
+            app_builder_env = app_builder.exec(src_dir, multi_compilers_dirs[compiler], binary_path,
                                            orig_user_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
                                            user_link_flags, user_target, user_target_location, 'both', extra_cmake_flags, f"{compiler}")
             # Add any user-provided environment variables
