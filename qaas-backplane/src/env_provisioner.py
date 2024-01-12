@@ -116,6 +116,7 @@ class QAASEnvProvisioner:
         self.compiler_root = compilers["QAAS_COMPILERS_ROOT_DIRECTORY"]
         self.intel_compiler_root = compilers["QAAS_INTEL_COMPILERS_DIRECTORY"] if compilers["QAAS_INTEL_COMPILERS_DIRECTORY"] else ""
         self.gnu_compiler_root = compilers["QAAS_GNU_COMPILERS_DIRECTORY"] if compilers["QAAS_GNU_COMPILERS_DIRECTORY"] else ""
+        self.enabled_compilers = compilers["QAAS_ENABLED_COMPILERS"].replace(' ', '').split(',')
         self.compiler_mappings = compiler_mappings
         self._launch_output_dir = launch_output_dir
 
@@ -148,6 +149,9 @@ class QAASEnvProvisioner:
 
     def get_gnu_compiler_root(self):
         return self.gnu_compiler_root
+
+    def get_enabled_compilers(self):
+        return self.enabled_compilers
 
     def get_compilerdir(self):
         return "/nfs/site/proj/openmp/compilers/intel/2022"

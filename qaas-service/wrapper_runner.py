@@ -53,7 +53,7 @@ def run_app(app_env, binary, data_dir, run_dir, run_cmd, repetitions, runtype,
     elif runtype == "oneview":
         # Invoque oneview runner
         new_run = oneview_runner.exec(app_env, binary, data_dir, run_dir, run_cmd, maqao_dir, ov_config,
-                                      mode='both', level=2, mpi_run_command="mpirun",
+                                      mode='both', level=1, mpi_run_command="mpirun",
                                       mpi_num_processes=nb_ranks, omp_num_threads=nb_threads,
                                       mpi_envs=mpi_affinity, omp_envs=omp_affinity)
 
