@@ -163,7 +163,8 @@ class QAASJobSubmit:
         base_run_dir = self.provisioner.get_workdir("base_runs")
         dataset_dir = os.path.join(self.provisioner.get_workdir("dataset"), self.provisioner.app_name)
         qaas_reports_dir = self.provisioner.get_workdir("qaas_reports")
-        ov_dir="/opt/maqao"
+        ov_dir = self.provisioner.analyzers["QAAS_ONEVIEW_DIRECTORY"]
+        container_ov_dir_path = "/opt/maqao" if container else ov_dir
         container_app_builder_path = "/app/builder" if container else self.provisioner.get_workdir("build")
         container_app_dataset_path = "/app/dataset" if container else dataset_dir
         container_app_oneview_path = "/app/oneview_runs" if container else ov_run_dir
@@ -187,7 +188,7 @@ class QAASJobSubmit:
                     f' --src-dir {os.path.join(container_app_builder_path, self.provisioner.app_name)}'+ \
                     f' --data_dir {os.path.join(container_app_dataset_path, self.provisioner.git_data_download_path)} --ov_config unused --ov_run_dir {container_app_oneview_path}'+ \
                     f' --base_run_dir {container_app_base_path} --locus_run_dir {container_app_locus_path}' + \
-                    f' --compiler-dir {os.path.join(container_compiler_root, compiler_subdir)} --ov_dir {ov_dir}'+ \
+                    f' --compiler-dir {os.path.join(container_compiler_root, compiler_subdir)} --ov_dir {container_ov_dir_path}'+ \
                     f' --orig-user-CC {self.compiler["USER_CC"]} --target-CC {self.compiler["USER_CC"]} --user-c-flags="{self.compiler["USER_C_FLAGS"]}"'+ \
                     f' --user-cxx-flags="{self.compiler["USER_CXX_FLAGS"]}" --user-fc-flags="{self.compiler["USER_FC_FLAGS"]}"'+ \
                     f' --user-link-flags="{self.compiler["USER_LINK_FLAGS"]}"'+ \
@@ -204,7 +205,7 @@ class QAASJobSubmit:
                     f' --openmp-scale-type {self.runtime["OPENMP"]}' + \
                     f" --comm-port {self.provisioner.comm_port}"
         if container:
-            mount_map = { ov_dir:ov_dir, script_root:container_script_root,
+            mount_map = { ov_dir:container_ov_dir_path, script_root:container_script_root,
                      self.provisioner.get_workdir("build") :container_app_builder_path,
                      ov_run_dir:container_app_oneview_path,
                      base_run_dir:container_app_base_path,
