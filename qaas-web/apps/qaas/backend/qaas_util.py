@@ -42,3 +42,15 @@ def connect_db(config):
     engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI_QAAS'])
     engine.connect()
     return engine
+
+#used to read the qaas metadata file
+def parse_text_to_dict(file_path):
+    data_dict = {}
+    with open(file_path, 'r') as file:
+        for line in file:
+            # split by =
+            parts = line.strip().split('=')
+            if len(parts) == 2:
+                key, value = parts
+                data_dict[key] = value
+    return data_dict

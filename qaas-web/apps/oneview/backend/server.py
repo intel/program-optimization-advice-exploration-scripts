@@ -261,12 +261,12 @@ def create_app(config):
     def run_comparative_view_for_selected_runs():
         selected_runs = request.get_json()
         data_folder_list = []
-        for run in selected_runs:
+        for index, run in enumerate(selected_runs):
             timestamp = run['timestamp']
             universal_timestamp = datetime_to_universal_timestamp(timestamp)
-            print(universal_timestamp)
-            export_data(universal_timestamp, qaas_output_folder, db.session)
-            data_folder_list.append(qaas_output_folder)
+            qaas_output_run_folder_run = os.path.join(qaas_output_folder, str(index))
+            export_data(universal_timestamp, qaas_output_run_folder_run, db.session)
+            data_folder_list.append(qaas_output_run_folder_run)
         create_manifest_comparison(manifest_file_path, data_folder_list)
         manifest_out_path = create_out_manifest(frontend_html_path)
 

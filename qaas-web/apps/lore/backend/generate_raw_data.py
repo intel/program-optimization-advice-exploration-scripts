@@ -79,13 +79,11 @@ cache_directory = os.path.join(os.getcwd(), 'cache')
 if not os.path.exists(cache_directory):
     os.makedirs(cache_directory)
 
+@with_app_context
 def get_metric_from_loop(loop, metric_name):
-    metrics = loop.lore_loop_measures[0].lore_loop_measure_metrics
-    value = None
-    for metric in metrics:
-        if metric.metric_name == metric_name and metric.metric_value:
-            value = float(metric.metric_value)
-            break
+    value = (db.session.query(LoreLoopMeasureMetric)
+             .filter_by(metric_name = metric_name, lore_loop_measure = loop.lore_loop_measures[0]).first().metric_value)
+    
 
     return value
 
@@ -125,7 +123,9 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
     print("total count",loop_count)
     
     # Process loops in batches
+    # for i in range(0, loop_count, BATCH_SIZE):
     for i in range(0, loop_count, BATCH_SIZE):
+
         #load the batch file
         if os.path.exists(cache_filename):
             with open(cache_filename, 'rb') as cache_file:
@@ -139,17 +139,20 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
                        .join(CompilerOption.compiler)
                        .filter(Compiler.vendor == compiler_vendor, Compiler.version == compiler_version)
                        .slice(i, i + BATCH_SIZE).distinct().all())
-        
+        print("batch_loops",len(batch_loops))
+
         for loop in batch_loops:
             # loop's src loop
             src_loop = loop.src_loop  
-            ref_value = get_metric_from_loop(loop, "base_median")
-            hwcounter_value = get_metric_from_loop(loop, "base_CPU_CLK_UNHALTED_THREAD")
+            ref_value =(db.session.query(LoreLoopMeasureMetric)
+             .filter_by(metric_name = "base_median", lore_loop_measure = loop.lore_loop_measures[0]).first().metric_value)
+            hwcounter_value = (db.session.query(LoreLoopMeasureMetric)
+             .filter_by(metric_name = "base_CPU_CLK_UNHALTED_THREAD", lore_loop_measure = loop.lore_loop_measures[0]).first().metric_value)
+                    
             loop_data = {
                 'base_median' : ref_value,
                 'base_CPU_CLK_UNHALTED_THREAD' : hwcounter_value
             }
-            # vec_type, ref_value = get_min_ref_from_loop(loop)
 
             mutation_number = src_loop.mutation_number
             orig_src_loop = src_loop.orig_src_loop

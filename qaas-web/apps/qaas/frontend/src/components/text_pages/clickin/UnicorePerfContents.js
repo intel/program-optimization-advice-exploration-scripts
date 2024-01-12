@@ -16,7 +16,7 @@ export default function UnicorePerfContents() {
 
                 {' '}<Link className='link'
                     to="/qaas/overview/unicore_perf_contents#figuni"
-                >Fig. uni</Link> {' '}
+                >Fig. uni</Link>{' '}
 
                 compares 4 systems: two recent Intel systems
                 (Sapphire Rapids - SPR, and Ice Lake - ICL) as well as AWS Graviton G3E and AMD Zen4.
@@ -35,7 +35,7 @@ export default function UnicorePerfContents() {
                 The second unicore view,
                 {' '}<Link className='link'
                     to="/qaas/overview/unicore_perf_contents#figutab"
-                >Fig. utab</Link> {', '}
+                >Fig. utab</Link>{', '}
 
 
                 gives background information about the codes and systems,

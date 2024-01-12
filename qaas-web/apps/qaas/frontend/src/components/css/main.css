@@ -104,6 +104,21 @@ li {
 
 }
 
+.ToCContainer {
+    display: flex;
+    flex-direction: column;
+    /* stacks vertically */
+    align-items: center;
+    /* centers horizontally */
+    margin: 20px auto;
+    padding-left: 20px;
+    padding-right: 20px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 960px;
+
+}
+
 
 
 .imageContainer img {

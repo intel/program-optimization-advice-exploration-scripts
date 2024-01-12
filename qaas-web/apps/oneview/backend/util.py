@@ -744,7 +744,7 @@ def read_src_file(regions_count, f, strings, session):
     src_files = []
 
     for i in range(regions_count):
-    # Read the source file section of the object.
+    # source file section of the object
         file_index = read_int(f)
         file_index = StringClass.get_or_create_table_id_by_string(strings[file_index], session)
         source_file_intervals_count = read_int(f)
@@ -756,7 +756,8 @@ def read_src_file(regions_count, f, strings, session):
         src_files.append(src_file_data)
     return src_files
 
-def read_objects(objects_count, f, strings, session):
+
+def read_objects(binary_format_version, objects_count, f, strings, session):
     objects = []
     for i in range(objects_count):
         module_index = read_int(f)
@@ -781,6 +782,13 @@ def read_objects(objects_count, f, strings, session):
             'stop_line': stop_line,
             'source_file_intervals': source_files
         }
+
+        #  exclusive regions for version 2 or higher
+        if binary_format_version >= 2:
+            exclusive_regions_count = read_int(f)
+            exclusive_regions = read_src_file(exclusive_regions_count, f, strings, session)
+            object_data['exclusive_regions'] = exclusive_regions
+
         objects.append(object_data)
     return objects
 
@@ -813,7 +821,7 @@ def convert_location_binary_to_python(binary_file_path, session):
 
         # Read the second section of the file, which contains objects.
         objects_count = read_int(f)
-        objects = read_objects(objects_count, f, strings, session)
+        objects = read_objects(headers['binary_format_version'], objects_count, f, strings, session)
 
     # Return the decoded data as a dictionary.
     return {'headers':headers, 'objects': objects}
@@ -855,7 +863,7 @@ def write_source_file_intervals(f, source_file_intervals, session):
         write_int(f, source_file_index)
         write_intervals(f, src_file['source_file_intervals'])
 
-def write_objects(f, objects, session):
+def write_objects(binary_format_version, f, objects, session):
     write_int(f, len(objects))
 
     for obj in objects:
@@ -866,7 +874,9 @@ def write_objects(f, objects, session):
         write_int(f, obj['start_line'])
         write_int(f, obj['stop_line'])
         write_source_file_intervals(f, obj['source_file_intervals'], session)
-        
+        if binary_format_version >= 2:
+            write_source_file_intervals(f, obj['exclusive_regions'], session)
+
 
 
 def add_to_set_and_list(strings_set,strings, string):
@@ -902,7 +912,7 @@ def convert_python_to_location_binary(data, binary_file_path, session):
             strings, objects = map_and_write_strings_location(f, data['objects'], session)
             write_strings(f, strings)
             if len(objects) > 0:
-                write_objects(f, objects, session)
+                write_objects(data['headers']['binary_format_version'], f, objects, session)
 
 ##for call chain binary
 def read_callsite(callsites_count, f, strings, session):
