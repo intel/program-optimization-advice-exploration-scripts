@@ -4,6 +4,7 @@ from sqlalchemy import (
     create_engine,
     Column,
     Integer,
+    BigInteger,
     String,
     Float,
     DateTime,
@@ -65,9 +66,9 @@ class CompressedPickler(object):
 class Application(QaaSBase):
     __tablename__ = "application"
     workload = Column(Text, nullable=True)
-    version = Column(String(50), nullable=True)
-    program = Column(String(50), nullable=True)
-    commit_id = Column(String(40), nullable=True)
+    version = Column(Text, nullable=True)
+    program = Column(Text, nullable=True)
+    commit_id = Column(Text, nullable=True)
     executions = relationship("Execution", back_populates="application")
     def __init__(self, initializer):
         super().__init__(initializer.session)
@@ -126,6 +127,8 @@ class Execution(QaaSBase):
     fk_hwsystem_id = Column(Integer, ForeignKey('hwsystem.table_id'))
     fk_os_id = Column(Integer, ForeignKey('os.table_id'))
     fk_application_id = Column(Integer, ForeignKey('application.table_id')) 
+    fk_compiler_option_id = Column(Integer, ForeignKey('compiler_option.table_id'))
+
     lprof_categorizations  = relationship("LprofCategorization", back_populates="execution")
     src_functions  = relationship("SrcFunction", back_populates="execution")
     modules  = relationship("Module", back_populates="execution")
@@ -137,6 +140,7 @@ class Execution(QaaSBase):
     os = relationship("Os", back_populates="executions")
     hwsystem = relationship("HwSystem", back_populates="executions")
     application = relationship("Application", back_populates="executions")
+    compiler_option = relationship("CompilerOption", back_populates="executions")
 
     def __init__(self, initializer):
         super().__init__(initializer.session)
@@ -173,7 +177,7 @@ class QaaS(QaaSBase):
     orig_execution  = relationship("Execution", back_populates="qaass")
 
     qaas_runs = relationship("QaaSRun", back_populates="qaas")
-
+   
 
     def __init__(self, initializer):
         super().__init__(initializer.session)
@@ -182,6 +186,17 @@ class QaaS(QaaSBase):
 
     def accept(self, accessor):
         accessor.visitQaaS(self)
+
+    @classmethod
+    def get_or_create_qaas(cls, timestamp, initializer, type=None):
+        result = initializer.session.query(cls).filter_by(timestamp = timestamp, type = type).first()
+        if result:
+            return result
+        else:
+            new_obj = cls(initializer)
+            new_obj.timestamp = timestamp 
+            new_obj.type = type
+            return new_obj
 
 class QaaSRun(QaaSBase):
     __tablename__ = "qaas_run"
@@ -193,7 +208,6 @@ class QaaSRun(QaaSBase):
 
     def __init__(self, initializer):
         super().__init__(initializer.session)
-        self.accept(initializer)
     
 
 
@@ -244,13 +258,18 @@ class Os(QaaSBase):
         accessor.visitOs(self)
 
     @classmethod
-    def get_or_create_os_by_os_info(cls, hostname, initializer):
-        result = initializer.session.query(cls).filter_by(hostname = hostname).first()
+    def get_or_create_os_by_os_info(cls, hostname, initializer, os_version=None, scaling_governor=None, huge_pages=None, driver_frequency=None):
+        result = initializer.session.query(cls).filter_by(hostname = hostname, os_version = os_version, scaling_governor = scaling_governor, huge_pages = huge_pages, driver_frequency = driver_frequency).first()
         if result:
             return result
         else:
             new_os_obj = cls(initializer)
             new_os_obj.hostname = hostname 
+            new_os_obj.os_version = os_version
+            new_os_obj.scaling_governor = scaling_governor
+            new_os_obj.huge_pages = huge_pages
+            new_os_obj.driver_frequency = driver_frequency
+
             return new_os_obj
   
 class HwSystem(QaaSBase):
@@ -402,6 +421,8 @@ class CompilerOption(QaaSBase):
     loops  = relationship("Loop", back_populates="compiler_option")
     modules  = relationship("Module", back_populates="compiler_option")
     blocks  = relationship("Block", back_populates="compiler_option")
+    executions  = relationship("Execution", back_populates="compiler_option")
+
     def __init__(self, initializer):
         super().__init__(initializer.session)
     @classmethod
@@ -952,7 +973,7 @@ class DecanMetric(QaaSBase):
 class VprofMeasure(QaaSBase):
     __tablename__ = "vprof_measure"
 
-    instance_count = Column(Integer, nullable=True)
+    instance_count = Column(BigInteger, nullable=True)
     invalid_count = Column(Integer, nullable=True)
     iteration_total = Column(Float, nullable=True)
     iteration_min = Column(Float, nullable=True)
@@ -1049,5 +1070,11 @@ def get_loop_by_maqao_id_module(current_execution, maqao_id, module):
                 return l
     return res
 
-
+def get_loop_by_maqao_id(current_execution, maqao_id):
+    res = None
+    for src_loop in current_execution.src_loops:
+        for l in src_loop.loops:
+            if l.maqao_loop_id == maqao_id and l.function:
+                return l
+    return res
 

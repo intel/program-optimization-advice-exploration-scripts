@@ -33,9 +33,47 @@ config = get_config()
 
 from model import create_all_tables
 
-def read_qaas(file_path):
-    populate_database_qaas(file_path, config)
+def read_qaas(dir_path):
+    for report_timestamp in os.listdir(dir_path):
+        report_path = os.path.join(dir_path, report_timestamp)
+        data_path = os.path.join(report_path, 'qaas_compilers.csv')
+        metadata_path = os.path.join(report_path, 'input.txt')
+        populate_database_qaas(data_path, metadata_path, config)
 
+
+def preprocess_result_and_populate(report_path, application_path):
+    application_path = os.path.normpath(application_path)
+    for report_name in os.listdir(report_path):
+        full_report_path = os.path.join(report_path, report_name)
+        application = os.path.basename(application_path)
+        subpath = full_report_path[len(application_path):].lstrip(os.path.sep)
+        parts = subpath.split(os.path.sep)
+        program = parts[0] if parts else ''
+        version = os.path.sep.join(parts[1:])
+        timestamp = report_name.split('_')[-1]
+        print(application, program, version, timestamp)
+        #don't make HBM the workload
+        populate_database(full_report_path, timestamp, version, "", version, program, "")
+
+def read_ov_from_report(report_path):
+    path_parts = report_path.split(os.sep)
+    oneview_runs_index = path_parts.index('oneview_runs')
+    application_path_parts = path_parts[:oneview_runs_index-1]
+    application_path = os.sep.join(application_path_parts)
+    print(application_path, report_path)
+    # preprocess_result_and_populate(report_path, application_path)
+
+    
+def read_ov_web(application_path):
+    for program in os.listdir(application_path):  
+        program_path = os.path.join(application_path, program)
+        #only dir
+        if os.path.isdir(program_path):
+            for compiler_name in os.listdir(os.path.join(application_path, program, 'oneview_runs', 'compilers')):
+                compiler_path = os.path.join(application_path, program, 'oneview_runs', 'compilers', compiler_name)
+                preprocess_result_and_populate(compiler_path, application_path)
+            orig_path =  os.path.join(application_path, program, 'oneview_runs', 'defaults', 'orig')
+            preprocess_result_and_populate(orig_path, application_path)
 
 def read_ov(folder_path):
     
@@ -100,7 +138,10 @@ def main():
     parser.add_argument('--commit_id', type=str, help='Workload Program Commit ID')
     parser.add_argument('--ov_path', type=str, help='Read from a folder instead of arguments')
     parser.add_argument('--ov_fr_path', type=str, help='Read from a folder instead of arguments')
-    parser.add_argument('--qaas_path', type=str, help='read qaas data given a file path')
+    parser.add_argument('--ov_web_path', type=str, help='read ov data that is downloaded one by one from website')
+    parser.add_argument('--ov_report_path', type=str, help='read ov data from report path')
+
+    parser.add_argument('--qaas_path', type=str, help='read qaas data given a data folder, now using git data folder')
 
     # Parse the arguments
     args = parser.parse_args()
@@ -114,6 +155,14 @@ def main():
     elif args.ov_fr_path:
         create_all_tables(config, db='oneview')
         read_ov_french(args.ov_fr_path)
+
+    elif args.ov_web_path:
+        create_all_tables(config, db='oneview')
+        read_ov_web(args.ov_web_path)
+    
+    elif args.ov_report_path:
+        create_all_tables(config, db='oneview')
+        read_ov_from_report(args.ov_web_path)
 
     elif args.qaas_path:
         create_all_tables(config, db='qaas')

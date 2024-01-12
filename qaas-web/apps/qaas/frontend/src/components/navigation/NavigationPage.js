@@ -6,7 +6,7 @@ export default function NavigationPage() {
         <div className="navigation-page-container">
             <h1 >Welcome to QaaS (Quality as a Service):</h1>
             <div>
-                <LinkBox path={'/qaas/overview'} text={'See Past Analyses'} />
+                <LinkBox path={'/qaas'} text={'See Past Analyses'} />
                 <LinkBox path={'/input'} text={'Submit An Automatic Job'} />
                 <LinkBox path={'/input'} text={'Submit An Manual Job'} />
 

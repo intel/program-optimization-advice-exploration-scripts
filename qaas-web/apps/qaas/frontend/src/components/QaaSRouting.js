@@ -51,6 +51,57 @@ import FlagRecMiniapps from './text_pages/clickin/FlagRecMiniapps';
 import AMGHACCClickTarget from './text_pages/clickin/AMGHACCClickTarget';
 import ICC from './text_pages/systemconfig/ICC';
 import GCC from './text_pages/systemconfig/GCC';
+import TableOfContents from './TableOfContents';
+
+export const layoutRoutes = [
+    { path: "/input", component: UserInputStepper },
+    { path: "/result", component: BrowseResult },
+    { path: "/definitions", component: DefinitionsTab },
+    { path: "/login", component: LoginPage },
+    { path: "/", component: NavigationPage },
+    { path: "/table_of_contents", component: TableOfContents },
+
+    { path: "/qaas", component: OverViewQaaS },
+    { path: "/qaas/overview/unicore_perf_contents", component: UnicorePerfContents },
+    { path: "/qaas/overview/multiprocessor_comp_contents", component: MultiprocessorCompContents },
+    { path: "/qaas/overview/multiprocessor_perf_contents", component: MultiprocessorPerfContents },
+    { path: "/qaas/overview/perf_improve", component: PerfImprove },
+    { path: "/qaas/overview/flag_rec_miniapps", component: FlagRecMiniapps },
+    { path: "/qaas/overview/AMG_HACC_click_target", component: AMGHACCClickTarget },
+    { path: "/qaas/cq_overview", component: CQOverview },
+    { path: "/qaas/cq_overview_performance", component: CQOverviewPerformance },
+    // { path: "/qaas", component: WelcomePage },
+    // { path: "/qaas/quality_definitions", component: QualityDefinitions },
+    // { path: "/qaas/constraints_and_scope", component: ConstraintsAndScope },
+    // { path: "/qaas/initial_qaas_offerings", component: InitialQaaSOfferings },
+    // { path: "/qaas/miniapps", component: Miniapps },
+    // { path: "/qaas/apps", component: Apps },
+    // { path: "/qaas/libraries", component: Libraries },
+    // { path: "/qaas/cq_overview_portability", component: Portability },
+    // { path: "/qaas/gf_cor", component: Gfcor },
+    // { path: "/qaas/gf_system", component: GfSystem },
+    // { path: "/qaas/gf_arch", component: GfArch },
+    // { path: "/qaas/cq_overview_multiprocessor", component: Multiprocessor },
+    // { path: "/qaas/compiler_details", component: CompilerDetails },
+    // { path: "/qaas/quality_10_year_trend_conclusions", component: Quality10YearTrendConclusions },
+    // { path: "/qaas/perf_by_scalability_type", component: PerfByScalabilityType },
+    // { path: "/qaas/gf_cost", component: GfCost },
+    // { path: "/qaas/type_of_scaling_replication_factors", component: TypeOfScaling },
+    // { path: "/qaas/oneview", component: Oneview },
+    // { path: "/qaas/best_app_insights_per_domain", component: BestAppInsightsPerDomain },
+    // { path: "/qaas/automatic_application_analysis", component: AutomaticApplicationAnalysis },
+    // { path: "/qaas/manual_interactive_mode", component: ManualInteractiveMode },
+    // { path: "/qaas/quality_10_year_trend_realities", component: Quality10YearTrendRealities },
+    // { path: "/qaas/multi_compiler_gains", component: MultiCompilerGains },
+    // { path: "/qaas/qaas_searches", component: QaaSSearches },
+    // { path: "/qaas/qaas_searches_l2", component: QaaSSearchesL2 },
+    // { path: "/system_config", component: SystemConfig },
+    // { path: "/system_config/sky_lake", component: SkyLake },
+    // { path: "/system_config/ice_lake", component: IceLake },
+    // { path: "/system_config/sapphire_rapids", component: SapphireRapids },
+    // { path: "/system_config/icc", component: ICC },
+    // { path: "/system_config/gcc", component: GCC }
+];
 export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const location = useLocation();
 
@@ -62,67 +113,28 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
         }
     }, [location, setDrawerContent]);
 
+
+
     return (
-        <>
 
-            <Routes>
-                <Route path="/input" element={<UserInputStepper isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML} />} />
-                <Route path="/result" element={<BrowseResult isLoading={isLoading} shouldLoadHTML={shouldLoadHTML} setIsLoading={setIsLoading} setShouldLoadHTML={setShouldLoadHTML} />} />
-                <Route path="/definitions" element={<DefinitionsTab />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/" element={<NavigationPage />} />
+        <Routes>
 
-                <Route path="*" element={
-                    <FixedMenuLayout drawerContent={drawerContent} mainContent={
-                        <Routes>
-                            <Route path="/qaas" element={<WelcomePage />} />
-                            <Route path="/qaas/quality_definitions" element={<QualityDefinitions />} />
-                            <Route path="/qaas/constraints_and_scope" element={<ConstraintsAndScope />} />
-                            <Route path="/qaas/initial_qaas_offerings" element={<InitialQaaSOfferings />} />
-                            <Route path="/qaas/overview" element={<OverViewQaaS />} />
-                            <Route path="/qaas/overview/unicore_perf_contents" element={<UnicorePerfContents />} />
-                            <Route path="/qaas/overview/multiprocessor_comp_contents" element={<MultiprocessorCompContents />} />
-                            <Route path="/qaas/overview/multiprocessor_perf_contents" element={<MultiprocessorPerfContents />} />
-                            <Route path="/qaas/overview/perf_improve" element={<PerfImprove />} />
-                            <Route path="/qaas/overview/flag_rec_miniapps" element={<FlagRecMiniapps />} />
-                            <Route path="/qaas/overview/AMG_HACC_click_target" element={<AMGHACCClickTarget />} />
+            {layoutRoutes.map(({ path, component: Component }) => (
+                <Route key={path} path={path} element={<Component />} />
+            ))}
+            {/* <Route path="*" element={
+                <FixedMenuLayout drawerContent={drawerContent} mainContent={
+                    <Routes>
+                        {layoutRoutes.map(({ path, component: Component }) => (
+                            <Route key={path} path={path} element={<Component />} />
+                        ))}
+                    </Routes>
+                }
+                />
+            } /> */}
 
-                            <Route path="/qaas/cq_overview" element={<CQOverview />} />
-                            <Route path="/qaas/cq_overview_performance" element={<CQOverviewPerformance />} />
-                            <Route path="/qaas/miniapps" element={<Miniapps />} />
-                            <Route path="/qaas/apps" element={<Apps />} />
-                            <Route path="/qaas/libraries" element={<Libraries />} />
-                            <Route path="/qaas/cq_overview_portability" element={<Portability />} />
-                            <Route path="/qaas/gf_cor" element={<Gfcor />} />
-                            <Route path="/qaas/gf_system" element={<GfSystem />} />
-                            <Route path="/qaas/gf_arch" element={<GfArch />} />
-                            <Route path="/qaas/cq_overview_multiprocessor" element={<Multiprocessor />} />
-                            <Route path="/qaas/compiler_details" element={<CompilerDetails />} />
-                            <Route path="/qaas/quality_10_year_trend_conclusions" element={<Quality10YearTrendConclusions />} />
-                            <Route path="/qaas/perf_by_scalability_type" element={<PerfByScalabilityType />} />
-                            <Route path="/qaas/gf_cost" element={<GfCost />} />
-                            <Route path="/qaas/type_of_scaling_replication_factors" element={<TypeOfScaling />} />
-                            <Route path="/qaas/oneview" element={<Oneview />} />
-                            <Route path="/qaas/best_app_insights_per_domain" element={<BestAppInsightsPerDomain />} />
-                            <Route path="/qaas/automatic_application_analysis" element={<AutomaticApplicationAnalysis />} />
-                            <Route path="/qaas/manual_interactive_mode" element={<ManualInteractiveMode />} />
-                            <Route path="/qaas/quality_10_year_trend_realities" element={<Quality10YearTrendRealities />} />
-                            <Route path="/qaas/multi_compiler_gains" element={<MultiCompilerGains />} />
-                            <Route path="/qaas/qaas_searches" element={<QaaSSearches />} />
-                            <Route path="/qaas/qaas_searches_l2" element={<QaaSSearchesL2 />} />
 
-                            <Route path="/system_config" element={<SystemConfig />} />
-                            <Route path="/system_config/sky_lake" element={<SkyLake />} />
-                            <Route path="/system_config/ice_lake" element={<IceLake />} />
-                            <Route path="/system_config/sapphire_rapids" element={<SapphireRapids />} />
-                            <Route path="/system_config/icc" element={<ICC />} />
-                            <Route path="/system_config/gcc" element={<GCC />} />
+        </Routes>
 
-                        </Routes>
-                    } />
-                } />
-            </Routes>
-
-        </>
     );
 }

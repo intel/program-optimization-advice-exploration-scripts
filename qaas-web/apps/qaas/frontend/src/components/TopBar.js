@@ -4,12 +4,15 @@ import { Dropdown, Menu, Space } from 'antd';
 import './css/TopBar.css';
 import { DownOutlined, CheckOutlined, HomeOutlined } from '@ant-design/icons';
 import PageSearchBar from './search/PageSearchBar';
+import TableOfContents from './TableOfContents';
 const pageGroups = {
     'Quality content explanations': [
         { page: 'qaas', label: 'QaaS Content Overview' },
         { page: 'system_config', label: 'System Configurations' },
         { page: 'definitions', label: 'Definitions' },
         { page: 'ref', label: 'References' },
+        { page: 'table_of_contents', label: 'Table of Contents' },
+
     ],
     'About QaaS': [
         // { page: 'login', label: 'Login' },
@@ -32,11 +35,11 @@ function TopBar() {
 
     //this is to get all the text pages under / to be under qaas content overview unless specify in page groups
     const allPages = Object.values(pageGroups).flat().map(({ page }) => page);
-
+    console.log(allPages)
     //listen to path change
     useEffect(() => {
         const currentPage = location.pathname.replace('/', '').split('/')[0];
-
+        console.log(currentPage)
         // check if currentPage is a predefined page, if not set it to under home page
         if (allPages.includes(currentPage)) {
             setSelectedPage(currentPage);

@@ -428,8 +428,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
             current_vprof.cycles_per_iteration_max = dic.get('cycles_per_iteration_max', None) 
             current_vprof.cycles_per_iteration_mean = dic.get('cycles_per_iteration_mean', None)  
 
-            current_loop = get_loop_by_maqao_id_module(self.get_current_execution(),  dic.get('loop_id', None),  dic.get('module', None) )
-            print(current_loop)
+            #use only id because it is using binary as a place holder not a real module name
+            current_loop = get_loop_by_maqao_id(self.get_current_execution(),  dic.get('loop_id', None))
 
             current_vprof.loop = current_loop
 
@@ -718,7 +718,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
             cqa_measures = []
             for index, row in cqa_df.iterrows():
                 #cqa table
-                path_id =  -1 if row['path ID'] == 'AVG' else int(row['path ID'])
+                path_id =  -1 if row['path ID'] == 'AVG' or row['path ID'] == 'NA' else int(row['path ID'])
                 cqa_measure_obj = CqaMeasure(self)
                 cqa_measure_obj.path_id = path_id
                 cqa_measure_obj.loop = current_loop
@@ -985,10 +985,11 @@ class OneViewModelExporter(OneviewModelAccessor):
         vprof_path = self.get_vprof_path()
         vprof_data = []
 
+        #module will be binary as a place holder, otter will rename it when generate the report
         for vprof in vprof_collection.get_objs():
             vprof_dict = {
                 'loop_id' : vprof.loop.maqao_loop_id,
-                'module' : os.path.basename(vprof.loop.function.module.name),
+                'module' : "binary",
                 'instance_count' : vprof.instance_count,
                 'invalid_count' : vprof.invalid_count,
                 'iteration_total' : vprof.iteration_total,
