@@ -182,6 +182,8 @@ class QAASJobSubmit:
         disable_best_compiler_default = "--no-compiler-default" if self.no_compiler_default else ""
         disable_best_compiler_flags = "--no-compiler-flags" if self.no_compiler_flags else ""
         enable_parallel_scale_option = "-s" if self.enable_parallel_scale else ""
+        # Setup per-compiler location to isolate environment
+        multi_compilers_dirs = ";".join([f"{compiler}:{os.path.join(container_compiler_root, self.provisioner.get_compiler_subdir(compiler, 'latest'))}" for compiler in self.provisioner.get_enabled_compilers()])
         # Below used --network=host so script can communicate back to launcher via ssh forwarding.  Can try to restrict to self.provisioner.comm_port if needed
         app_cmd = f"/usr/bin/python3 {container_script_root}/qaas-service/job.py "+ \
                     f' --src-dir {os.path.join(container_app_builder_path, self.provisioner.app_name)}'+ \
@@ -202,6 +204,7 @@ class QAASJobSubmit:
                     f' {enable_parallel_scale_option}' + \
                     f' --mpi-scale-type {self.runtime["MPI"]}' + \
                     f' --openmp-scale-type {self.runtime["OPENMP"]}' + \
+                    f' --multi-compilers_dirs "{multi_compilers_dirs}"' + \
                     f" --comm-port {self.provisioner.comm_port}"
         if container:
             mount_map = { ov_dir:ov_dir, script_root:container_script_root,
