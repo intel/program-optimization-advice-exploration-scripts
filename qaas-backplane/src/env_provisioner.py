@@ -68,7 +68,7 @@ class QAASEnvProvisioner:
     def __init__(self, service_dir, script_root,
                  account, app_name, git_params,
                  access_params, container,
-                 compilers, compiler_mappings, comm_port,
+                 compilers, compiler_mappings, analyzers, comm_port,
                  remote_job,
                  service_msg_recv_handler,
                  launch_output_dir):
@@ -119,6 +119,7 @@ class QAASEnvProvisioner:
         self.enabled_compilers = compilers["QAAS_ENABLED_COMPILERS"].replace(' ', '').split(',')
         self.compiler_mappings = compiler_mappings
         self._launch_output_dir = launch_output_dir
+        self.analyzers = analyzers
 
     @property
     def service_dir(self):
