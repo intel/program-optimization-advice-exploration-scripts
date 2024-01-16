@@ -130,6 +130,7 @@ def update_web(force_install=False):
             return # Already installed
         # fall through proceed to installation since force_install is True
 
+    sync_db()
     os.system(f"sudo mkdir -p {apache_qaas_config_dir}")
     os.system(f"sudo cp {qaas_config_file} {apache_qaas_config_file}")
     # Copy the 000-default.conf to apache folder
@@ -187,5 +188,5 @@ def give_permission(folder, user):
     os.system(f"sudo chmod -R g+w {folder}")
 
 if __name__ == "__main__":
-    sync_db()
+    
     update_web(force_install=True)
