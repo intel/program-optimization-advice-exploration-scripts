@@ -301,11 +301,11 @@ def convert_non_table_lua_to_python(lua_file):
 
     return config
 def convert_lua_to_python(lua_file):
-    # if os.path.exists(lua_file):
-    #     return compress_file(lua_file)
+    if os.path.exists(lua_file):
+        return compress_file(lua_file)
     #TODO use json instead of string
-    python_dict = luadata.read(lua_file)
-    return python_dict
+    # python_dict = luadata.read(lua_file)
+    # return python_dict
     # with open(lua_file, 'r', encoding="utf-8") as f:
     #     lua_code = f.read()
 
