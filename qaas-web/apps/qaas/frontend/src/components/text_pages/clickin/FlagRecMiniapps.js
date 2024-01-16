@@ -9,18 +9,17 @@ export default function FlagRecMiniapps() {
             <h2>Miniapps</h2>
             <p>
 
-                Only 2 of the miniapps had developer-generated compiler flag recommendations: MiniQMC and Kripke.
-                Using M-compiler searches, QaaS found a 10% gain for MiniQMC, and a 2.5X gain for Kripke.
-                This indicates that while developers try to help users, in some cases their advice is not up to date,
-                or they may have used somewhat different HW versions, or HW settings.
+                QaaS attemps to improve on the best performance settings suggested by applicaiton developers. Only two of the miniapps had compiler flags recommended by developers: MiniQMC and Kripke.
+                Using multi-compiler searches, QaaS found a modest 10% gain for MiniQMC, but a major 2.5X gain for Kripke.
+                This indicates that while developers try to help users, in some cases their advice may not be up to date, or the developers may have used somewhat different system configuations or hardware/software settings.
                 For example, after a few compiler releases, the recommendations may become stale.
                 In this regard, QaaS will always be able to give advice that is fresh with respect to current
                 compiler releases, as well as architecture variations.
 
-        
+                {' '}
                 <Link className='link'
-                    to="/qaas/overview/multiprocessor_comp_contents"
-                > click back </Link>
+                    to="/qaas/overview/compiler_comparison"
+                >Click back</Link>{' '}
                 to Compiler comparisons.
 
 

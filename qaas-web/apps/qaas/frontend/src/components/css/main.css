@@ -47,6 +47,10 @@ li {
     margin-bottom: 10px;
 }
 
+.check-color{
+    color:#FF0000;
+}
+
 .link {
     color: #2f889a;
     text-decoration: none;

@@ -10,12 +10,12 @@ export default function UnicorePerfContents() {
         <div className="textPageContainer">
             <h1>Unicore performance comparisons</h1>
             <p>
-                Several current unicore systems were run on a set of 7 simple HPC miniapps,
+                Several current unicore systems were used to run on a set of 7 simple HPC miniapps,
                 all compiled per machine with a good default compiler. We summarize the results
                 using basic QaaS views.
 
                 {' '}<Link className='link'
-                    to="/qaas/overview/unicore_perf_contents#figuni"
+                    to="/qaas/overview/unicore_performance_comparisons#figuni"
                 >Fig. uni</Link>{' '}
 
                 compares 4 systems: two recent Intel systems
@@ -34,7 +34,7 @@ export default function UnicorePerfContents() {
             <p>
                 The second unicore view,
                 {' '}<Link className='link'
-                    to="/qaas/overview/unicore_perf_contents#figutab"
+                    to="/qaas/overview/unicore_performance_comparisons#figutab"
                 >Fig. utab</Link>{', '}
 
 

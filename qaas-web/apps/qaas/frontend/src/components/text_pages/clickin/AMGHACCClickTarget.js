@@ -8,21 +8,28 @@ export default function AMGHACCClickTarget() {
         <div className="textPageContainer">
             <h1>AMG/HACC click target</h1>
             <p>
-
-                OneView does many detailed analyses of source and binary code that are summarized here for AMG and HACC
-                in Fig. OV1. Array access efficiency shows the % of high performance array access instructions,
-                so AMG has 30% non-stride 1 memory accesses; as a multigrid solver, it accesses just parts of arrays
-                on some iterations. This, in turn, forces the compiler to generate a lot of non-vector code; in fact,
-                OV estimates nearly a 3X speedup if it were fully vectorized. In contrast, note that OV portrays HACC,
-                entirely in green - no chances for gain.  This, together with its very high efficiency
-                (see Fig. bestcomp) indicates that it will scale well with many more cores.
+            {' '}
+                <Link className='link'
+                    to="https://datafront-intel.liparad.uvsq.fr/oneview_page/"
+                >OneView</Link> {' '}
+                does many detailed analyses of source and binary code that are summarized for AMG and HACC
+                in Fig. OV1 and Fig. OV2, respectively. The array access efficiency line shows the % of high performance array access instructions executed.
+                AMG shows 70% array access efficiency, i.e. 30% non-stride-1 memory accesses. As an algebraic multigrid solver, it accesses varying parts of arrays
+                from iteration to iteration, which forces the compiler to generate a lot of non-vector code. In fact,
+                OneView estimates nearly a 3X speedup if it were fully vectorized. In contrast, note that OneView portrays HACC (with large dense arrays),
+                entirely in green - with no chance for gain. This, together with its very high efficiency
+                (see 
+                    {' '}
+                    <Link className='link'
+                        to="/qaas/overview/compiler_comparison#figbestcomp"
+                    > Fig. bestcomp</Link>) indicates that HACC will scale well using many more cores.
 
 
 
                 {' '}
                 <Link className='link'
-                    to="/qaas/overview/multiprocessor_comp_contents"
-                > Click back  </Link>
+                    to="/qaas/overview/compiler_comparison"
+                >Click back</Link>{' '}
                 to compiler comparison.
 
 
