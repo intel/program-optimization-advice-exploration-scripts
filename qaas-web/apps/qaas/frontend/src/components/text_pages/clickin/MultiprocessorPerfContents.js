@@ -27,18 +27,18 @@ export default function MultiprocessorPerfContents() {
 
             <p>
                 <Link className='link'
-                    to="/qaas/overview/multiprocessor_perf_contents#figmpperf"
+                    to="/qaas/overview/multicore_performance_comparisons#figmpperf"
                 >Fig. MPperf</Link> {' '}
                 shows plots of Gf/core for ICL and SPR 2-socket MC systems vs. the 7 miniapps plus 4 whole applications,
                 annotated with the best/worst system performance ratio shown in the color of the winner (see legend).
                 {' '} <Link className='link'
-                    to="/qaas/overview/multiprocessor_perf_contents#figarccomp"
+                    to="/qaas/overview/multicore_performance_comparisons#figarccomp"
                 >Fig. Arccomp</Link> {' '}
                 is a histogram comparing ICL and SPR performance across the codes. It shows that HACC Gf/core is 1.2
                 – 1.5 faster on ICL than SPR, while Miniqmc is 1.1 – 1.2 faster on SPR.
 
                 {' '} <Link className='link'
-                    to="/qaas/overview/multiprocessor_perf_contents#figmpratio"
+                    to="/qaas/overview/multicore_performance_comparisons#figmpratio"
                 >Table mpratio</Link> {' '}
                 lists MC performance differences and some of their contributing factors. The first column is the ICL Gf as seen earlier (Fig. Bestcomp),
                 with a 40X range. From Fig. MPperf we know that all of the miniapps (except Kripke) are within 15% total Gf difference on SPR and ICL, and two of the whole apps have &gt; 15% performance differences.
@@ -85,7 +85,7 @@ export default function MultiprocessorPerfContents() {
                 gives more details about the multicore aspects of these codes. Otherwise you may return to the
                 {' '}
                 <Link className='link'
-                    to="/qaas/overview"
+                    to="/overview"
                 >introduction</Link>.
             </p>
 

@@ -7,7 +7,7 @@ import PageSearchBar from './search/PageSearchBar';
 import TableOfContents from './TableOfContents';
 const pageGroups = {
     'Quality content explanations': [
-        { page: 'qaas', label: 'QaaS Content Overview' },
+        { page: 'overview', label: 'QaaS Content Overview' },
         { page: 'system_config', label: 'System Configurations' },
         { page: 'definitions', label: 'Definitions' },
         { page: 'ref', label: 'References' },

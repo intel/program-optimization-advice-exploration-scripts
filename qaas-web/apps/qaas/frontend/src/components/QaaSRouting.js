@@ -52,7 +52,7 @@ import AMGHACCClickTarget from './text_pages/clickin/AMGHACCClickTarget';
 import ICC from './text_pages/systemconfig/ICC';
 import GCC from './text_pages/systemconfig/GCC';
 import TableOfContents from './TableOfContents';
-
+import ApplicationPortability from './text_pages/clickin/ApplicationPortability';
 export const layoutRoutes = [
     { path: "/input", component: UserInputStepper },
     { path: "/result", component: BrowseResult },
@@ -61,18 +61,20 @@ export const layoutRoutes = [
     { path: "/", component: NavigationPage },
     { path: "/table_of_contents", component: TableOfContents },
 
-    { path: "/qaas", component: OverViewQaaS },
-    { path: "/qaas/overview/unicore_perf_contents", component: UnicorePerfContents },
-    { path: "/qaas/overview/multiprocessor_comp_contents", component: MultiprocessorCompContents },
-    { path: "/qaas/overview/multiprocessor_perf_contents", component: MultiprocessorPerfContents },
-    { path: "/qaas/overview/perf_improve", component: PerfImprove },
-    { path: "/qaas/overview/flag_rec_miniapps", component: FlagRecMiniapps },
+    { path: "/overview", component: OverViewQaaS },
+    { path: "/qaas/overview/unicore_performance_comparisons", component: UnicorePerfContents },
+    { path: "/qaas/overview/compiler_comparison", component: MultiprocessorCompContents },
+    { path: "/qaas/overview/multicore_performance_comparisons", component: MultiprocessorPerfContents },
+    { path: "/qaas/overview/how_to_improve_performance", component: PerfImprove },
+    { path: "/qaas/overview/developer_flag_recommendations", component: FlagRecMiniapps },
     { path: "/qaas/overview/AMG_HACC_click_target", component: AMGHACCClickTarget },
+    { path: "/qaas/overview/application_portability", component: ApplicationPortability },
+
     { path: "/qaas/cq_overview", component: CQOverview },
-    { path: "/qaas/cq_overview_performance", component: CQOverviewPerformance },
+    // { path: "/qaas/cq_overview_performance", component: CQOverviewPerformance },
     // { path: "/qaas", component: WelcomePage },
     // { path: "/qaas/quality_definitions", component: QualityDefinitions },
-    // { path: "/qaas/constraints_and_scope", component: ConstraintsAndScope },
+    { path: "/qaas/constraints_and_scope", component: ConstraintsAndScope },
     // { path: "/qaas/initial_qaas_offerings", component: InitialQaaSOfferings },
     // { path: "/qaas/miniapps", component: Miniapps },
     // { path: "/qaas/apps", component: Apps },
@@ -95,7 +97,7 @@ export const layoutRoutes = [
     // { path: "/qaas/multi_compiler_gains", component: MultiCompilerGains },
     // { path: "/qaas/qaas_searches", component: QaaSSearches },
     // { path: "/qaas/qaas_searches_l2", component: QaaSSearchesL2 },
-    // { path: "/system_config", component: SystemConfig },
+    { path: "/system_config", component: SkyLake },
     // { path: "/system_config/sky_lake", component: SkyLake },
     // { path: "/system_config/ice_lake", component: IceLake },
     // { path: "/system_config/sapphire_rapids", component: SapphireRapids },

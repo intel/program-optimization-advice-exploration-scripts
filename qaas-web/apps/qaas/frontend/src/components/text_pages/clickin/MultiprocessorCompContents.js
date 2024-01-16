@@ -16,15 +16,17 @@ export default function MultiprocessorCompContents() {
 
             <p>
 
-                Three current compiler leaders – Intel ICX and ICC plus GCC (and their Fortran versions) were used here for the same 7 miniapps as the unicore runs.
-                See
+                Three current compiler leaders – Intel ICX and ICC plus GCC (and their Fortran versions) were used here for the multicore runs of the same 7 miniapps as the unicore runs of Fig. utab.
+                See 
+                {' '}
                 <Link className='def-link'
                     to="/system_config"
-                > compiler version numbers </Link>
+                >compiler version numbers</Link>
+                {' '}
                 here.
                 {' '}<Link className='link'
-                    to="/qaas/overview/multiprocessor_comp_contents#figappgain"
-                >Fig. appgain</Link> {' '}
+                    to="/qaas/overview/compiler_comparison#figappgain"
+                >Fig. appgain</Link>{' '}
                 is another standard QaaS view (histogram)
                 showing the spread of performance gains found by QaaS over a good baseline default compiler
                 flag setting for Intel Ice Lake runs. Here, QaaS searches among 16 optimizing flag
@@ -42,11 +44,10 @@ export default function MultiprocessorCompContents() {
             <p>
 
 
-                <Link className='link'
-                    to="/qaas/overview/multiprocessor_comp_contents#figbestcomp"
-                > Fig. bestcomp</Link> {' '} summarizes key points about these miniapp runs. First, we can see the 40X per code range (see last row) for best total Gf,
-                and nearly that (27X) for Gf/core. Also shown is the maximum number of cores (ranging from 16
-                to 48 cores) for which
+                    <Link className='link'
+                        to="/qaas/overview/compiler_comparison#figbestcomp"
+                    > Fig. bestcomp</Link> {' '} summarizes key points about these miniapp runs. First, we can see the 40X per code range for best total Gf (see last row),
+                and nearly that (27X) for Gf/core. Also shown is the maximum number of cores for which
                 {' '}
                 <TooltipComponent id="efficiency-formula" content={
                     <BlockMath>
@@ -58,7 +59,12 @@ export default function MultiprocessorCompContents() {
                 {' '}
 
 
-                Ec &gt; .5. In table bestcomp, the Ec threshold is adjustable [Yue]. It is interesting and typical to
+                Ec &gt; .5 (ranging from 16 to 48 cores). 
+                {' '}
+                <Link className='link'
+                        to="/qaas/overview/compiler_comparison#figbestcomp"
+                    >Fig. bestcomp</Link>,{' '}
+                 the Ec threshold is adjustable [Yue]. It is interesting and typical to
                 see the diversity of performance, winning compilers, and total cores usable efficiently. As examples, AMG is an algebraic multigrid solver
                 with data access difficulties leading to relatively poor performance and low compiler differentiation. On the other hand,
                 HACC (an n-body cosmology code) is easily parallelizable and vectorizable so it runs well everywhere with little need for compiler excellence.
@@ -71,11 +77,13 @@ export default function MultiprocessorCompContents() {
             </p>
 
             <p>
-                Fig. bestcomp includes several performance metrics: the Ice Lake Gf column (from Fig. utab) leads to the ratio
+            <Link className='link'
+                        to="/qaas/overview/compiler_comparison#figbestcomp"
+                    > Fig. bestcomp</Link> {' '} includes several performance metrics: the Ice Lake Gf column (from Fig. utab) leads to the ratio
                 (Gf uni)/(Gf MC/core) [ADD], which varies from 1.3 for HACC to 2.95 for Cloverleaf++. This is reasonable because
                 MC computations contain extra parallelization instructions, and must share L3 cache. Since HACC has high parallel
                 efficiency we can expect a low ratio, and Cloverleaf++, as a C++ code, seems to have extra parallelism overhead
-                instructions. CHECK details it is a good oppy to discuss parallel ohd.
+                instructions. <span className="check-color">CHECK details it is a good oppy to discuss parallel ohd.</span>
             </p>
 
 
@@ -84,13 +92,12 @@ export default function MultiprocessorCompContents() {
             <p>
                 In this section, we assumed that the application developers had not thought about best compiler settings,
                 so we started with generally good default flags. In many cases, app developers do make recommendations
-                based on their own studies of selected compilers per architecture. See here to
+                based on their own studies of selected compilers per architecture. See here 
 
                 {' '}
                 <Link className='footnote-link'
-                    to="/qaas/overview/flag_rec_miniapps"
-                > evaluate how well these developer
-                    recommendations perform</Link>.
+                    to="/qaas/overview/developer_flag_recommendations"
+                >an evaluation of developer flag recommendations</Link>.
             </p>
 
 

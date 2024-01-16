@@ -3,21 +3,28 @@ import { Link } from 'react-router-dom';
 
 export const contentList = [
     {
-        text: 'Overview of QaaS: Summaries of past runs', path: '/qaas/overview', children: [
-            { text: 'How to improve performance', path: '/qaas/overview/perf_improve' },
-            { text: 'Unicore performance comparisons', path: '/qaas/overview/unicore_perf_contents' },
+        text: 'Overview of QaaS: Summaries of past runs', path: '/overview', children: [
+            { text: 'How to improve performance', path: '/qaas/overview/how_to_improve_performance' },
+            { text: 'Unicore performance comparisons', path: '/qaas/overview/unicore_performance_comparisons' },
             {
-                text: 'Compiler Comparison', path: '/qaas/overview/multiprocessor_comp_contents', children: [
+                text: 'Compiler Comparison', path: '/qaas/overview/compiler_comparison', children: [
                     { text: 'AMG/HACC click target', path: '/qaas/overview/AMG_HACC_click_target' },
-                    { text: 'Developer flag recommendations', path: '/qaas/overview/flag_rec_miniapps' },
+                    { text: 'Developer flag recommendations', path: '/qaas/overview/developer_flag_recommendations' },
                 ]
-            }
+            },
+            { text: 'Multicore performance comparisons', path: '/qaas/overview/multicore_performance_comparisons' },
+            { text: 'Application Portability', path: '/qaas/overview/application_portability' },
+
+
 
 
         ]
     },
     {
-        text: 'CQ Overview[Broad QaaS Introduction]', path: '/qaas/cq_overview'
+        text: 'CQ Overview[Broad QaaS Introduction]', path: '/qaas/cq_overview', children: [
+            { text: 'Constraints and Scope', path: '/qaas/overview/constraints_and_scope' },
+
+        ]
     },
 
 

@@ -55,6 +55,12 @@ function PageSearchBar() {
             navigate(selectedItem.path);
         }
     };
+    function formatString(str) {
+        return str
+            .split('_')
+            .map(word => word.replace(/^\w/, c => c.toUpperCase()))
+            .join(' ');
+    }
 
     return (
         <AutoComplete
@@ -67,7 +73,7 @@ function PageSearchBar() {
         >
             {searchResults.map((result, index) => (
                 <AutoComplete.Option key={index} value={result.path}>
-                    {result.path.split('/').pop()}:     {result.snippet}
+                    {`${formatString(result.path.split('/').pop())}: ${result.snippet}`}
                 </AutoComplete.Option>
             ))}
         </AutoComplete>

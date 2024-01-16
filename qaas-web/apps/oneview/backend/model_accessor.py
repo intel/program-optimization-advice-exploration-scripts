@@ -75,7 +75,7 @@ class OneviewModelAccessor(ModelAccessor):
 
         # File paths
         # local_vars_path = os.path.join(self.static_dir_path, 'local_vars.csv')
-        config_path = os.path.join(self.run_dir_path, 'config.lua')
+        config_path = os.path.join(self.run_dir_path, 'config_t.lua')
         cqa_context_path = os.path.join(self.static_dir_path, "cqa", "cqa_context.lua")
         expert_run_path = os.path.join(self.run_dir_path, 'expert_run.csv')
         #log files

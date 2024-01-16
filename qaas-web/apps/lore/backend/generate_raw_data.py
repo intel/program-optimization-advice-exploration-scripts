@@ -79,30 +79,7 @@ cache_directory = os.path.join(os.getcwd(), 'cache')
 if not os.path.exists(cache_directory):
     os.makedirs(cache_directory)
 
-@with_app_context
-def get_metric_from_loop(loop, metric_name):
-    value = (db.session.query(LoreLoopMeasureMetric)
-             .filter_by(metric_name = metric_name, lore_loop_measure = loop.lore_loop_measures[0]).first().metric_value)
-    
 
-    return value
-
-def get_min_ref_from_loop(loop):
-    metrics = loop.lore_loop_measures[0].lore_loop_measure_metrics
-    metrics_dict = {src_metric.metric_name: src_metric.metric_value for src_metric in metrics}
-    all_values = {
-        'novec': float(metrics_dict.get('novec_median', None)),
-        'sse': float(metrics_dict.get('sse_median', None)),
-        'avx': float(metrics_dict.get('avx_median', None)),
-        'avx2': float(metrics_dict.get('avx2_median', None)),
-        'o3': float(metrics_dict.get('o3_median', None)),
-        'base': float(metrics_dict.get('base_median', None))
-    }
-    all_values = {key: float(value) for key, value in all_values.items() if value is not None}
-    min_key = min(all_values, key=all_values.get)
-    min_value = all_values[min_key]
-
-    return (min_key, min_value)
 @with_app_context
 def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version):
     db.session.expunge_all()
@@ -129,9 +106,9 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
         #load the batch file
         if os.path.exists(cache_filename):
             with open(cache_filename, 'rb') as cache_file:
-                refs_per_source = pickle.load(cache_file)
+                refs_per_orig_src_loop = pickle.load(cache_file)
         else:
-            refs_per_source = {}
+            refs_per_orig_src_loop = {}
         db.session.expunge_all()
 
         batch_loops = (db.session.query(Loop)
@@ -154,10 +131,36 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
                 'base_CPU_CLK_UNHALTED_THREAD' : hwcounter_value
             }
 
-            mutation_number = src_loop.mutation_number
             orig_src_loop = src_loop.orig_src_loop
-            source_id = src_loop.source.table_id if not orig_src_loop else orig_src_loop.source.table_id
-            refs_per_source.setdefault(source_id, []).append({mutation_number: loop_data})
+            #is orig src loop with target compiler
+            oirg_src_loop_id = src_loop.table_id 
+            #has orig src loop 
+            if orig_src_loop:
+                orig_loop_compiler = orig_src_loop.loops[0].compiler_option.compiler
+                if orig_loop_compiler.vendor == compiler_vendor and orig_loop_compiler.version == compiler_version:
+                    #same compiler
+                     oirg_src_loop_id = orig_src_loop.table_id
+                else:
+                    #different compiler, get the src loop that has same source and program
+                    orig_src_loop_same_compiler = (db.session.query(SrcLoop)
+                                                    .join(Loop.src_loop)
+                                                    .join(Loop.compiler_option)
+                                                    .join(CompilerOption.compiler)
+                                                    .join(SrcLoop.execution)
+                                                    .join(Execution.application)
+                                                    .filter(Compiler.vendor == compiler_vendor,
+                                                            Compiler.version == compiler_version, 
+                                                            SrcLoop.source == orig_src_loop.source,
+                                                            Application.program == orig_src_loop.execution.application.program,
+                                                            Application.workload == orig_src_loop.execution.application.workload,
+                                                            SrcLoop.file == orig_src_loop.file,
+                                                            SrcLoop.line_number == orig_src_loop.line_number)
+                                                    .one())
+                    oirg_src_loop_id = orig_src_loop_same_compiler.table_id
+
+
+            #find out what is the correct src loop id 
+            refs_per_orig_src_loop.setdefault(oirg_src_loop_id, []).append({src_loop.table_id: loop_data})
 
             count += 1
 
@@ -168,10 +171,10 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
                 
           # Save to cache
         with open(cache_filename, 'wb') as cache_file:
-            pickle.dump(refs_per_source, cache_file)
+            pickle.dump(refs_per_orig_src_loop, cache_file)
             
     
-    return refs_per_source
+    return refs_per_orig_src_loop
 
 
 def create_cache_for_all_compiler_mutations_time_per_orig_loop():

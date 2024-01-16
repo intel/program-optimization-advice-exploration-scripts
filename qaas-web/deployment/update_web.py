@@ -3,6 +3,11 @@ import sys
 
 #global variable
 apache_dir = f"/var/www/html"
+script_dir = os.path.dirname(os.path.realpath(__file__))
+qaas_web_dir = os.path.join(script_dir, '..',)
+apps_dir = os.path.join(qaas_web_dir, "apps")
+qaas_web_backend_common_dir = os.path.join(apps_dir, 'common','backend')
+sys.path.append(qaas_web_backend_common_dir)
 
 def install_backend_dependencies(backend_dir, apache_html_dir):
     try:
@@ -89,6 +94,22 @@ def create_apache_config():
         print("Error creating Apache configuration file:", e)
         sys.exit(1)
 
+def sync_db():
+    command = f'alembic revision --autogenerate -m "sync db"'
+    status = os.system(command)
+
+    if status == 0:
+        print("New revision file created successfully.")
+    else:
+        print("An error occurred while creating the new revision file.")
+    
+    status = os.system('alembic upgrade head')
+    if status == 0:
+        print("Database updated to the latest revision successfully.")
+    else:
+        print("An error occurred during database synchronization.")
+
+
 #update dependency+copy to apache
 def update_web(force_install=False):
 
@@ -163,4 +184,5 @@ def give_permission(folder, user):
     os.system(f"sudo chmod -R g+w {folder}")
 
 if __name__ == "__main__":
+    sync_db(force_install=True)
     update_web(force_install=True)
