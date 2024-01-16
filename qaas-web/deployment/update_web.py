@@ -95,6 +95,8 @@ def create_apache_config():
         sys.exit(1)
 
 def sync_db():
+    original_dir = os.getcwd()
+    os.chdir(qaas_web_backend_common_dir)
     command = f'alembic revision --autogenerate -m "sync db"'
     status = os.system(command)
 
@@ -108,6 +110,7 @@ def sync_db():
         print("Database updated to the latest revision successfully.")
     else:
         print("An error occurred during database synchronization.")
+    os.chdir(original_dir)
 
 
 #update dependency+copy to apache
@@ -158,7 +161,7 @@ def update_web(force_install=False):
     landing_apache_dir = os.path.join(apache_dir, 'landing')
 
     # install_web_dependencies(ov_backend_dir, ov_frontend_dir, ov_apache_dir)
-    install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
+    # install_web_dependencies(qaas_backend_dir, qaas_frontend_dir, qaas_apache_dir)
     # install_web_dependencies(common_backend_dir, None, common_apache_dir)
     # install_web_dependencies(lore_backend_dir, lore_frontend_dir, lore_apache_dir)
     # install_web_dependencies(None, landing_frontend_dir, landing_apache_dir)
@@ -184,5 +187,5 @@ def give_permission(folder, user):
     os.system(f"sudo chmod -R g+w {folder}")
 
 if __name__ == "__main__":
-    sync_db(force_install=True)
+    sync_db()
     update_web(force_install=True)
