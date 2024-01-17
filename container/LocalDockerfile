@@ -74,7 +74,8 @@ RUN a2enmod proxy && a2enmod proxy_http
 
 
 # Ronn is needed even if we don't built CERE document
-RUN gem install ronn-ng
+RUN gem install nokogiri -v 1.15.5
+RUN gem install ronn-ng -v 0.9.1
 
 # Set LLVM-config default to llvm7
 RUN update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-7 200
