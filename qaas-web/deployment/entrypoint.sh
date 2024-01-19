@@ -21,7 +21,7 @@ if [ -e /var/www/html/config/qaas-web.conf ]; then
   # ov_frontend_dir=${ov_dir}/frontend
   # cd ${ov_frontend_dir}; su qaas -c "npm start" &
 fi
-
+echo "Current script PID entrypoint: $$"
 exec su qaas
 # # # # start apache
 # exec apachectl -D FOREGROUND

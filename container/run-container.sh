@@ -55,11 +55,16 @@ docker volume create htpasswd_data
 docker volume create www_html_data
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-DEPLOY_DIR=/host/$SCRIPT_DIR/../qaas-web/deployment
+# DEPLOY_DIR=/host/$SCRIPT_DIR/../qaas-web/deployment
+setup_script_path=/host$SCRIPT_DIR/../setup.sh
 
+echo "run setup.sh in run container.sh ${setup_script_path}  ${USER} $#"
 if [[ $# == 0 ]]; then
   #docker_run_cmd=(-it local_image_qaas:latest )
-  docker_run_cmd=(-it local_image_qaas:latest ${DEPLOY_DIR}/entrypoint.sh)
+  # docker_run_cmd=(-it local_image_qaas:latest ${DEPLOY_DIR}/entrypoint.sh)
+  # command_to_run="bash ${setup_script_path}"
+  docker_run_cmd=(-it local_image_qaas:latest ${setup_script_path})
+
 else
   docker_run_cmd=(local_image_qaas:latest $*)
 fi

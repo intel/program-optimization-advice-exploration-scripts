@@ -130,7 +130,7 @@ def update_web(force_install=False):
             return # Already installed
         # fall through proceed to installation since force_install is True
 
-    sync_db()
+   
     os.system(f"sudo mkdir -p {apache_qaas_config_dir}")
     os.system(f"sudo cp {qaas_config_file} {apache_qaas_config_file}")
     # Copy the 000-default.conf to apache folder
@@ -171,6 +171,9 @@ def update_web(force_install=False):
     give_permission(output_dir, 'www-data')
     give_permission(apache_dir, 'www-data')
     give_permission('/etc/apache2/auth', 'www-data')
+
+    #sync db last
+    sync_db()
 
 def give_permission(folder, user):
     os.system(f"sudo chown -R {user}:{user} {folder}")
