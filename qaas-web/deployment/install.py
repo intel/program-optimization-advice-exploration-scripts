@@ -125,7 +125,6 @@ if __name__ == "__main__":
     #install_packages()
 
 
-    update_web()
 
 
     # # # # #also copy maqao package to output folder
@@ -162,6 +161,8 @@ if __name__ == "__main__":
         setup_database(db_connection_string)
 
     #database_url = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
+
+    update_web()
 
 
     # # #delete default index html

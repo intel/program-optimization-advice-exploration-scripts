@@ -18,6 +18,8 @@ else
   echo Password is ${QAAS_DB_PASSWORD}
   echo -n $QAAS_DB_PASSWORD | htpasswd -i -c $HTPASSWD_FILE $USERNAME
   cd deployment
-  python3 install.py
+  python3 install.py  
 fi
+
+
 
