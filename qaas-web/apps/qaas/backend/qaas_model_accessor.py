@@ -71,8 +71,8 @@ class QaaSModelInitializer(ModelAccessor):
              
    
     def visitApplication(self, application):
-        app_name = self.current_row['app_name']
-        application.workload = app_name
+        metadata_dict = parse_text_to_dict(self.qaas_metadata_file_path)
+        application.workload = metadata_dict['app_name']
         
     def visitExecution(self, execution):
         #metadata info
@@ -82,7 +82,6 @@ class QaaSModelInitializer(ModelAccessor):
         timestamp = metadata_dict['timestamp']
         current_qaas = QaaS.get_or_create_qaas(timestamp, self)
         current_qaas_run = QaaSRun(self)
-        current_qaas.orig_execution = execution
         #associate table
         current_qaas_run.execution = execution
         current_qaas_run.qaas = current_qaas
@@ -93,8 +92,27 @@ class QaaSModelInitializer(ModelAccessor):
         compiler_flag = self.current_row['flags']
         global_metrics_dict = {"Gflops": self.current_row['Gflops/s']}
         execution.global_metrics = global_metrics_dict
-        compiler = Compiler.get_or_create_compiler_by_compiler_info(vendor=compiler_vendor, version=None, initializer=self)
-        compiler_option = CompilerOption.get_or_create_compiler_option(compiler_flag, self)
+        #if it is orig we need to replace it with the actual compiler from metadata
+        if compiler_vendor == 'orig':
+            compiler_vendor = metadata_dict['compiler_default']
+            current_qaas.orig_execution = execution
+
+        
+        #get compiler version from metadata
+        compiler_version = None
+        if compiler_vendor == 'icc':
+            compiler_version = metadata_dict['icc_version']
+        elif compiler_vendor == 'icx':
+            compiler_version = metadata_dict['icx_version']
+        elif compiler_vendor == 'gcc':
+            compiler_version = metadata_dict['gcc_version']
+        compiler = Compiler.get_or_create_compiler_by_compiler_info(vendor=compiler_vendor, version=compiler_version, initializer=self)
+        
+        compiler_option = CompilerOption(self)
+        compiler_option.flag = compiler_flag
+        #have to create one compielr option per execution otherwise will overwrite the compiler for the flag
+        # compiler_option = CompilerOption.get_or_create_compiler_option(compiler_flag, self)
+        #this will overwrite the compiler for the flag
         compiler_option.compiler = compiler
         execution.compiler_option = compiler_option
     def visitQaaS(self, qaas):

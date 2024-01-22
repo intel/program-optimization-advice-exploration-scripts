@@ -36,13 +36,28 @@ from flask import jsonify
 import numpy as np
 import configparser
 import os
-
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
+import sys
+#import files from common 
+current_directory = os.path.dirname(os.path.abspath(__file__))
+base_directory = os.path.join(current_directory, '../../common/backend/')
+base_directory = os.path.normpath(base_directory)  
+sys.path.insert(0, base_directory)
+from model import *
+#set config
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
-
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-
 config.read(config_path)
+#set app
+app = Flask(__name__)
+CORS(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS']
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy()
+db.init_app(app)
+
 def calculate_speedup(time_comp, baseline_compiler):
     baseline_time = time_comp.get(baseline_compiler, 0)
     if baseline_time == 0:
@@ -57,8 +72,9 @@ def calculate_speedup(time_comp, baseline_compiler):
     return win_lose_list
 
 def create_app(config):
-    app = Flask(__name__)
-    CORS(app)
+    with app.app_context():
+        global conn
+        conn = db.engine.connect().connection
 
     @app.route('/get_qaas_unicore_perf_gflops_data', methods=['GET'])
     def get_qaas_unicore_perf_gflops_data():
@@ -103,9 +119,37 @@ def create_app(config):
     
     @app.route('/get_appgain_data', methods=['GET'])
     def get_appgain_data():
-        df = pd.read_excel('/host/home/yjiao/QaaS_Min_Max_Unicore_Perf_Default.xlsx', header=3).dropna()
+        data = []
+        qaass = db.session.query(QaaS).all()
+        #iterate each qaas
+        for qaas in qaass:
+            row_data = {"min_time": None, "app_name": None}
+            #get min time across compiler for same app
+            min_time = db.session.query(func.min(Execution.time)).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).scalar()
+            #default time
+            qaas_runs = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).filter(QaaSRun.qaas == qaas, CompilerOption.flag == "default" )
+
+            for qaas_run in qaas_runs:
+                execution = qaas_run.execution
+                compiler_vendor = execution.compiler_option.compiler.vendor
+                column_name = f"default_{compiler_vendor}_time"
+                row_data[column_name] = execution.time
+                if row_data["app_name"] is None:
+                    row_data["app_name"] = execution.application.workload
+            
+            row_data["min_time"] = min_time
+            data.append(row_data)
+        
+        
+        df = pd.DataFrame(data).dropna()
+        
+        df['ICX: -O3 -march=native'] = df['default_icx_time'] / df['min_time']
+        df['ICC: -O3 -march=native'] = df['default_icc_time'] / df['min_time']
+        df['GCC: -O3 -march=native'] = df['default_gcc_time'] / df['min_time']    
+        print(df)
         df['largest_gain'] = df[['ICX: -O3 -march=native', 'ICC: -O3 -march=native', 'GCC: -O3 -march=native']].max(axis=1)
-        df['app'] = df['Unnamed: 0']
+        df['app'] = df['app_name']
+
         result_df = df[['app', 'largest_gain']]
         result_df = result_df.sort_values(by='largest_gain', ascending=True)
 
