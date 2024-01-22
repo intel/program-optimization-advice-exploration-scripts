@@ -10,6 +10,8 @@ if [[ ${USER} != "qaas" ]]; then
   echo -n "Enter Qaas DB user password:"
   read -s QAAS_DB_PASSWORD
   sed 's/#DB_USER_NAME#/qaas/g ; s/#DB_USER_PASSWD#/'${QAAS_DB_PASSWORD}'/g' ./apps/config/qaas-web.conf.template > ./apps/config/qaas-web.conf
+  sed 's/#DB_USER_NAME#/qaas/g ; s/#DB_USER_PASSWD#/'${QAAS_DB_PASSWORD}'/g' ./apps/config/alembic.ini.template > ./apps/config/alembic.ini
+
 else
   echo "INSIDE container setting up $me"
   echo "Setting up QaaS Web User Using Same Password As Database: " 
