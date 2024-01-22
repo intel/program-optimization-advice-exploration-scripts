@@ -97,6 +97,9 @@ def create_apache_config():
 def sync_db(alembic_ini_file):
     original_dir = os.getcwd()
     os.chdir(qaas_web_backend_common_dir)
+    #make sure we have a version folder to save version
+    version_dir = os.path.join(qaas_web_backend_common_dir, 'multidb','versions')
+    os.system(f'mkdir -p {version_dir}')
     command = f'alembic -c {alembic_ini_file} revision --autogenerate -m "sync db"'
     status = os.system(command)
 
