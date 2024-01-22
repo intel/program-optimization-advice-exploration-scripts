@@ -38,12 +38,12 @@ common_backend_dir = os.path.join(current_directory, '..')
 common_backend_dir = os.path.normpath(common_backend_dir)  
 sys.path.insert(1, common_backend_dir)
 from model import Base
-target_metadata = {
-    'engine1':Base.metadata,
-    'engine2':Base.metadata,
-    'engine3':Base.metadata,
+# target_metadata = {
+#     'engine1':Base.metadata,
+#     'engine2':Base.metadata,
+#     'engine3':Base.metadata,
 
-}
+# }
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -79,7 +79,8 @@ def run_migrations_offline() -> None:
             context.configure(
                 url=rec["url"],
                 output_buffer=buffer,
-                target_metadata=target_metadata.get(name),
+                # target_metadata=target_metadata.get(name),
+                target_metadata=Base.metadata,
                 literal_binds=True,
                 dialect_opts={"paramstyle": "named"},
             )
@@ -123,7 +124,9 @@ def run_migrations_online() -> None:
                 connection=rec["connection"],
                 upgrade_token="%s_upgrades" % name,
                 downgrade_token="%s_downgrades" % name,
-                target_metadata=target_metadata.get(name),
+                # target_metadata=target_metadata.get(name),
+                target_metadata=Base.metadata,
+
             )
             context.run_migrations(engine_name=name)
 
