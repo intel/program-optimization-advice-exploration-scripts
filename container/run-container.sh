@@ -1,5 +1,60 @@
 #!/bin/bash
 
+# Script for Container running 
+#
+# Usage: run-container.sh [-r] [-s] [-p] [<script>]
+#
+# -r specify whether we want the container to restart
+#   with -r, restart policy=unless-stopped, otherwise policy=no
+# -d specify whether we want the container to run detached 
+#   with -d, container will be run as detached mode (-d)
+#   without it, container will be run as default 
+# -p specify whether we want to run the container with privileged user
+#   with -p, will run as root, otherwise will run as qaas
+#
+# User can provide optional script to run inside the container
+# If script is provided,
+#   If an existing container is running, run the script in that container
+#   If no existing container running, create container and run the script. 
+# If no script is provided, run container as terminal
+#   if an existing container is running, run with "exec" -it flag
+#   If no existing container running, run with "run" -it flag 
+#     (The idea of entrypoint.sh is like a boot up script. TODO: ensure component 
+#      specific code, may be split into different QaaS folders )
+
+QAAS_CONTAINER_NAME=qaas_container
+restart_policy=no
+detached_cmd=
+container_user=qaas
+
+# Check if the container is running
+QAAS_CONTAINER_RUNNING=0
+if docker ps --filter "name=${QAAS_CONTAINER_NAME}" --format '{{.Names}}' | grep -q "${QAAS_CONTAINER_NAME}"; then
+  QAAS_CONTAINER_RUNNING=1
+fi
+
+while getopts ":rdp" opt; do
+ case ${opt} in
+ r)
+   restart_policy=unless-stopped
+   ;;
+ d)
+   detached_cmd=-d
+   ;;
+ p)
+   container_user=root
+   ;;
+ \?)
+   echo "Usage: $0 [-r] [-s] <more commands, including scripts>"
+   exit
+   ;;
+ esac
+done
+shift $((OPTIND-1))
+
+echo "Restart policy: ${restart_policy}"
+
+
 
 #while getopts ":n" opt; do
 #  case ${opt} in
@@ -69,6 +124,27 @@ else
   docker_run_cmd=(local_image_qaas:latest $*)
 fi
 
+if [[ $QAAS_CONTAINER_RUNNING == 0 ]]; then
+  echo "Terminal with run command"
+
+  docker_run_cmd=(-it local_image_qaas:latest $*)
+
+  docker container rm ${QAAS_CONTAINER_NAME} 2>/dev/null
+  docker run --user ${container_user} -p 8080:80 -p 443:443 -p 3000:3000 --restart ${restart_policy}  \
+    --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v letsencrypt_data:/etc/letsencrypt -v mods_enabled_data:/etc/apache2/mods-enabled \
+    -v htpasswd_data:/etc/apache2/auth -v www_html_data:/var/www/html -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) \
+    ${detached_cmd} --name ${QAAS_CONTAINER_NAME} \
+    --security-opt seccomp=${script_dir}/qaas-docker-seccomp-profile.json ${docker_run_cmd[*]}
+else
+  echo "Terminal with exec command"
+  docker_run_cmd=(-it ${QAAS_CONTAINER_NAME} /bin/bash $*)
+  docker exec --user ${container_user} ${env_args[*]} -w /host/$(pwd) ${docker_run_cmd[*]}
+fi
+
+
+
+exit
+
 #docker run --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /usr/src/linux-headers-$(uname -r):/usr/src/linux-headers-$(uname -r) -v /lib/modules:/lib/modules -v /usr/src/linux-headers-4.4.0-62:/usr/src/linux-headers-4.4.0-62 -v /tmp/tmp:/tmp/tmp -v /dev:/dev -v /usr/include:/usr/include --pid=host --ipc=host -w /host/$(pwd) -it --privileged local_image_qaas:latest 
 #docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --cap-add=all -it local_image_qaas:latest 
 #docker run --hostname $(hostname) --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=unconfined -it local_image_qaas:latest 
@@ -81,7 +157,7 @@ fi
 docker run --user root -p 8080:80 -p 443:443 -p 3000:3000 --restart unless-stopped  \
   --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v letsencrypt_data:/etc/letsencrypt -v mods_enabled_data:/etc/apache2/mods-enabled \
   -v htpasswd_data:/etc/apache2/auth -v www_html_data:/var/www/html -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) \
-  --name qaas_container \
+  --name ${QAAS_CONTAINER_NAME} \
   --security-opt seccomp=${script_dir}/qaas-docker-seccomp-profile.json ${docker_run_cmd[*]}
 
 
