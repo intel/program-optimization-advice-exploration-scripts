@@ -79,7 +79,7 @@ def run_demo_phase(to_backplane, src_dir, data_dir, ov_config, ov_run_dir, locus
 def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, locus_run_root, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location, run_cmd, env_var_map, extra_cmake_flags,
-                     disable_compiler_default, disable_compiler_flags, parallel_compiler_runs, runtime):
+                     disable_compiler_default, disable_compiler_flags, parallel_compiler_runs, runtime, multi_compilers_dirs):
     '''QAAS Ruuning Logic/Strategizer Entry Point.'''
 
     # Increase stack size soft limit for the current process and children
@@ -95,7 +95,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location,
                      run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir,
-                     disable_compiler_default, parallel_compiler_runs)
+                     disable_compiler_default, parallel_compiler_runs, multi_compilers_dirs)
     if rc != 0:
         to_backplane.send(qm.GeneralStatus(msg))
         return
@@ -107,7 +107,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         binaries_dir = os.path.join(os.path.dirname(base_run_dir), 'binaries')
         compiled_options = compile_all(src_dir, binaries_dir, compiler_dir,
                     orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-                    user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map)
+                    user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map, multi_compilers_dirs)
         to_backplane.send(qm.GeneralStatus("Done compile all binaries!"))
 
         # Start unicore runs
@@ -165,6 +165,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--enable-scale', action="store_true", help="Turn on multicore scalability runs", required=False)
     parser.add_argument('--mpi-scale-type', help='MPI scaling type', choices=['strong', 'weak', 'no'], default='strong')
     parser.add_argument('--openmp-scale-type', help='OpenMP scaling type', choices=['strong', 'weak', 'no'], default='strong')
+    parser.add_argument('--multi-compilers_dirs', nargs='?', required=False, default='')
     app_builder_builder_argparser(parser, include_binary_path=False, include_mode=False)
     args = parser.parse_args()
     log(QaasComponents.BUSINESS_LOGICS, 'Executing job.py script in a container', mockup=True)
@@ -172,6 +173,12 @@ if __name__ == '__main__':
     env_var_map = parse_env_map(args)
     # Prepare parallel runtime scaling modes
     runtime = {'enable_scale':args.enable_scale, 'mpi':args.mpi_scale_type, 'openmp':args.openmp_scale_type}
+    # Put compiler:compiler_dir into a dict
+    multi_compilers_dirs = {}
+    if not args.multi_compilers_dirs == "":
+        for item in args.multi_compilers_dirs.split(';'):
+            compiler,path = item.split(':')
+            multi_compilers_dirs[compiler] = path
 
     to_backplane = ServiceMessageSender(args.comm_port)
     to_backplane.send(qm.BeginJob())
@@ -183,6 +190,6 @@ if __name__ == '__main__':
         run_multiple_phase(to_backplane, args.src_dir, args.data_dir, args.base_run_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
                      args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
                      args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags,
-                     args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs, runtime)
+                     args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs, runtime, multi_compilers_dirs)
     to_backplane.send(qm.EndJob())
     to_backplane.close()
