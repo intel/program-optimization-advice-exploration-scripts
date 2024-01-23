@@ -190,6 +190,7 @@ def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target
     shutil.rmtree(build_dir, ignore_errors=True)
     my_env = os.environ.copy()
     # setup env
+    print(f"compiler_dir={compiler_dir}")
     env = load_compiler_env(compiler_dir)
 
     #subprocess.run('icc --version', shell=True, env=env)
