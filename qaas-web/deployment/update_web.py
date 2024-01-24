@@ -138,7 +138,7 @@ def update_web(force_install=False):
     os.system(f"sudo mkdir -p {apache_qaas_config_dir}")
     os.system(f"sudo cp {qaas_config_file} {apache_qaas_config_file}")
     # Copy the 000-default.conf to apache folder
-    create_apache_config()
+    # create_apache_config()
 
     
     http_proxy, https_proxy = get_proxy()

@@ -79,6 +79,12 @@ def setup_database(database_url):
         else:
             print(f'User "{username}" already exists, skipping creation of {username} user.')
 
+            # compare current password with the provided one, and update if different
+            login_success = os.system(f"mysql -u '{username}' --password='{password}' -e ';'")
+            if login_success != 0:
+                print(f'Updating password for user "{username}"...')
+                os.system(f"sudo mysql -u root -e \"ALTER USER '{username}'@'localhost' IDENTIFIED BY '{password}';\"")
+
         # check if the database already exists
         #db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SHOW DATABASES LIKE '{database_name}_';\"", shell=True).decode().strip()
         db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='{database_name}';\"", shell=True).decode().strip()
