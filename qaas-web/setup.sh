@@ -18,7 +18,11 @@ else
   # Getting back password from conf file
   QAAS_DB_PASSWORD=$(grep SQLALCHEMY_DATABASE_SERVER apps/config/qaas-web.conf |grep "mysql:"|cut -f1 -d@|cut -f3 -d:)
   echo Password is ${QAAS_DB_PASSWORD}
+  # Below few commands will update apache info in volumes (passwd and config)
   echo -n $QAAS_DB_PASSWORD | sudo htpasswd -i -c $HTPASSWD_FILE $USERNAME
+  cat deployment/000-default.conf | sudo tee /etc/apache2/sites-available/000-default.conf
+  sudo a2ensite 000-default.conf
+
   cd deployment
   sudo -E python3 install.py  
   sudo -E python3 start_server.py

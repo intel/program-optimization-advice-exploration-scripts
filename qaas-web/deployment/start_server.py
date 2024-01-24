@@ -4,7 +4,7 @@ import subprocess
 def start_services():
     try:
         print("Starting Apache services...")
-        os.system("sudo service apache2 start")
+        os.system("sudo service apache2 restart")
         # os.system("sudo systemctl start mariadb")
         os.system("sudo service mysql start")
         print("Services started successfully.")
