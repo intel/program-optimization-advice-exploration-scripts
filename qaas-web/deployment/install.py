@@ -74,15 +74,18 @@ def setup_database(database_url):
 
         #  user doesn't exist, create it
         if user_exist_result == '0':
-            print(f'Creating user "{username}"...')
+            #print(f'Creating user "{username}"...')
+            print(f'Creating user ...')
             os.system(f"sudo mysql -u root -e \"CREATE USER '{username}'@'localhost' IDENTIFIED BY '{password}';\"")
         else:
-            print(f'User "{username}" already exists, skipping creation of {username} user.')
+            #print(f'User "{username}" already exists, skipping creation of {username} user.')
+            print(f'User already exists, skipping creation of user.')
 
             # compare current password with the provided one, and update if different
             login_success = os.system(f"mysql -u '{username}' --password='{password}' -e ';'")
             if login_success != 0:
-                print(f'Updating password for user "{username}"...')
+                #print(f'Updating password for user "{username}"...')
+                print(f'Updating password for user ...')
                 os.system(f"sudo mysql -u root -e \"ALTER USER '{username}'@'localhost' IDENTIFIED BY '{password}';\"")
 
         # check if the database already exists
@@ -91,14 +94,17 @@ def setup_database(database_url):
 
         # if the database doesn't exist, create it
         if not db_exists:
-            print(f'Creating database "{database_name}"...')
+            #print(f'Creating database "{database_name}"...')
+            print(f'Creating database ...')
             os.system(f"sudo mysql -u root -e \"CREATE DATABASE {database_name};\"")
             os.system(f"sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON {database_name}.* TO '{username}'@'localhost';\"")
             os.system("sudo mysql -u root -e \"FLUSH PRIVILEGES;\"")
         else:
-            print(f'Database "{database_name}" already exists, skipping creation of "{database_name}" database.')
+            #print(f'Database "{database_name}" already exists, skipping creation of "{database_name}" database.')
+            print(f'Database already exists, skipping creation of database.')
         
-        print(f'Database "{database_name}" set up successfully.')
+        #print(f'Database "{database_name}" set up successfully.')
+        print(f'Database set up successfully.')
     except Exception as e:
         print("Error setting up database:", e)
         sys.exit(1)
@@ -163,7 +169,7 @@ if __name__ == "__main__":
     print("Setting up the database...")
     os.system("sudo service mysql start")
     for db_connection_string in db_connection_strings: 
-        print(f'Setting up database for connection string: {db_connection_string}')
+        # print(f'Setting up database for connection string: {db_connection_string}')
         setup_database(db_connection_string)
 
     #database_url = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
