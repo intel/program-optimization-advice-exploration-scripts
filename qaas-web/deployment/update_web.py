@@ -82,17 +82,17 @@ def set_node_proxy(http_proxy, https_proxy):
     except Exception as e:
         print("Error setting Node.js/npm proxy configuration:", e)
 
-def create_apache_config():
-    try:
-        with open('000-default.conf', 'r') as file:
-            config_content = file.read()
-            os.system(f'echo "{config_content}" | sudo tee /etc/apache2/sites-available/000-default.conf')
-            os.system("sudo a2ensite 000-default.conf")
-
-            print("Apache configuration file created successfully.")
-    except Exception as e:
-        print("Error creating Apache configuration file:", e)
-        sys.exit(1)
+#def create_apache_config():
+#    try:
+#        with open('000-default.conf', 'r') as file:
+#            config_content = file.read()
+#            os.system(f'echo "{config_content}" | sudo tee /etc/apache2/sites-available/000-default.conf')
+#            os.system("sudo a2ensite 000-default.conf")
+#
+#            print("Apache configuration file created successfully.")
+#    except Exception as e:
+#        print("Error creating Apache configuration file:", e)
+#        sys.exit(1)
 
 def sync_db(alembic_ini_file):
     original_dir = os.getcwd()
