@@ -13,6 +13,7 @@ import axios from 'axios';
 import SpeedupTable from './data/SpeedupTable';
 import SpeedupGraphsTab from './graphs/SpeedupGraphsTab';
 import { useLocation } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 
 function LoopPage() {
     const location = useLocation();
@@ -36,7 +37,7 @@ function LoopPage() {
 
     //to to open mutation page
 
-    console.log("source_id", source_id)
+    // console.log("source_id", source_id)
 
     useEffect(() => {
 
@@ -153,8 +154,8 @@ function LoopPage() {
                     >
                         {(vendor_version, vendor_data) => (
                             <>
-                                <SpeedupGraphsTab data={vendor_data} />
-                                <SpeedupTable data={vendor_data} current_src_loop_id={current_src_loop_id} source_id={source_id}
+                                <SpeedupGraphsTab data={DOMPurify.sanitize(vendor_data)} />
+                                <SpeedupTable data={DOMPurify.sanitize(vendor_data)} current_src_loop_id={current_src_loop_id} source_id={source_id}
                                 />
                             </>
                         )}

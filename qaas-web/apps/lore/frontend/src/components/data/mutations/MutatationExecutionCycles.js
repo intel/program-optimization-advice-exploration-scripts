@@ -1,5 +1,7 @@
 import React from 'react';
 import Table from '../table';
+import DOMPurify from 'dompurify';
+
 export default function MutatationExecutionCycles({ table_data }) {
 
     const transformedData = Object.keys(table_data).map((key) => {
@@ -12,6 +14,8 @@ export default function MutatationExecutionCycles({ table_data }) {
             key: key,
         };
     });
+
+    const sanitizedTransformedData = DOMPurify.sanitize(transformedData)
 
     const columns = [
 
@@ -54,7 +58,7 @@ export default function MutatationExecutionCycles({ table_data }) {
     return (
         <div>
             <Table
-                data={transformedData}
+                data={sanitizedTransformedData}
                 columns={columns}
                 defaultPageSize={5}
 
