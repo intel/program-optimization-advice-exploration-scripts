@@ -1,5 +1,6 @@
 import os
 import sys
+import subprocess
 
 #global variable
 apache_dir = f"/var/www/html"
@@ -75,8 +76,10 @@ def get_proxy():
 
 def set_node_proxy(http_proxy, https_proxy):
     try:
-        os.system(f'npm config set proxy {http_proxy}')
-        os.system(f'npm config set https-proxy {https_proxy}')
+        #os.system(f'npm config set proxy {http_proxy}')
+        subprocess.run(['npm', 'config', 'set', 'proxy', http_proxy])
+        #os.system(f'npm config set https-proxy {https_proxy}')
+        subprocess.run(['npm', 'config', 'set', 'https-proxy', https_proxy])
         os.system(f'npm config set registry https://registry.npmjs.org/')
         print("Node.js/npm proxy configuration set successfully.")
     except Exception as e:
