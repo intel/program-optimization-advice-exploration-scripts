@@ -275,45 +275,45 @@ def create_app(config):
                     message= "Success",
                     statusCode= 200,
                     )
-    @app.route('/create_new_timestamp', methods=['GET','POST'])
-    def create_new_timestamp():
-        #real user input data  unused for now
-        qaas_request = request.get_json()
+    # @app.route('/create_new_timestamp', methods=['GET','POST'])
+    # def create_new_timestamp():
+    #     #real user input data  unused for now
+    #     qaas_request = request.get_json()
         
-        #call backplane and wait to finish
-        json_file = config['web']['INPUT_JSON_FILE']
-        # t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
-        # t.start()
-        # t.join()
+    #     #call backplane and wait to finish
+    #     json_file = config['web']['INPUT_JSON_FILE']
+    #     # t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
+    #     # t.start()
+    #     # t.join()
         
-        # output_ov_dir = t.output_ov_dir
-        # output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-50-406"
-        output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-80-123"
+    #     # output_ov_dir = t.output_ov_dir
+    #     # output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-50-406"
+    #     output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-80-123"
 
-        ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
-        for version in ['opt','orig']:
-            ov_version_output_dir = os.path.join(ov_output_dir, version)
-            result_folders = os.listdir(ov_version_output_dir)
-            # Should have only one folder
-            assert len(result_folders) == 1
-            result_folder = result_folders[0]
-            current_ov_dir = os.path.join(ov_version_output_dir, result_folder)
-            qaas_timestamp = os.path.basename(output_ov_dir)
-            workload_name = f"workload_name_{version}"
-            workload_version_name = f"version_name({version})"
-            workload_program_name = f"test_program_name_{version}"
-            workload_program_commit_id = f"test###id_{version}"
-            populate_database(current_ov_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id)
-            update_html(version)
+    #     ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
+    #     for version in ['opt','orig']:
+    #         ov_version_output_dir = os.path.join(ov_output_dir, version)
+    #         result_folders = os.listdir(ov_version_output_dir)
+    #         # Should have only one folder
+    #         assert len(result_folders) == 1
+    #         result_folder = result_folders[0]
+    #         current_ov_dir = os.path.join(ov_version_output_dir, result_folder)
+    #         qaas_timestamp = os.path.basename(output_ov_dir)
+    #         workload_name = f"workload_name_{version}"
+    #         workload_version_name = f"version_name({version})"
+    #         workload_program_name = f"test_program_name_{version}"
+    #         workload_program_commit_id = f"test###id_{version}"
+    #         populate_database(current_ov_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id)
+    #         update_html(version)
         
-        #if True:
-        run_comparison_report()
+    #     #if True:
+    #     run_comparison_report()
 
-        return jsonify(isError= False,
-                    message= "Success",
-                    statusCode= 200,
-                    timestamp=qaas_timestamp,
-                    )
+    #     return jsonify(isError= False,
+    #                 message= "Success",
+    #                 statusCode= 200,
+    #                 timestamp=qaas_timestamp,
+    #                 )
 
 
     @app.route('/get_html_by_timestamp', methods=['GET','POST'])
