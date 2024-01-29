@@ -41,6 +41,7 @@
     "chartjs": "^0.3.24",
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^2.30.0",
+    "dompurify": "^3.0.8",
     "fs": "^0.0.1-security",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
