@@ -39,7 +39,7 @@ base_directory = os.path.normpath(base_directory)
 sys.path.insert(0, base_directory)
 from model import create_all_tables
 import time  
-import pickle
+import json
 from util import get_config, connect_db
 
 if __name__ == '__main__':
@@ -66,8 +66,8 @@ if __name__ == '__main__':
     migrator.read_executions_in_batch(args.start, args.size)
 
     #save the orig loop map file 
-    with open('orig_src_loop_map.pkl', 'wb') as f:
-        pickle.dump(migrator.orig_src_loop_map, f)
+    with open('orig_src_loop_map.json', 'wb') as f:
+        json.dump(migrator.orig_src_loop_map, f)
     session.commit()
     session.close()
     end_time = time.time()
