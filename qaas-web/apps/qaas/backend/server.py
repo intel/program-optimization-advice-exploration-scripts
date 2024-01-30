@@ -255,6 +255,15 @@ def create_app(config):
             'applications': applications
         })
 
+    @app.after_request
+    def apply_caching(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    @app.after_request
+    def apply_hsts(response):
+        response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
+        return response
     
     return app
 if __name__ == '__main__':

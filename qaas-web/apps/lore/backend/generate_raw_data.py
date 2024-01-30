@@ -47,12 +47,13 @@ import time
 from sqlalchemy.orm import aliased
 from sqlalchemy import asc
 from functools import lru_cache
-import pickle
+# import pickle
 import numpy as np
 import pymysql
 import time
 import psutil
 import configparser
+import json
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
@@ -84,7 +85,8 @@ if not os.path.exists(cache_directory):
 def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_version):
     db.session.expunge_all()
     BATCH_SIZE = 5000
-    cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_{compiler_vendor}_{compiler_version}.pkl")
+    # cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_{compiler_vendor}_{compiler_version}.pkl")
+    cache_filename = os.path.join(cache_directory, f"all_mutations_time_per_orig_loop_{compiler_vendor}_{compiler_version}.json")
 
     if os.path.exists(cache_filename):
         os.remove(cache_filename)
@@ -106,7 +108,9 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
         #load the batch file
         if os.path.exists(cache_filename):
             with open(cache_filename, 'rb') as cache_file:
-                refs_per_orig_src_loop = pickle.load(cache_file)
+                # refs_per_orig_src_loop = pickle.load(cache_file)
+                refs_per_orig_src_loop = json.load(cache_file)
+
         else:
             refs_per_orig_src_loop = {}
         db.session.expunge_all()
@@ -171,7 +175,9 @@ def get_all_mutations_time_per_orig_loop_per_compiler(compiler_vendor, compiler_
                 
           # Save to cache
         with open(cache_filename, 'wb') as cache_file:
-            pickle.dump(refs_per_orig_src_loop, cache_file)
+            # pickle.dump(refs_per_orig_src_loop, cache_file)
+            json.dump(refs_per_orig_src_loop, cache_file)
+
             
     
     return refs_per_orig_src_loop
