@@ -116,9 +116,18 @@ def parse_file_name_no_variant(file_name):
 ####get files functions
 def get_mutation_line_number(file_path):
     command = f'grep -n "for" {file_path} | head -n 1'
+    grep_command = ['grep', '-n', 'for', file_path]
+    head_command = ['head', '-n', '1']
 
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-    output, _ = process.communicate()
+    # Use this version for SDP because flagging for shell=True
+    # Below command from
+    # https://stackoverflow.com/questions/13332268/how-to-use-subprocess-command-with-pipes
+    ps = subprocess.run(grep_command, check=True, capture_output=True)
+    process = subprocess.run(head_command, input=ps.stdout, capture_output=True)
+    output = process.stdout
+    # This is original implementation
+    #process = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    #output, _ = process.communicate()
 
     if process.returncode != 0:
         print('Error occurred while executing the command')
