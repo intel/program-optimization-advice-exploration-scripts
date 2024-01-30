@@ -31,7 +31,7 @@ import os
 from util import *
 from model_accessor import OneViewModelInitializer,OneViewModelExporter
 from qaas_database import QaaSDatabase
-import pickle
+#import pickle
 
 
 # populate database given the data in qaas data folder, gui timestamp is the timestamp for both opt and orig

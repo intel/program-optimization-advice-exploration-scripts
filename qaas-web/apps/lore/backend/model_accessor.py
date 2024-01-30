@@ -40,7 +40,7 @@ from model import *
 from model_collection import *
 import csv
 import time
-import pickle
+import json
 from model_accessor_base import ModelAccessor
 import configparser
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -222,10 +222,10 @@ class LoreMigrator(LoreModelAccessor):
             found_id = self.orig_src_loop_map.get(orig_loop_id, None)
             if not found_id:
                 try:
-                    with open('orig_src_loop_map.pkl', 'rb') as f:
-                        orig_src_loop_map_from_file = pickle.load(f)
+                    with open('orig_src_loop_map.json', 'rb') as f:
+                        orig_src_loop_map_from_file = json.load(f)
                     found_id = orig_src_loop_map_from_file.get(orig_loop_id, None)
-                except (FileNotFoundError, pickle.PickleError):
+                except (FileNotFoundError):
                     found_id = None
 
 
