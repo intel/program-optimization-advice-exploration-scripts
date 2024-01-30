@@ -67,7 +67,10 @@ def setup_database(database_url):
         database_name = result.path[1:]  # remove the leading '/'
         
         # check if the user alread,y exists
-        user_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{username}');\"", shell=True).decode().strip()
+        # Use this version for SDP because flagging for shell=True
+        user_exists = subprocess.check_output(["sudo", "mysql", "-u", "root", "-e", f"SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{username}');"]).decode().strip()
+        # This is original implementation
+        #user_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{username}');\"", shell=True).decode().strip()
         user_exists_lines = user_exists.split('\n')
         # Drop the query and result is second line
         user_exist_result = user_exists_lines[1]
@@ -90,7 +93,10 @@ def setup_database(database_url):
 
         # check if the database already exists
         #db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SHOW DATABASES LIKE '{database_name}_';\"", shell=True).decode().strip()
-        db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='{database_name}';\"", shell=True).decode().strip()
+        # Use this version for SDP because flagging for shell=True
+        db_exists = subprocess.check_output([f"sudo", "mysql", "-u", "root", "-e",  f"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='{database_name}';"]).decode().strip()
+        # This is original implementation
+        # db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='{database_name}';\"", shell=True).decode().strip()
 
         # if the database doesn't exist, create it
         if not db_exists:
