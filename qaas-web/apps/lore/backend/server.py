@@ -36,7 +36,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask import current_app
 from multiprocessing import Process, Queue
 import pandas as pd
-import subprocess
+#import subprocess
 import json
 import pandas as pd
 import os

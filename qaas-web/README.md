@@ -1,4 +1,19 @@
-## Run QaaS Web Front
+GUI and Database
+================
+
+Installation
+-------------------------
+1. Follow [topmost installation instruction](../README.md)
+   - The topmost setup.sh script will run setup.sh script of Webfront and database to do the following automatically
+     - Build web code
+     - Build database
+2. Install web certificate [optional and manual]
+   - Use can install the web certificate to the web server folder and the volume feature of docker will keep the certificate persistent.    
+
+Using the GUI and Database
+--------------------------
+
+### Run QaaS Web Front
 - For security measures,
   - need to enable HTTPS connection.
   - debug feature is disabled by default.  Developer needs to enable it by updating source code to set debug parameters for various components.
