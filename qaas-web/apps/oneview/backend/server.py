@@ -371,6 +371,17 @@ def create_app(config):
                         )
         
         
+    @app.after_request
+    def apply_caching(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    @app.after_request
+    def apply_hsts(response):
+        response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
+        return response
+
+        
     return app
 
 def delete_created_path(path_list):

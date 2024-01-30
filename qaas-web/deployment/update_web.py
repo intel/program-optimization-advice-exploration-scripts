@@ -134,7 +134,7 @@ def update_web(force_install=False):
             return # Already installed
         # fall through proceed to installation since force_install is True
 
-   
+    print("force install")
     os.system(f"sudo mkdir -p {apache_qaas_config_dir}")
     os.system(f"sudo cp {qaas_config_file} {apache_qaas_config_file}")
     # Copy the 000-default.conf to apache folder
