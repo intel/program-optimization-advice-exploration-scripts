@@ -1,0 +1,47 @@
+/* customTableStyles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+th,
+td {
+    padding: 5px;
+    max-width: 70px;
+    border: 1px solid #ddd;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    text-align: center;
+    word-break: break-word;
+}
+
+th {
+    background-color: #f2f2f2;
+    white-space: normal;
+    word-wrap: break-word;
+    max-width: 70px;
+
+}
+
+th.wrap-text {
+    white-space: normal;
+}
+
+th.group-header {
+    background-color: #d4d4d4;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+tr:hover {
+    background-color: #f5f5f5;
+}
+
+.table-container {
+    width: 100%;
+    max-height: 500px;
+    overflow-x: auto;
+}
