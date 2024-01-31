@@ -1,4 +1,0 @@
-AuthType Basic
-AuthName "Restricted Area"
-AuthUserFile /etc/apache2/auth/.htpasswd
-Require valid-user
