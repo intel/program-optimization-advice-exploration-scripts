@@ -1,0 +1,31 @@
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2f889a;
+    color: #fff;
+
+}
+
+.home {
+    display: inline-block;
+    margin: 14px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.selected-runs-bag {
+    margin-right: 30px;
+}
+
+/* shopping bag icon */
+.top-bar-badge {
+    font-size: x-large;
+}
+
+/* text showed when no runs are selected */
+.drawer-no-selection-text {
+    padding: 5px;
+}

@@ -1,0 +1,189 @@
+html,
+body {
+    font-family: 'Lato', Calibri, Arial, sans-serif;
+    color: #505260;
+    font-size: 14px;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+
+}
+
+
+#ttl1 {
+    font-size: 30px;
+    float: left;
+    color: #2f889a;
+    margin-left: 5px;
+}
+
+
+.iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+h1 {
+    font-size: 1.3em;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 1.2em;
+    margin-bottom: 15px;
+}
+
+p {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+li {
+    font-size: 1em;
+    margin-bottom: 10px;
+}
+
+.check-color{
+    color:#FF0000;
+}
+
+.link {
+    color: #2f889a;
+    text-decoration: none;
+    font-weight: bold;
+
+}
+
+.link:hover {
+    color: #1a4a5a;
+    text-decoration: underline;
+}
+
+.footnote-link {
+    color: #CDA434;
+    text-decoration: none;
+    font-weight: bold;
+
+}
+
+.footnote-link:hover {
+    color: #b18e2e;
+    text-decoration: underline;
+}
+
+.def-link {
+    color: #D06B96;
+    text-decoration: none;
+    font-weight: bold;
+
+}
+
+.def-link:hover {
+    color: #a35678;
+    text-decoration: underline;
+}
+
+
+.textPageContainer .tooltip-trigger {
+    color: #D06B96;
+    font-weight: bold;
+    cursor: help;
+}
+
+
+.textPageContainer .tooltip-box {
+    background-color: #a35678;
+    color: white;
+}
+
+
+.textPageContainer {
+    margin: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+
+}
+
+.ToCContainer {
+    display: flex;
+    flex-direction: column;
+    /* stacks vertically */
+    align-items: center;
+    /* centers horizontally */
+    margin: 20px auto;
+    padding-left: 20px;
+    padding-right: 20px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 960px;
+
+}
+
+
+
+.imageContainer img {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    max-height: 200px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto 20px;
+}
+
+
+
+
+.highlight {
+    background-color: yellow;
+    transition: background-color 0.3s ease;
+}
+
+/* App.css */
+.main-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.content-container {
+    flex: 1;
+    background-color: #ffffff;
+}
+
+.container-next-to-paragraph {
+    float: right;
+    width: 20%;
+    margin: 2px;
+    padding: 2px;
+    border: 3px dashed #277383;
+    color: #277383;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: bolder;
+    background-color: #ffffff;
+
+}
+
+.default-button {
+    margin-right: 10px;
+    display: inline-block;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: #fff;
+    background-color: #277383;
+    border: 1px solid #277383;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.default-button:hover {
+    background-color: #1e5a66;
+}

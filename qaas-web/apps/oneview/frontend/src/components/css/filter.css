@@ -1,0 +1,50 @@
+.button {
+    border-radius: 4px;
+    background-color: #dddddd;
+    color: #505260;
+    border: none;
+    padding: 10px 15px;
+    font-size: 10px;
+    margin: 2px;
+}
+
+.button:hover {
+    background-color: #f6f6f6;
+    cursor: pointer;
+    color: #277383;
+
+}
+
+.button.active {
+    background-color: #277383;
+    color: #F0F0F0;
+}
+
+.button-text {
+    font-size: 10px;
+    margin-bottom: 0;
+    font-weight: 750;
+}
+
+.filter-tag {
+    margin-bottom: 10px;
+    margin-right: 10px;
+}
+
+.emphasize {
+    font-weight: bold;
+}
+
+.panel-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.space-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+}

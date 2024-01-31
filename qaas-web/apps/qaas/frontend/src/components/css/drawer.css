@@ -1,0 +1,73 @@
+.level {
+    background-color: transparent;
+
+}
+
+
+
+.drawer .MuiDrawer-paper {
+    position: static;
+    align-items: center;
+    overflow-y: auto;
+    max-height: 100vh;
+
+}
+
+.drawer .css-h4y409-MuiList-root {
+    padding-top: 0px;
+    padding-bottom: 0px;
+
+
+}
+
+
+
+.level.highlight-color {
+    background-color: #277383;
+    color: #F0F0F0;
+    width: 100%;
+
+}
+
+.level.hover-color:hover {
+    background-color: #ccc;
+    color: #F0F0F0;
+
+}
+
+.level.highlight-color.hover-color:hover {
+    background-color: #1a4a5a;
+
+}
+
+
+.layout-container {
+    display: flex;
+}
+
+.drawer-width {
+    flex-shrink: 0;
+    height: 100%;
+    border-right: 1px solid #ccc;
+    max-width: 200px;
+}
+
+.main-content {
+    flex-grow: 1;
+    padding: 16px;
+    min-height: 100vh;
+    overflow-y: auto;
+
+}
+
+/* text inside menu item */
+.drawer .MuiTypography-root.MuiTypography-body1.MuiListItemText-primary {
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+/* menu item in menu */
+.drawer .MuiListItem-root.draweritem-list-button {
+    padding: 0px;
+    margin: 0 0 0 0;
+}
