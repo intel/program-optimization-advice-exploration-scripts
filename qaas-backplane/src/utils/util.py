@@ -62,6 +62,9 @@ def load_compiler_env(compiler_dir):
     script = os.path.join(compiler_dir, 'Linux/intel64/load.sh')
     #script = '/nfs/site/proj/openmp/compilers/intel/19.0/Linux/intel64/load.sh'
     pipe = subprocess.Popen(f"/bin/bash -c 'source {script} --force && env'", stdout=subprocess.PIPE, shell=True)
+    if pipe.returncode != 0:
+        # Error in loading compiler env
+        raise Exception (f'Error loading compiler env with return code: {pipe.returncode}')
     output = pipe.communicate()[0]
     #for line in output.splitlines():
     #    print(str(line).split("=", 1))
