@@ -182,14 +182,20 @@ if __name__ == '__main__':
 
     to_backplane = ServiceMessageSender(args.comm_port)
     to_backplane.send(qm.BeginJob())
-    if args.logic == "demo":
-        run_demo_phase(to_backplane, args.src_dir, args.data_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
-                     args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
-                     args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags)
-    else:
-        run_multiple_phase(to_backplane, args.src_dir, args.data_dir, args.base_run_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
-                     args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
-                     args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags,
-                     args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs, runtime, multi_compilers_dirs)
+    rc = 0
+    try:
+        if args.logic == "demo":
+            run_demo_phase(to_backplane, args.src_dir, args.data_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
+                        args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
+                        args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags)
+        else:
+            run_multiple_phase(to_backplane, args.src_dir, args.data_dir, args.base_run_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
+                        args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
+                        args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags,
+                        args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs, runtime, multi_compilers_dirs)
+    except Exception as e:
+        to_backplane.send(qm.GeneralStatus(str(e)))
+        rc = -1
     to_backplane.send(qm.EndJob())
     to_backplane.close()
+    exit(rc)
