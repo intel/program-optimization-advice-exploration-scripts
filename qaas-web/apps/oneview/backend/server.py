@@ -371,6 +371,17 @@ def create_app(config):
                         )
         
         
+    @app.after_request
+    def apply_caching(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    @app.after_request
+    def apply_hsts(response):
+        response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
+        return response
+
+        
     return app
 
 def delete_created_path(path_list):
@@ -382,11 +393,15 @@ def delete_created_path(path_list):
 
 
 def run_otter_command(manifest_file_path, out_manifest_path):
-    cdcommand= f"cd {os.path.dirname(manifest_file_path)};"
+    run_dir = os.path.dirname(manifest_file_path)
+    cdcommand= f"cd {run_dir};"
     ottercommand = f"{config['web']['MAQAO_VERSION']} otter --input={manifest_file_path} --output={out_manifest_path}"  
-    command = cdcommand +  ottercommand
-    print(ottercommand)
-    ret = subprocess.run(command, capture_output=True, shell=True)
+    #command = cdcommand +  ottercommand
+    #print(ottercommand)
+    # Use this version for SDP because flagging for shell=True
+    ret = subprocess.run([config['web']['MAQAO_VERSION'], "otter", f"--input={manifest_file_path}", f"--output={out_manifest_path}"], cwd=run_dir, capture_output=True)
+    # This is original implementation
+    #ret = subprocess.run(command, capture_output=True, shell=True)
     print(ret.stdout.decode())
    
 

@@ -36,7 +36,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask import current_app
 from multiprocessing import Process, Queue
 import pandas as pd
-import subprocess
+#import subprocess
 import json
 import pandas as pd
 import os
@@ -485,7 +485,17 @@ def create_app(config):
         
         return res
 
-        
+    
+    @app.after_request
+    def apply_caching(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    @app.after_request
+    def apply_hsts(response):
+        response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
+        return response
+    
     return app
 
 

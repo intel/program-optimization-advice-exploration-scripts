@@ -35,11 +35,7 @@ module.exports = {
             template: './public/index.html'
         }),
         new Dotenv(),
-        new CopyPlugin({
-            patterns: [
-                { from: './public/.htaccess', to: '.' } // copy .htaccess from public directory to dist directory
-            ]
-        })
+
 
     ],
     devServer: {

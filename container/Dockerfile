@@ -92,7 +92,9 @@ RUN python3 -m pip install --no-cache-dir sympy \
 # Build cmake
 # NOTE: WHY WE NEED A SPECFIC VERSION instead of apt install cmake
 WORKDIR /root
-RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
+# replace wget by curl
+#RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
+RUN curl -s https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
   && tar xvf cmake-3.21.1.tar.gz 
 WORKDIR /root/cmake-3.21.1
 RUN ./bootstrap \
@@ -141,7 +143,9 @@ RUN mkdir /share/pips
 COPY gen_svn_servers.sh /share/pips
 WORKDIR /share/pips
 RUN alias g77=gfortran
-RUN wget -q https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
+# replace wget by curl
+#RUN wget -q https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
+RUN curl -s https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
    && chmod +x setup_pips.sh \
    && ./gen_svn_servers.sh \
    && ./setup_pips.sh --dynamic --light --pyconf=python3-config
