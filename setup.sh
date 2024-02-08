@@ -3,7 +3,7 @@
 # Run setup scripts for different components of qaas script.
 run_component_setup() {
   # Currently under the directory of setup.sh
-  for component in qaas-extractor qaas-web; do
+  for component in qaas-extractor qaas-web qaas-backplane; do
   # for component in qaas-web; do
     cd ${component}
     ./setup.sh
