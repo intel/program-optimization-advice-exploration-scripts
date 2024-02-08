@@ -11,54 +11,14 @@ ARG ENABLE_DEVELOPMENT
 ARG SEP_DIR
 ARG QAAS_PASSWORD
 
-# Use bash for more scripting features
-#SHELL ["/bin/bash", "-c"]
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-
-USER root
-# Install more packages for experiments/local needs
-# Uncomment follow line and add more packages
-#RUN apt-get install -y libssl-dev
-#<<<<<<< HEAD
-#RUN apt-get update && apt-get install --no-install-recommends -y apache2 mariadb-server \ 
-#  python3-pip  \
-#  libmysqlclient-dev \
-#  python3-certbot-apache curl
-#  #libmariadbclient-dev \
-
-#=======
-
-# Installing needed software for CERE
-#RUN apt-get update && \ 
-#        apt-get -y install \
-#        llvm-7 llvm-7-dev clang-7 flang-7 llvm-7-tools \ 
-#        autoconf automake build-essential libtool \ 
-#        ruby ruby-dev libgoogle-perftools-dev google-perftools \ 
-#        numactl dc git wget opt pkg-config libtool build-essential libgmp3-dev \ 
-#        libomp-7-dev \ 
-#        python3-pip  \ 
-#        python3-matplotlib \
-#        python3-jinja2 python3-sklearn python3-numpy python3-pulp python3-pydot \ 
-#        libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx 
-
-#>>>>>>> main
-
-
 RUN apt-get update && apt-get install --no-install-recommends -y apache2 mariadb-server \ 
-  python3-pip  \
   libmysqlclient-dev \
-  python3-certbot-apache curl \
-        llvm-7 llvm-7-dev clang-7 flang-7 llvm-7-tools \ 
-        autoconf automake build-essential libtool \ 
-        ruby ruby-dev libgoogle-perftools-dev google-perftools \ 
-        numactl dc git wget opt pkg-config libtool build-essential libgmp3-dev \ 
-        libomp-7-dev \ 
-        python3-matplotlib \
-        python3-jinja2 python3-sklearn python3-numpy python3-pulp python3-pydot \ 
-        libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx 
+  python3-certbot-apache 
+# Have to break the apt-get command to work (looks like --no-install-recommends is bad for this package)
+RUN apt-get install -y libmariadbclient-dev
 
 
+# for Node.js installation
 RUN if [ -z "$http_proxy" ] || [ "$http_proxy" = "http://" ]; then \
         echo "not using proxy" $https_proxy; \
         unset http_proxy; \
@@ -69,82 +29,21 @@ RUN if [ -z "$http_proxy" ] || [ "$http_proxy" = "http://" ]; then \
         curl -x $http_proxy -L https://deb.nodesource.com/setup_16.x | bash -; \
     fi
 
-RUN apt-get install -y nodejs git libapache2-mod-wsgi-py3
-RUN a2enmod proxy && a2enmod proxy_http
-
-
-# Ronn is needed even if we don't built CERE document
-RUN gem install nokogiri -v 1.15.5
-RUN gem install ronn-ng -v 0.9.1
-
-# Set LLVM-config default to llvm7
-RUN update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-7 200
-
-COPY cere /share/cere
-WORKDIR /share/cere
-
-# Don't generate document which will fail
-RUN sed -i 's| doc/||g' Makefile.am 
-
-RUN ./autogen.sh && ./configure && make && make install
-
-# Update library path to include CERE library which is under /usr/local/lib
-RUN ldconfig
-
-# Install sudo, netcat (git behind proxy) for development needs
-RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then apt-get update && apt-get install --no-install-recommends -y sudo netcat && apt-get clean && rm -rf /var/lib/apt/lists/*; fi
-WORKDIR /root
-# Copy in ssh tarball (could be empty if ENABLE_DEVELOPMENT != 1)
-COPY ssh.tar.gz /root
-RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then tar xvfz ssh.tar.gz && chown -R root .ssh && chgrp -R root .ssh; fi
-
-
-#RUN groupadd -g $LOCAL_GID runner
-RUN groupmod -g $LOCAL_GID qaas
-# Create /tmp/groups to store the group names to add to runner
-#RUN echo -n "" > /tmp/groups
-RUN echo -n "" > /tmp/groups \
-    && LOCAL_GNAME_ARRAY=($LOCAL_GNAMES) \
-    && LOCAL_GID_ARRAY=($LOCAL_GIDS) \
-    && for index in ${!LOCAL_GID_ARRAY[@]}; do \
-        if [[ "${LOCAL_GID_ARRAY[$index]}" != "$LOCAL_GID" ]]; then \
-          echo groupadd -g "${LOCAL_GID_ARRAY[$index]}" "${LOCAL_GNAME_ARRAY[$index]}"; \
-          groupadd -g "${LOCAL_GID_ARRAY[$index]}" "${LOCAL_GNAME_ARRAY[$index]}"; \
-          echo "${LOCAL_GNAME_ARRAY[$index]}" >> /tmp/groups; \
-        else \
-          echo Skip "${LOCAL_GID_ARRAY[$index]}"; \
-        fi \
-    done
-
-#RUN getent group
-#RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g $LOCAL_GID -G sudo $LOCAL_GNAMES
-# The tr command will output a trailing ',' being used to be a delimiter just before sudo
-#RUN useradd -l -m -d /home/runner -s /bin/bash -u $LOCAL_UID -g runner -G $(tr '\n' ',' < /tmp/groups)sudo runner 
-#RUN usermod -m -d /app/runner -s /bin/bash -u $LOCAL_UID -g qaas -G $(tr '\n' ',' < /tmp/groups)sudo qaas 
-RUN usermod -m -d /home/qaas -s /bin/bash -u "$LOCAL_UID" -g qaas -G "$(tr '\n' ',' < /tmp/groups)"sudo qaas 
-RUN usermod -aG www-data qaas
-
-RUN echo "qaas:${QAAS_PASSWORD}" | chpasswd
-
-RUN chgrp -R qaas /home/qaas
-#RUN chown -R runner /share/* && chgrp -R runner /share/*
-
-RUN apt-get update
+RUN apt-get install -y nodejs libapache2-mod-wsgi-py3 && \ 
+  a2enmod proxy && a2enmod proxy_http && \
 # Give write access to www-data group
-RUN mkdir -p /var/www/html/private
-RUN chmod -R g+w /var/www/html
-RUN apt-get install -y libmariadbclient-dev
+# RUN apt-get update
+  mkdir -p /var/www/html/private && \
+  chmod -R g+w /var/www/html 
 
-RUN mkdir /share/maqao
-COPY maqao.tar.gz /root
-RUN tar xvf /root/maqao.tar.gz -C /share/maqao
 #COPY ${MAQAO_PACKAGE_DIR}/bin/ /share/maqao
+# Below python installations mostly for web backend
 COPY local_install_pip.sh /root
 COPY local_requirements.txt /root
-RUN /root/local_install_pip.sh
-RUN a2enmod wsgi
-RUN a2enmod rewrite
-RUN rm -f /var/www/html/index.html
+RUN /root/local_install_pip.sh && \
+  a2enmod wsgi && \
+  a2enmod rewrite && \
+  rm -f /var/www/html/index.html
 # Following commented out 000-default.conf now done in update_web.py
 #COPY 000-default.conf /etc/apache2/sites-available/
 #RUN mkdir /var/www/html/config
