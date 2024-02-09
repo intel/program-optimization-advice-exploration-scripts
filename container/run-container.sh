@@ -58,7 +58,7 @@ shift $((OPTIND-1))
 QAAS_CONTAINER_NAME=${img_container_map[${QAAS_IMAGE_NAME}]}
 
 if [ -z "$QAAS_CONTAINER_NAME" ]; then
-	echo "Invalid image name to run QaaS container"
+	echo "Invalid image name ${QAAS_IMAGE_NAME} to run QaaS container"
   echo "Choose from: ${!img_container_map[@]}"
   exit -1
 fi
