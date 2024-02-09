@@ -23,13 +23,15 @@ if [[ ${USER} != "qaas" ]]; then
   run_component_setup
 
   # Run this script again inside to set up the rest
-  echo "Proceed rest of setup INSIDE container"
-  ./container/run-container.sh ./setup.sh
+  echo "Proceed rest of setup INSIDE WEBDB container"
+  ./container/run-container.sh -i local_image_qaas:latest ./setup.sh
+  echo "Proceed rest of setup INSIDE BACKPLANE container"
+  ./container/run-container.sh -i local_image_qaas_backplane:latest ./setup.sh
   #don't put setup.sh next to run container, it thinks it is a parameter, instead just call setup in run container
   #./container/run-container.sh 
   # Done, quit and not the execute code below.
 else
-  echo "INSIDE container setting up TOPMOST script"
+  echo "INSIDE ${QAAS_CONTAINER_NAME} container setting up TOPMOST script"
   run_component_setup
   #start server
   # SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
