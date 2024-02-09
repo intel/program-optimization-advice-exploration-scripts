@@ -22,19 +22,20 @@
 #     (The idea of entrypoint.sh is like a boot up script. TODO: ensure component 
 #      specific code, may be split into different QaaS folders )
 
-QAAS_CONTAINER_NAME=qaas_container
+declare -A img_container_map=( [local_image_qaas:latest]=qaas_container [local_image_qaas_backplane:latest]=qaas_backplane )
+declare -A port_map=( [2222:22]=qaas_backplane [8080:80]=qaas_container [443:443]=qaas_container [3000:3000]=qaas_container )
+
+
 restart_policy=no
 detached_cmd=
 container_user=qaas
 
-# Check if the container is running
-QAAS_CONTAINER_RUNNING=0
-if docker ps --filter "name=${QAAS_CONTAINER_NAME}" --format '{{.Names}}' | grep -q "${QAAS_CONTAINER_NAME}"; then
-  QAAS_CONTAINER_RUNNING=1
-fi
 
-while getopts ":rdp" opt; do
+while getopts ":i:rdp" opt; do
  case ${opt} in
+ i)
+   QAAS_IMAGE_NAME=${OPTARG}
+   ;;
  r)
    restart_policy=unless-stopped
    ;;
@@ -51,6 +52,22 @@ while getopts ":rdp" opt; do
  esac
 done
 shift $((OPTIND-1))
+
+#QAAS_IMAGE_NAME=local_image_qaas:latest
+#QAAS_IMAGE_NAME=local_image_qaas_backplane:latest
+QAAS_CONTAINER_NAME=${img_container_map[${QAAS_IMAGE_NAME}]}
+
+if [ -z "$QAAS_CONTAINER_NAME" ]; then
+	echo "Invalid image name to run QaaS container"
+  echo "Choose from: ${!img_container_map[@]}"
+  exit -1
+fi
+
+# Check if the container is running
+QAAS_CONTAINER_RUNNING=0
+if docker ps --filter "name=${QAAS_CONTAINER_NAME}" --format '{{.Names}}' | grep -q "${QAAS_CONTAINER_NAME}"; then
+  QAAS_CONTAINER_RUNNING=1
+fi
 
 echo "Restart policy: ${restart_policy}"
 
@@ -122,19 +139,27 @@ if [[ $# == 0 ]]; then
   #docker_run_cmd=(-it local_image_qaas:latest )
   # docker_run_cmd=(-it local_image_qaas:latest ${DEPLOY_DIR}/entrypoint.sh)
   # command_to_run="bash ${setup_script_path}"
-  docker_run_cmd=(-it local_image_qaas:latest ${setup_script_path})
+  docker_run_cmd=(-it ${QAAS_IMAGE_NAME} ${setup_script_path})
 
 else
-  docker_run_cmd=(local_image_qaas:latest $*)
+  docker_run_cmd=(${QAAS_IMAGE_NAME} $*)
 fi
+
+docker_run_ports=()
+for map in ${!port_map[@]}; do
+  container_for_map=${port_map[$map]}
+  if [[ $container_for_map == $QAAS_CONTAINER_NAME ]]; then
+    docker_run_ports+=(-p $map)
+  fi
+done
 
 if [[ $QAAS_CONTAINER_RUNNING == 0 ]]; then
   echo "Terminal with run command"
 
-  docker_run_cmd=(-it local_image_qaas:latest $*)
+  docker_run_cmd=(-it ${QAAS_IMAGE_NAME} $*)
 
   docker container rm ${QAAS_CONTAINER_NAME} 2>/dev/null
-  docker run --user ${container_user} -p 8080:80 -p 443:443 -p 3000:3000 --restart ${restart_policy}  \
+  docker run --user ${container_user} ${docker_run_ports[*]} --restart ${restart_policy}  \
     --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v apache2_site_conf:/etc/apache2/sites-available -v mysql_data:/var/lib/mysql -v letsencrypt_data:/etc/letsencrypt -v mods_enabled_data:/etc/apache2/mods-enabled \
     -v htpasswd_data:/etc/apache2/auth -v www_html_data:/var/www/html -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) \
     ${detached_cmd} --name ${QAAS_CONTAINER_NAME} \
@@ -158,7 +183,7 @@ exit
 # docker run --user root -p 81:80 --restart on-failure:1 --entrypoint /host/$SCRIPT_DIR/../qaas-web/deployment/entrypoint.sh --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=./qaas-docker-seccomp-profile.json -it local_image_qaas:latest 
 #docker run --user root -p 81:80 --restart unless-stopped --entrypoint /host/$SCRIPT_DIR/../qaas-web/deployment/entrypoint.sh --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) --security-opt seccomp=./qaas-docker-seccomp-profile.json -it local_image_qaas:latest 
 # use entrypoint.sh script to wrap various restart command.  The script will end with "su qaas" to start an interactive shell without quitting as qaas user.
-docker run --user root -p 8080:80 -p 443:443 -p 3000:3000 --restart unless-stopped  \
+docker run --user root -p 2222:22 -p 8080:80 -p 443:443 -p 3000:3000 --restart unless-stopped  \
   --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v letsencrypt_data:/etc/letsencrypt -v mods_enabled_data:/etc/apache2/mods-enabled \
   -v htpasswd_data:/etc/apache2/auth -v www_html_data:/var/www/html -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) \
   --name ${QAAS_CONTAINER_NAME} \
