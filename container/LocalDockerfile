@@ -30,6 +30,7 @@ RUN if [ -z "$http_proxy" ] || [ "$http_proxy" = "http://" ]; then \
     fi
 
 RUN apt-get install -y nodejs libapache2-mod-wsgi-py3 && \ 
+	apt-get clean && rm -rf /var/lib/apt/lists/*  && \
   a2enmod proxy && a2enmod proxy_http && \
 # Give write access to www-data group
 # RUN apt-get update

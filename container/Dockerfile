@@ -33,7 +33,8 @@ RUN apt-get update && \
    libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx python3-pandas
 
 # Ronn is needed even if we don't built CERE document
-RUN gem install ronn-ng
+RUN gem install nokogiri -v 1.15.5 && \
+	gem install ronn-ng -v 0.9.1 
 
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -87,6 +88,7 @@ RUN python3 -m pip install --no-cache-dir sympy \
   && python3 -m pip install --no-cache-dir parse \
   && python3 -m pip install --no-cache-dir pytrie \
   && python3 -m pip install --no-cache-dir pandas \
+  && python3 -m pip install --no-cache-dir numpy \
   && python3 -m pip install --no-cache-dir py-cpuinfo
 
 # Build cmake
@@ -94,7 +96,7 @@ RUN python3 -m pip install --no-cache-dir sympy \
 WORKDIR /root
 # replace wget by curl
 #RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
-RUN curl -s https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
+RUN curl -L -O https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
   && tar xvf cmake-3.21.1.tar.gz 
 WORKDIR /root/cmake-3.21.1
 RUN ./bootstrap \
@@ -145,7 +147,7 @@ WORKDIR /share/pips
 RUN alias g77=gfortran
 # replace wget by curl
 #RUN wget -q https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
-RUN curl -s https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
+RUN curl -L -O https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
    && chmod +x setup_pips.sh \
    && ./gen_svn_servers.sh \
    && ./setup_pips.sh --dynamic --light --pyconf=python3-config

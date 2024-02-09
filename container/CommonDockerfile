@@ -48,33 +48,33 @@ USER root
 
 #>>>>>>> main
 
-RUN apt-get update && apt-get install --no-install-recommends -y \
-  python3-pip  \
-	curl \
-        llvm-7 llvm-7-dev clang-7 flang-7 llvm-7-tools \ 
-        autoconf automake build-essential libtool \ 
-        ruby ruby-dev libgoogle-perftools-dev google-perftools \ 
-        numactl dc git wget opt pkg-config libtool build-essential libgmp3-dev \ 
-        libomp-7-dev \ 
-        python3-matplotlib \
-        python3-jinja2 python3-sklearn python3-numpy python3-pulp python3-pydot \ 
-        libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx 
+#RUN apt-get update && apt-get install --no-install-recommends -y \
+#  python3-pip  \
+#	curl \
+#        llvm-7 llvm-7-dev clang-7 flang-7 llvm-7-tools \ 
+#        autoconf automake build-essential libtool \ 
+#        ruby ruby-dev libgoogle-perftools-dev google-perftools \ 
+#        numactl dc git wget opt pkg-config libtool build-essential libgmp3-dev \ 
+#        libomp-7-dev \ 
+#        python3-matplotlib \
+#        python3-jinja2 python3-sklearn python3-numpy python3-pulp python3-pydot \ 
+#        libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx 
 
 # Ronn is needed even if we don't built CERE document
 # Set LLVM-config default to llvm7
-RUN gem install nokogiri -v 1.15.5 && \
-	gem install ronn-ng -v 0.9.1 && \
-	update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-7 200 && \
-	apt-get clean && rm -rf /var/lib/apt/lists/* 
+#RUN gem install nokogiri -v 1.15.5 && \
+#	gem install ronn-ng -v 0.9.1 && \
+#	update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-7 200 && \
+#	apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-COPY cere /share/cere
-WORKDIR /share/cere
+#COPY cere /share/cere
+#WORKDIR /share/cere
 
 # Don't generate document which will fail
-RUN sed -i 's| doc/||g' Makefile.am && \
-	./autogen.sh && ./configure && make && make install && \
+#RUN sed -i 's| doc/||g' Makefile.am && \
+#	./autogen.sh && ./configure && make && make install && \
 # Update library path to include CERE library which is under /usr/local/lib
-	ldconfig
+#	ldconfig
 
 # Install sudo, netcat (git behind proxy) for development needs
 RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then apt-get update && apt-get install --no-install-recommends -y sudo netcat && apt-get clean && rm -rf /var/lib/apt/lists/*; fi
