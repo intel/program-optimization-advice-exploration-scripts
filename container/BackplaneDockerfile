@@ -10,7 +10,8 @@ RUN /root/setup_compilers_container.sh
 # Install SSH server
 RUN apt-get update && apt-get install --no-install-recommends -y openssh-server && \
 	apt-get clean && rm -rf /var/lib/apt/lists/*  && \
-	mkdir /var/run/sshd
+	mkdir /var/run/sshd && \
+	ln -s /share/maqao /opt/maqao
 
 # Expose SSH port
 EXPOSE 22
