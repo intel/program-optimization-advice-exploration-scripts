@@ -61,5 +61,7 @@ ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install
 # CERE install its Python packages to site-packages directory
 ENV PYTHONPATH=/usr/local/lib/python3.8/site-packages
 
+ENV QAAS_CONTAINER_NAME=webdb
+
 #USER root
 #ENTRYPOINT /opt/intel/sep/sepdk/src/insmod-sep -g docker && su runner && /opt/intel/sep/sepdk/src/rmmod-sep

@@ -27,3 +27,5 @@ COPY --from=script_root --chown=qaas:qaas qaas-service . /home/qaas/QAAS_SCRIPT_
 COPY --from=script_root --chown=qaas:qaas scripts . /home/qaas/QAAS_SCRIPT_ROOT/scripts
 COPY --from=script_root --chown=qaas:qaas templates . /home/qaas/QAAS_SCRIPT_ROOT/templates
 COPY --from=script_root --chown=qaas:qaas setup.sh /home/qaas/QAAS_SCRIPT_ROOT/setup.sh
+
+ENV QAAS_CONTAINER_NAME=backplane
