@@ -7,7 +7,7 @@ if [[ ${USER} != "qaas" ]]; then
   # Done, quit and not the execute code below.
 else
   echo "INSIDE container setting up $me"
-  sudo -E pip3 install pytrie numpy py-cpuinfo
+  #sudo -E pip3 install pytrie numpy py-cpuinfo
 fi
 
 

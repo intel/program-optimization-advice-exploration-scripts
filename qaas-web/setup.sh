@@ -11,7 +11,7 @@ if [[ ${USER} != "qaas" ]]; then
   read -s QAAS_DB_PASSWORD
   sed 's/#DB_USER_NAME#/qaas/g ; s/#DB_USER_PASSWD#/'${QAAS_DB_PASSWORD}'/g' ./apps/config/qaas-web.conf.template > ./apps/config/qaas-web.conf
   sed 's/#DB_USER_NAME#/qaas/g ; s/#DB_USER_PASSWD#/'${QAAS_DB_PASSWORD}'/g' ./apps/config/alembic.ini.template > ./apps/config/alembic.ini
-  ../container/run-container.sh -p -d -r ./deployment/entrypoint.sh
+  ../container/run-container.sh -i local_image_qaas:latest -p -d -r ./deployment/entrypoint.sh
 else
   echo "INSIDE container setting up $me"
   echo "Setting up QaaS Web User Using Same Password As Database: " 
