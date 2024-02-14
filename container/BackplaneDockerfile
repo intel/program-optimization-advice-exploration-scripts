@@ -3,7 +3,8 @@ ARG IMG_NAME
 FROM ${IMG_NAME}
 
 LABEL description="Backplane"
-COPY --from=setup_scripts setup_compilers_container.sh /root
+#COPY --from=setup_scripts setup_compilers_container.sh /root
+COPY setup_compilers_container.sh /root
 RUN /root/setup_compilers_container.sh
 
 
@@ -20,12 +21,17 @@ EXPOSE 22
 #CMD ["/usr/sbin/sshd", "-D"]
 
 user qaas
+COPY --chown=qaas:qaas QAAS_SCRIPT_ROOT.tar.gz /home/qaas
 WORKDIR /home/qaas
-COPY --from=script_root --chown=qaas:qaas qaas-backplane . /home/qaas/QAAS_SCRIPT_ROOT/qaas-backplane
-COPY --from=script_root --chown=qaas:qaas qaas-extractor . /home/qaas/QAAS_SCRIPT_ROOT/qaas-extractor
-COPY --from=script_root --chown=qaas:qaas qaas-service . /home/qaas/QAAS_SCRIPT_ROOT/qaas-service
-COPY --from=script_root --chown=qaas:qaas scripts . /home/qaas/QAAS_SCRIPT_ROOT/scripts
-COPY --from=script_root --chown=qaas:qaas templates . /home/qaas/QAAS_SCRIPT_ROOT/templates
-COPY --from=script_root --chown=qaas:qaas setup.sh /home/qaas/QAAS_SCRIPT_ROOT/setup.sh
+RUN mkdir QAAS_SCRIPT_ROOT
+WORKDIR /home/qaas/QAAS_SCRIPT_ROOT
+RUN tar xvfz ../QAAS_SCRIPT_ROOT.tar.gz
+WORKDIR /home/qaas
+#COPY --from=script_root --chown=qaas:qaas qaas-backplane . /home/qaas/QAAS_SCRIPT_ROOT/qaas-backplane
+#COPY --from=script_root --chown=qaas:qaas qaas-extractor . /home/qaas/QAAS_SCRIPT_ROOT/qaas-extractor
+#COPY --from=script_root --chown=qaas:qaas qaas-service . /home/qaas/QAAS_SCRIPT_ROOT/qaas-service
+#COPY --from=script_root --chown=qaas:qaas scripts . /home/qaas/QAAS_SCRIPT_ROOT/scripts
+#COPY --from=script_root --chown=qaas:qaas templates . /home/qaas/QAAS_SCRIPT_ROOT/templates
+#COPY --from=script_root --chown=qaas:qaas setup.sh /home/qaas/QAAS_SCRIPT_ROOT/setup.sh
 
 ENV QAAS_CONTAINER_NAME=backplane
