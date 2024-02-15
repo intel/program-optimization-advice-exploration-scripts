@@ -142,11 +142,12 @@ function CustomReactTable({ columns, data, SubComponent, hiddenColumns, columnFi
                                     })}
 
                                 </tr>
-                                {console.log("expanded", row.isExpanded)}
+                                {/* add row index */}
                                 {row.isExpanded ? (
                                     <tr>
                                         <td colSpan={columns.length + 1}>
-                                            <SubComponent row={row} />
+                                            <SubComponent row={row.original} rowIndex={row.index} />
+
                                         </td>
                                     </tr>
                                 ) : null}

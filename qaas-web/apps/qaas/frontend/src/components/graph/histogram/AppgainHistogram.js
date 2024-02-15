@@ -4,7 +4,7 @@ import axios from "axios";
 import { getAppColor, categorizeIntoBin } from "../../Constants";
 import '../../css/graph.css'
 import PlotlyHistogram from "./PlotlyHistogram";
-import { baseHistogramLayout } from "../../Constants";
+import { baseHistogramLayout, getAppName } from "../../Constants";
 import HistogramBinSlider from "./HistogramBinSlider";
 
 
@@ -72,17 +72,19 @@ export default function AppgainHistogram() {
         const histogramData = rawData.app.map((app, index) => {
             const largestGain = rawData['largest_gain'][index];
             let binKey = categorizeIntoBin(largestGain, range);
+            const transformedAppName = getAppName(app);
+
             //each app
             const appHistogramData = {
                 x: range,
                 y: range.map((val, i) => (range[i] === binKey ? 1 : 0)),
                 type: 'bar',
-                name: app,
+                name: transformedAppName,
                 marker: {
                     //winner processor color
                     color: getAppColor(app),
                 },
-                text: range.map((key) => (key === binKey ? app : '')),
+                text: range.map((key) => (key === binKey ? transformedAppName : '')),
                 hoverinfo: 'text',
                 hovertext: `Largest Gain: ${largestGain.toFixed(2)}`,
 

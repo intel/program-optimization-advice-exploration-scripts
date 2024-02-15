@@ -255,6 +255,48 @@ def create_app(config):
         return total_time, execution
 
 
+    @app.route('/get_hw_comp_data', methods=['POST'])
+    def get_hw_comp_data():
+        data = request.get_json()
+        selectedRows = data['selectedRows']
+        baseline = data['baseline']
+
+        hw_comp_data = []
+        speedup_graph_data = {"labels": [], "speedup": []}
+
+        
+        #get baseline total time from baseline
+        baseline_total_time, baselin_execution = get_total_time_from_row(baseline)
+
+
+        #TODO hardcoded way to read compiler name
+        base_compiler_name = baselin_execution.application.version.split('/')[2]
+        base_program_name = baselin_execution.application.program
+        # Baseline has a speedup of 1
+        speedup_graph_data["labels"].append(f' {base_program_name}:{base_compiler_name}')
+        speedup_graph_data["speedup"].append(1)
+
+        base_global_metrics_df = pd.read_json(baselin_execution.global_metrics['global_metrics'], orient="split")
+        base_gflops = base_global_metrics_df.loc[base_global_metrics_df['metric'] == 'GFlops', 'value'].values[0]
+        base_data = {'label': f' {base_program_name}', 'time': baselin_execution.time, 'speedup': 1, 'gflops': base_gflops, 'compiler': base_compiler_name}
+        hw_comp_data.append(base_data)
+
+     
+
+        #get total time from selected rows
+        for row in selectedRows:
+            total_time, execution = get_total_time_from_row(row)
+            speed_up = float(baseline_total_time) / float(total_time) 
+            compiler_name = execution.application.version.split('/')[2]
+            program_name = execution.application.program
+            speedup_graph_data["labels"].append(f' {program_name}:{compiler_name}')
+            speedup_graph_data["speedup"].append(speed_up)
+
+            global_metrics_df = pd.read_json(execution.global_metrics['global_metrics'], orient="split")
+            gflops = global_metrics_df.loc[global_metrics_df['metric'] == 'GFlops', 'value'].values[0]
+            data = {'label': f' {program_name}', 'time': execution.time, 'speedup': speed_up, 'gflops': gflops,'compiler': compiler_name}
+            hw_comp_data.append(data)
+        return hw_comp_data
 
 
     @app.route('/run_comparative_view_for_selected_runs', methods=['POST'])
@@ -396,12 +438,13 @@ def run_otter_command(manifest_file_path, out_manifest_path):
     run_dir = os.path.dirname(manifest_file_path)
     cdcommand= f"cd {run_dir};"
     ottercommand = f"{config['web']['MAQAO_VERSION']} otter --input={manifest_file_path} --output={out_manifest_path}"  
-    #command = cdcommand +  ottercommand
-    #print(ottercommand)
+    # command = cdcommand +  ottercommand
+    # print(ottercommand)
     # Use this version for SDP because flagging for shell=True
     ret = subprocess.run([config['web']['MAQAO_VERSION'], "otter", f"--input={manifest_file_path}", f"--output={out_manifest_path}"], cwd=run_dir, capture_output=True)
+    
     # This is original implementation
-    #ret = subprocess.run(command, capture_output=True, shell=True)
+    # ret = subprocess.run(command, capture_output=True, shell=True)
     print(ret.stdout.decode())
    
 

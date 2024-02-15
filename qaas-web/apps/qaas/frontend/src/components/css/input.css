@@ -1,0 +1,42 @@
+.jobSubContainer {
+    margin: 20px;
+
+}
+
+
+
+.infoTitle {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.infoSubTitle {
+    font-size: '1em';
+}
+
+.centeredBox {
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    /* aligh content to the top */
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 10px 0 rgba(0, 0, 0, 0.19);
+    padding: 10px;
+    max-width: 1000px;
+    box-sizing: border-box;
+    margin: 0 auto;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.infoContent {
+    align-self: flex-start;
+    width: 100%;
+}
+
+.navButton {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0 0;
+}

@@ -8,7 +8,7 @@ function PlotlyLineGraph({ data, layout }) {
         <Plot
             data={data}
             layout={layout}
-            style={{ width: '100%', height: '100%', maxHeight: 300 }}
+            style={{ width: '100%', height: '100%', maxHeight: 500, minHeight: 250 }}
             config={{ displayModeBar: false, responsive: true, autosize: true, }}
         />
     );

@@ -4,12 +4,12 @@ const SelectionContext = createContext();
 
 export const useSelectionContext = () => useContext(SelectionContext);
 
+//this context class is for select and select baseline 
 export const SelectionProvider = ({ children }) => {
     const [selectedRows, setSelectedRows] = useState([]);
-
+    const [baseline, setBaseline] = useState(null);
 
     const handleRowSelection = (event, rowInfo) => {
-        console.log(rowInfo)
         setSelectedRows(prevSelectedRows => {
             const selected = event.target.checked;
             const newSelectedRows = selected
@@ -18,9 +18,16 @@ export const SelectionProvider = ({ children }) => {
             return newSelectedRows;
         });
     }
+    const handleBaselineSelection = (rowInfo, rowIndex) => {
+        setBaseline(prevBaseline => {
+            // cannot just user objs to compare
+            return JSON.stringify(prevBaseline) === JSON.stringify(rowInfo) ? null : rowInfo;
+
+        });
+    };
 
     return (
-        <SelectionContext.Provider value={{ selectedRows, handleRowSelection }}>
+        <SelectionContext.Provider value={{ selectedRows, handleRowSelection, baseline, handleBaselineSelection }}>
             {children}
         </SelectionContext.Provider>
     );

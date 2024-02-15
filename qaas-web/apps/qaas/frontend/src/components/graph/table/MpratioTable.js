@@ -1,26 +1,33 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import CustomReactTable from "./CustomReactTable";
-import { getGeneralColor } from "../../Constants";
+import { getGeneralColor, formatValue } from "../../Constants";
+import axios from "axios";
+
 const columns = [
-    { Header: 'MiniApp', accessor: 'miniApp' },
-    { Header: 'Best total Gf', accessor: 'bestTotalGf' },
+    { Header: 'MiniApp', accessor: 'miniapp' },
+    { Header: 'Best total Gf', accessor: 'best_total_gf' },
 
     {
         Header: '#Cores used', columns: [
             {
                 Header: 'ICL /48',
-                accessor: 'coresUsedICL',
+                accessor: 'cores_icl',
                 Cell: ({ value }) => {
-                    const color = value.includes('1/3') ? getGeneralColor('Lose') : value.includes('All') ? getGeneralColor('Win') : 'inherit'; //  Red for '1/3 = 16',  Green for 'All 48'
-                    return <div style={{ backgroundColor: color }}>{value}</div>;
+                    const stringValue = value != null ? value.toString() : '';
+
+                    const color = stringValue.includes('All') ? getGeneralColor('Win') : 'inherit'; //  Green for 'All 48'
+                    return <div style={{ backgroundColor: color }}>{stringValue}</div>;
                 }
             },
             {
                 Header: 'SPR /64',
-                accessor: 'coresUsedSPR',
+                accessor: 'cores_spr',
                 Cell: ({ value }) => {
-                    const color = value.includes('1/4') ? getGeneralColor('Lose') : value.includes('All') ? getGeneralColor('Win') : 'inherit'; //  Red for '1/4 = 16',  Green for 'All 64'
-                    return <div style={{ backgroundColor: color }}>{value}</div>;
+                    const stringValue = value != null ? value.toString() : '';
+
+
+                    const color = stringValue.includes('All') ? getGeneralColor('Win') : 'inherit'; //  Green for 'All 64'
+                    return <div style={{ backgroundColor: color }}>{stringValue}</div>;
                 }
             },
         ]
@@ -29,31 +36,57 @@ const columns = [
         Header: 'Ratios SPR/ICL: Freq ratio = .79', columns: [
             {
                 Header: 'SPR/ICL Total cores ratio',
-                accessor: 'totalCoresRatio',
+                accessor: 'total_cores_ratio',
                 Cell: ({ value }) => {
-                    const color = value.includes('1.33') ? getGeneralColor('Win') : 'inherit'; //  1.33 green 
-                    return <div style={{ backgroundColor: color }}>{value}</div>;
+                    const stringValue = value != null ? value.toString() : '';
+                    const color = stringValue.includes('1.33') ? getGeneralColor('Win') : 'inherit'; //  1.33 green 
+                    return <div style={{ backgroundColor: color }}>{stringValue}</div>;
                 }
             }
         ]
     }
 ];
 
-const data = [
-    { miniApp: 'AMG', bestTotalGf: '19.55', coresUsedICL: '2/3 = 32', coresUsedSPR: '1/2 = 32', totalCoresRatio: '1.00' },
-    { miniApp: 'Clvrlf F', bestTotalGf: '41.41', coresUsedICL: '1/3 = 16', coresUsedSPR: '1/4 = 16', totalCoresRatio: '1.00' },
-    { miniApp: 'Kripke', bestTotalGf: '64.18', coresUsedICL: 'All 48', coresUsedSPR: 'All 64', totalCoresRatio: '1.33' },
-    { miniApp: 'CoMD', bestTotalGf: '87.73', coresUsedICL: 'All 48', coresUsedSPR: 'All 64', totalCoresRatio: '1.33' },
-    { miniApp: 'Clvrlf ++', bestTotalGf: '140.70', coresUsedICL: '2/3 = 32', coresUsedSPR: '1/2 = 32', totalCoresRatio: '1.00' },
-    { miniApp: 'MiniQMC', bestTotalGf: '409.61', coresUsedICL: '2/3 = 32', coresUsedSPR: '1/2 = 32', totalCoresRatio: '1.00' },
-    { miniApp: 'HACC', bestTotalGf: '794.96', coresUsedICL: 'All 48', coresUsedSPR: 'All 64', totalCoresRatio: '1.33' }
-];
+
 
 
 export default function MpratioTable() {
+
+    const [chartData, setChartData] = useState([]);
+    useEffect(() => {
+        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_mpratio_data`)
+            .then((response) => {
+
+                const rawData = response.data
+                const preparedData = processData(rawData);
+
+                setChartData(preparedData);
+
+
+
+            })
+
+    }, [])
+
+    function processData(rawData) {
+        const formattedData = [];
+        const numRows = rawData.miniapp.length;
+
+        for (let i = 0; i < numRows; i++) {
+            formattedData.push({
+                miniapp: rawData.miniapp[i],
+                best_total_gf: formatValue(rawData.best_total_gf[i]),
+                cores_icl: rawData.cores_icl[i] === 48 ? 'All 48' : formatValue(rawData.cores_icl[i]),
+                cores_spr: rawData.cores_spr[i] === 64 ? 'All 64' : formatValue(rawData.cores_spr[i]),
+                total_cores_ratio: formatValue(rawData.total_cores_ratio[i]),
+            });
+        }
+
+        return formattedData;
+    }
     return (
         <div className='graphContainer'>
-            <CustomReactTable columns={columns} data={data} />
+            <CustomReactTable columns={columns} data={chartData} />
             <div className="plot-title" id="figmpratio">
                 Fig. MPratio&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICL and SPR Multicore Use Differences for 7 Miniapps
 

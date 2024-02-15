@@ -34,7 +34,7 @@ from qaas_database import QaaSDatabase
 from model import connect_db
 from sqlalchemy.orm import sessionmaker
 # populate database given the data in qaas data folder, gui timestamp is the timestamp for both opt and orig
-def populate_database_qaas(qaas_data_file_path, qaas_metadata_file_path, config):
+def populate_database_qaas(report_path, config):
     #connect db
     engine = connect_db(config, "qaas")
     Session = sessionmaker(bind=engine)
@@ -42,7 +42,7 @@ def populate_database_qaas(qaas_data_file_path, qaas_metadata_file_path, config)
 
     
     #######################populate database tables######################
-    initializer = QaaSModelInitializer(session, qaas_data_file_path, qaas_metadata_file_path)
+    initializer = QaaSModelInitializer(session, report_path)
     qaas_database = QaaSDatabase()
     qaas_database.accept(initializer)
     

@@ -20,7 +20,7 @@ export const APP_COLORS = {
 
 };
 
-export const COMPILER_COLORS = {
+export var COMPILER_COLORS = {
     'ICX': '#FAD2E1',
     'ICC': '#C7CEEA',
     'GCC': '#E3EAA7',
@@ -28,7 +28,7 @@ export const COMPILER_COLORS = {
     'Tie': '#FFD3B4',
 };
 
-export const PROCESSOR_COLORS = {
+export var PROCESSOR_COLORS = {
     'ICL': '#FF6B6B',
     'SPR': '#89CFF0',
     'Zen4': '#60d394',
@@ -39,7 +39,7 @@ export const PROCESSOR_COLORS = {
     'AWS G3E': '#FFD700'
 }
 
-export const PROCESSOR_POINT_SHAPE = {
+export var PROCESSOR_POINT_SHAPE = {
     'ICL': 'circle',
     'SPR': 'square',
     'Zen4': 'diamond',
@@ -49,7 +49,7 @@ export const PROCESSOR_POINT_SHAPE = {
     'AMD Zen4': 'diamond',
     'AWS G3E': 'cross'
 }
-const APP_NAME_MAP = {
+var APP_NAME_MAP = {
     'amg': 'AMG',
     'AMG': 'AMG',
     'Amg': 'AMG',
@@ -60,8 +60,10 @@ const APP_NAME_MAP = {
     'CoMD': 'CoMD',
     'cloverleaf cxx': 'Clov++',
     'CloverLeaf CXX': 'Clov++',
+    'CloverLeaf1.4-CXX': 'Clov++',
     'cloverleaf fc': 'ClovF',
     'CloverLeaf FC': 'ClovF',
+    'CloverLeaf1.3-FC': 'ClovF',
     'miniqmc': 'Miniqmc',
     'Miniqmc': 'Miniqmc',
     'kripke': 'Kripke',
@@ -71,6 +73,7 @@ const APP_NAME_MAP = {
     'qmcpack': 'Qmcpack',
     'Qmcpack': 'Qmcpack',
 };
+
 
 
 export function getProcessorPointStyle(processor) {
@@ -83,6 +86,9 @@ export function getProcessorColor(processor) {
 
 export function getGeneralColor(type) {
     return GENERAL_COLORS[type];
+}
+export function getAppName(app) {
+    return APP_NAME_MAP[app] || app;
 }
 
 export function getAppColor(app) {
@@ -208,3 +214,17 @@ export const baseHistogramLayout = {
 
     plot_bgcolor: 'rgba(0,0,0,0)',
 };
+
+export function formatValue(value) {
+    if (typeof value === 'number') {
+        if (Number.isInteger(value)) {
+            return value;
+        } else {
+            return value.toFixed(2);
+        }
+    } else if (value === null || value === undefined) {
+        return 'NA';
+    } else {
+        return value;
+    }
+}

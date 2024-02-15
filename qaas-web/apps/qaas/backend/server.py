@@ -32,11 +32,12 @@ import pandas as pd
 
 from flask import Flask
 from flask_cors import CORS
-from flask import jsonify
+from flask import jsonify,request
 import numpy as np
 import configparser
 import os
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import or_, exists, and_, cast
 from sqlalchemy import func
 import sys
 #import files from common 
@@ -76,9 +77,35 @@ def create_app(config):
         global conn
         conn = db.engine.connect().connection
 
-    @app.route('/get_qaas_unicore_perf_gflops_data', methods=['GET'])
-    def get_qaas_unicore_perf_gflops_data():
-        df = pd.read_csv('/host/home/yjiao/ArchComp.Unicore.csv')
+    def get_unicore_data():
+        architecture_mapping = {
+            "SAPPHIRERAPIDS": "Intel SPR",
+            "ICELAKE-SERVER": "Intel ICL"
+        }
+        
+
+        #read all unicore runs that have turbo on
+        #TODO ask what is the threshold to check if a machine has turbo on or off
+        data = {}
+        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(Os.scaling_min_frequency > 3000000, Execution.config['MPI_threads'] == 1, Execution.config['OMP_threads'] == 1).distinct().all()
+        for qaas in qaass:
+            #execution obj that has min time across this qaas run
+            min_time_execution = (db.session.query(Execution)
+                    .join(QaaSRun.execution)
+                    .filter(QaaSRun.qaas == qaas)
+                    .order_by(Execution.time.asc())
+                    .first())
+            gflops = min_time_execution.global_metrics['Gflops']
+            app_name = min_time_execution.application.workload
+            architecture = min_time_execution.hwsystem.architecture
+            architecture = architecture_mapping.get(architecture)
+
+            if app_name not in data:
+                data[app_name] = {"Apps": app_name, "Intel ICL": None, "Intel SKL": None, "Intel SPR": None, "AMD Zen4": None, "AWS G3E": None}
+        
+            data[app_name][architecture] = gflops
+
+        df = pd.DataFrame(list(data.values()))
 
         #sort by x axis
         df['Mean'] = df.drop(columns=['Apps']).mean(axis=1)
@@ -86,18 +113,136 @@ def create_app(config):
         df.drop('Mean', axis=1, inplace=True)
 
 
+        
+
+        return df
+    
+
+    @app.route('/get_qaas_unicore_perf_gflops_data', methods=['GET'])
+    def get_qaas_unicore_perf_gflops_data():
+        df = get_unicore_data()
         data_dict = df.to_dict(orient='list')
         # replace NaN with None (null in JSON)
         for key in data_dict.keys():
             data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
-
-     
+        
         return jsonify(data_dict)
 
+    @app.route('/get_utab_data', methods=['GET'])
+    def get_utab_data():
+        df = get_unicore_data()
+        data_dict = df.to_dict(orient='list')
+        # replace NaN with None (null in JSON)
+        for key in data_dict.keys():
+            data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
+        return jsonify(data_dict)
+
+    def get_multicore_data():
+        architecture_mapping = {
+            "SAPPHIRERAPIDS": "SPR",
+            "ICELAKE-SERVER": "ICL"
+        }
+        data = {}
+        #get multicore qaas runs        
+        qaass = db.session.query(QaaS)\
+            .join(QaaSRun.qaas)\
+            .join(QaaSRun.execution)\
+            .join(Execution.os)\
+            .join(Execution.hwsystem)\
+            .filter(
+                Os.scaling_min_frequency < 3000000,
+                or_(
+                     Execution.config['MPI_threads'] > 1,
+                     Execution.config['OMP_threads'] > 1
+                )
+            )\
+            .distinct().all()
+        for qaas in qaass:
+            scalability_qaas_runs = db.session.query(QaaSRun).filter_by(qaas = qaas, type = "scalability_report" ).all()
+            #TODO this check is not very good
+            if len(scalability_qaas_runs) == 0:
+                # print("not scalability reoirt", qaas.timestamp)
+
+                continue
+
+            #get multicompiler run and scability run
+            best_qaas_execution = db.session.query(Execution)\
+                .join(QaaSRun.execution)\
+                .filter(QaaSRun.qaas == qaas, QaaSRun.type == "multicompiler_report")\
+                .order_by(Execution.time)\
+                .first()
+            best_qaas_compiler = best_qaas_execution.compiler_option.compiler.vendor
+            # print(best_qaas_compiler)
+            ref_qaas_run = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler)\
+                        .filter(QaaSRun.qaas == qaas, QaaSRun.type == "scalability_report", Compiler.vendor == best_qaas_compiler, Execution.config['MPI_threads'] == 1,  Execution.config['OMP_threads'] == 1,  Execution.time != None).first()
+            #for case like https://gitlab.com/amazouz/qaas-runs/-/blob/main/runs/169-617-8814/qaas_multicore.csv?ref_type=heads just skip
+            if not ref_qaas_run:
+                # print("cannot find ref time", qaas.timestamp)
+
+                continue
+            
+            ref_time = ref_qaas_run.execution.time
+            # print(ref_qaas_run.qaas.timestamp, ref_qaas_run.execution.application.workload,  ref_qaas_run.execution.hwsystem.architecture)
+            best_compiler_qaas_runs = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler)\
+                        .filter(QaaSRun.qaas == qaas, QaaSRun.type == "scalability_report", Compiler.vendor == best_qaas_compiler).all()
+            #find max speedup and associated execution
+            max_speedup = 0
+            max_execution = None
+            max_time = None
+            for qaas_run in best_compiler_qaas_runs:
+                current_execution = qaas_run.execution
+                current_run_time =  current_execution.time
+                num_mpi = current_execution.config['MPI_threads']
+                num_omp = current_execution.config['OMP_threads']
+                #get time for qaas run that has time
+                if not current_run_time:
+                    # print("does not have time", qaas_run.qaas.timestamp)
+                    continue
+                speedup_num_mpi = 1 if current_execution.application.mpi_scaling == 'strong' else num_mpi
+                speedup_num_omp = 1 if current_execution.application.omp_scaling == 'strong' else num_omp
+
+                speedup_best_compiler = (speedup_num_mpi * speedup_num_omp * ref_time) / current_run_time
+                eff = speedup_best_compiler / (num_mpi * num_omp)
+               
+                if speedup_best_compiler > max_speedup and eff >= 0.5:
+                    max_speedup = speedup_best_compiler
+                    max_execution = current_execution
+                    max_time = current_run_time
+
+            # print(max_execution.time, max_speedup, max_execution.application.workload, max_execution.hwsystem.architecture)
+            #fill the data
+            if max_execution:
+                gflops = max_execution.global_metrics['Gflops']
+                cores = max_execution.config['MPI_threads'] * max_execution.config['OMP_threads']
+                app_workload = max_execution.application.workload
+                architecture = max_execution.hwsystem.architecture
+                architecture = architecture_mapping.get(architecture)
+                #check if app exist
+                if app_workload not in data:
+                    data[app_workload] = {"Apps": app_workload}
+        
+                
+                # getlabels for Gflops and cores
+                gf_label = f"{architecture}.Gf"
+                cores_label = f"{architecture}.cores"
+                time_label = f"{architecture}_time"
+
+                # Append the data dictionary for this execution
+                data[app_workload][gf_label] = gflops
+                data[app_workload][cores_label] = cores
+                data[app_workload][time_label] = max_execution.time
+                data[app_workload]['best_compiler'] = max_execution.compiler_option.compiler.vendor.upper()
+
+
+            
+        df = pd.DataFrame(list(data.values()))
+        # print(df)
+        return df
     @app.route('/get_arccomp_data', methods=['GET'])
     def get_arccomp_data():
-        df = pd.read_csv('/host/home/yjiao/ArchComp.Multicore.csv')
+        df = get_multicore_data()
 
+        #get min tiqaame from multicompiler set for applicaiton
         df['ICL per-core GFlops'] = df['ICL.Gf'] / df['ICL.cores']
         df['SPR per-core GFlops'] = df['SPR.Gf'] / df['SPR.cores']
 
@@ -117,21 +262,41 @@ def create_app(config):
 
         return jsonify(data_dict)
     
+
+
+    
+
+    @app.route('/get_mpratio_data', methods=['GET'])
+    def get_mpratio_data():
+        df = get_multicore_data()
+        ICL_CORES = 48
+        SPR_CORES = 64
+        df['total_cores_ratio'] = df['SPR.cores'] / df['ICL.cores']
+        df.rename(columns = {'Apps':'miniapp', 'ICL.cores':'cores_icl', 'SPR.cores':'cores_spr',  'ICL.Gf':'best_total_gf'}, inplace=True)
+        data_dict = df.to_dict(orient='list')
+        for key in data_dict.keys():
+            data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
+
+        return jsonify(data_dict)
+
     @app.route('/get_appgain_data', methods=['GET'])
     def get_appgain_data():
         data = []
-        qaass = db.session.query(QaaS).all()
+        # qaass = db.session.query(QaaS).all()
+        #get icelake runs that have turbo off
+        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(Os.scaling_min_frequency < 3000000, HwSystem.architecture == "ICELAKE-SERVER").distinct().all()
         #iterate each qaas
         for qaas in qaass:
             row_data = {"min_time": None, "app_name": None}
             #get min time across compiler for same app
             min_time = db.session.query(func.min(Execution.time)).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).scalar()
             #default time
-            qaas_runs = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).filter(QaaSRun.qaas == qaas, CompilerOption.flag == "default" )
-
+            qaas_runs = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).filter(QaaSRun.qaas == qaas, CompilerOption.flag == "default" ).all()
+            # print(len(qaas_runs), qaas.timestamp)
             for qaas_run in qaas_runs:
                 execution = qaas_run.execution
                 compiler_vendor = execution.compiler_option.compiler.vendor
+                # print(compiler_vendor, qaas.timestamp, execution.application.workload)
                 column_name = f"default_{compiler_vendor}_time"
                 row_data[column_name] = execution.time
                 if row_data["app_name"] is None:
@@ -140,13 +305,12 @@ def create_app(config):
             row_data["min_time"] = min_time
             data.append(row_data)
         
-        
         df = pd.DataFrame(data).dropna()
-        
+
         df['ICX: -O3 -march=native'] = df['default_icx_time'] / df['min_time']
         df['ICC: -O3 -march=native'] = df['default_icc_time'] / df['min_time']
         df['GCC: -O3 -march=native'] = df['default_gcc_time'] / df['min_time']    
-        print(df)
+        # print(df)
         df['largest_gain'] = df[['ICX: -O3 -march=native', 'ICC: -O3 -march=native', 'GCC: -O3 -march=native']].max(axis=1)
         df['app'] = df['app_name']
 
@@ -159,10 +323,35 @@ def create_app(config):
             data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
         return jsonify(data_dict)
     
+    @app.route('/get_bestcomp_data', methods=['GET'])
+    def get_bestcomp_data():
+        multi_df = get_multicore_data()
+        uni_df = get_unicore_data()
+
+        df = pd.merge(multi_df, uni_df, on='Apps', how='inner', suffixes=('_multi_df', '_uni_df'))
+        df.rename({'Apps':'miniapp', 'ICL.cores':'cores_used', 'Intel ICL':'unicore_gf', 'ICL.Gf':'gflops'}, axis=1, inplace=True)
+
+        df['gf_per_core'] = df['gflops'] / df['cores_used']
+        df['ratio_unicore_df_over_df_per_core'] = df['unicore_gf'] / df['gf_per_core']
+
+        #add ratio
+        columns_for_ratios = ['ICL_time', 'gflops', 'gf_per_core', 'unicore_gf']
+        max_values = df[columns_for_ratios].max()
+        min_values = df[df[columns_for_ratios] > 0][columns_for_ratios].min()
+        ratios_row = {column: max_values[column] / min_values[column] if min_values[column] > 0 else None for column in columns_for_ratios}
+        ratios_row['miniapp'] = 'Ratios r=max/min' 
+        ratios_df = pd.DataFrame([ratios_row], columns=df.columns)
+        df = pd.concat([df, ratios_df], ignore_index=True)
+
+
+        data_dict = df.to_dict(orient='list')
+        for key in data_dict.keys():
+            data_dict[key] = [None if pd.isna(x) else x for x in data_dict[key]]
+
+        return jsonify(data_dict)
     @app.route('/get_qaas_multicore_perf_gflops_data', methods=['GET'])
     def get_qaas_multicore_perf_gflops_data():
-        df = pd.read_csv('/host/home/yjiao/ArchComp.Multicore.csv')
-
+        df = get_multicore_data()
         #sort by x axis
         df['Mean'] = df.drop(columns=['Apps']).mean(axis=1)
         df.sort_values('Mean', inplace=True)
@@ -172,6 +361,7 @@ def create_app(config):
         df.drop('ICL.cores', axis=1, inplace=True)
         df.drop('SPR.cores', axis=1, inplace=True)
         df.rename({'ICL.Gf':'ICL total Gf', 'SPR.Gf':'SPR total Gf'}, axis=1, inplace=True)
+        df = df.drop(columns=['ICL_time', 'best_compiler', 'SPR_time'])
 
         data_dict = df.to_dict(orient='list')
         # replace NaN with None (null in JSON)
@@ -254,6 +444,37 @@ def create_app(config):
             'compilers': compilers,
             'applications': applications
         })
+    
+    @app.route('/get_system_config_data', methods=['GET'])
+    def get_system_config_data():
+        #get all existing machines
+        machines = db.session.query(HwSystem.architecture).distinct().all()
+        machine_list = [tuple[0] for tuple in machines]
+        data = {}
+        for machine in machine_list:
+            #for each machine get an execution that use the machine and get its data
+            execution = db.session.query(Execution).join(Execution.hwsystem).filter(HwSystem.architecture == machine).first()
+            hwsystem = execution.hwsystem
+            os = execution.os
+            print(execution.application.workload)
+            data[machine] = {'machine': os.hostname, 'model_name': hwsystem.cpui_model_name, 'architecture': hwsystem.architecture, 'num_cores': hwsystem.cpui_cpu_cores,
+                            'freq_driver': os.driver_frequency, 'freq_governor': os.scaling_governor, 'huge_page': os.huge_pages, 'num_sockets':hwsystem.sockets, 'num_core_per_socket': hwsystem.cores_per_socket }
+            
+        
+
+        return jsonify(data)
+
+    
+    @app.route('/create_new_run', methods=['POST'])
+    def create_new_run():
+        #real user input data  unused for now
+        qaas_request = request.get_json()
+        
+        print(qaas_request)        
+        
+
+        return jsonify({})
+
 
     @app.after_request
     def apply_caching(response):

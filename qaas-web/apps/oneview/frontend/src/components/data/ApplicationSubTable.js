@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import Table from "./table";
 import { useSelectionContext } from "../contexts/SelectionContext";
 // const ApplicationSubTable = React.memo(({ data, selectedRows, baseline, setBaseline, handleRowSelection }) => {
-const ApplicationSubTable = React.memo(({ data, baseline, setBaseline }) => {
-    const { selectedRows, handleRowSelection } = useSelectionContext();
+const ApplicationSubTable = React.memo(({ data }) => {
+    const { selectedRows, handleRowSelection, baseline, handleBaselineSelection } = useSelectionContext();
 
     const navigate = useNavigate();
     const handleButtonClick = async (timestamp) => {
@@ -24,17 +24,7 @@ const ApplicationSubTable = React.memo(({ data, baseline, setBaseline }) => {
 
     };
 
-    const handleBaselineRowSelection = (event, rowInfo) => {
-        if (rowInfo) {
-            const selected = event.target.checked;
 
-            if (selected) {
-                setBaseline(rowInfo.original);
-            } else {
-                setBaseline(null);
-            }
-        }
-    };
     const columns = [
         {
             Header: 'Select',
@@ -58,8 +48,8 @@ const ApplicationSubTable = React.memo(({ data, baseline, setBaseline }) => {
                 <div className="table-action">
                     <input
                         type="checkbox"
-                        checked={baseline === row.original}
-                        onChange={(e) => handleBaselineRowSelection(e, row)}
+                        checked={baseline && JSON.stringify(baseline) === JSON.stringify(row.original)}
+                        onChange={(e) => handleBaselineSelection(row.original)}
                     />
                 </div>
             ),
@@ -90,7 +80,6 @@ const ApplicationSubTable = React.memo(({ data, baseline, setBaseline }) => {
             accessor: 'data'
         },
     ];
-    console.log("subtable got rendered")
 
     return (
         <Table

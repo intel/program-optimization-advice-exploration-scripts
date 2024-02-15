@@ -25,7 +25,7 @@ function CustomReactTable({ columns, data, getRowProps, getCellProps }) {
                             {headerGroup.headers.map(column => (
                                 <th
                                     {...column.getHeaderProps()}
-                                    style={{ backgroundColor: column.color ? column.color : 'inherit' }}
+                                    className="custom-header"
                                 >
                                     {column.render('Header')}
                                 </th>

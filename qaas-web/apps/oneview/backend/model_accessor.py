@@ -75,7 +75,8 @@ class OneviewModelAccessor(ModelAccessor):
 
         # File paths
         # local_vars_path = os.path.join(self.static_dir_path, 'local_vars.csv')
-        config_path = os.path.join(self.run_dir_path, 'config_t.lua')
+        config_path = os.path.join(self.run_dir_path, 'config.lua')
+        config_out_path = os.path.join(self.run_dir_path, 'config.lua')
         cqa_context_path = os.path.join(self.static_dir_path, "cqa", "cqa_context.lua")
         expert_run_path = os.path.join(self.run_dir_path, 'expert_run.csv')
         #log files
@@ -92,7 +93,7 @@ class OneviewModelAccessor(ModelAccessor):
         global_metrics_path = os.path.join(self.run_dir_path, 'global_metrics.csv')
         compilation_options_path = os.path.join(self.source_dir, 'compilation_options.csv')
 
-        return  self.local_vars_path, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
+        return  self.local_vars_path, config_path, config_out_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
                 fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path
     
     def get_os_path(self):
@@ -283,7 +284,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
     def visitExecution(self, execution):
         execution.qaas_timestamp = self.qaas_timestamp
         execution.version = self.version
-        local_vars_path, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
+        local_vars_path, config_path, config_out_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
             fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
         local_vars_df = read_file(local_vars_path)
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
@@ -603,7 +604,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         loop_functions = get_all_functions(loop_collection)
         for function in loop_functions:
             if function:
-                hierarchy_file_name = 'fct_{}_{}.lua'.format(os.path.basename(function.module.name), d_dict['function_id'])
+                hierarchy_file_name = 'fct_{}_{}.lua'.format(os.path.basename(function.module.name), function.maqao_function_id)
                 hierarchy_file_path = os.path.join(hierarchy_dir_path,hierarchy_file_name)
                 hierarchy_json_data = convert_lua_to_python(hierarchy_file_path)
                 function.hierarchy = hierarchy_json_data
@@ -846,11 +847,11 @@ class OneViewModelExporter(OneviewModelAccessor):
   
  
     def visitExecution(self, execution, qaas_timestamp = None, version = None):
-        local_vars_path, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,fct_locations_path,\
+        local_vars_path, config_path, config_out_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,fct_locations_path,\
             loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
         # Create directories
         os.makedirs(os.path.dirname(local_vars_path), exist_ok=True)
-        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        os.makedirs(os.path.dirname(config_out_path), exist_ok=True)
         os.makedirs(os.path.dirname(cqa_context_path), exist_ok=True)
         os.makedirs(os.path.dirname(expert_run_path), exist_ok=True)
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
@@ -868,7 +869,7 @@ class OneViewModelExporter(OneviewModelAccessor):
 
 
         # config lua file and cqa_context lua
-        convert_python_to_lua(execution.config, config_path) 
+        convert_python_to_lua(execution.config, config_out_path) 
         convert_python_to_lua(execution.cqa_context, cqa_context_path) 
         #expert run csv
         expert_run_df = pd.DataFrame({'time': [execution.time],\

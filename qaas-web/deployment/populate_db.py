@@ -36,9 +36,7 @@ from model import create_all_tables
 def read_qaas(dir_path):
     for report_timestamp in os.listdir(dir_path):
         report_path = os.path.join(dir_path, report_timestamp)
-        data_path = os.path.join(report_path, 'qaas_compilers.csv')
-        metadata_path = os.path.join(report_path, 'input.txt')
-        populate_database_qaas(data_path, metadata_path, config)
+        populate_database_qaas(report_path, config)
 
 
 def preprocess_result_and_populate(report_path, application_path):
@@ -136,10 +134,10 @@ def main():
     parser.add_argument('--version', type=str, help='Workload Version Name')
     parser.add_argument('--program', type=str,  help='Workload Program Name')
     parser.add_argument('--commit_id', type=str, help='Workload Program Commit ID')
-    parser.add_argument('--ov_path', type=str, help='Read from a folder instead of arguments')
-    parser.add_argument('--ov_fr_path', type=str, help='Read from a folder instead of arguments')
-    parser.add_argument('--ov_web_path', type=str, help='read ov data that is downloaded one by one from website')
-    parser.add_argument('--ov_report_path', type=str, help='read ov data from report path')
+    parser.add_argument('--ov_path', type=str, help='Read from a folder instead of arguments')#hafid old format
+    parser.add_argument('--ov_fr_path', type=str, help='Read from a folder instead of arguments')#old fr format
+    parser.add_argument('--ov_web_path', type=str, help='read ov data that is downloaded one by one from website')#new format that has qaas metadata
+    parser.add_argument('--ov_report_path', type=str, help='read ov data from report path') #just read one data
 
     parser.add_argument('--qaas_path', type=str, help='read qaas data given a data folder, now using git data folder')
 
