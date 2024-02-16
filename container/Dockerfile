@@ -76,9 +76,9 @@ RUN apt-get install --no-install-recommends -y \
    ninja-build \
 # web servers
    nodejs libapache2-mod-wsgi-py3 \
-   apache2 mariadb-server libmysqlclient-dev \
-   && apt-get clean \
-   && rm -rf /var/lib/apt/lists/*
+   apache2 mariadb-server libmysqlclient-dev 
+#   && apt-get clean \
+#   && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m pip install --no-cache-dir sympy \
    && python3 -m pip install --no-cache-dir csvkit \
@@ -92,16 +92,25 @@ RUN python3 -m pip install --no-cache-dir sympy \
   && python3 -m pip install --no-cache-dir py-cpuinfo
 
 # Build cmake
-# NOTE: WHY WE NEED A SPECFIC VERSION instead of apt install cmake
+# NOTE: NEED NEW VERSION OF CMAKE to build code (e.g. amg)
+# See: https://apt.kitware.com/
+#wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - |  tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+RUN curl -L https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - |  tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null \
+  && echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' |  tee /etc/apt/sources.list.d/kitware.list >/dev/null \
+  && apt-get update \
+  && apt-get install --no-install-recommends -y cmake=3.28.3-0kitware1ubuntu20.04.1 \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /root
 # replace wget by curl
 #RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
-RUN curl -L -O https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
-  && tar xvf cmake-3.21.1.tar.gz 
-WORKDIR /root/cmake-3.21.1
-RUN ./bootstrap \
-  && make \
-  && make install
+#RUN curl -L -O https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
+#  && tar xvf cmake-3.21.1.tar.gz 
+#WORKDIR /root/cmake-3.21.1
+#RUN ./bootstrap \
+#  && make \
+#  && make install
 
 ENV ROSE_HOME=/usr/rose
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
