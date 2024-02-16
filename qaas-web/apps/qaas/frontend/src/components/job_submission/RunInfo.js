@@ -15,21 +15,29 @@ import TableRow from '@mui/material/TableRow';
 import DeleteIcon from '@mui/icons-material/RemoveCircleOutline';
 import AddIcon from '@mui/icons-material/AddCircleOutline';
 export const RunInfo = ({ input, setInput }) => {
-    const envRows = [
-        { id: 1, name: 'name1', value: 'value1' },
-    ];
-    const [envrows, setEnvRows] = useState(envRows);
+
     const handleDelete = (i) => {
-        setEnvRows((prevEnvRows) =>
-            prevEnvRows.filter((_, index) => index !== i)
-        );
+        const oldEnv = input.application.RUN.APP_ENV_MAP;
+        const deletedEnv = oldEnv.filter((_, index) => index !== i);
+        updateState(setInput, ['application', 'RUN', 'APP_ENV_MAP'], deletedEnv);
+
     };
     const handleCreate = () => {
-        setEnvRows(prevEnvRows => [
-            ...prevEnvRows,
-            { id: prevEnvRows.length + 1, name: '', value: '' }
-        ])
+        const oldEnv = input.application.RUN.APP_ENV_MAP;
+        const newEnv = [
+            ...oldEnv,
+            { id: oldEnv.length + 1, name: '', value: '' },
+        ];
+        updateState(setInput, ['application', 'RUN', 'APP_ENV_MAP'], newEnv);
+
         // setEdit(true)
+    };
+    const handleUpdateEnv = (index, field, value) => {
+        const newEnvVars = [...input.application.RUN.APP_ENV_MAP];
+        const updatedVar = { ...newEnvVars[index], [field]: value };
+        newEnvVars[index] = updatedVar;
+
+        handleChange(['application', 'RUN', 'APP_ENV_MAP'], newEnvVars);
     };
 
     const handleChange = (path, value) => {
@@ -87,6 +95,8 @@ export const RunInfo = ({ input, setInput }) => {
                             aria-labelledby="demo-row-radio-buttons-group-label"
                             name="row-radio-buttons-group"
                             defaultValue={input.application.RUN.APP_SCALABILITY_TYPE}
+                            onChange={e => handleChange(['application', 'RUN', 'APP_SCALABILITY_TYPE'], e.target.value)}
+
                         >
                             <FormControlLabel value="Strong/Sequential" control={<Radio />} label="Strong/Sequential" />
                             <FormControlLabel value="Weak" control={<Radio />} label="Weak" />
@@ -105,10 +115,15 @@ export const RunInfo = ({ input, setInput }) => {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {envrows.map((row, i) => (
+                                    {input.application.RUN.APP_ENV_MAP.map((row, i) => (
                                         <TableRow>
-                                            <TableCell contentEditable='true' align="center">{row.name}</TableCell>
-                                            <TableCell contentEditable='true' align="center">{row.value}</TableCell>
+                                            <TableCell contentEditable='true' align="center" onBlur={(e) => handleUpdateEnv(i, 'name', e.target.innerText)}>
+                                                {row.name}
+                                            </TableCell>
+                                            <TableCell contentEditable='true' align="center" onBlur={(e) => handleUpdateEnv(i, 'value', e.target.innerText)}>
+
+                                                {row.value}
+                                            </TableCell>
                                             <TableCell align="center"><DeleteIcon onClick={() => handleDelete(i)} /></TableCell>
 
 

@@ -1,7 +1,5 @@
-import { updateState } from "./JobSubUtil";
+import { updateState, validateField } from "./JobSubUtil";
 import React, { useState, useEffect } from 'react';
-import Box from '@mui/material/Box';
-import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
@@ -9,11 +7,17 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 export const BuildInfo = ({ input, setInput }) => {
 
+    const [errors, setErrors] = useState({});
 
 
 
     const handleChange = (path, value) => {
-        updateState(setInput, path, value);
+        const field = path[path.length - 1];
+        const error = validateField(value, field);
+        setErrors((prevErrors) => ({ ...prevErrors, [field]: error }));
+        if (!error) {
+            updateState(setInput, path, value);
+        }
     };
 
     return (
@@ -24,8 +28,10 @@ export const BuildInfo = ({ input, setInput }) => {
                 <div className="infoTitle">Build</div>
                 <div >
                     <div className="infoSubTitle">App Name</div>
-                    <TextField label="App Name" variant="outlined"
+                    <TextField label="App Name" variant="outlined" required
                         onChange={e => handleChange(['application', 'APP_NAME'], e.target.value)}
+                        error={!!errors.APP_NAME}
+                        helperText={errors.APP_NAME || ''}
 
                     />
                     <div className="infoSubTitle">Source tarball URL</div>
@@ -40,6 +46,9 @@ export const BuildInfo = ({ input, setInput }) => {
                     <div>
                         <TextField label="Git User" id="outlined-basic" variant="outlined"
                             onChange={(event) => handleChange(['application', 'GIT', 'USER'], event.target.value)}
+                            error={!!errors.USER}
+                            helperText={errors.USER || ''}
+
 
                         />
                         <TextField label="Git Token" id="outlined-basic" variant="outlined"

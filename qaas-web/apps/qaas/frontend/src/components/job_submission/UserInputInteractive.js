@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Box from '@mui/material/Box';
+import { ThemeProvider } from '@mui/material/styles';
+
 import Checkbox from '@mui/material/Checkbox';
 import StatusPanel from '../StatusPanel';
 import Button from '@mui/material/Button';
@@ -16,6 +17,7 @@ import { RunInfo } from './RunInfo';
 import { GoldenRunInfo } from './GoldenRunInfo';
 import { OptionalRunInfo } from './OptionalRunInfo';
 import { ValidationInfo } from './ValidationInfo';
+import { JOB_SUB_THEME } from './JobSubUtil';
 import '../css/input.css'
 const steps = ['Build Info', 'Run Info', 'Golden Run System Settings', 'Optional Run System Settings', 'Validation and Domain Specific Rate', 'Status Info'];
 
@@ -112,31 +114,8 @@ export default function UserInputStepper({ isLoading, shouldLoadHTML, setIsLoadi
     const handleReset = () => {
         setActiveStep(0);
     };
-
-
-
     /******************************************************************* Written Prepare Code *************************************************/
-    const divStyle = {
-        padding: '5px'
-    }
-    const titleStyle = {
-        fontSize: '1.5em',
-        fontWeight: 'bold'
-    }
-    const subtitleStyle = {
-        fontSize: '1.2em',
-
-    }
-
-
-    const navigate = useNavigate();
-    const envRows = [
-        { id: 1, name: 'name1', value: 'value1' },
-        { id: 2, name: 'name2', value: 'value2' },
-    ];
-
     //state
-    const [envrows, setEnvRows] = useState(envRows);
     //socket
     const [SSEStatus, setSSEStatus] = useState(false);
     //default checked
@@ -149,114 +128,84 @@ export default function UserInputStepper({ isLoading, shouldLoadHTML, setIsLoadi
         setIsLoading(false)
         setShouldLoadHTML(true)
     };
-    const isValueInInput = (input_location, value) => {
-        return input_location.indexOf[value] > -1
-    }
-
-    const handleCheckBoxClick = (e, default_button_name) => {
-        //set component to checked
-        //delete default from input
-        //add component to input
-        const s = { ...input }
-        var filteredArray = s.system.SEARCH_OPTIONS.filter(function (e) { return e !== default_button_name })
-        setInput({ ...s })
-    }
-    //constant sub components
-    const checkBoxComponent = ({ title, listItems }) => {
-        return (
-            <div >
-                {title}
-
-                <div>
-                    {listItems.map((item, index) => {
-
-                    })}
-                    Skylake <Checkbox checked={isValueInInput(input.system.SEARCH_OPTIONS.CPU, "Skylake")} onChange={(e) => handleCheckBoxClick(e, "cpu")} />
-                    Cascadelake <Checkbox checked={input.system.SEARCH_OPTIONS.CPU.indexOf("Cascadelake") > -1} onChange={(e) => handleCheckBoxClick(e, "cpu")} />
-                    Ice Lake <Checkbox checked={input.system.SEARCH_OPTIONS.CPU.indexOf("Ice Lake") > -1} onChange={(e) => handleCheckBoxClick(e, "cpu")} />
-                    Default <Checkbox defaultChecked />
-                </div>
-            </div>
-
-        )
-    }
-
-
-
     /******************************************************************* Finish prepare Written Code *************************************************/
 
     return (
-        <div className='jobSubContainer'>
-            <Stepper activeStep={activeStep}>
-                {steps.map((label, index) => {
-                    const stepProps = {};
-                    const labelProps = {};
-                    if (isStepOptional(index)) {
-                        labelProps.optional = (
-                            <Typography variant="caption">Optional</Typography>
+        <ThemeProvider theme={JOB_SUB_THEME}>
+
+            <div className='jobSubContainer'>
+                <Stepper activeStep={activeStep}>
+                    {steps.map((label, index) => {
+                        const stepProps = {};
+                        const labelProps = {};
+                        if (isStepOptional(index)) {
+                            labelProps.optional = (
+                                <Typography variant="caption">Optional</Typography>
+                            );
+                        }
+                        if (isStepSkipped(index)) {
+                            stepProps.completed = false;
+                        }
+                        return (
+                            <Step key={label} {...stepProps}>
+                                <StepLabel {...labelProps}>{label}</StepLabel>
+                            </Step>
                         );
-                    }
-                    if (isStepSkipped(index)) {
-                        stepProps.completed = false;
-                    }
-                    return (
-                        <Step key={label} {...stepProps}>
-                            <StepLabel {...labelProps}>{label}</StepLabel>
-                        </Step>
-                    );
-                })}
-            </Stepper>
-            <div className="contentAndNavigation">
+                    })}
+                </Stepper>
+                <div className="contentAndNavigation">
 
-                {activeStep === steps.length ? (
-                    <div>
-                        <Typography >
-                            All steps completed - you&apos;re finished
-                        </Typography>
-                        <Button variant="contained" onClick={handleFinishButtonClick} endIcon={<ArrowForwardIcon />}>See Result</Button>
-                        <Button onClick={handleReset}>Reset</Button>
-                    </div>
-                ) : (
-                    <div>
-
-                        {activeStep === 0 && <BuildInfo input={input} setInput={setInput} />}
-                        {activeStep === 1 && <RunInfo input={input} setInput={setInput} />}
-                        {activeStep === 4 && <ValidationInfo input={input} setInput={setInput} />}
-                        {activeStep === 2 && <GoldenRunInfo input={input} setInput={setInput} />}
-                        {activeStep === 3 && <OptionalRunInfo input={input} setInput={setInput} />}
-                        {activeStep === 5 && <StatusPanel msg={statusMsg} />}
-                        <div className='navButton'>
-                            <Button
-                                color="inherit"
-                                disabled={activeStep === 0}
-                                onClick={handleBack}
-                            >
-                                Back
-                            </Button>
-                            {isStepOptional(activeStep) && (
-                                <Button color="inherit" onClick={handleSkip} >
-                                    Skip
-                                </Button>
-                            )}
-
-                            {activeStep === 4 ?
-
-                                <Button onClick={handleSumbitNext}>
-                                    Submit
-
-                                </Button> :
-                                <Button onClick={handleNext}>
-                                    {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
-
-                                </Button>
-
-                            }
+                    {activeStep === steps.length ? (
+                        <div>
+                            <Typography >
+                                All steps completed - you&apos;re finished
+                            </Typography>
+                            <Button variant="contained" onClick={handleFinishButtonClick} endIcon={<ArrowForwardIcon />}>See Result</Button>
+                            <Button onClick={handleReset}>Reset</Button>
                         </div>
+                    ) : (
+                        <div>
+
+                            {activeStep === 0 && <BuildInfo input={input} setInput={setInput} />}
+                            {activeStep === 1 && <RunInfo input={input} setInput={setInput} />}
+                            {activeStep === 4 && <ValidationInfo input={input} setInput={setInput} />}
+                            {activeStep === 2 && <GoldenRunInfo input={input} setInput={setInput} />}
+                            {activeStep === 3 && <OptionalRunInfo input={input} setInput={setInput} />}
+                            {activeStep === 5 && <StatusPanel msg={statusMsg} />}
+                            <div className='navButton'>
+                                <Button
+                                    color="inherit"
+                                    disabled={activeStep === 0}
+                                    onClick={handleBack}
+                                >
+                                    Back
+                                </Button>
+                                {isStepOptional(activeStep) && (
+                                    <Button color="inherit" onClick={handleSkip} >
+                                        Skip
+                                    </Button>
+                                )}
+
+                                {activeStep === 4 ?
+
+                                    <Button onClick={handleSumbitNext}>
+                                        Submit
+
+                                    </Button> :
+                                    <Button onClick={handleNext}>
+                                        {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
+
+                                    </Button>
+
+                                }
+                            </div>
 
 
-                    </div>
-                )}
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </ThemeProvider>
+
     );
 }

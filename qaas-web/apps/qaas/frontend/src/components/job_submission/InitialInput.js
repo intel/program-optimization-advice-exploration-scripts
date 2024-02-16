@@ -18,7 +18,7 @@ export var INITIAL_INPUT = {
         RUN: {
             APP_DATA_ARGS: "",
             APP_RUN_CMD: "<binary>",
-            APP_ENV_MAP: {},
+            APP_ENV_MAP: [],
             APP_SCALABILITY_TYPE: "Strong/Sequential"
         }
     },
