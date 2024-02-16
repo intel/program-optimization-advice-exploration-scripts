@@ -43,7 +43,7 @@ ln -frs ${PREFIX}/intel/${version} ${PREFIX}/intel/latest
 # Install gcc-11.4
 # See: https://www.reddit.com/r/Ubuntu/comments/ptixle/is_there_a_ppa_that_always_has_the_latest_gcc/
 add-apt-repository ppa:ubuntu-toolchain-r/test
-apt-get -y install gcc-11 g++11 gfortran-11
+apt-get -y install gcc-11 g++-11 gfortran-11
 
 cd $PREFIX
 gccversion="11.4"
