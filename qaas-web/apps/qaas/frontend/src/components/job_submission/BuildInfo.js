@@ -24,7 +24,7 @@ export const BuildInfo = ({ input, setInput }) => {
                 <div className="infoTitle">Build</div>
                 <div >
                     <div className="infoSubTitle">App Name</div>
-                    <TextField sx={{ width: '55ch' }} label="App Name" variant="outlined"
+                    <TextField label="App Name" variant="outlined"
                         onChange={e => handleChange(['application', 'APP_NAME'], e.target.value)}
 
                     />
