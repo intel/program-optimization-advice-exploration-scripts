@@ -15,8 +15,17 @@ run_component_setup() {
 if [[ ${USER} != "qaas" ]]; then
   echo "OUTSIDE container setting up local image"
   # Build local image
+
+  echo -n "Customized dockerfile for backplane container (Press enter for none):"
+  read custom_dockerfile
+
   pushd container
-  ./build-local-image.sh
+  if [ -z $custom_dockerfile ]; then
+    ./build-local-image.sh
+  else
+    echo "Customized dockerfile: ${custom_dockerfile}"
+    ./build-local-image.sh -f $custom_dockerfile
+  fi
   popd
 
   # Setup components outside the container
