@@ -103,6 +103,8 @@ export const RunInfo = ({ input, setInput }) => {
                         >
                             <FormControlLabel value="no" control={<Radio />} label="No" />
                             <FormControlLabel value="yes" control={<Radio />} label="Yes" />
+                            <FormControlLabel value="strong" control={<Radio />} label="Strong" />
+                            <FormControlLabel value="weak" control={<Radio />} label="Weak" />
                         </RadioGroup>
                     </div>
                     <div>
