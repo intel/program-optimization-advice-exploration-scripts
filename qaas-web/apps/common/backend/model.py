@@ -1030,7 +1030,8 @@ def connect_db(config, db="oneview"):
         engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_QAAS"])
     elif db == 'lore':
         engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_LORE"])
-
+    elif db == 'qaas_ov':
+        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_QAAS_OV"])
     engine.connect()
     return engine
 

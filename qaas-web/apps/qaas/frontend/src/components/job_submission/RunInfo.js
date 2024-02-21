@@ -16,29 +16,32 @@ import DeleteIcon from '@mui/icons-material/RemoveCircleOutline';
 import AddIcon from '@mui/icons-material/AddCircleOutline';
 export const RunInfo = ({ input, setInput }) => {
 
-    const handleDelete = (i) => {
-        const oldEnv = input.application.RUN.APP_ENV_MAP;
-        const deletedEnv = oldEnv.filter((_, index) => index !== i);
-        updateState(setInput, ['application', 'RUN', 'APP_ENV_MAP'], deletedEnv);
-
+    const handleDelete = (key) => {
+        const oldEnv = { ...input.application.RUN.APP_ENV_MAP };
+        delete oldEnv[key];
+        updateState(setInput, ['application', 'RUN', 'APP_ENV_MAP'], oldEnv);
     };
     const handleCreate = () => {
-        const oldEnv = input.application.RUN.APP_ENV_MAP;
-        const newEnv = [
-            ...oldEnv,
-            { id: oldEnv.length + 1, name: '', value: '' },
-        ];
+        const key = `newKey${Object.keys(input.application.RUN.APP_ENV_MAP).length + 1}`;
+        const newEnv = {
+            ...input.application.RUN.APP_ENV_MAP,
+            [key]: '',
+        };
         updateState(setInput, ['application', 'RUN', 'APP_ENV_MAP'], newEnv);
-
-        // setEdit(true)
     };
-    const handleUpdateEnv = (index, field, value) => {
-        const newEnvVars = [...input.application.RUN.APP_ENV_MAP];
-        const updatedVar = { ...newEnvVars[index], [field]: value };
-        newEnvVars[index] = updatedVar;
+    const handleUpdateKey = (oldKey, newKey) => {
+        const { [oldKey]: oldValue, ...rest } = input.application.RUN.APP_ENV_MAP;
+        const newEnv = { ...rest, [newKey]: oldValue };
 
-        handleChange(['application', 'RUN', 'APP_ENV_MAP'], newEnvVars);
+        updateState(setInput, ['application', 'RUN', 'APP_ENV_MAP'], newEnv);
     };
+
+    const handleUpdateValue = (key, newValue) => {
+        const newEnv = { ...input.application.RUN.APP_ENV_MAP, [key]: newValue };
+
+        updateState(setInput, ['application', 'RUN', 'APP_ENV_MAP'], newEnv);
+    };
+
 
     const handleChange = (path, value) => {
         updateState(setInput, path, value);
@@ -89,17 +92,32 @@ export const RunInfo = ({ input, setInput }) => {
                     </div>
                     <div>
 
-                        <div className="infoSubTitle">App scalability</div>
+                        <div className="infoSubTitle">MPI</div>
                         <RadioGroup
                             row
                             aria-labelledby="demo-row-radio-buttons-group-label"
                             name="row-radio-buttons-group"
-                            defaultValue={input.application.RUN.APP_SCALABILITY_TYPE}
-                            onChange={e => handleChange(['application', 'RUN', 'APP_SCALABILITY_TYPE'], e.target.value)}
+                            defaultValue={input.runtime.MPI}
+                            onChange={e => handleChange(['runtime', 'MPI'], e.target.value)}
 
                         >
-                            <FormControlLabel value="Strong/Sequential" control={<Radio />} label="Strong/Sequential" />
-                            <FormControlLabel value="Weak" control={<Radio />} label="Weak" />
+                            <FormControlLabel value="no" control={<Radio />} label="No" />
+                            <FormControlLabel value="yes" control={<Radio />} label="Yes" />
+                        </RadioGroup>
+                    </div>
+                    <div>
+
+                        <div className="infoSubTitle">OPENMP</div>
+                        <RadioGroup
+                            row
+                            aria-labelledby="demo-row-radio-buttons-group-label"
+                            name="row-radio-buttons-group"
+                            defaultValue={input.runtime.OPENMP}
+                            onChange={e => handleChange(['runtime', 'OPENMP'], e.target.value)}
+
+                        >
+                            <FormControlLabel value="strong" control={<Radio />} label="Strong" />
+                            <FormControlLabel value="weak" control={<Radio />} label="Weak" />
                         </RadioGroup>
                     </div>
                 </div>
@@ -115,18 +133,25 @@ export const RunInfo = ({ input, setInput }) => {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {input.application.RUN.APP_ENV_MAP.map((row, i) => (
-                                        <TableRow>
-                                            <TableCell contentEditable='true' align="center" onBlur={(e) => handleUpdateEnv(i, 'name', e.target.innerText)}>
-                                                {row.name}
+                                    {Object.entries(input.application.RUN.APP_ENV_MAP).map(([key, value]) => (
+                                        <TableRow key={key}>
+                                            <TableCell align="center">
+                                                <TextField
+                                                    fullWidth
+                                                    defaultValue={key}
+                                                    onBlur={(e) => handleUpdateKey(key, e.target.value)}
+                                                />
                                             </TableCell>
-                                            <TableCell contentEditable='true' align="center" onBlur={(e) => handleUpdateEnv(i, 'value', e.target.innerText)}>
-
-                                                {row.value}
+                                            <TableCell align="center">
+                                                <TextField
+                                                    fullWidth
+                                                    defaultValue={value}
+                                                    onBlur={(e) => handleUpdateValue(value, e.target.value)}
+                                                />
                                             </TableCell>
-                                            <TableCell align="center"><DeleteIcon onClick={() => handleDelete(i)} /></TableCell>
-
-
+                                            <TableCell align="center">
+                                                <DeleteIcon onClick={() => handleDelete(key)} />
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

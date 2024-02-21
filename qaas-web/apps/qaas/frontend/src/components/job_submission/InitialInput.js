@@ -16,10 +16,8 @@ export var INITIAL_INPUT = {
             DATA_DOWNLOAD_PATH: ""
         },
         RUN: {
-            APP_DATA_ARGS: "",
             APP_RUN_CMD: "<binary>",
-            APP_ENV_MAP: [],
-            APP_SCALABILITY_TYPE: "Strong/Sequential"
+            APP_ENV_MAP: {},
         }
     },
     compiler: {
@@ -55,5 +53,9 @@ export var INITIAL_INPUT = {
             COMPILER: ["Default"]
         }
 
+    },
+    runtime: {
+        MPI: "no",
+        OPENMP: "strong"
     }
 }
