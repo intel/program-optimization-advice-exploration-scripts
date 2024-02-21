@@ -69,7 +69,7 @@ if docker ps --filter "name=${QAAS_CONTAINER_NAME}" --format '{{.Names}}' | grep
   QAAS_CONTAINER_RUNNING=1
 fi
 
-echo "Restart policy: ${restart_policy}"
+echo "Restart policy: ${restart_policy}, QAAS_CONTAINER_RUNNING=${QAAS_CONTAINER_RUNNING}"
 
 
 

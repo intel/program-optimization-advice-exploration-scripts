@@ -4,10 +4,28 @@
 
 ENABLE_DEVELOPMENT=1
 
+
 tag_img=production
-if [[ $# == 1 ]]; then
-	tag_img="${1}"
-fi
+custom_dockerfile=
+while getopts "i:f:" opt; do
+ case ${opt} in
+ i)
+  tag_img=${OPTARG}
+ ;;
+ f)
+  custom_dockerfile=${OPTARG}
+ ;;
+ \?)
+   echo "Usage: $0 [-i <base image tag>] [-f <path/to/customDockerfile>]"
+   exit
+   ;;
+ esac
+done
+
+#tag_img=production
+#if [[ $# == 1 ]]; then
+#	tag_img="${1}"
+#fi
 img_name=registry.gitlab.com/davidwong/qaas:${tag_img}
 echo Base image name is: ${img_name}
 
@@ -81,6 +99,19 @@ docker build --build-arg IMG_NAME=${common_img_name} --build-arg http_proxy=$htt
 #  --build-arg LOCAL_UID=$(id -u ${USER}) --build-arg LOCAL_GID=$(id -g ${USER}) --build-arg LOCAL_GIDS="$local_gids" --build-arg LOCAL_GNAMES="$local_gnames" \
 #  --build-arg ENABLE_DEVELOPMENT="$ENABLE_DEVELOPMENT" --build-arg QAAS_PASSWORD="$QAAS_PASSWORD" --rm -f ./BackplaneDockerfile -t local_image_qaas_backplane .
 
+BP_CORE_IMAGE_NAME=local_image_qaas_backplane_core
 docker build --build-arg IMG_NAME=${common_img_name} --build-arg http_proxy=$http_proxy_arg --build-arg https_proxy=$https_proxy_arg \
   --build-arg LOCAL_UID=$(id -u ${USER}) --build-arg LOCAL_GID=$(id -g ${USER}) --build-arg LOCAL_GIDS="$local_gids" --build-arg LOCAL_GNAMES="$local_gnames" \
-  --build-arg ENABLE_DEVELOPMENT="$ENABLE_DEVELOPMENT" --build-arg QAAS_PASSWORD="$QAAS_PASSWORD" --rm -f ./BackplaneDockerfile -t local_image_qaas_backplane .
+  --build-arg ENABLE_DEVELOPMENT="$ENABLE_DEVELOPMENT" --build-arg QAAS_PASSWORD="$QAAS_PASSWORD" --rm -f ./BackplaneDockerfile -t ${BP_CORE_IMAGE_NAME} .
+
+BP_IMAGE_NAME=local_image_qaas_backplane
+
+if [ -z $custom_dockerfile ]; then
+  echo "No backplane container customizing Dockerfile, using core as backplane image"
+  docker tag ${BP_CORE_IMAGE_NAME}:latest ${BP_IMAGE_NAME}:latest
+else
+  echo "Backplane customization Dockerfile provided, building final backplane image"
+  docker build --build-arg IMG_NAME=${BP_CORE_IMAGE_NAME} --build-arg http_proxy=$http_proxy_arg --build-arg https_proxy=$https_proxy_arg \
+   --build-arg LOCAL_UID=$(id -u ${USER}) --build-arg LOCAL_GID=$(id -g ${USER}) --build-arg LOCAL_GIDS="$local_gids" --build-arg LOCAL_GNAMES="$local_gnames" \
+   --build-arg ENABLE_DEVELOPMENT="$ENABLE_DEVELOPMENT" --build-arg QAAS_PASSWORD="$QAAS_PASSWORD" --rm -f ${custom_dockerfile} -t ${BP_IMAGE_NAME} .
+fi
