@@ -3,7 +3,7 @@ import axios from "axios";
 import { Chart, registerables } from "chart.js"
 import { } from '../GraphPlugin';
 import PlotlyLineGraph from './PlotlyLineGraph';
-import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout } from '../../Constants';
+import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout, getAppName } from '../../Constants';
 import { createMultileMinMaxAnnotations } from '../GraphPlugin';
 Chart.register(...registerables);
 
@@ -46,6 +46,8 @@ export default function MulticorePerfGFlopsLineGraph() {
     }
     const processRawData = (rawData) => {
         const { Apps, ...processors } = rawData;
+        const transformedApps = Apps.map(app => getAppName(app));
+
         return Object.keys(processors).map(processor => {
             const processorData = processors[processor];
             const processType = getProcessor(processor);
@@ -57,7 +59,7 @@ export default function MulticorePerfGFlopsLineGraph() {
                 type: 'scatter',
                 mode: 'markers+lines',
                 name: processor,
-                x: Apps,
+                x: transformedApps,
                 y: processorData.map(value => value === null ? undefined : value),
                 yaxis: yAxis,
                 line: {

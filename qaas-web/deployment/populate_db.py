@@ -24,6 +24,7 @@ sys.path.append(qaas_web_backend_common_dir)
 from ovdb import populate_database, export_data
 from base_util import *
 from qaasdb import populate_database_qaas
+from qaas_ov_db import populate_database_qaas_ov
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import qaas
@@ -36,10 +37,12 @@ from model import create_all_tables
 def read_qaas(dir_path):
     for report_timestamp in os.listdir(dir_path):
         report_path = os.path.join(dir_path, report_timestamp)
-        data_path = os.path.join(report_path, 'qaas_compilers.csv')
-        metadata_path = os.path.join(report_path, 'input.txt')
-        populate_database_qaas(data_path, metadata_path, config)
+        populate_database_qaas(report_path, config)
 
+def read_qaas_ov(dir_path):
+    for report_timestamp in os.listdir(dir_path):
+        report_path = os.path.join(dir_path, report_timestamp)
+        populate_database_qaas_ov(report_path, config)
 
 def preprocess_result_and_populate(report_path, application_path):
     application_path = os.path.normpath(application_path)
@@ -136,12 +139,15 @@ def main():
     parser.add_argument('--version', type=str, help='Workload Version Name')
     parser.add_argument('--program', type=str,  help='Workload Program Name')
     parser.add_argument('--commit_id', type=str, help='Workload Program Commit ID')
+    #populate ov
     parser.add_argument('--ov_path', type=str, help='Read from a folder instead of arguments')
     parser.add_argument('--ov_fr_path', type=str, help='Read from a folder instead of arguments')
     parser.add_argument('--ov_web_path', type=str, help='read ov data that is downloaded one by one from website')
     parser.add_argument('--ov_report_path', type=str, help='read ov data from report path')
-
+    #populate qaas
     parser.add_argument('--qaas_path', type=str, help='read qaas data given a data folder, now using git data folder')
+    #populate qaas + ov
+    parser.add_argument('--qaas_ov_path', type=str, help='read combined qaas+ov data')
 
     # Parse the arguments
     args = parser.parse_args()
@@ -167,6 +173,10 @@ def main():
     elif args.qaas_path:
         create_all_tables(config, db='qaas')
         read_qaas(args.qaas_path)
+    
+    elif args.qaas_ov_path:
+        create_all_tables(config, db='qaas_ov')
+        read_qaas_ov(args.qaas_ov_path)
 
     else:
         print("invalid flags")

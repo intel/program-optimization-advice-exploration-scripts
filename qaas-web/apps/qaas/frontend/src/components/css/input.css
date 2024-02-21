@@ -1,0 +1,95 @@
+.jobSubContainer {
+    margin: 20px;
+
+}
+
+
+
+.infoTitle {
+    font-size: 1.6em;
+    font-weight: bolder;
+}
+
+.infoSubTitle {
+    font-size: '1.2em';
+    font-weight: bold;
+    margin: 4px;
+}
+
+/* reduce margin for text field input*/
+.infoContent .MuiTextField-root {
+    margin: 2px;
+}
+
+.infoContent .MuiTextField-root .MuiInputBase-input {
+    padding: 2px;
+}
+
+
+.infoContent .MuiTextField-root .MuiInputBase-input,
+.infoContent .MuiTextField-root .MuiOutlinedInput-input {
+    padding: 2px;
+}
+
+/* form control */
+.infoContent .MuiFormControl-root {
+    padding: 2px;
+    margin: 2px;
+}
+
+.infoContent .MuiFormControl-root .MuiInputLabel-outlined {
+    transform: translate(12px, 6px) scale(1);
+}
+
+.infoContent .MuiFormControl-root.Mui-focused .MuiInputLabel-outlined,
+.infoContent .MuiFormControl-root .MuiInputLabel-outlined.MuiInputLabel-shrink {
+    transform: translate(12px, -6px) scale(0.75);
+}
+
+.infoContent .MuiSelect-select.MuiSelect-outlined.MuiInputBase-input {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+/* reduce spave for table */
+.infoContent .MuiTableCell-root {
+    padding: 8px;
+}
+
+/* reduce space for radio group */
+.infoContent .MuiRadio-root {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.infoContent .MuiCheckbox-root {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.centeredBox {
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    /* aligh content to the top */
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 10px 0 rgba(0, 0, 0, 0.19);
+    padding: 10px;
+    box-sizing: border-box;
+    margin: 0 auto;
+    width: 100%;
+    margin-top: 10px;
+    max-width: calc(100% - 500px);
+}
+
+.infoContent {
+    align-self: flex-start;
+    width: 100%;
+}
+
+.navButton {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 100px;
+}

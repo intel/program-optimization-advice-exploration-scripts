@@ -32,6 +32,7 @@ import os
 import pandas as pd
 import shutil
 import sys
+from qaas_util import parse_text_to_dict
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 base_directory = os.path.join(current_directory, '../../common/backend/')
@@ -40,11 +41,24 @@ sys.path.insert(0, base_directory)
 from model_accessor_base import ModelAccessor
 from model import *
 from model_collection import *
+from base_util import read_file
 
 
-class OneviewModelAccessor(ModelAccessor):
-    def __init__(self, session, qaas_data_dir):
+class QaaSOneviewModelAccessor(ModelAccessor):
+    
+
+    
+    def __init__(self, session, report_path):
         super().__init__(session)
+        self.report_path = report_path
+        self.qaas_metadata_file_path = os.path.join(report_path, 'input.txt')
+        self.ov_runs_dir = os.path.join(report_path, 'oneview_runs')
+        self.current_row = None
+        self.current_type = None
+        self.vprof_bucket_range = ["0.00-2.00", "2.00-4.00", "4.00-8.00", "8.00-16.00", "16.00-32.00", "32.00-64.00", "64.00-128.00", "128.00-256.00", "256.00-512.00", "512.00-1024.00", "1024.00-2048.00", "2048.00+"]
+        self.qaas_data_dir = None
+
+    def set_ov_path(self, qaas_data_dir):
         self.qaas_data_dir = qaas_data_dir
         self.cur_run_id = 0
         self.static_dir_path = os.path.join(self.qaas_data_dir, "static_data")
@@ -58,7 +72,7 @@ class OneviewModelAccessor(ModelAccessor):
 
         self.local_vars_path = os.path.join(self.run_dir_path, 'local_vars.csv')
         self.expert_loop_path = os.path.join(self.run_dir_path, "expert_loops.csv")
-        self.vprof_bucket_range = ["0.00-2.00", "2.00-4.00", "4.00-8.00", "8.00-16.00", "16.00-32.00", "32.00-64.00", "64.00-128.00", "128.00-256.00", "256.00-512.00", "512.00-1024.00", "1024.00-2048.00", "2048.00+"]
+
 
 
 
@@ -147,123 +161,148 @@ class OneviewModelAccessor(ModelAccessor):
    
    
 
-class OneViewModelInitializer(OneviewModelAccessor):
-    def __init__(self, session, qaas_data_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id):
-        super().__init__(session, qaas_data_dir)
-        #execution
-        self.qaas_timestamp = qaas_timestamp
-        self.version = version
-        #application
-        self.workload = workload_name
-        self.workload_version = workload_version_name
-        self.program = workload_program_name
-        self.commit_id = workload_program_commit_id
+class QaaSOneViewModelInitializer(QaaSOneviewModelAccessor):
+    def __init__(self, session, report_path):
+        super().__init__(session, report_path)
+        
 
+    
     def get_current_execution(self):
         return self.current_execution
     
-   
+    
+    def build_executions_from_file(self, file_path, report_type, qaas_database, metadata_dict):
+        #read report path
+        if os.path.exists(file_path):
+            df = read_file(file_path, delimiter=',')
+            self.current_type = report_type
+            #iterate file each row in the file is new execution
+            for index, row in df.iterrows():
+                self.current_row = row
+                current_application = Application(self)
+                current_application.mpi_scaling = metadata_dict['mpi_scaling']
+                current_application.omp_scaling = metadata_dict['openmp_scaling']     
+                current_application.workload = metadata_dict['app_name']
+
+                current_execution = Execution(self)
+                ### set the execution 
+                self.current_execution = current_execution
+                current_execution.application = current_application
+                qaas_database.add_to_data_list(current_execution)
+
+                ###os
+                current_os = Os(self)
+                current_execution.os = current_os
+                qaas_database.add_to_data_list(current_os)
+
+                ###hw system
+                current_hwsystem = HwSystem(self)
+                current_execution.hwsystem = current_hwsystem
+                qaas_database.add_to_data_list(current_hwsystem)
+
+                ###### OV ########
+                ########## oneview specific only set this if there is a ov report associate with this run#########
+                if not self.current_row['ov_folder']:
+                    continue
+                print(os.path.join(self.ov_runs_dir, self.current_row['ov_folder']))
+                self.set_ov_path(os.path.join(self.ov_runs_dir, self.current_row['ov_folder']))
+                ###maqao table
+                current_maqao = Maqao( self)
+                current_maqao.execution = current_execution
+                qaas_database.add_to_data_list(current_maqao)
+
+                ###### environment, environment metrics
+                current_environment = Environment( self)
+                current_os.environment = current_environment
+                qaas_database.add_to_data_list(current_environment)
+
+                #########lprof categorization table and lprof categorization metrics
+                current_lprof_categorization_collection = LprofCategorizationCollection()
+                current_lprof_categorization_collection.accept(self)
+                current_execution.lprof_categorizations = current_lprof_categorization_collection.get_objs()
+                qaas_database.add_to_data_list(current_lprof_categorization_collection)
+
+                # ####lprofs_module.csv
+                module_collection = ModuleCollection()
+                module_collection.accept(self)
+                current_execution.modules = module_collection.get_objs()
+                qaas_database.add_to_data_list(module_collection)
+
+                ####lprof_blocks
+                block_collection = BlockCollection()
+                block_collection.accept(self)
+                current_execution.blocks = block_collection.get_objs()
+                qaas_database.add_to_data_list(block_collection)
+
+                ####lprof functiona and loops
+                function_collection = FunctionCollection( )
+                function_collection.accept(self)
+
+                loop_collection = LoopCollection()
+                loop_collection.accept(self)
+
+                qaas_database.add_to_data_list(function_collection)
+                qaas_database.add_to_data_list(loop_collection)
+
+                ##### decan collection 
+                current_decan_collection = DecanCollection()
+                current_decan_collection.accept(self)
+                qaas_database.add_to_data_list(current_decan_collection)
+
+            
+                ###lprof easure ments
+                lprof_measurement_collection = LprofMeasurementCollection(  block_collection, function_collection, loop_collection)
+                lprof_measurement_collection.accept(self)
+
+                qaas_database.add_to_data_list(lprof_measurement_collection)
+
+                # ####cqa dir csv
+                cqa_collection = CqaCollection()
+                cqa_collection.accept(self)
+                qaas_database.add_to_data_list(cqa_collection)
+
+                # #####asm dir csv
+                asm_collection = AsmCollection()
+                asm_collection.accept(self)
+                qaas_database.add_to_data_list(asm_collection)
+
+                ####group dir csv
+                group_collection = GroupCollection()
+                group_collection.accept(self)
+                qaas_database.add_to_data_list(group_collection)
+
+
+                ####source compilation_options.csv
+                source_collection = SourceCollection()        
+                source_collection.accept(self)
+                qaas_database.add_to_data_list(source_collection)
+
+                ##### vprof collection 
+                current_vprof_collection = VprofCollection()
+                current_vprof_collection.accept(self)
+                qaas_database.add_to_data_list(current_vprof_collection)
+                
+                
+    def visitQaaS(self, qaas):
+        pass
     def visitQaaSDataBase(self, qaas_database):
-        current_application = Application(self)
-        current_execution = Execution(self)
-        ### set the execution 
-        self.current_execution = current_execution
-        qaas_database.universal_timestamp = current_execution.universal_timestamp
 
-        current_execution.application = current_application
-        qaas_database.add_to_data_list(current_execution)
-        
-      
-        # ##hwsystem table
-        current_hw = HwSystem(self)
-        current_execution.hwsystem = current_hw
-        qaas_database.add_to_data_list(current_hw)
+        #use metadata file to read the data files
+        #get metadata
+        metadata_dict = parse_text_to_dict(self.qaas_metadata_file_path)
+        #get data files
+        if metadata_dict['multicompiler_report']:
+            multicompiler_report_file_name = metadata_dict['multicompiler_report']
+            multicompiler_report_path = os.path.join(self.report_path, multicompiler_report_file_name)
+            print(multicompiler_report_path)
+            self.build_executions_from_file(multicompiler_report_path, 'multicompiler_report', qaas_database, metadata_dict)
 
-        # ###os table
-        current_os = Os(self)
-        current_execution.os = current_os
-        qaas_database.add_to_data_list(current_os)
+        if metadata_dict['scalability_report']:
+            scalability_report_file_name = metadata_dict['scalability_report']
+            scalability_report_path = os.path.join(self.report_path, scalability_report_file_name)
+            #read scability report 
+            self.build_executions_from_file(scalability_report_path, 'scalability_report', qaas_database, metadata_dict)
 
-        # # ###maqao table
-        current_maqao = Maqao( self)
-        current_maqao.execution = current_execution
-        qaas_database.add_to_data_list(current_maqao)
-
-        ###### environment, environment metrics
-        current_environment = Environment( self)
-        current_os.environment = current_environment
-        qaas_database.add_to_data_list(current_environment)
-
-  
-
-        #########lprof categorization table and lprof categorization metrics
-        current_lprof_categorization_collection = LprofCategorizationCollection()
-        current_lprof_categorization_collection.accept(self)
-        current_execution.lprof_categorizations = current_lprof_categorization_collection.get_objs()
-        qaas_database.add_to_data_list(current_lprof_categorization_collection)
-
-        # ####lprofs_module.csv
-        module_collection = ModuleCollection()
-        module_collection.accept(self)
-        current_execution.modules = module_collection.get_objs()
-        qaas_database.add_to_data_list(module_collection)
-
-        ####lprof_blocks
-        block_collection = BlockCollection()
-        block_collection.accept(self)
-        current_execution.blocks = block_collection.get_objs()
-        qaas_database.add_to_data_list(block_collection)
-
-        ####lprof functiona and loops
-        function_collection = FunctionCollection( )
-        function_collection.accept(self)
-
-        loop_collection = LoopCollection()
-        loop_collection.accept(self)
-
-        qaas_database.add_to_data_list(function_collection)
-        qaas_database.add_to_data_list(loop_collection)
-
-        ##### decan collection 
-        current_decan_collection = DecanCollection()
-        current_decan_collection.accept(self)
-        qaas_database.add_to_data_list(current_decan_collection)
-
-      
-        ###lprof easure ments
-        lprof_measurement_collection = LprofMeasurementCollection(  block_collection, function_collection, loop_collection)
-        lprof_measurement_collection.accept(self)
-
-        qaas_database.add_to_data_list(lprof_measurement_collection)
-
-        # ####cqa dir csv
-        cqa_collection = CqaCollection()
-        cqa_collection.accept(self)
-        qaas_database.add_to_data_list(cqa_collection)
-
-        # #####asm dir csv
-        asm_collection = AsmCollection()
-        asm_collection.accept(self)
-        qaas_database.add_to_data_list(asm_collection)
-
-        ####group dir csv
-        group_collection = GroupCollection()
-        group_collection.accept(self)
-        qaas_database.add_to_data_list(group_collection)
-
-
-        ####source compilation_options.csv
-        source_collection = SourceCollection()        
-        source_collection.accept(self)
-        qaas_database.add_to_data_list(source_collection)
-
-        ##### vprof collection 
-        current_vprof_collection = VprofCollection()
-        current_vprof_collection.accept(self)
-        qaas_database.add_to_data_list(current_vprof_collection)
-        
-       
-        
 
     def visitEnvironment(self, environment):
         self.run_dir_path=self.get_env_path()
@@ -276,14 +315,63 @@ class OneViewModelInitializer(OneviewModelAccessor):
         env_metrics = environment.add_metrics(self.session, env_data)
 
     def visitApplication(self, application):
-        application.workload = self.workload
-        application.version = self.workload_version
-        application.program = self.program
-        application.commit_id = self.commit_id
+        pass
 
     def visitExecution(self, execution):
-        execution.qaas_timestamp = self.qaas_timestamp
-        execution.version = self.version
+        #metadata info
+        metadata_dict = parse_text_to_dict(self.qaas_metadata_file_path)
+
+        #create qaas and exectuion assoicate table
+        #both multicompiler report and scabilty belong to same qaas 
+        timestamp = metadata_dict['timestamp']
+        current_qaas = QaaS.get_or_create_qaas(timestamp, self)
+        current_qaas_run = QaaSRun(self)
+        #associate table
+        current_qaas_run.execution = execution
+        current_qaas_run.qaas = current_qaas
+        current_qaas_run.type = self.current_type
+
+        #data info
+        execution.time = self.current_row['time(s)']
+        compiler_vendor = self.current_row['compiler']
+        compiler_flag = self.current_row.get('flags', None)
+        config = {
+            'MPI_threads' : self.current_row['#MPI'],
+            'OMP_threads' : self.current_row['#OMP'],
+            'affinity': self.current_row.get('affinity', None)
+        }
+        execution.config = config
+        global_metrics_dict = {"Gflops": self.current_row['GFlops/s'] if "GFlops/s" in self.current_row else self.current_row['Gflops/s']}
+        execution.global_metrics = global_metrics_dict
+        #if it is orig we need to replace it with the actual compiler from metadata
+        if compiler_vendor == 'orig':
+            compiler_vendor = metadata_dict['compiler_default']
+            current_qaas.orig_execution = execution
+
+        
+        #get compiler version from metadata
+        compiler_version = None
+        if compiler_vendor == 'icc':
+            compiler_version = metadata_dict['icc_version']
+        elif compiler_vendor == 'icx':
+            compiler_version = metadata_dict['icx_version']
+        elif compiler_vendor == 'gcc':
+            compiler_version = metadata_dict['gcc_version']
+        compiler = Compiler.get_or_create_compiler_by_compiler_info(vendor=compiler_vendor, version=compiler_version, initializer=self)
+        
+        compiler_option = CompilerOption(self)
+        compiler_option.flag = compiler_flag
+        #have to create one compielr option per execution otherwise will overwrite the compiler for the flag
+        # compiler_option = CompilerOption.get_or_create_compiler_option(compiler_flag, self)
+        #this will overwrite the compiler for the flag
+        compiler_option.compiler = compiler
+        execution.compiler_option = compiler_option
+
+
+
+        #only run below if there is ov report avaiable
+        if not self.qaas_data_dir:
+            return
         local_vars_path, config_path, config_out_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
             fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
         local_vars_df = read_file(local_vars_path)
@@ -294,9 +382,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
         execution.universal_timestamp = local_vars_dict.get('universal_timestamp', None)
 
         #add additional cols
-        execution.is_orig = 1 if execution.version == 'orig' else 0
         # #config lua and cqa_context
-        execution.config = convert_lua_to_python(config_path)
+        additonal_config = convert_lua_to_python(config_path)
+        execution.config.update(additonal_config)
+
         execution.cqa_context = convert_lua_to_python(cqa_context_path)
         
         # #get time, profiled time, and max_nb_threads from expert loops
@@ -328,11 +417,14 @@ class OneViewModelInitializer(OneviewModelAccessor):
             'global_metrics': global_metrics_df.to_json(orient="split"),
             'compilation_options': compilation_options_df.to_json(orient="split")
         }
-        execution.global_metrics = global_metrics_dict
+        execution.global_metrics.update(global_metrics_dict)
         execution.threads_per_core = local_vars_dict.get('threads_per_core', None)
 
 
     def visitOs(self, os):
+        #only run below if there is ov report avaiable
+        if not self.qaas_data_dir:
+            return
         local_vars_path=self.get_os_path()
         local_vars_df = read_file(local_vars_path)
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
@@ -342,6 +434,9 @@ class OneViewModelInitializer(OneviewModelAccessor):
         os.driver_frequency = local_vars_dict.get('driver_frequency', None)
 
     def visitHwSystem(self, hwsystem):
+        #only run below if there is ov report avaiable
+        if not self.qaas_data_dir:
+            return
         local_vars_path = self.get_hwsystem_path()
         local_vars_df = read_file(local_vars_path)
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
@@ -837,7 +932,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
 
 #TODO write to part of the file
-class OneViewModelExporter(OneviewModelAccessor):
+class QaaSOneViewModelExporter(QaaSOneviewModelAccessor):
     def __init__(self, session, qaas_data_dir):
         super().__init__(session, qaas_data_dir)
     def visitQaaSDataBase(self, qaas_database):
@@ -1489,7 +1584,8 @@ class MetricGetter(ModelAccessor):
             if metric_value:
                 res.append(metric_value)
             self.data = res 
-
+    def visitQaaS(self, qaas_database):
+        pass
     def visitQaaSDataBase(self, qaas_database):
         pass
     def visitApplication(self, application):

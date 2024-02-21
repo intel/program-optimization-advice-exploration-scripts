@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Histogram from './Histogram';
 import axios from 'axios';
-
-function TotalTimeSpeedupGraph({ selectedRows, baseline, open }) {
+import { useSelectionContext } from '../contexts/SelectionContext';
+function TotalTimeSpeedupGraph({ open }) {
+    const { selectedRows, baseline } = useSelectionContext();
 
     const [graphData, setGraphData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);

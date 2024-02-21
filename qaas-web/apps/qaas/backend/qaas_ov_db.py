@@ -28,23 +28,22 @@
 # Created October 2022
 # Contributors: Yue/David
 import os
-from qaas_model_accessor import QaaSModelInitializer
-from qaas_database import QaaSDatabase
-#import pickle
+from qaas_ov_model_accessor import QaaSOneViewModelInitializer
+from qaas_ov_database import QaaSOneViewDatabase
 from model import connect_db
 from sqlalchemy.orm import sessionmaker
-# populate database given the data in qaas data folder, gui timestamp is the timestamp for both opt and orig
-def populate_database_qaas(report_path, config):
+
+def populate_database_qaas_ov(report_path, config):
     #connect db
-    engine = connect_db(config, "qaas")
+    engine = connect_db(config, "qaas_ov")
     Session = sessionmaker(bind=engine)
     session = Session()
 
     
     #######################populate database tables######################
-    initializer = QaaSModelInitializer(session, report_path)
-    qaas_database = QaaSDatabase()
-    qaas_database.accept(initializer)
+    initializer = QaaSOneViewModelInitializer(session, report_path)
+    qaas_ov_database = QaaSOneViewDatabase()
+    qaas_ov_database.accept(initializer)
     
     session.commit()
     session.close()

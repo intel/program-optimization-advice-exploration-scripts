@@ -45,3 +45,7 @@ tr:hover {
     max-height: 500px;
     overflow-x: auto;
 }
+
+.custom-header {
+    background-color: rgb(240, 239, 239);
+}

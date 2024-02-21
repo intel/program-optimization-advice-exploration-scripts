@@ -43,6 +43,7 @@ from sqlalchemy.sql import and_
 import csv
 import numpy as np
 import sys
+from slpp import slpp as lua
 current_directory = os.path.dirname(os.path.abspath(__file__))
 base_directory = os.path.join(current_directory, '../../common/backend/')
 base_directory = os.path.normpath(base_directory)  
@@ -228,18 +229,24 @@ def add_commas_inside_brackets(lua_code):
 
 def convert_python_to_lua(python_object,lua_file_path):
     if python_object:
-        with open(lua_file_path, 'wb') as f:
-            f.write(decompress_file(python_object))
-    #TODO use json instead of string
-    # lua_code = luadata.serialize(python_object, encoding="utf-8", indent="")
-    # lua_code = lua_code[1:-1]  
-    # lua_code = lua_code.replace('\\\\', '\\')
-    # lua_code = lua_code.lstrip()
-    # lua_code = lua_code.replace(',', '')
-    # lua_code = add_commas_inside_brackets(lua_code)
-
-    # with open(lua_file_path, 'w', encoding="utf-8") as f:
-    #     f.write(lua_code)
+    #     with open(lua_file_path, 'wb') as f:
+    #         f.write(decompress_file(python_object))
+    #use slpp library instead of write the string
+        if os.path.basename(lua_file_path) == 'config.lua':
+            keys = list(python_object.keys())
+            values = list(python_object.values())
+            with open(lua_file_path, 'w') as file:
+                for key, value in zip(keys, values):
+                    value = lua.encode(value)
+                    line = f"{key} = {value}\n"
+                    file.write(line)
+        else:
+            key = list(python_object.keys())[0]
+            value = list(python_object.values())[0]
+            lua_str = lua.encode(value)
+            lua_str = f'{key} = {lua_str}'
+            with open(lua_file_path, 'w') as file:
+                file.write(lua_str)
 
 
 def file_is_lua_table(lua_code):
@@ -302,25 +309,12 @@ def convert_non_table_lua_to_python(lua_file):
     return config
 def convert_lua_to_python(lua_file):
     if os.path.exists(lua_file):
-        return compress_file(lua_file)
-    #TODO use json instead of string
-    # python_dict = luadata.read(lua_file)
-    # return python_dict
-    # with open(lua_file, 'r', encoding="utf-8") as f:
-    #     lua_code = f.read()
-
-    # if not file_is_lua_table(lua_code):
-    #     with open(lua_file, 'r') as file:
-    #         lua_string = file.read()
-    #         return lua_string
-    # else:
-    #     # Wrap the Lua code in a table
-    #     wrapped_lua_code = "return {" + lua_code + "}"
-
-    #     python_object = luadata.unserialize(wrapped_lua_code)
-
-    #     # Extract the outermost dictionary
-    #     return python_object
+    #     return compress_file(lua_file)
+        with open(lua_file, 'r') as file:
+            file_str = file.read()
+        file_str = '{' + file_str + '}'
+        dic = lua.decode(file_str)
+        return dic
 
 
 

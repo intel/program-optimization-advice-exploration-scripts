@@ -44,38 +44,43 @@ export default function StatusPanel({ msg }) {
   })
   let index_of_msg = msgs.indexOf(msg)
   return (
-    <div style={{ marginTop: 80 }}>
-      StatusPanel
-      {index_of_msg > -1 &&
-        <ProgressBar
-          percent={10 * (index_of_msg + 1)}
-          filledBackground="linear-gradient(to right, #e3f2fd, #0d47a1)"
-        >
-          {color_arr.map(c =>
-            <Step >
-              {({ accomplished, position }) => (
-                <CircleIcon sx={{ color: c }} />
-              )}
-            </Step>
-          )
+    <div className="centeredBox" >
+      <div className="infoContent">
+        <div >
+          StatusPanel
+          {index_of_msg > -1 &&
+            <ProgressBar
+              percent={10 * (index_of_msg + 1)}
+              filledBackground="linear-gradient(to right, #e3f2fd, #0d47a1)"
+            >
+              {color_arr.map(c =>
+                <Step >
+                  {({ accomplished, position }) => (
+                    <CircleIcon sx={{ color: c }} />
+                  )}
+                </Step>
+              )
+              }
+
+            </ProgressBar>
           }
 
-        </ProgressBar>
-      }
-
-      {index_of_msg > -1 &&
-        <ul>
-          {msgs.map((m, i) =>
-            <li style={{ color: color_arr[i] }}>
-              {m}
-            </li>
-          )
+          {index_of_msg > -1 &&
+            <ul>
+              {msgs.map((m, i) =>
+                <li style={{ color: color_arr[i] }}>
+                  {m}
+                </li>
+              )
+              }
+            </ul>
           }
-        </ul>
-      }
-      {/* {JSON.stringify(msg_num).indexOf(msg) > -1 && <p>{msg}</p>} */}
+          {/* {JSON.stringify(msg_num).indexOf(msg) > -1 && <p>{msg}</p>} */}
 
 
+        </div>
+      </div>
     </div>
+
   )
 }

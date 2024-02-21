@@ -4,7 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 
 import WelcomePage from './text_pages/WelcomePage';
 import BrowseResult from './BrowseResult';
-import UserInputStepper from './UserInputInteractive';
+import UserInputStepper from './job_submission/UserInputInteractive';
 import LoginPage from './LoginPage';
 import GeneratedPage from './GeneratedPage';
 import QualityDefinitions from './text_pages/QualityDefinitions';
@@ -37,7 +37,6 @@ import Oneview from './text_pages/Oneview';
 import BestAppInsightsPerDomain from './text_pages/BestAppInsightsPerDomain';
 import CompilerDetails from './text_pages/CompilerDetails';
 import SystemConfig from './text_pages/systemconfig/SystemConfig';
-import SkyLake from './text_pages/systemconfig/SkyLake';
 import MultiCompilerGains from './text_pages/MultiCompilerGains';
 import QaaSSearches from './text_pages/QaaSSearches';
 import QaaSSearchesL2 from './text_pages/QaaSSearchesL2';
@@ -49,8 +48,6 @@ import MultiprocessorPerfContents from './text_pages/clickin/MultiprocessorPerfC
 import PerfImprove from './text_pages/clickin/PerfImprove';
 import FlagRecMiniapps from './text_pages/clickin/FlagRecMiniapps';
 import AMGHACCClickTarget from './text_pages/clickin/AMGHACCClickTarget';
-import ICC from './text_pages/systemconfig/ICC';
-import GCC from './text_pages/systemconfig/GCC';
 import TableOfContents from './TableOfContents';
 import ApplicationPortability from './text_pages/clickin/ApplicationPortability';
 export const layoutRoutes = [
@@ -97,7 +94,7 @@ export const layoutRoutes = [
     // { path: "/qaas/multi_compiler_gains", component: MultiCompilerGains },
     // { path: "/qaas/qaas_searches", component: QaaSSearches },
     // { path: "/qaas/qaas_searches_l2", component: QaaSSearchesL2 },
-    { path: "/system_config", component: SkyLake },
+    { path: "/system_config", component: SystemConfig },
     // { path: "/system_config/sky_lake", component: SkyLake },
     // { path: "/system_config/ice_lake", component: IceLake },
     // { path: "/system_config/sapphire_rapids", component: SapphireRapids },

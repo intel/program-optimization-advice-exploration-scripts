@@ -77,7 +77,7 @@ const SelectedRunsDrawer = ({ isOpen, onClose, selectedRows, setSelectedRows, ba
             {selectedRows.length > 0 && baseline && (
 
                 <button className="table-action-button" onClick={handleGraphButton}>
-                    Show Graph
+                    Show Hardware Comparison
                 </button>
             )}
 

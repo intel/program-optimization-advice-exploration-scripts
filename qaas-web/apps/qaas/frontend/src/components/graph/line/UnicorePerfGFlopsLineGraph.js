@@ -3,7 +3,7 @@ import axios from "axios";
 import { Chart, registerables } from "chart.js"
 import { createMinMaxAnnotations } from '../GraphPlugin';
 import PlotlyLineGraph from './PlotlyLineGraph';
-import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout } from '../../Constants';
+import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout, getAppName } from '../../Constants';
 Chart.register(...registerables);
 
 
@@ -33,6 +33,8 @@ export default function UnicorePerfGFlopsLineGraph() {
 
     const processRawData = (rawData) => {
         const { Apps, ...processors } = rawData;
+        const transformedApps = Apps.map(app => getAppName(app));
+
         return Object.keys(processors).map(processor => {
             const processorData = processors[processor];
             const symbol = getProcessorPointStyle(processor); // get the point symbol 
@@ -41,7 +43,7 @@ export default function UnicorePerfGFlopsLineGraph() {
                 type: 'scatter',
                 mode: 'markers+lines',
                 name: processor,
-                x: Apps,
+                x: transformedApps,
                 y: processorData.map(value => value === null ? undefined : value),
                 line: {
                     color: color,
