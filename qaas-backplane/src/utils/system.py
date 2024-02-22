@@ -83,6 +83,23 @@ def get_intel_processor_name():
 
     return CPU
 
+def get_processor_architecture():
+    '''Get the processor architecture'''
+    # Get the CPU code name
+    CPU =  get_intel_processor_name()
+
+    # Translate CPU name into architecture code
+    if CPU == 'SPR':
+        architecture = 'SAPPHIRE_RAPIDS'
+    elif CPU == 'ICL':
+        architecture = 'ICELAKE_SP'
+    elif CPU == 'SKL':
+        architecture = 'SKYLAKE'
+    else:
+        architecture = ''
+
+    return architecture
+
 def get_number_of_cpus():
     '''Retrieve the number of logical CPUs from lscpu command'''
     count = int(subprocess.check_output('lscpu --extended=CPU | tail -n +2 | sort -u | wc -l', shell=True))

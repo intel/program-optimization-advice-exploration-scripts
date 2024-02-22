@@ -78,8 +78,8 @@ class QAASMetaDATA:
         self.config[QAAS_SECTION_NAME]["timestamp"] = self.qaas_timestamp
         self.config[QAAS_SECTION_NAME]["app_name"] = self.qaas_appname
         self.config[QAAS_SECTION_NAME]["git_commit"] = ''
-        self.config[QAAS_SECTION_NAME]["dataset_name"] = f'"{self.qaas_dataset_label}"'
-        self.config[QAAS_SECTION_NAME]["run_cmd"] = f'"{run_cmd}"'
+        self.config[QAAS_SECTION_NAME]["dataset_name"] = self.qaas_dataset_label
+        self.config[QAAS_SECTION_NAME]["run_cmd"] = run_cmd
         self.write_data(self.config)
 
     def add_multicompiler_metadata(self, default_compiler, report_name):
@@ -102,7 +102,7 @@ class QAASMetaDATA:
         self.config[SYSTEM_SECTION_NAME]["machine"] = system.get_hostname()
         self.config[SYSTEM_SECTION_NAME]["model_name"] = system.get_model_name()
         self.config[SYSTEM_SECTION_NAME]["ISA"] = system.get_ISA()
-        self.config[SYSTEM_SECTION_NAME]["architecture"] = system.get_intel_processor_name() 
+        self.config[SYSTEM_SECTION_NAME]["architecture"] = system.get_processor_architecture()
         # CPU info
         self.config[SYSTEM_SECTION_NAME]["number_of_cpus"] = str(system.get_number_of_cpus())
         self.config[SYSTEM_SECTION_NAME]["number_of_cores"] = str(system.get_number_of_cores())
