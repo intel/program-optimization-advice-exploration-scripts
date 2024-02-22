@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-
-import Checkbox from '@mui/material/Checkbox';
-import StatusPanel from '../StatusPanel';
 import Button from '@mui/material/Button';
 import axios from "axios";
 import Stepper from '@mui/material/Stepper';
@@ -18,14 +15,16 @@ import { GoldenRunInfo } from './GoldenRunInfo';
 import { OptionalRunInfo } from './OptionalRunInfo';
 import { ValidationInfo } from './ValidationInfo';
 import { JOB_SUB_THEME } from './JobSubUtil';
+import StatusPanel from './StatusPanel';
 import '../css/input.css'
 const steps = ['Build Info', 'Run Info', 'Golden Run System Settings', 'Optional Run System Settings', 'Validation and Domain Specific Rate', 'Status Info'];
 
-export default function UserInputStepper({ isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
+export default function UserInputStepper() {
+    const navigate = useNavigate();
     const [activeStep, setActiveStep] = React.useState(0);
     const [skipped, setSkipped] = React.useState(new Set());
-
     const [statusMsg, setStatusMsg] = useState("");
+
     const isStepOptional = (step) => {
         return step === 4;
     };
@@ -114,7 +113,11 @@ export default function UserInputStepper({ isLoading, shouldLoadHTML, setIsLoadi
     const handleReset = () => {
         setActiveStep(0);
     };
-    /******************************************************************* Written Prepare Code *************************************************/
+
+    //see results button click
+    const handleFinishButtonClick = () => {
+        navigate('/results');
+    };
     //state
     //socket
     const [SSEStatus, setSSEStatus] = useState(false);
@@ -124,10 +127,7 @@ export default function UserInputStepper({ isLoading, shouldLoadHTML, setIsLoadi
     //input state
     const [input, setInput] = useState(INITIAL_INPUT)
 
-    const handleFinishButtonClick = () => {
-        setIsLoading(false)
-        setShouldLoadHTML(true)
-    };
+
     /******************************************************************* Finish prepare Written Code *************************************************/
 
     return (

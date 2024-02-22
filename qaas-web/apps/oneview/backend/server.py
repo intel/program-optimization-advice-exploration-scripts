@@ -27,13 +27,9 @@
 # HISTORY
 # Created October 2022
 # Contributors: Yue/David
-from glob import glob
-import pandas
-from sqlalchemy import null
 from flask import Flask,Response
 from flask import request,jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask import current_app
 from multiprocessing import Process, Queue
 import pandas as pd
 import subprocess
@@ -47,18 +43,21 @@ from datetime import datetime
 import threading
 import queue
 import configparser
-from ovdb import populate_database, export_data
+from ovdb import export_data
 from util import *
 from flask_cors import CORS
-from model import *
-from sqlalchemy import select, join
-import luadata
 import re
 from filters import FilterContext
 from model_accessor import MetricGetter
 from qaas_database import QaaSDatabase
 from constants import EXECUTION_METRIC_TYPES
 from collections import defaultdict
+current_directory = os.path.dirname(os.path.abspath(__file__))
+base_directory = os.path.join(current_directory, '../../common/backend/')
+base_directory = os.path.normpath(base_directory)  
+sys.path.insert(0, base_directory)
+from model import *
+from base_util import *
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
@@ -312,51 +311,11 @@ def create_app(config):
         create_manifest_comparison(manifest_file_path, data_folder_list)
         manifest_out_path = create_out_manifest(frontend_html_path)
 
-        run_otter_command(manifest_file_path, manifest_out_path)
+        run_otter_command(manifest_file_path, manifest_out_path, config)
         return jsonify(isError= False,
                     message= "Success",
                     statusCode= 200,
                     )
-    # @app.route('/create_new_timestamp', methods=['GET','POST'])
-    # def create_new_timestamp():
-    #     #real user input data  unused for now
-    #     qaas_request = request.get_json()
-        
-    #     #call backplane and wait to finish
-    #     json_file = config['web']['INPUT_JSON_FILE']
-    #     # t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
-    #     # t.start()
-    #     # t.join()
-        
-    #     # output_ov_dir = t.output_ov_dir
-    #     # output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-50-406"
-    #     output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-80-123"
-
-    #     ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
-    #     for version in ['opt','orig']:
-    #         ov_version_output_dir = os.path.join(ov_output_dir, version)
-    #         result_folders = os.listdir(ov_version_output_dir)
-    #         # Should have only one folder
-    #         assert len(result_folders) == 1
-    #         result_folder = result_folders[0]
-    #         current_ov_dir = os.path.join(ov_version_output_dir, result_folder)
-    #         qaas_timestamp = os.path.basename(output_ov_dir)
-    #         workload_name = f"workload_name_{version}"
-    #         workload_version_name = f"version_name({version})"
-    #         workload_program_name = f"test_program_name_{version}"
-    #         workload_program_commit_id = f"test###id_{version}"
-    #         populate_database(current_ov_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id)
-    #         update_html(version)
-        
-    #     #if True:
-    #     run_comparison_report()
-
-    #     return jsonify(isError= False,
-    #                 message= "Success",
-    #                 statusCode= 200,
-    #                 timestamp=qaas_timestamp,
-    #                 )
-
 
     @app.route('/get_html_by_timestamp', methods=['GET','POST'])
     def get_html_by_timestamp():
@@ -369,7 +328,7 @@ def create_app(config):
         create_manifest_monorun(manifest_file_path,qaas_output_folder)
         manifest_out_path = create_out_manifest(frontend_html_path)
 
-        run_otter_command(manifest_file_path, manifest_out_path)
+        run_otter_command(manifest_file_path, manifest_out_path, config)
         # print(query_time)
         # for version in ['opt','orig']:
         #     update_html(version)
@@ -434,79 +393,9 @@ def delete_created_path(path_list):
             shutil.rmtree(path)
 
 
-def run_otter_command(manifest_file_path, out_manifest_path):
-    run_dir = os.path.dirname(manifest_file_path)
-    cdcommand= f"cd {run_dir};"
-    ottercommand = f"{config['web']['MAQAO_VERSION']} otter --input={manifest_file_path} --output={out_manifest_path}"  
-    # command = cdcommand +  ottercommand
-    # print(ottercommand)
-    # Use this version for SDP because flagging for shell=True
-    ret = subprocess.run([config['web']['MAQAO_VERSION'], "otter", f"--input={manifest_file_path}", f"--output={out_manifest_path}"], cwd=run_dir, capture_output=True)
-    
-    # This is original implementation
-    # ret = subprocess.run(command, capture_output=True, shell=True)
-    print(ret.stdout.decode())
-   
 
-def create_manifest_file_for_run(run_id, run_name, output_data_dir, manifest_path):
-    content =  f"""meta;{run_id};{run_name};run_{run_id};
-virtual;0;executable;./mpi_hello_world;
-file;{run_id};expert_run;{output_data_dir}/shared/run_0/expert_run.csv;
-file;{run_id};config;{output_data_dir}/shared/run_0/config.lua;
-file;{run_id};localvars;{output_data_dir}/shared/run_0/local_vars.csv;
-dir;{run_id};lprof_dir;{output_data_dir}/shared/lprof_npsu_run_0;
-dir;{run_id};cqa_dir;{output_data_dir}/static_data/cqa;
-dir;{run_id};sources_dir;{output_data_dir}/static_data/sources;
-dir;{run_id};asm_dir;{output_data_dir}/static_data/asm;
-dir;{run_id};groups_dir;{output_data_dir}/static_data/groups;
-dir;{run_id};hierarchy_dir;{output_data_dir}/static_data/hierarchy;
-file;{run_id};global_metrics;{output_data_dir}/shared/run_0/global_metrics.csv;
-file;{run_id};categorization;{output_data_dir}/shared/run_0/lprof_categorization.csv;
-dir;{run_id};callchains_dir;{output_data_dir}/shared/lprof_npsu_run_0/callchains;
-file;{run_id};log;{output_data_dir}/logs/log.txt;
-file;{run_id};logs_subdir;{output_data_dir}/logs/run_0;
-dir;{run_id};env_dir;{output_data_dir}/shared/run_0;
-"""
-    if os.path.exists(f'{output_data_dir}/shared/run_0/decan.csv'):
-        higher_level_content = f"""file;{run_id};decan;{output_data_dir}/shared/run_0/decan.csv;
-        file;{run_id};vprof;{output_data_dir}/shared/run_0/vprof.csv;
-        dir;{run_id};asm_mapping_dir;{output_data_dir}/tools/decan/run_{run_id}/others;"""
-        content += higher_level_content
 
-    write_string_to_file(manifest_path, content)
 
-def write_string_to_file(file_path, string):
-    with open(file_path, 'a') as file:
-        file.write(f'{string}\n')
-
-def write_manifest_header(manifest_path, run_type):
-    header=f"""type;run;usage;path;
-meta;;report_type;{run_type};"""
-    write_string_to_file(manifest_path, header)
-
-def create_out_manifest(output_file_path):
-    usage = 'html_dir'
-    output_dir_path = os.path.join(output_file_path, 'output_html')
-    data = {'usage': [usage], 'value': [output_dir_path]}
-    df = pd.DataFrame(data)
-    os.makedirs(output_file_path, exist_ok=True)
-    out_manifest_path = os.path.join(output_file_path, 'out_manifest.csv')
-    df.to_csv(out_manifest_path, index=False)
-    return out_manifest_path
-
-def create_manifest_comparison(manifest_path, output_data_dir_list):
-    if os.path.isfile(manifest_path):
-        os.remove(manifest_path)
-    write_manifest_header(manifest_path, 'multirun')
-    index = 0
-    for output_data_dir in output_data_dir_list:
-        create_manifest_file_for_run(index, f'run_{index}', output_data_dir, manifest_path)
-        index += 1
-def create_manifest_monorun(manifest_path, output_data_dir):
-    if os.path.isfile(manifest_path):
-        os.remove(manifest_path)
-    write_manifest_header(manifest_path, 'monorun')
-    create_manifest_file_for_run(0, 'run_0', output_data_dir, manifest_path)
 
 def run_comparison_report():
 
@@ -517,7 +406,7 @@ def run_comparison_report():
     create_manifest_comparison(manifest_file_path, data_folder_list)
     manifest_out_path = create_out_manifest(frontend_html_path)
 
-    run_otter_command(manifest_file_path, manifest_out_path)
+    run_otter_command(manifest_file_path, manifest_out_path, config)
 
 
   
@@ -530,7 +419,7 @@ def update_html(version):
     manifest_out_path = create_out_manifest(frontend_html_path)
     
 
-    run_otter_command(manifest_file_path, manifest_out_path)
+    run_otter_command(manifest_file_path, manifest_out_path, config)
 
     # delete_created_path(to_delete)
 

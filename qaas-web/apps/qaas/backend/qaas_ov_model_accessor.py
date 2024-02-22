@@ -27,7 +27,7 @@
 # HISTORY
 # Created October 2022
 # Contributors: Yue/David
-from util import *
+from qaas_util import *
 import os
 import pandas as pd
 import shutil
@@ -41,7 +41,7 @@ sys.path.insert(0, base_directory)
 from model_accessor_base import ModelAccessor
 from model import *
 from model_collection import *
-from base_util import read_file
+from base_util import *
 
 
 class QaaSOneviewModelAccessor(ModelAccessor):
@@ -164,6 +164,9 @@ class QaaSOneviewModelAccessor(ModelAccessor):
 class QaaSOneViewModelInitializer(QaaSOneviewModelAccessor):
     def __init__(self, session, report_path):
         super().__init__(session, report_path)
+    
+        self.cur_run_has_ov_data = False
+        self.current_row = None
         
 
     
@@ -179,6 +182,15 @@ class QaaSOneViewModelInitializer(QaaSOneviewModelAccessor):
             #iterate file each row in the file is new execution
             for index, row in df.iterrows():
                 self.current_row = row
+
+                #reset the check later avoid add extra ov info
+                if not self.current_row['ov_folder']:
+                    self.cur_run_has_ov_data = False
+                else:
+                    self.cur_run_has_ov_data = True
+                    self.set_ov_path(os.path.join(self.ov_runs_dir, self.current_row['ov_folder']))
+
+
                 current_application = Application(self)
                 current_application.mpi_scaling = metadata_dict['mpi_scaling']
                 current_application.omp_scaling = metadata_dict['openmp_scaling']     
@@ -200,12 +212,13 @@ class QaaSOneViewModelInitializer(QaaSOneviewModelAccessor):
                 current_execution.hwsystem = current_hwsystem
                 qaas_database.add_to_data_list(current_hwsystem)
 
-                ###### OV ########
+                ######################################## OV ########
                 ########## oneview specific only set this if there is a ov report associate with this run#########
-                if not self.current_row['ov_folder']:
+                if not self.cur_run_has_ov_data:
                     continue
-                print(os.path.join(self.ov_runs_dir, self.current_row['ov_folder']))
-                self.set_ov_path(os.path.join(self.ov_runs_dir, self.current_row['ov_folder']))
+
+                
+
                 ###maqao table
                 current_maqao = Maqao( self)
                 current_maqao.execution = current_execution
@@ -294,7 +307,6 @@ class QaaSOneViewModelInitializer(QaaSOneviewModelAccessor):
         if metadata_dict['multicompiler_report']:
             multicompiler_report_file_name = metadata_dict['multicompiler_report']
             multicompiler_report_path = os.path.join(self.report_path, multicompiler_report_file_name)
-            print(multicompiler_report_path)
             self.build_executions_from_file(multicompiler_report_path, 'multicompiler_report', qaas_database, metadata_dict)
 
         if metadata_dict['scalability_report']:
@@ -370,7 +382,7 @@ class QaaSOneViewModelInitializer(QaaSOneviewModelAccessor):
 
 
         #only run below if there is ov report avaiable
-        if not self.qaas_data_dir:
+        if not self.cur_run_has_ov_data:
             return
         local_vars_path, config_path, config_out_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
             fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
@@ -384,7 +396,7 @@ class QaaSOneViewModelInitializer(QaaSOneviewModelAccessor):
         #add additional cols
         # #config lua and cqa_context
         additonal_config = convert_lua_to_python(config_path)
-        execution.config.update(additonal_config)
+        execution.config = {**execution.config, **additonal_config}
 
         execution.cqa_context = convert_lua_to_python(cqa_context_path)
         
@@ -417,13 +429,13 @@ class QaaSOneViewModelInitializer(QaaSOneviewModelAccessor):
             'global_metrics': global_metrics_df.to_json(orient="split"),
             'compilation_options': compilation_options_df.to_json(orient="split")
         }
-        execution.global_metrics.update(global_metrics_dict)
+        execution.global_metrics = {**execution.global_metrics, **global_metrics_dict}
         execution.threads_per_core = local_vars_dict.get('threads_per_core', None)
 
 
     def visitOs(self, os):
         #only run below if there is ov report avaiable
-        if not self.qaas_data_dir:
+        if not self.cur_run_has_ov_data:
             return
         local_vars_path=self.get_os_path()
         local_vars_df = read_file(local_vars_path)
@@ -435,7 +447,7 @@ class QaaSOneViewModelInitializer(QaaSOneviewModelAccessor):
 
     def visitHwSystem(self, hwsystem):
         #only run below if there is ov report avaiable
-        if not self.qaas_data_dir:
+        if not self.cur_run_has_ov_data:
             return
         local_vars_path = self.get_hwsystem_path()
         local_vars_df = read_file(local_vars_path)
@@ -931,10 +943,12 @@ class QaaSOneViewModelInitializer(QaaSOneviewModelAccessor):
         pass
 
 
-#TODO write to part of the file
+# qaas ov exporter
 class QaaSOneViewModelExporter(QaaSOneviewModelAccessor):
     def __init__(self, session, qaas_data_dir):
         super().__init__(session, qaas_data_dir)
+        self.set_ov_path(qaas_data_dir)
+
     def visitQaaSDataBase(self, qaas_database):
         pass
     def visitApplication(self, application):

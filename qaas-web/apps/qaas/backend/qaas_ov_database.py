@@ -1,5 +1,10 @@
+from qaas_util import *
+current_directory = os.path.dirname(os.path.abspath(__file__))
+base_directory = os.path.join(current_directory, '../../common/backend/')
+base_directory = os.path.normpath(base_directory)  
+from model import *
 from model_collection import *
-from util import *
+from base_util import *
 class QaaSOneViewDatabase:
     def __init__(self):
         #put as parameter
@@ -13,6 +18,7 @@ class QaaSOneViewDatabase:
         qaas_database.add_to_data_list(current_execution)
         qaas_database.add_to_data_list(current_execution.hwsystem)
         qaas_database.add_to_data_list(current_execution.os)
+        print("maqaos",current_execution.maqaos)
         qaas_database.add_to_data_list(current_execution.maqaos[0])
         qaas_database.add_to_data_list(current_execution.os.environment)
         qaas_database.add_to_data_list(LprofCategorizationCollection(current_execution.lprof_categorizations))

@@ -28,7 +28,7 @@
 # Created October 2022
 # Contributors: Yue/David
 import os
-from qaas_ov_model_accessor import QaaSOneViewModelInitializer
+from qaas_ov_model_accessor import QaaSOneViewModelInitializer,QaaSOneViewModelExporter
 from qaas_ov_database import QaaSOneViewDatabase
 from model import connect_db
 from sqlalchemy.orm import sessionmaker
@@ -50,4 +50,9 @@ def populate_database_qaas_ov(report_path, config):
 
 
 
+def export_data(timestamp, qaas_output_folder, session):
+
+    qaas_ov_database = QaaSOneViewDatabase.find_database(timestamp, session)
+    exporter = QaaSOneViewModelExporter(session, qaas_output_folder)
+    qaas_ov_database.export(exporter)
 

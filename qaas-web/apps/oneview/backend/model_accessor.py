@@ -40,6 +40,7 @@ sys.path.insert(0, base_directory)
 from model_accessor_base import ModelAccessor
 from model import *
 from model_collection import *
+from base_util import *
 
 
 class OneviewModelAccessor(ModelAccessor):

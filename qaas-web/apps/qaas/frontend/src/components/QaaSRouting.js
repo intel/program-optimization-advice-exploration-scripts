@@ -3,10 +3,9 @@ import { useLocation } from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
 
 import WelcomePage from './text_pages/WelcomePage';
-import BrowseResult from './BrowseResult';
 import UserInputStepper from './job_submission/UserInputInteractive';
 import LoginPage from './LoginPage';
-import GeneratedPage from './GeneratedPage';
+import GeneratedPage from './job_submission/GeneratedPage';
 import QualityDefinitions from './text_pages/QualityDefinitions';
 import ConstraintsAndScope from './text_pages/ConstraintsAndScope';
 import WelcomePageTableOfContentsDrawer from './sidebar/WelcomePageTableOfContentsDrawer';
@@ -50,6 +49,7 @@ import FlagRecMiniapps from './text_pages/clickin/FlagRecMiniapps';
 import AMGHACCClickTarget from './text_pages/clickin/AMGHACCClickTarget';
 import TableOfContents from './TableOfContents';
 import ApplicationPortability from './text_pages/clickin/ApplicationPortability';
+import BrowseResult from './job_submission/BrowseResult';
 export const layoutRoutes = [
     { path: "/input", component: UserInputStepper },
     { path: "/result", component: BrowseResult },
@@ -101,6 +101,11 @@ export const layoutRoutes = [
     // { path: "/system_config/icc", component: ICC },
     // { path: "/system_config/gcc", component: GCC }
 ];
+const otherRoutes = [
+    { path: "/results", component: BrowseResult },
+    { path: "/generated", component: GeneratedPage },
+]
+
 export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const location = useLocation();
 
@@ -119,6 +124,9 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
         <Routes>
 
             {layoutRoutes.map(({ path, component: Component }) => (
+                <Route key={path} path={path} element={<Component />} />
+            ))}
+            {otherRoutes.map(({ path, component: Component }) => (
                 <Route key={path} path={path} element={<Component />} />
             ))}
             {/* <Route path="*" element={

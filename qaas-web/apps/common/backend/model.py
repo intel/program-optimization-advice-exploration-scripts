@@ -25,7 +25,7 @@ from pickle import dumps, loads
 from gzip import zlib
 import os
 import math
-from base_util import *
+
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 Base = declarative_base()
@@ -1092,3 +1092,15 @@ def get_loop_by_maqao_id(current_execution, maqao_id):
                 return l
     return res
 
+
+def compress_file(filename):
+    with open(filename, 'rb') as f:
+        content = f.read()
+    return zlib.compress(content, 9)
+
+def get_file_sha256(filename):
+    with open(filename, 'rb') as f:
+        sha256_hash = hashlib.sha256(f.read()).hexdigest()
+    return sha256_hash
+def decompress_file(compressed_content):
+    return zlib.decompress(compressed_content)

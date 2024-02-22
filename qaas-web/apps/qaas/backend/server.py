@@ -30,7 +30,7 @@
 
 import pandas as pd
 
-from flask import Flask
+from flask import Flask,Response
 from flask_cors import CORS
 from flask import jsonify,request
 import numpy as np
@@ -40,12 +40,28 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, exists, and_, cast
 from sqlalchemy import func
 import sys
+import tempfile
 #import files from common 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 base_directory = os.path.join(current_directory, '../../common/backend/')
 base_directory = os.path.normpath(base_directory)  
 sys.path.insert(0, base_directory)
+from base_util import *
+backplane_directory = os.path.normpath(os.path.join(current_directory, '../../../../qaas-backplane/src'))
+sys.path.insert(0, backplane_directory)
+deployment_directory = os.path.normpath(os.path.join(current_directory, '../../../deployment'))
+sys.path.insert(0, deployment_directory)
+from populate_db import read_qaas_ov
+from qaas_ov_db import export_data
 from model import *
+import threading
+from qaas import launch_qaas
+import time
+import queue
+import json
+import subprocess
+# from qaas_ov_db import populate_database_qaas_ov
+
 #set config
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
@@ -54,10 +70,21 @@ config.read(config_path)
 #set app
 app = Flask(__name__)
 CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS']
+app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 db.init_app(app)
+
+class QaaSThread(threading.Thread):
+    def __init__(self, json_file, qaas_data_folder, qaas_message_queue):
+        super().__init__()
+        self.json_file = json_file
+        self.qaas_data_folder = qaas_data_folder
+        self.qaas_message_queue = qaas_message_queue
+
+
+    def run(self):
+        self.rc, self.output_ov_dir = launch_qaas (self.json_file, lambda msg: self.qaas_message_queue.put(msg), self.qaas_data_folder)
 
 def calculate_speedup(time_comp, baseline_compiler):
     baseline_time = time_comp.get(baseline_compiler, 0)
@@ -73,10 +100,29 @@ def calculate_speedup(time_comp, baseline_compiler):
     return win_lose_list
 
 def create_app(config):
+    qaas_message_queue = queue.Queue()
+
     with app.app_context():
         global conn
         conn = db.engine.connect().connection
 
+    #stream
+    @app.route('/stream')
+    def stream():
+
+        def get_data():
+
+            while True:
+                #gotcha
+                msg = qaas_message_queue.get()
+                print(msg.str())
+                time.sleep(1) 
+                if msg.is_end_qaas():
+                    break
+                yield f'event: ping\ndata: {msg.str()} \n\n'
+
+        return Response(get_data(), mimetype='text/event-stream')
+    
     def get_unicore_data():
         architecture_mapping = {
             "SAPPHIRERAPIDS": "Intel SPR",
@@ -116,7 +162,6 @@ def create_app(config):
         
 
         return df
-    
 
     @app.route('/get_qaas_unicore_perf_gflops_data', methods=['GET'])
     def get_qaas_unicore_perf_gflops_data():
@@ -262,10 +307,6 @@ def create_app(config):
 
         return jsonify(data_dict)
     
-
-
-    
-
     @app.route('/get_mpratio_data', methods=['GET'])
     def get_mpratio_data():
         df = get_multicore_data()
@@ -453,15 +494,55 @@ def create_app(config):
         data = {}
         for machine in machine_list:
             #for each machine get an execution that use the machine and get its data
-            execution = db.session.query(Execution).join(Execution.hwsystem).filter(HwSystem.architecture == machine).first()
-            hwsystem = execution.hwsystem
-            os = execution.os
-            print(execution.application.workload)
-            data[machine] = {'machine': os.hostname, 'model_name': hwsystem.cpui_model_name, 'architecture': hwsystem.architecture, 'num_cores': hwsystem.cpui_cpu_cores,
-                            'freq_driver': os.driver_frequency, 'freq_governor': os.scaling_governor, 'huge_page': os.huge_pages, 'num_sockets':hwsystem.sockets, 'num_core_per_socket': hwsystem.cores_per_socket }
-            
+            executions = db.session.query(Execution).join(Execution.hwsystem).filter(HwSystem.architecture == machine).all()
+            #get an execution that is not completely emtpy
+            for execution in executions:
+                if execution.os.hostname:
+                    hwsystem = execution.hwsystem
+                    os = execution.os
+                    data[machine] = {'machine': os.hostname, 'model_name': hwsystem.cpui_model_name, 'architecture': hwsystem.architecture, 'num_cores': hwsystem.cpui_cpu_cores,
+                                    'freq_driver': os.driver_frequency, 'freq_governor': os.scaling_governor, 'huge_page': os.huge_pages, 'num_sockets':hwsystem.sockets, 'num_core_per_socket': hwsystem.cores_per_socket }
+                    break
         
+        return jsonify(data)
 
+    @app.route('/get_job_submission_results', methods=['GET'])
+    def get_job_submission_results():
+        #get all qaas runs
+        data = []
+        qaass = db.session.query(QaaS).distinct().all()
+        for qaas in qaass:
+            qaas_runs = qaas.qaas_runs
+            qaas_timestamp = qaas.timestamp
+
+            arch = None
+            model = None
+            app_name = None
+            run_data = []
+
+            for qaas_run in qaas_runs:
+                execution = qaas_run.execution
+                #only add the the execution that have maqao data
+                if not execution.maqaos:
+                    continue
+                if not arch:
+                    arch = execution.hwsystem.architecture
+                if not model:
+                    model = execution.hwsystem.cpui_model_name
+                if not app_name:
+                    app_name = execution.application.workload
+                MPI_threads = execution.config['MPI_threads']
+                OMP_threads = execution.config['OMP_threads']
+                gflops = execution.global_metrics['Gflops']
+                time = execution.time
+                compiler = execution.compiler_option.compiler
+                vendor = compiler.vendor
+                run_timestamp = execution.universal_timestamp
+                run_data.append({'mpi': MPI_threads, 'omp': OMP_threads, 'gflops': gflops, 'time': time, 'compiler': vendor, 'run_timestamp': run_timestamp})
+            
+            data.append({'app_name': app_name, 'qaas_timestamp': qaas_timestamp, 'arch':arch, 'model': model, 'run_data': run_data})
+                
+        print(data[0])
         return jsonify(data)
 
     
@@ -469,11 +550,66 @@ def create_app(config):
     def create_new_run():
         #real user input data  unused for now
         qaas_request = request.get_json()
-        
-        print(qaas_request)        
+        print(qaas_request)
+        script_path =  '/host/localdisk/yue/mockup_qaas.sh'
+        unique_temp_dir = tempfile.mktemp()
+        print(unique_temp_dir)
+        result = subprocess.run(['whoami'], capture_output=True, text=True)
+        print(result.stdout.strip())
+
+        # subprocess.run([script_path, unique_temp_dir], check=True)
+        # read_qaas_ov(unique_temp_dir)
+
         
 
+        # ov_data_dir = os.path.join(config['web']['QAAS_DATA_FOLDER'], 'ov_data')
+        # os.makedirs(ov_data_dir, exist_ok=True)
+        # json_file = config['web']['INPUT_JSON_FILE']
+        
+        # #call backplane and wait to finish
+        # t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
+        # t.start()
+        # t.join()
+        
+        # output_ov_dir = t.output_ov_dir
+        #output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-61-437"
+        # ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
+        # for version in ['opt','orig']:
+        #     ov_version_output_dir = os.path.join(ov_output_dir, version)
+        #     result_folders = os.listdir(ov_version_output_dir)
+        #     # Should have only one folder
+        #     assert len(result_folders) == 1
+        #     result_folder = result_folders[0]
+        #     print(result_folder)
+        #     current_ov_dir = os.path.join(ov_version_output_dir, result_folder)
+        #     print(f'Selected folder : {current_ov_dir}')
+        #     query_time = populate_database(current_ov_dir)
+        #     update_html(query_time, version)
+        
         return jsonify({})
+    
+    ##########################run otter#####################
+    @app.route('/get_html_by_timestamp', methods=['GET','POST'])
+    def get_html_by_timestamp():
+        #place to put files
+        qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
+        manifest_file_path = os.path.join(qaas_output_folder, 'input_manifest.csv')
+
+        query_time = request.get_json()['timestamp'] 
+        print("query timestamp", query_time)
+        export_data(query_time, qaas_output_folder, db.session)
+        create_manifest_monorun(manifest_file_path,qaas_output_folder)
+        manifest_out_path = create_out_manifest(qaas_output_folder)
+
+        run_otter_command(manifest_file_path, manifest_out_path, config)
+
+        #get table using timestamp
+        return jsonify(isError= False,
+                        message= "Success",
+                        statusCode= 200,
+                        )
+
+
 
 
     @app.after_request

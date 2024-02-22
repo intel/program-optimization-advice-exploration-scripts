@@ -27,7 +27,14 @@
 # HISTORY
 # Created October 2022
 # Contributors: Yue/David
-
+import os
+import sys
+current_directory = os.path.dirname(os.path.abspath(__file__))
+base_directory = os.path.join(current_directory, '../../common/backend/')
+base_directory = os.path.normpath(base_directory)  
+sys.path.insert(0, base_directory)
+from base_util import *
+from model import *
 from qaas_database import QaaSDatabase
 from model_collection import *
 from model_accessor import MetricGetter

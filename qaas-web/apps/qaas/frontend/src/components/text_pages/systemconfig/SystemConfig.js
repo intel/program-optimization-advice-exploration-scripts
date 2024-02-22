@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
-import OvTable from '../../graph/table/OvTable';
+import SingleRowTable from '../../graph/table/SingleRowTable';
 const columns = [
     { Header: 'Machine Name', accessor: 'machine' },
     { Header: 'Model Name', accessor: 'model_name' },
@@ -42,7 +42,7 @@ export default function SystemConfig() {
                 Object.entries(tableData).map(([architectureKey, architectureValue]) => (
                     <div key={architectureKey}>
                         <h2>{architectureKey}</h2>
-                        <OvTable
+                        <SingleRowTable
                             columns={columns}
                             data={[architectureValue]}
                         />

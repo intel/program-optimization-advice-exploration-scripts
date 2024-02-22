@@ -2,7 +2,7 @@ import React from "react";
 import { useTable } from "react-table";
 import '../../css/table.css';
 
-function OvTable({ columns, data }) {
+function SingleRowTable({ columns, data }) {
     const {
         getTableProps,
         getTableBodyProps,
@@ -56,4 +56,4 @@ function OvTable({ columns, data }) {
     );
 }
 
-export default OvTable;
+export default SingleRowTable;
