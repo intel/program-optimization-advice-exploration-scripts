@@ -52,6 +52,7 @@ from utils.util import split_compiler_combo
 from qaas_logic_compile import read_compiler_flags
 from wrapper_runner import compiler_run
 from qaas_logic_unicore import set_compilers_csv_header
+from qaas_metadata import QAASMetaDATA
 
 #this_script=os.path.realpath(__file__)
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -227,5 +228,9 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
 
     # Dump defaults values to csv
     dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, user_target, nb_mpi,nb_omp, flops)
+
+    # Dump meta data file (multi-compilers file and compiler drfault)
+    qaas_meta = QAASMetaDATA(qaas_reports_dir)
+    qaas_meta.add_multicompiler_metadata(user_CC, 'qaas_compilers.csv')
 
     return 0,"",defaults,flops,nb_mpi,nb_omp
