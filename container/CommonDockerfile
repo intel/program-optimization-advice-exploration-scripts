@@ -110,9 +110,25 @@ RUN usermod -m -d /home/qaas -s /bin/bash -u "$LOCAL_UID" -g qaas -G "$(tr '\n' 
 	echo "qaas:${QAAS_PASSWORD}" | chpasswd && \
 	chgrp -R qaas /home/qaas && \
 #RUN chown -R runner /share/* && chgrp -R runner /share/*
-	mkdir /share/maqao
+	mkdir /share/maqao && \
+  if [ ! -z "$http_proxy" ]; then \
+    echo "http_proxy=${http_proxy}" >> /etc/environment; \
+  fi && \
+  if [ ! -z "$https_proxy" ]; then \
+    echo "https_proxy=${https_proxy}" >> /etc/environment; \
+  fi
 COPY maqao.tar.gz /root
 RUN tar xvf /root/maqao.tar.gz -C /share/maqao
+
+COPY ssh.tar.gz /home/qaas
+WORKDIR /home/qaas
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
+  tar xvfz ssh.tar.gz && \
+  chown -R qaas .ssh && \
+  chgrp -R qaas .ssh && \
+  cd .ssh && \
+  cat *.pub >> authorized_keys; \
+  fi
 
 ENV PYTHONPATH=/usr/local/lib/python3.8/site-packages
 ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install

@@ -41,10 +41,17 @@ RUN apt-get install -y nodejs libapache2-mod-wsgi-py3 && \
 # Below python installations mostly for web backend
 COPY local_install_pip.sh /root
 COPY local_requirements.txt /root
+WORKDIR /root
 RUN /root/local_install_pip.sh && \
   a2enmod wsgi && \
   a2enmod rewrite && \
-  rm -f /var/www/html/index.html
+  rm -f /var/www/html/index.html 
+WORKDIR /var/www
+# also set up ssh key for www-data
+RUN	cd /var/www && \
+  tar xvf /root/ssh.tar.gz && \
+  chown -R www-data .ssh && \
+  chgrp -R www-data .ssh 
 # Following commented out 000-default.conf now done in update_web.py
 #COPY 000-default.conf /etc/apache2/sites-available/
 #RUN mkdir /var/www/html/config
