@@ -68,11 +68,17 @@ class QAASMetaDATA:
     def qaas_timestamp(self):
         return os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(self.qaas_rundir))))
 
+    @property
+    def qaas_dataset_label(self):
+        dataset_file_path = os.path.join(os.path.dirname(self.qaas_rundir), "dataset", "dataset_label.txt")
+        return subprocess.check_output(f"cat {dataset_file_path}", shell=True).decode("utf-8")
+
+
     def add_qaas_metadata(self, run_cmd, dataset_name=""):
         self.config[QAAS_SECTION_NAME]["timestamp"] = self.qaas_timestamp
         self.config[QAAS_SECTION_NAME]["app_name"] = self.qaas_appname
         self.config[QAAS_SECTION_NAME]["git_commit"] = ''
-        self.config[QAAS_SECTION_NAME]["dataset_name"] = dataset_name
+        self.config[QAAS_SECTION_NAME]["dataset_name"] = f'"{self.qaas_dataset_label}"'
         self.config[QAAS_SECTION_NAME]["run_cmd"] = f'"{run_cmd}"'
         self.write_data(self.config)
 
