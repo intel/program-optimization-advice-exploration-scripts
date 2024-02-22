@@ -19,6 +19,8 @@ if [[ ${USER} != "qaas" ]]; then
   echo -n "Customized dockerfile for backplane container (Press enter for none):"
   read custom_dockerfile
 
+  # First stop running containers
+  ./container/stop-container.sh
   pushd container
   if [ -z $custom_dockerfile ]; then
     ./build-local-image.sh
