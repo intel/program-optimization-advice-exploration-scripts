@@ -107,8 +107,10 @@ class Execution(QaaSBase):
     profiled_time = Column(Float, nullable = True)
     max_nb_threads = Column(Integer, nullable = True)
     #logs
-    log = Column(LONGBLOB, nullable = True)
-    lprof_log = Column(LONGBLOB, nullable = True)
+    #print(LONGBLOB)
+    #print(LargeBinary().with_variant(LONGBLOB,"mysql", "mariadb"))
+    log = Column(LargeBinary, nullable = True)
+    lprof_log = Column(LargeBinary, nullable = True)
     cqa_context = Column(JSON, nullable = True)
     config = Column(JSON, nullable = True)
     global_metrics = Column(JSON, nullable = True)
@@ -419,7 +421,7 @@ class Compiler(QaaSBase):
 
 class CompilerReport(QaaSBase):
     __tablename__ = "compiler_report"
-    content = Column(LONGBLOB, nullable = True)
+    content = Column(LargeBinary, nullable = True)
     hash = Column(String(64), nullable = True)
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
     execution  = relationship("Execution", back_populates="compiler_reports")
@@ -828,7 +830,7 @@ class CqaMetric(QaaSBase):
 
 class Asm(QaaSBase):
     __tablename__ = "asm"
-    content = Column(LONGBLOB, nullable = True)
+    content = Column(LargeBinary, nullable = True)
     hash = Column(String(64), nullable = True)
     fk_decan_variant_id = Column(Integer, ForeignKey('decan_variant.table_id'))
     fk_loop_id = Column(Integer, ForeignKey('loop.table_id'))
@@ -843,7 +845,7 @@ class Asm(QaaSBase):
 
 class Source(QaaSBase):
     __tablename__ = "source"
-    content = Column(LONGBLOB, nullable = True)
+    content = Column(LargeBinary, nullable = True)
     hash = Column(String(64), nullable = True)
 
     src_functions = relationship("SrcFunction", back_populates="source")
@@ -1035,14 +1037,16 @@ def connect_db(config, db="oneview"):
     engine.connect()
     return engine
 
-def create_all_tables(config, db="oneview"):
-    engine = connect_db(config, db)
+def create_all(engine):
     Base.metadata.create_all(engine)
     mapper_registry.configure()
-
-
     print("created all tables")
     return engine
+
+def create_all_tables(config, db="oneview"):
+    engine = connect_db(config, db)
+    return create_all(engine)
+    
 
 def bulk_insert_data(table, data, Session):
     session = Session()
