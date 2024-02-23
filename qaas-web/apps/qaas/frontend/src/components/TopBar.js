@@ -35,11 +35,11 @@ function TopBar() {
 
     //this is to get all the text pages under / to be under qaas content overview unless specify in page groups
     const allPages = Object.values(pageGroups).flat().map(({ page }) => page);
-    console.log(allPages)
+    // console.log(allPages)
     //listen to path change
     useEffect(() => {
         const currentPage = location.pathname.replace('/', '').split('/')[0];
-        console.log(currentPage)
+        // console.log(currentPage)
         // check if currentPage is a predefined page, if not set it to under home page
         if (allPages.includes(currentPage)) {
             setSelectedPage(currentPage);

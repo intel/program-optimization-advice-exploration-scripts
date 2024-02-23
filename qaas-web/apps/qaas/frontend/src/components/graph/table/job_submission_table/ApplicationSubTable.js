@@ -31,7 +31,6 @@ const ApplicationSubTable = React.memo(({ data }) => {
                 </div>
 
             ),
-            width: 100,
         },
         { Header: 'Timestamp', accessor: 'run_timestamp' },
         { Header: 'MPI Threads', accessor: 'mpi' },

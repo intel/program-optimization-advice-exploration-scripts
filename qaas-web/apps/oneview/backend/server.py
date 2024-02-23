@@ -66,7 +66,7 @@ db = SQLAlchemy()
 app = Flask(__name__)
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(config_path)
-app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
+app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
@@ -88,7 +88,7 @@ def create_app(config):
     with app.app_context():
         global conn
         conn = db.engine.connect().connection
-        db_name = os.path.basename(config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW'])
+        db_name = os.path.basename(config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV'])
     #create all tables in the model
     ########################### http request ################################
     @app.route('/get_all_timestamps', methods=['GET','POST'])

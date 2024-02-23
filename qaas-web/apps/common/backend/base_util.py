@@ -101,7 +101,7 @@ def run_otter_command(manifest_file_path, out_manifest_path, config):
     cdcommand= f"cd {run_dir};"
     ottercommand = f"{config['web']['MAQAO_VERSION']} otter --input={manifest_file_path} --output={out_manifest_path}"  
     # command = cdcommand +  ottercommand
-    # print(ottercommand)
+    print(ottercommand)
     # Use this version for SDP because flagging for shell=True
     ret = subprocess.run([config['web']['MAQAO_VERSION'], "otter", f"--input={manifest_file_path}", f"--output={out_manifest_path}"], cwd=run_dir, capture_output=True)
     

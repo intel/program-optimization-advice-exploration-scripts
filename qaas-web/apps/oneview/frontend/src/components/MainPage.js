@@ -5,7 +5,7 @@ import Title from './Title';
 import ApplicationTable from './data/ApplicationTable';
 import FilterComponent from './filters/FilterComponent';
 import axios from 'axios';
-import HWCompTable from './graph/table/HWCompTable';
+// import HWCompTable from './graph/table/HWCompTable';
 import { INITIAL_FILTERS } from './filters/InitialFilter';
 import { Modal } from 'antd';
 import AllSpeedupRangeGraph from './graph/AllSpeedupRangeGraph';
@@ -101,7 +101,7 @@ const MainPage = () => {
                     }
 
                     <Modal title="Comparison" open={showGraph} onOk={handleOk} onCancel={handleCancel}>
-                        <HWCompTable open={showGraph} />
+                        {/* <HWCompTable open={showGraph} /> */}
                     </Modal>
                 </div>
             </div>

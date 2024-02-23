@@ -1192,7 +1192,8 @@ class QaaSOneViewModelExporter(QaaSOneviewModelAccessor):
                     'time_s_avg': measure.time_s_avg,
                     'cov_deviation': measure.cov_deviation,
                     'time_deviation': measure.time_deviation,
-                    'nb_threads': measure.nb_threads
+                    'nb_threads': measure.nb_threads,
+
 
                 }
         else:
@@ -1204,7 +1205,9 @@ class QaaSOneViewModelExporter(QaaSOneviewModelAccessor):
                     'time_s_avg': None,
                     'cov_deviation': None,
                     'time_deviation': None,
-                    'nb_threads': None
+                    'nb_threads': None,
+
+
 
                 }
         return measure_dict

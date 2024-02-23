@@ -1035,14 +1035,16 @@ def connect_db(config, db="oneview"):
     engine.connect()
     return engine
 
-def create_all_tables(config, db="oneview"):
-    engine = connect_db(config, db)
+def create_all(engine):
     Base.metadata.create_all(engine)
     mapper_registry.configure()
-
-
     print("created all tables")
     return engine
+
+def create_all_tables(config, db="oneview"):
+    engine = connect_db(config, db)
+    return create_all(engine)
+    
 
 def bulk_insert_data(table, data, Session):
     session = Session()

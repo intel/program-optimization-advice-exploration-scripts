@@ -60,18 +60,27 @@ export default function UserInputStepper() {
         const sse = new EventSource(`${process.env.REACT_APP_API_BASE_URL}/stream`)
 
         function handleStream(e) {
+            console.log("got mes", e.data)
             setStatusMsg(e.data)
         }
         sse.onopen = e => {
+            console.log("connection open", e.data)
+
         }
         sse.onmessage = e => {
+            console.log("got mes", e.data)
+
             handleStream(e)
         }
         sse.addEventListener('ping', e => {
+            console.log("event listener got mes", e.data)
+
             setStatusMsg(e.data)
         })
         sse.onerror = e => {
             //GOTCHA - can close stream and 'stall'
+            console.log("close stream", e.data)
+
             sse.close()
         }
 

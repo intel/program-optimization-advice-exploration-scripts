@@ -60,6 +60,8 @@ import time
 import queue
 import json
 import subprocess
+import asyncio
+
 # from qaas_ov_db import populate_database_qaas_ov
 
 #set config
@@ -85,6 +87,16 @@ class QaaSThread(threading.Thread):
 
     def run(self):
         self.rc, self.output_ov_dir = launch_qaas (self.json_file, lambda msg: self.qaas_message_queue.put(msg), self.qaas_data_folder)
+
+class QaasMessage:
+    def __init__(self, text):
+        self.text = text
+
+    def str(self):
+        return self.text
+
+    def is_end_qaas(self):
+        return self.text == "Job End"
 
 def calculate_speedup(time_comp, baseline_compiler):
     baseline_time = time_comp.get(baseline_compiler, 0)
@@ -113,13 +125,16 @@ def create_app(config):
         def get_data():
 
             while True:
-                #gotcha
-                msg = qaas_message_queue.get()
-                print(msg.str())
-                time.sleep(1) 
-                if msg.is_end_qaas():
+                try:
+                    msg = qaas_message_queue.get_nowait()
+                    print('stream', msg.str())
+                    yield f'event: ping\ndata: {msg.str()}\n\n'
+                except queue.Empty:
+                    # NO message  sleep a bit
+                    time.sleep(0.1)
+                if msg and msg.is_end_qaas():
                     break
-                yield f'event: ping\ndata: {msg.str()} \n\n'
+               
 
         return Response(get_data(), mimetype='text/event-stream')
     
@@ -546,22 +561,42 @@ def create_app(config):
         return jsonify(data)
 
     
+
+    def perform_long_running_tasks(unique_temp_dir):
+        qaas_message_queue.put(QaasMessage("Job Begin"))
+        subprocess.run(["scp", "-P", "2222", "/host/tmp/input-AMG.intel.json", "qaas@fxilab165.an.intel.com:/tmp"], check=True)
+        subprocess.run(["ssh", "qaas@fxilab165.an.intel.com", "-p", "2222", "tar cvfz /tmp/qaas_out.tar.gz /tmp/qaas_out"], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["scp", "-P", "2222", "qaas@fxilab165.an.intel.com:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
+        subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "--strip-components=1", "-C", unique_temp_dir], check=True)
+        qaas_out_dir = os.path.join(unique_temp_dir, 'qaas_out')
+        # qaas_compiler_df = read_file()
+        # read_qaas_ov(unique_temp_dir)
+
+        time.sleep(10)
+
+        qaas_message_queue.put(QaasMessage("Job End"))
+
+    
     @app.route('/create_new_run', methods=['POST'])
     def create_new_run():
         #real user input data  unused for now
         qaas_request = request.get_json()
         print(qaas_request)
         script_path =  '/host/localdisk/yue/mockup_qaas.sh'
-        unique_temp_dir = tempfile.mktemp()
+        # unique_temp_dir = tempfile.mktemp()
+        unique_temp_dir = '/tmp/myout'
         print(unique_temp_dir)
         result = subprocess.run(['whoami'], capture_output=True, text=True)
         print(result.stdout.strip())
-
+       
+        # qaas_message_queue.put(QaasMessage("Job Begin"))
+        #go to backplane and just cp qaas out for now
+        t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, ))
+        t.start()
+        t.join()
         # subprocess.run([script_path, unique_temp_dir], check=True)
-        # read_qaas_ov(unique_temp_dir)
 
-        
-
+    
         # ov_data_dir = os.path.join(config['web']['QAAS_DATA_FOLDER'], 'ov_data')
         # os.makedirs(ov_data_dir, exist_ok=True)
         # json_file = config['web']['INPUT_JSON_FILE']
@@ -571,25 +606,46 @@ def create_app(config):
         # t.start()
         # t.join()
         
-        # output_ov_dir = t.output_ov_dir
-        #output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-61-437"
-        # ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
-        # for version in ['opt','orig']:
-        #     ov_version_output_dir = os.path.join(ov_output_dir, version)
-        #     result_folders = os.listdir(ov_version_output_dir)
-        #     # Should have only one folder
-        #     assert len(result_folders) == 1
-        #     result_folder = result_folders[0]
-        #     print(result_folder)
-        #     current_ov_dir = os.path.join(ov_version_output_dir, result_folder)
-        #     print(f'Selected folder : {current_ov_dir}')
-        #     query_time = populate_database(current_ov_dir)
-        #     update_html(query_time, version)
-        
         return jsonify({})
     
     ##########################run otter#####################
-    @app.route('/get_html_by_timestamp', methods=['GET','POST'])
+    @app.route('/get_comparison_html_by_timestamp', methods=['POST'])
+    def get_comparison_html_by_timestamp():
+        #place to put files
+        qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
+        manifest_file_path = os.path.join(qaas_output_folder, 'input_manifest.csv')
+        data_folder_list = []
+
+        query_time = request.get_json()['timestamp'] 
+        print("query timestamp", query_time)
+        
+
+        qaas_runs_with_ov_report = db.session.query(QaaSRun).join(QaaSRun.qaas).join(QaaSRun.execution).filter(QaaS.timestamp == query_time, Execution.maqaos != None).all()
+        print(len(qaas_runs_with_ov_report))
+        # selected_runs = request.get_json()
+        # data_folder_list = []
+        for index, run in enumerate(qaas_runs_with_ov_report):
+            timestamp = run.execution.universal_timestamp
+            print(timestamp)
+            qaas_output_run_folder_run = os.path.join(qaas_output_folder, str(index))
+            try:
+                export_data(timestamp, qaas_output_run_folder_run, db.session)
+            except:
+                print("report cannot be generated")
+                continue
+            data_folder_list.append(qaas_output_run_folder_run)
+        create_manifest_comparison(manifest_file_path, data_folder_list)
+        manifest_out_path = create_out_manifest(qaas_output_folder)
+
+        run_otter_command(manifest_file_path, manifest_out_path, config)
+        
+
+        #get table using timestamp
+        return jsonify(isError= False,
+                        message= "Success",
+                        statusCode= 200,
+                        )
+    @app.route('/get_html_by_timestamp', methods=['POST'])
     def get_html_by_timestamp():
         #place to put files
         qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
