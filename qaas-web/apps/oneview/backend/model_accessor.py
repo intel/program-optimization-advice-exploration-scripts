@@ -266,12 +266,15 @@ class OneViewModelInitializer(OneviewModelAccessor):
        
         
 
+    def visit_file(self, file):
+        return file
+
     def visitEnvironment(self, environment):
         self.run_dir_path=self.get_env_path()
 
         env_path = get_files_starting_with_and_ending_with(self.run_dir_path, 'env_','.txt')[0]
 
-        env_data = convert_text_to_dict(env_path)
+        env_data = convert_text_to_dict(self.visit_file(env_path))
         
         #add metric
         env_metrics = environment.add_metrics(self.session, env_data)
@@ -287,7 +290,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         execution.version = self.version
         local_vars_path, config_path, config_out_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
             fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
-        local_vars_df = read_file(local_vars_path)
+        local_vars_df = read_file(self.visit_file(local_vars_path))
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
 
 
@@ -297,34 +300,34 @@ class OneViewModelInitializer(OneviewModelAccessor):
         #add additional cols
         execution.is_orig = 1 if execution.version == 'orig' else 0
         # #config lua and cqa_context
-        execution.config = convert_lua_to_python(config_path)
-        execution.cqa_context = convert_lua_to_python(cqa_context_path)
+        execution.config = convert_lua_to_python(self.visit_file(config_path))
+        execution.cqa_context = convert_lua_to_python(self.visit_file(cqa_context_path))
         
         # #get time, profiled time, and max_nb_threads from expert loops
-        expert_run_data = get_data_from_csv(expert_run_path)[0]
+        expert_run_data = get_data_from_csv(self.visit_file(expert_run_path))[0]
         execution.time = expert_run_data.get('time', None)
         execution.profiled_time = expert_run_data.get('profiled_time', None)
         execution.max_nb_threads = expert_run_data.get('max_nb_threads', None)
 
         # #get log files
-        execution.log = compress_file(log_path)
-        execution.lprof_log = compress_file(lprof_log_path)
+        execution.log = compress_file(self.visit_file(log_path))
+        execution.lprof_log = compress_file(self.visit_file(lprof_log_path))
 
         # #get src location for fct and loop
         # #get the location binary files
-        source_loop_python_obj = convert_location_binary_to_python(loop_locations_path, self.session)
-        source_fct_python_obj = convert_location_binary_to_python(fct_locations_path, self.session)
+        source_loop_python_obj = convert_location_binary_to_python(self.visit_file(loop_locations_path), self.session)
+        source_fct_python_obj = convert_location_binary_to_python(self.visit_file(fct_locations_path), self.session)
         execution.fct_location = source_fct_python_obj
         execution.loop_location = source_loop_python_obj
 
         ##callchain binary
-        callchain_fct_python_obj = convert_callchain_binary_to_python(fct_callchain_path, self.session)
-        callchain_loop_python_obj = convert_callchain_binary_to_python(loop_callchain_path, self.session)
+        callchain_fct_python_obj = convert_callchain_binary_to_python(self.visit_file(fct_callchain_path), self.session)
+        callchain_loop_python_obj = convert_callchain_binary_to_python(self.visit_file(loop_callchain_path), self.session)
         execution.fct_callchain = callchain_fct_python_obj
         execution.loop_callchain = callchain_loop_python_obj
         ##global metrics
-        global_metrics_df = read_file(global_metrics_path)
-        compilation_options_df = read_file(compilation_options_path)
+        global_metrics_df = read_file(self.visit_file(global_metrics_path))
+        compilation_options_df = read_file(self.visit_file(compilation_options_path))
         global_metrics_dict={
             'global_metrics': global_metrics_df.to_json(orient="split"),
             'compilation_options': compilation_options_df.to_json(orient="split")
@@ -335,7 +338,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitOs(self, os):
         local_vars_path=self.get_os_path()
-        local_vars_df = read_file(local_vars_path)
+        local_vars_df = read_file(self.visit_file(local_vars_path))
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         os.os_version = local_vars_dict.get('os_version', None)
         os.hostname = local_vars_dict.get('hostname', None)
@@ -344,7 +347,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitHwSystem(self, hwsystem):
         local_vars_path = self.get_hwsystem_path()
-        local_vars_df = read_file(local_vars_path)
+        local_vars_df = read_file(self.visit_file(local_vars_path))
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         hwsystem.cpui_model_name =  local_vars_dict.get('cpui_model_name', None)
         hwsystem.cpui_cpu_cores = local_vars_dict.get('cpui_cpu_cores', None)
@@ -360,7 +363,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitMaqao(self, maqao):
         local_vars_path=self.get_maqao_path()
-        local_vars_df = read_file(local_vars_path)
+        local_vars_df = read_file(self.visit_file(local_vars_path))
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
         maqao.global_instances_per_bucket = local_vars_dict.get('global_instances_per_bucket', None)
         maqao.instances_per_bucket = local_vars_dict.get('instances_per_bucket', None)
@@ -384,7 +387,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         decan_path = self.get_decan_path()
         if not os.path.exists(decan_path):
             return
-        decan_data = read_file(decan_path).to_dict(orient='records')
+        decan_data = read_file(self.visit_file(decan_path)).to_dict(orient='records')
         for dic in decan_data:
             current_decan = DecanRun(self)
             current_decan.bucket = int(dic.get('bucket', None))
@@ -409,7 +412,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         if not os.path.exists(vprof_path):
             return
 
-        vprof_data = read_file(vprof_path, delimiter=',')
+        vprof_data = read_file(self.visit_file(vprof_path), delimiter=',')
         vprof_data = vprof_data.to_dict(orient='records')
 
         for dic in vprof_data:
@@ -447,7 +450,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
             vprof_collection.add_obj(current_vprof)
     def visitLprofCategorizationCollection(self, lprof_categorization_collection):
         lprof_categorization_path1, lprof_categorization_path2 = self.get_lprof_categorization_path()
-        lprof_categorization_csv_df = read_file(lprof_categorization_path1)
+        lprof_categorization_csv_df = read_file(self.visit_file(lprof_categorization_path1))
         lprof_categorization_metrics_data = lprof_categorization_csv_df.loc[:, lprof_categorization_csv_df.columns.str.contains('%')].to_dict(orient='records')
         lprof_categorization_data = get_table_data_from_df(lprof_categorization_csv_df, LprofCategorization)
         for index, parent_dict in enumerate(lprof_categorization_data):
@@ -465,7 +468,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
     
     def visitModuleCollection(self, module_collection):
         lprof_path = self.get_module_path()
-        lprof_df = read_file(lprof_path)
+        lprof_df = read_file(self.visit_file(lprof_path))
         module_data_list = get_table_data_from_df(lprof_df, Module)
         for data in module_data_list:
             data = delete_nan_from_dict(data)
@@ -488,7 +491,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
             else:
                 pid, tid = None, None
                 
-            data = read_file(file).to_dict(orient='records')
+            data = read_file(self.visit_file(file)).to_dict(orient='records')
             #empty file
             if not data:
                 current_block = Block(self)
@@ -516,7 +519,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         lprof_pattern = r'lprof_functions_([\w\.]+)_(\d+)_(\d+).csv'
         files = get_files_starting_with_and_ending_with(lprof_dir_path, 'lprof_functions', '.csv')
         for file in files:
-            data = read_file(file).to_dict(orient='records')
+            data = read_file(self.visit_file(file)).to_dict(orient='records')
             match = re.match(lprof_pattern, os.path.basename(file))
             if match:
                 pid, tid = int(match.group(2)), int(match.group(3))
@@ -561,7 +564,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         lprof_pattern = r'lprof_loops_([\w\.]+)_(\d+)_(\d+).csv'
         files = get_files_starting_with_and_ending_with(lprof_dir_path, 'lprof_loops', '.csv')
         for file in files:
-            data = read_file(file).to_dict(orient='records')
+            data = read_file(self.visit_file(file)).to_dict(orient='records')
             match = re.match(lprof_pattern, os.path.basename(file))
             if match:
                 pid, tid = int(match.group(2)), int(match.group(3))
@@ -607,7 +610,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
             if function:
                 hierarchy_file_name = 'fct_{}_{}.lua'.format(os.path.basename(function.module.name), function.maqao_function_id)
                 hierarchy_file_path = os.path.join(hierarchy_dir_path,hierarchy_file_name)
-                hierarchy_json_data = convert_lua_to_python(hierarchy_file_path)
+                hierarchy_json_data = convert_lua_to_python(self.visit_file(hierarchy_file_path))
                 function.hierarchy = hierarchy_json_data
 
 
@@ -620,7 +623,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         #TODO read pid tid file and lprof_blocks.cs separately
         for file in block_files:
             lprof_pattern = r'lprof_blocks_([\w\.]+)_(\d+)_(\d+).csv'
-            data = read_file(file).to_dict(orient='records')
+            data = read_file(self.visit_file(file)).to_dict(orient='records')
             match = re.match(lprof_pattern, os.path.basename(file))
             if match:
                 pid, tid = int(match.group(2)), int(match.group(3))
@@ -649,7 +652,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
         for file in function_files:
             lprof_pattern = r'lprof_functions_([\w\.]+)_(\d+)_(\d+).csv'
-            data = read_file(file).to_dict(orient='records')
+            data = read_file(self.visit_file(file)).to_dict(orient='records')
             match = re.match(lprof_pattern, os.path.basename(file))
             if match:
                 pid, tid = int(match.group(2)), int(match.group(3))
@@ -680,7 +683,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 lprof_measurement_collection.add_obj(measure)
         for file in loop_files:
             lprof_pattern = r'lprof_loops_([\w\.]+)_(\d+)_(\d+).csv'
-            data = read_file(file).to_dict(orient='records')
+            data = read_file(self.visit_file(file)).to_dict(orient='records')
             match = re.match(lprof_pattern, os.path.basename(file))
             if match:
                 pid, tid = int(match.group(2)), int(match.group(3))
@@ -716,7 +719,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
             current_loop = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
 
-            cqa_df = read_file(cqa_path)
+            cqa_df = read_file(self.visit_file(cqa_path))
             cqa_measures = []
             for index, row in cqa_df.iterrows():
                 #cqa table
@@ -734,7 +737,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
              #analysis column for loop
             if not variant:
                 loop_analysis_lua_file_name = '{}_{}_text.lua'.format(module, identifier)
-                analysis_json_data = convert_lua_to_python(os.path.join(cqa_dir_path,loop_analysis_lua_file_name))
+                analysis_json_data = convert_lua_to_python(self.visit_file(os.path.join(cqa_dir_path,loop_analysis_lua_file_name)))
                 current_cqa_analysis = CqaAnalysis.add_analysis(self.session, analysis_json_data)
                 current_cqa_analysis.cqa_measures = cqa_measures
 
@@ -746,7 +749,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
             
              #create analysis col
             function_analysis_lua_file_name = 'fct_{}_{}_text.lua'.format(module, identifier)
-            analysis_json_data = convert_lua_to_python(os.path.join(cqa_dir_path,function_analysis_lua_file_name))
+            analysis_json_data = convert_lua_to_python(self.visit_file(os.path.join(cqa_dir_path,function_analysis_lua_file_name)))
             current_cqa_analysis = CqaAnalysis.add_analysis(self.session, analysis_json_data)
 
             ### for line in csv file create cqa measure, AVG = -1, function path id is -1
@@ -764,7 +767,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         asm_paths = get_files_with_extension(asm_dir_path, ['.csv'])
         for asm_path in asm_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(asm_path))
-            asm_content = compress_file(asm_path)
+            asm_content = compress_file(self.visit_file(asm_path))
 
             asm_hash = get_file_sha256(asm_path)
             asm_obj = Asm(self)
@@ -788,7 +791,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         for group_path in group_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(group_path))
             loop_obj = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
-            group_data = get_data_from_csv(group_path)
+            group_data = get_data_from_csv(self.visit_file(group_path))
 
             if group_data is not None:
                 for data in group_data:
@@ -821,7 +824,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         for source_path in source_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(source_path))
             source_obj = Source(self)
-            source_obj.content = compress_file(source_path)
+            source_obj.content = compress_file(self.visit_file(source_path))
             source_obj.hash = get_file_sha256(source_path)
             if type == 0:
                 loop_obj = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
@@ -835,6 +838,21 @@ class OneViewModelInitializer(OneviewModelAccessor):
             source_collection.add_obj(source_obj)
     def visitCompilerCollection(self, compilerCollection):
         pass
+
+class OneViewModelInitializerAndFileCopier(OneViewModelInitializer):
+    def __init__(self, session, qaas_data_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id, output_path):
+        super().__init__(session, qaas_data_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id)
+        self.output_path = output_path
+
+    def visit_file(self, file):
+        print(f"IN: {file}")
+        rel_path = os.path.relpath(file, self.qaas_data_dir)
+        outfile_path = os.path.join(self.output_path, rel_path)
+        outfile_dir = os.path.dirname(outfile_path)
+        os.makedirs(outfile_dir, exist_ok=True)
+        shutil.copy(file, outfile_path)
+        print(f"OUT: {outfile_dir}")
+        return super().visit_file(file)
 
 
 #TODO write to part of the file
