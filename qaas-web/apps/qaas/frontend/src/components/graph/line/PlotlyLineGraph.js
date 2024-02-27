@@ -4,6 +4,7 @@ import Plot from 'react-plotly.js';
 
 function PlotlyLineGraph({ data, layout }) {
 
+
     return (
         <Plot
             data={data}

@@ -207,6 +207,8 @@ class QaaSRun(QaaSBase):
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
     fk_qaas_id = Column(Integer, ForeignKey('qaas.table_id'))
     type = Column(Text, nullable = True)
+    is_baseline = Column(Integer, nullable = True)
+
 
     execution  = relationship("Execution", back_populates="qaas_runs")
     qaas  = relationship("QaaS", back_populates="qaas_runs")

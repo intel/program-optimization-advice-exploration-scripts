@@ -23,9 +23,8 @@ function LinearProgressWithLabel(props) {
 }
 export default function StatusPanel({ msg }) {
     const [shouldDisplayProgress, setShouldDisplayProgress] = useState(false);
-    console.log(msg)
     let msgs = [
-        "Job Begin ",
+        "Job Begin",
         "Start Building orig app ",
         "Done Building orig app ",
         "Start Running orig app ",
@@ -34,7 +33,7 @@ export default function StatusPanel({ msg }) {
         "Done Tuning orig app ",
         "Start Running tuned app ",
         "Done Running tuned app ",
-        "Job End ",
+        "Job End",
     ]
     // let color_arr = ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6', '#42a5f5', '#2196f3', '#1e88e5', '#1976d2', '#1565c0', '#0d47a1']
     let color_arr = colormap({

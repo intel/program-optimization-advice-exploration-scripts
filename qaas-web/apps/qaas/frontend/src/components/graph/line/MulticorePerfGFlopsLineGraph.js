@@ -89,9 +89,9 @@ export default function MulticorePerfGFlopsLineGraph() {
         yaxis: {
             title: 'Total Gf',
             type: 'log',
-            tickvals: [10, 20, 50, 100, 500, 2000],
-            ticktext: ['10', '20', '50', '100', '500', '2000'],
-            range: [1, Math.log10(2000) + 0.1],//a bit more space to show the text
+            tickvals: [0, 5, 10, 20, 50, 100, 500, 2000],
+            ticktext: ['0', '5', '10', '20', '50', '100', '500', '2000'],
+            range: [0, Math.log10(2000)],//a bit more space to show the text
 
 
         },
