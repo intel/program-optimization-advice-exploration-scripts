@@ -55,6 +55,7 @@ GIT_DATA_URL = "DATA_URL"
 GIT_DATA_BRANCH = "DATA_BRANCH"
 GIT_DATA_DOWNLOAD_PATH = "DATA_DOWNLOAD_PATH"
 GIT_DATA_COPY_FROM_FS  = "DATA_COPY_FROM_FS"
+DATASET_LABEL  = "DATASET_LABEL"
 
 # define directory structure constants
 WORKDIR_ROOT_INDEX  = 0
@@ -109,6 +110,7 @@ class QAASEnvProvisioner:
         self.git_data_url = git_params[GIT_DATA_URL]
         self.git_data_download_path = git_params[GIT_DATA_DOWNLOAD_PATH]
         self.git_data_copy_from_fs = git_params[GIT_DATA_COPY_FROM_FS] if GIT_DATA_COPY_FROM_FS in git_params.keys() else ""
+        self.dataset_label = git_params[DATASET_LABEL] if DATASET_LABEL in git_params.keys() else ""
         # save target machine access parameters
         self.user = access_params["QAAS_USER"]
         self.ssh_port = access_params["QAAS_SSH_PORT"]
@@ -238,6 +240,7 @@ class QAASEnvProvisioner:
             target_branch, git_url = self.generate_git_url_branch(self.git_data_branch, self.git_data_url,
                                                                   self.git_data_user, self.git_data_token)
             cmdline = "'cd " + self.get_workdir("dataset") + \
+               f" && echo -n {self.dataset_label} > dataset_label.txt" + \
                 " && if [[ ! -d " + self.app_name + " ]]; then" + \
                 " git clone --no-checkout -b " + target_branch + \
                 " " + git_url + " " + self.app_name + \
@@ -248,6 +251,7 @@ class QAASEnvProvisioner:
         else:
             logging.info("Making empty data directory on %s", self.machine)
             cmdline = "'cd " + self.get_workdir("dataset") + \
+               f" && echo -n {self.dataset_label} > dataset_label.txt" + \
                 " && if [[ ! -d " + self.app_name + " ]]; then" + \
                f" mkdir {self.app_name}; fi'"
         cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
