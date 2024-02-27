@@ -850,13 +850,13 @@ class OneViewModelInitializerAndFileCopier(OneViewModelInitializer):
         self.output_path = output_path
 
     def visit_file(self, file):
-        print(f"IN: {file}")
+        #print(f"IN: {file}")
         rel_path = os.path.relpath(file, self.qaas_data_dir)
         outfile_path = os.path.join(self.output_path, rel_path)
         outfile_dir = os.path.dirname(outfile_path)
         os.makedirs(outfile_dir, exist_ok=True)
         shutil.copy(file, outfile_path)
-        print(f"OUT: {outfile_dir}")
+        #print(f"OUT: {outfile_dir}")
         return super().visit_file(file)
 
 

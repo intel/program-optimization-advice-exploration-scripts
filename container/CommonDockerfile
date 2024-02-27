@@ -77,7 +77,15 @@ USER root
 #	ldconfig
 
 # Install sudo, netcat (git behind proxy) for development needs
-RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then apt-get update && apt-get install --no-install-recommends -y sudo netcat && apt-get clean && rm -rf /var/lib/apt/lists/*; fi
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
+	apt-get update \
+	&& apt-get install --no-install-recommends -y sudo netcat \
+        && apt-get clean \
+	&& rm -rf /var/lib/apt/lists/*; \
+    fi \
+    && python3 -m pip install --no-cache-dir luadata==1.0.5 \
+    && python3 -m pip install --no-cache-dir slpp>=1.2.3
+
 WORKDIR /root
 # Copy in ssh tarball (could be empty if ENABLE_DEVELOPMENT != 1)
 COPY ssh.tar.gz /root
