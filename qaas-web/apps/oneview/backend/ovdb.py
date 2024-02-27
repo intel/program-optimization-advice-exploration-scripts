@@ -29,7 +29,7 @@
 # Contributors: Yue/David
 import os
 from util import *
-from model_accessor import OneViewModelInitializer,OneViewModelExporter
+from oneview_model_accessor import OneViewModelInitializer,OneViewModelExporter
 from qaas_database import QaaSDatabase
 #import pickle
 current_directory = os.path.dirname(os.path.abspath(__file__))

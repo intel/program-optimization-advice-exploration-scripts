@@ -37,7 +37,7 @@ from base_util import *
 from model import *
 from qaas_database import QaaSDatabase
 from model_collection import *
-from model_accessor import MetricGetter
+from oneview_model_accessor import MetricGetter
 from constants import *
 class FilterStrategy:
     def __init__(self, type, operator, value, mode):

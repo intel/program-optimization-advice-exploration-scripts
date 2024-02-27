@@ -48,7 +48,7 @@ from util import *
 from flask_cors import CORS
 import re
 from filters import FilterContext
-from model_accessor import MetricGetter
+from oneview_model_accessor import MetricGetter
 from qaas_database import QaaSDatabase
 from constants import EXECUTION_METRIC_TYPES
 from collections import defaultdict
