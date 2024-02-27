@@ -49,11 +49,37 @@ class QaaSModelInitializer(ModelAccessor):
 
         self.current_row = None
         self.current_type = None
-            
+
+    #set is_baseline based on input scalability_reference_line
+    def set_is_baseline(self, df, scalability_reference_line):
+        df['is_baseline'] = 0
+
+        #if we don't have a baseline def then it is all false
+        if not scalability_reference_line:
+            return df
+        
+        #setting baseline = true if found in ref line
+        baseline_indices = {}
+        for item in scalability_reference_line.split(','):
+            compiler, line = item.strip().replace('"', '').split(':')
+            baseline_indices[compiler.strip()] = int(line)
+
+        for compiler, baseline_index in baseline_indices.items():
+            pandas_index = baseline_index - 2
+            df.loc[(df['compiler'] == compiler) & (df.index == pandas_index), 'is_baseline'] = 1
+
+        return df
+    
     def build_executions_from_file(self, file_path, report_type, qaas_database, metadata_dict):
         #read scability report path
         if os.path.exists(file_path):
             df = read_file(file_path, delimiter=',')
+
+            #set is_basleine
+            scalability_reference_line = metadata_dict.get('scalability_reference_line', None)
+            self.set_is_baseline(df, scalability_reference_line)
+
+            #set type
             self.current_type = report_type
             #iterate file each row in the file is new execution
             for index, row in df.iterrows():
@@ -110,6 +136,8 @@ class QaaSModelInitializer(ModelAccessor):
         current_qaas_run.execution = execution
         current_qaas_run.qaas = current_qaas
         current_qaas_run.type = self.current_type
+        current_qaas_run.is_baseline = self.current_row['is_baseline']
+
 
         #data info
         execution.time = self.current_row['time(s)']

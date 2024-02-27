@@ -148,7 +148,7 @@ def create_app(config):
         #read all unicore runs that have turbo on
         #TODO ask what is the threshold to check if a machine has turbo on or off
         data = {}
-        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(Os.scaling_min_frequency > 3000000, Execution.config['MPI_threads'] == 1, Execution.config['OMP_threads'] == 1).distinct().all()
+        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(Os.scaling_min_frequency > 3000000,  Execution.config['MPI_threads'] == 1, Execution.config['OMP_threads'] == 1).distinct().all()
         for qaas in qaass:
             #execution obj that has min time across this qaas run
             min_time_execution = (db.session.query(Execution)
@@ -166,7 +166,12 @@ def create_app(config):
         
             data[app_name][architecture] = gflops
 
+        
+        
         df = pd.DataFrame(list(data.values()))
+        if not data:
+            #empty dataset
+            return df
 
         #sort by x axis
         df['Mean'] = df.drop(columns=['Apps']).mean(axis=1)
@@ -204,25 +209,11 @@ def create_app(config):
         }
         data = {}
         #get multicore qaas runs        
-        qaass = db.session.query(QaaS)\
-            .join(QaaSRun.qaas)\
-            .join(QaaSRun.execution)\
-            .join(Execution.os)\
-            .join(Execution.hwsystem)\
-            .filter(
-                Os.scaling_min_frequency < 3000000,
-                or_(
-                     Execution.config['MPI_threads'] > 1,
-                     Execution.config['OMP_threads'] > 1
-                )
-            )\
-            .distinct().all()
+        qaass = db.session.query(QaaS).join(QaaSRun.qaas).filter(QaaSRun.type == 'scalability_report').distinct().all()
         for qaas in qaass:
             scalability_qaas_runs = db.session.query(QaaSRun).filter_by(qaas = qaas, type = "scalability_report" ).all()
             #TODO this check is not very good
             if len(scalability_qaas_runs) == 0:
-                # print("not scalability reoirt", qaas.timestamp)
-
                 continue
 
             #get multicompiler run and scability run
@@ -232,23 +223,18 @@ def create_app(config):
                 .order_by(Execution.time)\
                 .first()
             best_qaas_compiler = best_qaas_execution.compiler_option.compiler.vendor
-            # print(best_qaas_compiler)
             ref_qaas_run = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler)\
-                        .filter(QaaSRun.qaas == qaas, QaaSRun.type == "scalability_report", Compiler.vendor == best_qaas_compiler, Execution.config['MPI_threads'] == 1,  Execution.config['OMP_threads'] == 1,  Execution.time != None).first()
+                        .filter(QaaSRun.qaas == qaas, QaaSRun.type == "scalability_report", Compiler.vendor == best_qaas_compiler, QaaSRun.is_baseline == 1).one()
             #for case like https://gitlab.com/amazouz/qaas-runs/-/blob/main/runs/169-617-8814/qaas_multicore.csv?ref_type=heads just skip
             if not ref_qaas_run:
-                # print("cannot find ref time", qaas.timestamp)
-
                 continue
             
             ref_time = ref_qaas_run.execution.time
-            # print(ref_qaas_run.qaas.timestamp, ref_qaas_run.execution.application.workload,  ref_qaas_run.execution.hwsystem.architecture)
             best_compiler_qaas_runs = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler)\
                         .filter(QaaSRun.qaas == qaas, QaaSRun.type == "scalability_report", Compiler.vendor == best_qaas_compiler).all()
             #find max speedup and associated execution
             max_speedup = 0
             max_execution = None
-            max_time = None
             for qaas_run in best_compiler_qaas_runs:
                 current_execution = qaas_run.execution
                 current_run_time =  current_execution.time
@@ -256,7 +242,6 @@ def create_app(config):
                 num_omp = current_execution.config['OMP_threads']
                 #get time for qaas run that has time
                 if not current_run_time:
-                    # print("does not have time", qaas_run.qaas.timestamp)
                     continue
                 speedup_num_mpi = 1 if current_execution.application.mpi_scaling == 'strong' else num_mpi
                 speedup_num_omp = 1 if current_execution.application.omp_scaling == 'strong' else num_omp
@@ -267,9 +252,7 @@ def create_app(config):
                 if speedup_best_compiler > max_speedup and eff >= 0.5:
                     max_speedup = speedup_best_compiler
                     max_execution = current_execution
-                    max_time = current_run_time
 
-            # print(max_execution.time, max_speedup, max_execution.application.workload, max_execution.hwsystem.architecture)
             #fill the data
             if max_execution:
                 gflops = max_execution.global_metrics['Gflops']
@@ -293,10 +276,8 @@ def create_app(config):
                 data[app_workload][time_label] = max_execution.time
                 data[app_workload]['best_compiler'] = max_execution.compiler_option.compiler.vendor.upper()
 
-
-            
+ 
         df = pd.DataFrame(list(data.values()))
-        # print(df)
         return df
     @app.route('/get_arccomp_data', methods=['GET'])
     def get_arccomp_data():
@@ -348,11 +329,9 @@ def create_app(config):
             min_time = db.session.query(func.min(Execution.time)).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).scalar()
             #default time
             qaas_runs = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).filter(QaaSRun.qaas == qaas, CompilerOption.flag == "default" ).all()
-            # print(len(qaas_runs), qaas.timestamp)
             for qaas_run in qaas_runs:
                 execution = qaas_run.execution
                 compiler_vendor = execution.compiler_option.compiler.vendor
-                # print(compiler_vendor, qaas.timestamp, execution.application.workload)
                 column_name = f"default_{compiler_vendor}_time"
                 row_data[column_name] = execution.time
                 if row_data["app_name"] is None:
@@ -361,12 +340,13 @@ def create_app(config):
             row_data["min_time"] = min_time
             data.append(row_data)
         
+        if not data:
+            #emtpy data
+            return {}
         df = pd.DataFrame(data).dropna()
-
         df['ICX: -O3 -march=native'] = df['default_icx_time'] / df['min_time']
         df['ICC: -O3 -march=native'] = df['default_icc_time'] / df['min_time']
         df['GCC: -O3 -march=native'] = df['default_gcc_time'] / df['min_time']    
-        # print(df)
         df['largest_gain'] = df[['ICX: -O3 -march=native', 'ICC: -O3 -march=native', 'GCC: -O3 -march=native']].max(axis=1)
         df['app'] = df['app_name']
 
@@ -383,6 +363,8 @@ def create_app(config):
     def get_bestcomp_data():
         multi_df = get_multicore_data()
         uni_df = get_unicore_data()
+
+       
 
         df = pd.merge(multi_df, uni_df, on='Apps', how='inner', suffixes=('_multi_df', '_uni_df'))
         df.rename({'Apps':'miniapp', 'ICL.cores':'cores_used', 'Intel ICL':'unicore_gf', 'ICL.Gf':'gflops'}, axis=1, inplace=True)
@@ -409,15 +391,20 @@ def create_app(config):
     def get_qaas_multicore_perf_gflops_data():
         df = get_multicore_data()
         #sort by x axis
+        #drop all non numberic columns to get mean
+        cols_to_convert = df.columns.drop(['Apps', 'ICL_time', 'SPR_time', 'ICL.cores', 'SPR.cores'])
+        df[cols_to_convert] = df[cols_to_convert].apply(pd.to_numeric, errors='coerce')
+
         df['Mean'] = df.drop(columns=['Apps']).mean(axis=1)
         df.sort_values('Mean', inplace=True)
-        df.drop('Mean', axis=1, inplace=True)
         df['ICL Gf/core'] = df['ICL.Gf'] / df['ICL.cores']
         df['SPR Gf/core'] = df['SPR.Gf'] / df['SPR.cores']
         df.drop('ICL.cores', axis=1, inplace=True)
         df.drop('SPR.cores', axis=1, inplace=True)
         df.rename({'ICL.Gf':'ICL total Gf', 'SPR.Gf':'SPR total Gf'}, axis=1, inplace=True)
-        df = df.drop(columns=['ICL_time', 'best_compiler', 'SPR_time'])
+
+        print(df)
+        df = df.drop(columns=['ICL_time', 'best_compiler', 'SPR_time', 'Mean'])
 
         data_dict = df.to_dict(orient='list')
         # replace NaN with None (null in JSON)
@@ -557,7 +544,6 @@ def create_app(config):
             
             data.append({'app_name': app_name, 'qaas_timestamp': qaas_timestamp, 'arch':arch, 'model': model, 'run_data': run_data})
                 
-        print(data[0])
         return jsonify(data)
 
     

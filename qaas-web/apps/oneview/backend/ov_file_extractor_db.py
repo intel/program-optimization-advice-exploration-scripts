@@ -29,7 +29,7 @@
 # Contributors: Yue/David
 import os
 from qaas_database import QaaSDatabase
-from model_accessor import OneViewModelInitializerAndFileCopier
+from oneview_model_accessor import OneViewModelInitializerAndFileCopier
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import sys

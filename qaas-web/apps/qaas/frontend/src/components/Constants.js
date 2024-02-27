@@ -168,14 +168,14 @@ export const baseLineLayout = {
     legend: {
         x: 0.2,
         xanchor: 'center',
-        y: 0.9,
+        y: 1.2,
         yanchor: 'top',
         orientation: 'v'
     },
     margin: {
         l: 40,
         r: 40,
-        b: 50,
+        b: 20,
         t: 0,
     },
     xaxis: {
