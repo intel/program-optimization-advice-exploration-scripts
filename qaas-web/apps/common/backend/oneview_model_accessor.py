@@ -27,16 +27,9 @@
 # HISTORY
 # Created October 2022
 # Contributors: Yue/David
-from util import *
 import os
 import pandas as pd
 import shutil
-import sys
-
-current_directory = os.path.dirname(os.path.abspath(__file__))
-base_directory = os.path.join(current_directory, '../../common/backend/')
-base_directory = os.path.normpath(base_directory)  
-sys.path.insert(0, base_directory)
 from model_accessor_base import ModelAccessor
 from model import *
 from model_collection import *
@@ -44,8 +37,13 @@ from base_util import *
 
 
 class OneviewModelAccessor(ModelAccessor):
-    def __init__(self, session, qaas_data_dir):
+    def __init__(self, session, qaas_data_dir=None):
         super().__init__(session)
+        if qaas_data_dir: self.set_ov_path(qaas_data_dir)
+        self.vprof_bucket_range = ["0.00-2.00", "2.00-4.00", "4.00-8.00", "8.00-16.00", "16.00-32.00", "32.00-64.00", "64.00-128.00", "128.00-256.00", "256.00-512.00", "512.00-1024.00", "1024.00-2048.00", "2048.00+"]
+
+
+    def set_ov_path(self, qaas_data_dir):
         self.qaas_data_dir = qaas_data_dir
         self.cur_run_id = 0
         self.static_dir_path = os.path.join(self.qaas_data_dir, "static_data")
@@ -59,7 +57,6 @@ class OneviewModelAccessor(ModelAccessor):
 
         self.local_vars_path = os.path.join(self.run_dir_path, 'local_vars.csv')
         self.expert_loop_path = os.path.join(self.run_dir_path, "expert_loops.csv")
-        self.vprof_bucket_range = ["0.00-2.00", "2.00-4.00", "4.00-8.00", "8.00-16.00", "16.00-32.00", "32.00-64.00", "64.00-128.00", "128.00-256.00", "256.00-512.00", "512.00-1024.00", "1024.00-2048.00", "2048.00+"]
 
 
 
@@ -149,7 +146,7 @@ class OneviewModelAccessor(ModelAccessor):
    
 
 class OneViewModelInitializer(OneviewModelAccessor):
-    def __init__(self, session, qaas_data_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id):
+    def __init__(self, session, qaas_data_dir=None, qaas_timestamp=None, version=None, workload_name=None, workload_version_name=None, workload_program_name=None, workload_program_commit_id=None):
         super().__init__(session, qaas_data_dir)
         #execution
         self.qaas_timestamp = qaas_timestamp
@@ -163,30 +160,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
     def get_current_execution(self):
         return self.current_execution
     
-   
-    def visitQaaSDataBase(self, qaas_database):
-        current_application = Application(self)
-        current_execution = Execution(self)
-        ### set the execution 
-        self.current_execution = current_execution
-        qaas_database.universal_timestamp = current_execution.universal_timestamp
 
-        current_execution.application = current_application
-        qaas_database.add_to_data_list(current_execution)
-        
-      
-        # ##hwsystem table
-        current_hw = HwSystem(self)
-        current_execution.hwsystem = current_hw
-        qaas_database.add_to_data_list(current_hw)
-
-        # ###os table
-        current_os = Os(self)
-        current_execution.os = current_os
-        qaas_database.add_to_data_list(current_os)
-
+    def set_ov_row_metrics(self, current_execution, qaas_database, current_os):
         # # ###maqao table
-        current_maqao = Maqao( self)
+        current_maqao = Maqao(self)
         current_maqao.execution = current_execution
         qaas_database.add_to_data_list(current_maqao)
 
@@ -263,6 +240,31 @@ class OneViewModelInitializer(OneviewModelAccessor):
         current_vprof_collection.accept(self)
         qaas_database.add_to_data_list(current_vprof_collection)
         
+    def visitQaaSDataBase(self, qaas_database):
+        print("ov visit qaad db called")
+        current_application = Application(self)
+        current_execution = Execution(self)
+        ### set the execution 
+        self.current_execution = current_execution
+        qaas_database.universal_timestamp = current_execution.universal_timestamp
+
+        current_execution.application = current_application
+        qaas_database.add_to_data_list(current_execution)
+        
+      
+        # ##hwsystem table
+        current_hw = HwSystem(self)
+        current_execution.hwsystem = current_hw
+        qaas_database.add_to_data_list(current_hw)
+
+        # ###os table
+        current_os = Os(self)
+        current_execution.os = current_os
+        qaas_database.add_to_data_list(current_os)
+
+        self.set_ov_row_metrics(self, current_execution, qaas_database, current_os)
+
+
        
         
 
@@ -300,7 +302,9 @@ class OneViewModelInitializer(OneviewModelAccessor):
         #add additional cols
         execution.is_orig = 1 if execution.version == 'orig' else 0
         # #config lua and cqa_context
-        execution.config = convert_lua_to_python(self.visit_file(config_path))
+        additonal_config = convert_lua_to_python(config_path)
+        #in case qaas already has some configurations appenbd it
+        execution.config = {**execution.config, **additonal_config}
         execution.cqa_context = convert_lua_to_python(self.visit_file(cqa_context_path))
         
         # #get time, profiled time, and max_nb_threads from expert loops
@@ -332,7 +336,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
             'global_metrics': global_metrics_df.to_json(orient="split"),
             'compilation_options': compilation_options_df.to_json(orient="split")
         }
-        execution.global_metrics = global_metrics_dict
+        #in case qaas already has some configurations
+        execution.global_metrics = {**execution.global_metrics, **global_metrics_dict}
         execution.threads_per_core = local_vars_dict.get('threads_per_core', None)
 
 
@@ -1094,7 +1099,7 @@ class OneViewModelExporter(OneviewModelAccessor):
 
     def get_measure_dict_by_measure_obj(self, measure):
         if measure:
-            measure_dict = {
+            return {
                     'time_p': measure.time_p,
                     'time_s': measure.time_s,
                     'time_s_min': measure.time_s_min,
@@ -1106,18 +1111,7 @@ class OneViewModelExporter(OneviewModelAccessor):
 
                 }
         else:
-            measure_dict = {
-                    'time_p': None,
-                    'time_s': None,
-                    'time_s_min': None,
-                    'time_s_max': None,
-                    'time_s_avg': None,
-                    'cov_deviation': None,
-                    'time_deviation': None,
-                    'nb_threads': None
-
-                }
-        return measure_dict
+           return None
     def visitLprofMeasurementCollection(self, lprof_measurement_collection):
         lprof_dir_path, expert_loop_path, hierarchy_dir_path = self.get_lprof_measurement_path()
         os.makedirs(os.path.dirname(expert_loop_path), exist_ok=True)
@@ -1155,7 +1149,9 @@ class OneViewModelExporter(OneviewModelAccessor):
         for block in blocks:
             machine_name = block.execution.os.hostname
             pid, tid = block.pid, block.tid
-            pid_tid_paris.add((pid, tid))
+            #only add if they are nto None
+            if pid and tid:
+                pid_tid_paris.add((pid, tid))
             source_info = combine_source_info(block.file, block.line_number) if block.file and block.line_number else None
             if not pid and not tid:
                 file_name = 'lprof_blocks.csv'
@@ -1169,9 +1165,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                 'source_info':source_info 
             }
             measure = get_lprof_measure(lprof_measurement_collection.get_objs(), block = block)
-            measure_dict = self.get_measure_dict_by_measure_obj(measure)
-            merged_dict = {**block_dict, **measure_dict}
-            files[file_name] = add_dict_to_df(merged_dict, files[file_name])
+            self.add_dict_to_file(files, file_name, block_dict, measure)
 
         #functions
         not_created_pid_tid_pairs = pid_tid_paris.copy()
@@ -1195,10 +1189,8 @@ class OneViewModelExporter(OneviewModelAccessor):
                 'cats':function.cats if function.cats else None
                 }
             measure = get_lprof_measure(lprof_measurement_collection.get_objs(), function = function)
-            measure_dict = self.get_measure_dict_by_measure_obj(measure)
-            merged_dict = {**function_dict, **measure_dict}
+            self.add_dict_to_file(files, file_name, function_dict, measure)
 
-            files[file_name] = add_dict_to_df(merged_dict, files[file_name])
 
         if not_created_pid_tid_pairs:
             for pid, tid in not_created_pid_tid_pairs:
@@ -1236,10 +1228,11 @@ class OneViewModelExporter(OneviewModelAccessor):
                 'function_id':loop.function.maqao_function_id if loop.function else None, 
                 'level':level_map[loop.level] if loop.level else None
                 }
+            if loop_dict['loop_id'] == 113:
+                print(pid, tid)
             measure = get_lprof_measure(lprof_measurement_collection.get_objs(), loop = loop)
-            measure_dict = self.get_measure_dict_by_measure_obj(measure)
-            merged_dict = {**loop_dict, **measure_dict}
-            files[file_name] = add_dict_to_df(merged_dict, files[file_name])
+            self.add_dict_to_file(files, file_name, loop_dict, measure)
+
         #add left over empty pud and tid loop that cannot be got from any other objs    
         if not_created_pid_tid_pairs:
             for pid, tid in not_created_pid_tid_pairs:
@@ -1273,6 +1266,13 @@ class OneViewModelExporter(OneviewModelAccessor):
                 os.makedirs(os.path.dirname(os.path.join(hierarchy_dir_path, hierarchy_lua_file_name)), exist_ok=True)
 
                 convert_python_to_lua(function.hierarchy, os.path.join(hierarchy_dir_path, hierarchy_lua_file_name))
+
+    def add_dict_to_file(self, files, file_name, block_dict, measure):
+        measure_dict = self.get_measure_dict_by_measure_obj(measure)
+            #TODO not a very good check if we don't have a measure dict just don't show entire line
+        if measure_dict:
+            merged_dict = {**block_dict, **measure_dict}
+            files[file_name] = add_dict_to_df(merged_dict, files[file_name])
 
        
       

@@ -158,6 +158,18 @@ def datetime_to_universal_timestamp(date_time):
     return str(int(datetime.strptime(date_time, '%c').timestamp()))
 
 #### create/update/get/parse 
+#used to read the qaas metadata file
+def parse_text_to_dict(file_path):
+    data_dict = {}
+    with open(file_path, 'r') as file:
+        for line in file:
+            # split by =
+            parts = line.strip().split('=')
+            if len(parts) == 2:
+                key, value = parts
+                data_dict[key] = value
+    return data_dict
+
 def parse_experiment_name(experiment_name):
     pattern = r'(orig|unicore/([^/_]*))'
     match = re.search(pattern, experiment_name)

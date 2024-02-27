@@ -48,16 +48,16 @@ from util import *
 from flask_cors import CORS
 import re
 from filters import FilterContext
-from oneview_model_accessor import MetricGetter
 from qaas_database import QaaSDatabase
 from constants import EXECUTION_METRIC_TYPES
 from collections import defaultdict
 current_directory = os.path.dirname(os.path.abspath(__file__))
-base_directory = os.path.join(current_directory, '../../common/backend/')
-base_directory = os.path.normpath(base_directory)  
+sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../common/backend/')))
+ 
 sys.path.insert(0, base_directory)
 from model import *
 from base_util import *
+from oneview_model_accessor import MetricGetter
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../../config/qaas-web.conf")

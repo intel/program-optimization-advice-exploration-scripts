@@ -43,14 +43,10 @@ import sys
 import tempfile
 #import files from common 
 current_directory = os.path.dirname(os.path.abspath(__file__))
-base_directory = os.path.join(current_directory, '../../common/backend/')
-base_directory = os.path.normpath(base_directory)  
-sys.path.insert(0, base_directory)
+sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../common/backend/')))
 from base_util import *
-backplane_directory = os.path.normpath(os.path.join(current_directory, '../../../../qaas-backplane/src'))
-sys.path.insert(0, backplane_directory)
-deployment_directory = os.path.normpath(os.path.join(current_directory, '../../../deployment'))
-sys.path.insert(0, deployment_directory)
+sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../../../qaas-backplane/src')))
+sys.path.insert(0,  os.path.normpath(os.path.join(current_directory, '../../../deployment')))
 from populate_db import read_qaas_ov
 from qaas_ov_db import export_data
 from model import *

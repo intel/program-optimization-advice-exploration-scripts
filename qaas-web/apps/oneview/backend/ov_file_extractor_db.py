@@ -28,15 +28,15 @@
 # Created October 2022
 # Contributors: Yue/David
 import os
+import sys
+current_directory = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../common/backend/')))
+
 from qaas_database import QaaSDatabase
 from oneview_model_accessor import OneViewModelInitializerAndFileCopier
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-import sys
-current_directory = os.path.dirname(os.path.abspath(__file__))
-base_directory = os.path.join(current_directory, '../../common/backend/')
-base_directory = os.path.normpath(base_directory)  
-sys.path.insert(0, base_directory)
+
 from model import connect_db, create_all
 
 import argparse

@@ -27,16 +27,8 @@
 # HISTORY
 # Created October 2022
 # Contributors: Yue/David
-from qaas_util import parse_text_to_dict
 import os
 import pandas as pd
-import shutil
-import sys
-import pandas as pd
-current_directory = os.path.dirname(os.path.abspath(__file__))
-base_directory = os.path.join(current_directory, '../../common/backend/')
-base_directory = os.path.normpath(base_directory)  
-sys.path.insert(0, base_directory)
 from model_accessor_base import ModelAccessor
 from model_collection import *
 from base_util import *
@@ -71,6 +63,8 @@ class QaaSModelInitializer(ModelAccessor):
         return df
     
     def build_executions_from_file(self, file_path, report_type, qaas_database, metadata_dict):
+        print("build_executions_from_file in qaas")
+
         #read scability report path
         if os.path.exists(file_path):
             df = read_file(file_path, delimiter=',')
@@ -84,21 +78,24 @@ class QaaSModelInitializer(ModelAccessor):
             #iterate file each row in the file is new execution
             for index, row in df.iterrows():
                 self.current_row = row
-                current_application = Application(self)
-                current_application.mpi_scaling = metadata_dict['mpi_scaling']
-                current_application.omp_scaling = metadata_dict['openmp_scaling']
-                current_execution = Execution(self)
-                ### set the execution 
-                self.current_execution = current_execution
-                current_execution.application = current_application
-                qaas_database.add_to_data_list(current_execution)
+                self.set_qaas_row_metrics(qaas_database, metadata_dict)
 
-                ###os
-                current_os = Os(self)
-                current_execution.os = current_os
-                ###hw system
-                current_hwsystem = HwSystem(self)
-                current_execution.hwsystem = current_hwsystem
+    def set_qaas_row_metrics(self, qaas_database, metadata_dict):
+        current_application = Application(self)
+        current_application.mpi_scaling = metadata_dict['mpi_scaling']
+        current_application.omp_scaling = metadata_dict['openmp_scaling']
+        current_execution = Execution(self)
+        ### set the execution 
+        self.current_execution = current_execution
+        current_execution.application = current_application
+        qaas_database.add_to_data_list(current_execution)
+
+        ###os
+        current_os = Os(self)
+        current_execution.os = current_os
+        ###hw system
+        current_hwsystem = HwSystem(self)
+        current_execution.hwsystem = current_hwsystem
         
     def visitQaaSDataBase(self, qaas_database):
         #get metadata

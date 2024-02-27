@@ -28,6 +28,9 @@
 # Created October 2022
 # Contributors: Yue/David
 import os
+import sys
+current_directory = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../common/backend/')))
 from qaas_model_accessor import QaaSModelInitializer
 from qaas_database import QaaSDatabase
 #import pickle
