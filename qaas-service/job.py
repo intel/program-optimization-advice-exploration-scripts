@@ -51,6 +51,7 @@ from qaas_logic_initial_profile import run_initial_profile
 from qaas_logic_compile import compile_binaries as compile_all
 from qaas_logic_unicore import run_qaas_UP
 from qaas_logic_multicore import run_qaas_MP
+from qaas_metadata import QAASMetaDATA
 
 def run_demo_phase(to_backplane, src_dir, data_dir, ov_config, ov_run_dir, locus_run_root, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
@@ -89,6 +90,13 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     # Setup QaaS reports dir
     qaas_reports_dir = os.path.join(os.path.dirname(base_run_dir), 'qaas_reports')
 
+    # Dump meta data file
+    qaas_meta = QAASMetaDATA(qaas_reports_dir)
+    qaas_meta.add_qaas_metadata(run_cmd)
+    qaas_meta.add_system_metadata()
+    for compiler in multi_compilers_dirs:
+        qaas_meta.add_compiler_version(compiler, multi_compilers_dirs[compiler])
+
     # Phase 2: Intial profiling and cleaning
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Initail Profiling and Cleaning"))
     rc,msg,defaults,flops,nb_mpi,nb_omp = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
@@ -122,10 +130,17 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     # Start multicore runs
     if runtime["enable_scale"] and not disable_compiler_flags:
         to_backplane.send(qm.GeneralStatus("QAAS running logic: Multicore Parameters Exploration/Tuning"))
+        # Get scaling mode
         has_mpi = True if runtime['mpi'] != 'no' else False
         has_omp = True if runtime['openmp'] != 'no' else False
         mpi_weak = True if runtime['mpi'] == 'weak' else False
         omp_weak = True if runtime['openmp'] == 'weak' else False
+
+        # Dump meta data file (scaling modes)
+        qaas_meta = QAASMetaDATA(qaas_reports_dir)
+        qaas_meta.add_scalability_metadata(runtime['mpi'], runtime['openmp'])
+
+        # Compute flops
         if mpi_weak and omp_weak:
             # App has MPI and OpenMP and both scale through replication
             flops_per_app = flops/(nb_mpi * nb_omp)
@@ -138,6 +153,8 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         else:
             # App implements classic strong scaling: FLOPS is invariant
             flops_per_app = flops
+
+        # Run scalability
         rc,mp_best_opt,msg = run_qaas_MP(user_target, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                      orig_user_CC, run_cmd, compiled_options, compile_best_opt, bestcomp, qaas_reports_dir,
                      has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app)
