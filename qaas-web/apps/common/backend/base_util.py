@@ -13,6 +13,8 @@ import numpy as np
 import tempfile
 import builtins
 import shutil
+import configparser
+
 ####constants
 level_map = {0: 'Single', 1: 'Innermost', 2: 'InBetween', 3: 'Outermost'}
 reverse_level_map = {v: k for k, v in level_map.items()}
@@ -162,6 +164,11 @@ def datetime_to_universal_timestamp(date_time):
 
 #### create/update/get/parse 
 #used to read the qaas metadata file
+def get_config_from_path(path):
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+    config.read(path)
+    return config
+
 def parse_text_to_dict(file_path):
     data_dict = {}
     with open(file_path, 'r') as file:
@@ -840,14 +847,17 @@ def convert_callchain_python_to_binary(data, binary_file_path, session):
 # it also returns a db session that can be used to for database visitor to fill in data.
 class QaaSFileAccessMonitor:
     DEBUG = False
-    def __init__(self, in_path, out_path):
+    def __init__(self, in_path, out_path, keep_db=False):
         self.accessed_files = set()
         self.full_input_path = os.path.abspath(in_path)
         self.full_output_path = os.path.abspath(out_path)
+        self.keep_db = keep_db
 
         #connect db
-        temp_file = tempfile.NamedTemporaryFile(suffix=".db", prefix=f'{self.full_output_path}_', delete=False)
-        db_file_name = temp_file.name
+        # Ensure output path exists
+        os.makedirs(self.full_output_path, exist_ok=True)
+        self.temp_file = tempfile.NamedTemporaryFile(suffix=".db", prefix=f'{self.full_output_path}_', delete=False)
+        db_file_name = self.temp_file.name
         self.engine = create_engine(f'sqlite:///{db_file_name}')
         #engine = create_engine('mysql://qaas:qaas@localhost/qaas')
         self.engine.connect()
@@ -909,4 +919,6 @@ class QaaSFileAccessMonitor:
 
         self.session.commit()
         self.session.close()
+        if not self.keep_db:
+            os.unlink(self.temp_file.name)
         return False

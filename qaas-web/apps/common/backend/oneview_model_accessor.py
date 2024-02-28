@@ -262,7 +262,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         current_execution.os = current_os
         qaas_database.add_to_data_list(current_os)
 
-        self.set_ov_row_metrics(self, current_execution, qaas_database, current_os)
+        self.set_ov_row_metrics(current_execution, qaas_database, current_os)
 
 
        
@@ -301,10 +301,16 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
         #add additional cols
         execution.is_orig = 1 if execution.version == 'orig' else 0
+
+        #make sure config is a dic
+        if execution.config is None:
+            execution.config = {}
         # #config lua and cqa_context
         additonal_config = convert_lua_to_python(config_path)
+        if additonal_config:
         #in case qaas already has some configurations appenbd it
-        execution.config = {**execution.config, **additonal_config}
+            execution.config = {**execution.config, **additonal_config}
+
         execution.cqa_context = convert_lua_to_python(self.visit_file(cqa_context_path))
         
         # #get time, profiled time, and max_nb_threads from expert loops
@@ -332,6 +338,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
         ##global metrics
         global_metrics_df = read_file(self.visit_file(global_metrics_path))
         compilation_options_df = read_file(self.visit_file(compilation_options_path))
+
+        # make sure execution.global_metrics is initialized as a dictionary if it is None
+        if execution.global_metrics is None:
+            execution.global_metrics = {}
         global_metrics_dict={
             'global_metrics': global_metrics_df.to_json(orient="split"),
             'compilation_options': compilation_options_df.to_json(orient="split")

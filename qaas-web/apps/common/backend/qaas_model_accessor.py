@@ -32,6 +32,7 @@ import pandas as pd
 from model_accessor_base import ModelAccessor
 from model_collection import *
 from base_util import *
+import configparser
 
 class QaaSModelInitializer(ModelAccessor):
     def __init__(self, session, report_path):
@@ -41,6 +42,7 @@ class QaaSModelInitializer(ModelAccessor):
 
         self.current_row = None
         self.current_type = None
+        self.current_metadata_config = None
 
     #set is_baseline based on input scalability_reference_line
     def set_is_baseline(self, df, scalability_reference_line):
@@ -62,15 +64,13 @@ class QaaSModelInitializer(ModelAccessor):
 
         return df
     
-    def build_executions_from_file(self, file_path, report_type, qaas_database, metadata_dict):
-        print("build_executions_from_file in qaas")
-
+    def build_executions_from_file(self, file_path, report_type, qaas_database):
         #read scability report path
         if os.path.exists(file_path):
             df = read_file(file_path, delimiter=',')
 
             #set is_basleine
-            scalability_reference_line = metadata_dict.get('scalability_reference_line', None)
+            scalability_reference_line = self.current_metadata_config['SYSTEM'].get('scalability_reference_line')
             self.set_is_baseline(df, scalability_reference_line)
 
             #set type
@@ -78,12 +78,12 @@ class QaaSModelInitializer(ModelAccessor):
             #iterate file each row in the file is new execution
             for index, row in df.iterrows():
                 self.current_row = row
-                self.set_qaas_row_metrics(qaas_database, metadata_dict)
+                self.set_qaas_row_metrics(qaas_database)
 
-    def set_qaas_row_metrics(self, qaas_database, metadata_dict):
+    def set_qaas_row_metrics(self, qaas_database):
         current_application = Application(self)
-        current_application.mpi_scaling = metadata_dict['mpi_scaling']
-        current_application.omp_scaling = metadata_dict['openmp_scaling']
+        current_application.mpi_scaling = self.current_metadata_config['SYSTEM'].get('mpi_scaling')
+        current_application.omp_scaling = self.current_metadata_config['SYSTEM'].get('openmp_scaling')
         current_execution = Execution(self)
         ### set the execution 
         self.current_execution = current_execution
@@ -99,34 +99,31 @@ class QaaSModelInitializer(ModelAccessor):
         
     def visitQaaSDataBase(self, qaas_database):
         #get metadata
-        metadata_dict = parse_text_to_dict(self.qaas_metadata_file_path)
+        self.current_metadata_config = get_config_from_path(self.qaas_metadata_file_path)
         #get data files
-        if metadata_dict['multicompiler_report']:
-            multicompiler_report_file_name = metadata_dict['multicompiler_report']
+        if self.current_metadata_config['REPORTS'].get('multicompiler_report'):
+            multicompiler_report_file_name = self.current_metadata_config['REPORTS'].get('multicompiler_report')
             multicompiler_report_path = os.path.join(self.report_path, multicompiler_report_file_name)
-            self.build_executions_from_file(multicompiler_report_path, 'multicompiler_report', qaas_database, metadata_dict)
+            self.build_executions_from_file(multicompiler_report_path, 'multicompiler_report', qaas_database)
 
-        if metadata_dict['scalability_report']:
-            scalability_report_file_name = metadata_dict['scalability_report']
+        if self.current_metadata_config['REPORTS'].get('scalability_report'):
+            scalability_report_file_name = self.current_metadata_config['REPORTS'].get('scalability_report')
             scalability_report_path = os.path.join(self.report_path, scalability_report_file_name)
             #read scability report 
-            self.build_executions_from_file(scalability_report_path, 'scalability_report', qaas_database, metadata_dict)
+            self.build_executions_from_file(scalability_report_path, 'scalability_report', qaas_database)
 
         
 
              
    
     def visitApplication(self, application):
-        metadata_dict = parse_text_to_dict(self.qaas_metadata_file_path)
-        application.workload = metadata_dict['app_name']
+        application.workload = self.current_metadata_config['QAAS'].get('app_name')
         
     def visitExecution(self, execution):
         #metadata info
-        metadata_dict = parse_text_to_dict(self.qaas_metadata_file_path)
-
         #create qaas and exectuion assoicate table
         #both multicompiler report and scabilty belong to same qaas 
-        timestamp = metadata_dict['timestamp']
+        timestamp = self.current_metadata_config['QAAS'].get('timestamp')
         current_qaas = QaaS.get_or_create_qaas(timestamp, self)
         current_qaas_run = QaaSRun(self)
         #associate table
@@ -150,18 +147,18 @@ class QaaSModelInitializer(ModelAccessor):
         execution.global_metrics = global_metrics_dict
         #if it is orig we need to replace it with the actual compiler from metadata
         if compiler_vendor == 'orig':
-            compiler_vendor = metadata_dict['compiler_default']
+            compiler_vendor = self.current_metadata_config['REPORTS'].get('compiler_default')
             current_qaas.orig_execution = execution
 
         
         #get compiler version from metadata
         compiler_version = None
         if compiler_vendor == 'icc':
-            compiler_version = metadata_dict['icc_version']
+            compiler_version = self.current_metadata_config['SYSTEM'].get('icc_version')
         elif compiler_vendor == 'icx':
-            compiler_version = metadata_dict['icx_version']
+            compiler_version = self.current_metadata_config['SYSTEM'].get('icx_version')
         elif compiler_vendor == 'gcc':
-            compiler_version = metadata_dict['gcc_version']
+            compiler_version = self.current_metadata_config['SYSTEM'].get('gcc_version')
         compiler = Compiler.get_or_create_compiler_by_compiler_info(vendor=compiler_vendor, version=compiler_version, initializer=self)
         
         compiler_option = CompilerOption(self)
@@ -181,21 +178,19 @@ class QaaSModelInitializer(ModelAccessor):
     def visitEnvironment(self, environment):
         pass
     def visitOs(self, os):
-        metadata_dict = parse_text_to_dict(self.qaas_metadata_file_path)
-        os.driver_frequency = metadata_dict['frequency_driver']
-        os.scaling_governor = metadata_dict['frequency_governor']
-        os.huge_pages = metadata_dict['huge_pages']
-        os.hostname = metadata_dict['machine']
-        os.scaling_max_frequency = metadata_dict['scaling_max_frequency']
-        os.scaling_min_frequency = metadata_dict['scaling_min_frequency']
+        os.driver_frequency = self.current_metadata_config['SYSTEM'].get('frequency_driver')
+        os.scaling_governor = self.current_metadata_config['SYSTEM'].get('frequency_governor')
+        os.huge_pages = self.current_metadata_config['SYSTEM'].get('huge_pages')
+        os.hostname = self.current_metadata_config['SYSTEM'].get('machine')
+        os.scaling_max_frequency = self.current_metadata_config['SYSTEM'].get('scaling_max_frequency')
+        os.scaling_min_frequency = self.current_metadata_config['SYSTEM'].get('scaling_min_frequency')
       
     def visitHwSystem(self, hwsystem):
-        metadata_dict = parse_text_to_dict(self.qaas_metadata_file_path)
-        hwsystem.cpui_model_name = metadata_dict['model_name']
-        hwsystem.cpui_cpu_cores = metadata_dict['number_of_cores']
-        hwsystem.sockets = metadata_dict['number_of_sockets']
-        hwsystem.cores_per_socket = metadata_dict['number_of_cores_per_socket']
-        hwsystem.architecture = metadata_dict['architecture']
+        hwsystem.cpui_model_name = self.current_metadata_config['SYSTEM'].get('model_name')
+        hwsystem.cpui_cpu_cores = self.current_metadata_config['SYSTEM'].get('number_of_cores')
+        hwsystem.sockets = self.current_metadata_config['SYSTEM'].get('number_of_sockets')
+        hwsystem.cores_per_socket = self.current_metadata_config['SYSTEM'].get('number_of_cores_per_socket')
+        hwsystem.architecture = self.current_metadata_config['SYSTEM'].get('architecture')
     def visitMaqao(self, maqao):
         pass
     def visitCompilerCollection(self, compiler_collection):

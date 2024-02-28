@@ -355,23 +355,27 @@ def package_data(local_out_dir):
     process_oneview_data(ov_folder_for_default, out_oneview_folders, compilers, compiler_options, folders, lambda folder: [folder, 0, f'{folder}_default'])
 
     ov_folders_info_df = pd.DataFrame({"compiler":compilers, "option #":compiler_options, "ov_folder":folders})
-    print(ov_folders_info_df)
+    #print(ov_folders_info_df)
+
 # Now add the ov_folder column to data
 # This is for multi-compiler data
     multi_compiler_data_fn = os.path.join(reorg_local_out_dir, 'qaas_compilers.csv')
     multi_compiler_data_df = pd.read_csv(multi_compiler_data_fn)
     result = pd.merge(multi_compiler_data_df, ov_folders_info_df, on=['compiler', 'option #'], how='left')
-    print(result)
+    #print(result)
     result.to_csv(multi_compiler_data_fn, index=False)
-    print(reorg_local_out_dir)
+    #print(reorg_local_out_dir)
     reorg_local_dir_name = os.path.basename(reorg_local_out_dir)
     with tarfile.open(os.path.join('/tmp/qaas_out.tar.gz'), 'w:gz') as tar:
         tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name)
+    with tarfile.open(os.path.join('/tmp/qaas_out-debug.tar.gz'), 'w:gz') as tar:
+        tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name)
+    with open("/tmp/debug-tar.txt", "w") as f: f.write(f'{reorg_local_out_dir}, {reorg_local_dir_name}')
 
 def process_oneview_data(ov_folder_for_best_compilers, out_oneview_folders, compilers, compiler_options, folders, 
                          parse_compiler_folder_name_fn):
     for compiler_folder in os.listdir(ov_folder_for_best_compilers):
-        print(compiler_folder)
+        #print(compiler_folder)
         in_path=os.path.join(ov_folder_for_best_compilers, compiler_folder)
     # Need to go one more level to get the real oneview folder
         in_oneview_folder = os.listdir(in_path)
@@ -390,4 +394,5 @@ def process_oneview_data(ov_folder_for_best_compilers, out_oneview_folders, comp
         extract_ov_file(full_in_oneview_folder, full_out_oneview_folder)
 
 #TEST_LOCAL_OUT_DIR="/nfs/site/proj/alac/tmp/qaas_out-amg/tmp/qaas_out-test/170-852-0034"
+#TEST_LOCAL_OUT_DIR="/tmp/qaas_out/170-909-9726-test"
 #package_data(TEST_LOCAL_OUT_DIR)

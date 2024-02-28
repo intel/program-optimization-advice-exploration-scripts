@@ -44,11 +44,11 @@ class QaaSOneViewModelInitializer(QaaSModelInitializer, OneViewModelInitializer)
         self.cur_run_has_ov_data = False
         self.ov_runs_dir = os.path.join(report_path, 'oneview_runs')
 
-    def build_executions_from_file(self, file_path, report_type, qaas_database, metadata_dict):
+    def build_executions_from_file(self, file_path, report_type, qaas_database):
         # read report path
         if os.path.exists(file_path):
             df = read_file(file_path, delimiter=',')
-            scalability_reference_line = metadata_dict.get('scalability_reference_line', None)
+            scalability_reference_line = self.current_metadata_config['SYSTEM'].get('scalability_reference_line')
             self.set_is_baseline(df, scalability_reference_line)
 
             self.current_type = report_type
@@ -64,7 +64,7 @@ class QaaSOneViewModelInitializer(QaaSModelInitializer, OneViewModelInitializer)
                     self.set_ov_path(os.path.join(self.ov_runs_dir, self.current_row['ov_folder']))
 
 
-                self.set_qaas_row_metrics(qaas_database, metadata_dict)
+                self.set_qaas_row_metrics(qaas_database)
 
                 ######################################## OV ########
                 ########## oneview specific only set this if there is a ov report associate with this run#########

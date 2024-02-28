@@ -552,13 +552,19 @@ def create_app(config):
     def perform_long_running_tasks(unique_temp_dir):
         qaas_message_queue.put(QaasMessage("Job Begin"))
         subprocess.run(["scp", "-P", "2222", "/host/tmp/input-AMG.intel.json", "qaas@fxilab165.an.intel.com:/tmp"], check=True)
+        subprocess.run([ "ssh", "qaas@fxilab165.an.intel.com", "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
+        subprocess.run( ["ssh", "qaas@fxilab165.an.intel.com", "-p", "2222",
+                        "PYTHONPATH=/home/qaas/QAAS_SCRIPT_ROOT/qaas-web/apps/oneview/backend " +
+                        "python3 /home/qaas/QAAS_SCRIPT_ROOT/qaas-backplane/src/qaas.py -ap " +
+                        "/nfs/site/proj/alac/data/QaaS/qaas-tested-json-recipes-hafid/MiniApps/input-AMG.intel.json " +
+                        "--logic strategizer --no-container -D --local-job"])
         subprocess.run(["ssh", "qaas@fxilab165.an.intel.com", "-p", "2222", "tar cvfz /tmp/qaas_out.tar.gz /tmp/qaas_out"], check=True, stdout=subprocess.DEVNULL)
         subprocess.run(["scp", "-P", "2222", "qaas@fxilab165.an.intel.com:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
         subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "--strip-components=1", "-C", unique_temp_dir], check=True)
         qaas_out_dir = os.path.join(unique_temp_dir, 'qaas_out')
         # qaas_compiler_df = read_file()
         for report_timestamp in os.listdir(qaas_out_dir):
-            report_path = os.path.join(qaas_out_dir, report_timestamp)
+            report_path = os.path.join(qaas_out_dir, report_timestamp, 'reorg', report_timestamp)
             populate_database_qaas_ov(report_path, config)
 
         # read_qaas_ov(unique_temp_dir)
@@ -567,7 +573,9 @@ def create_app(config):
 
         qaas_message_queue.put(QaasMessage("Job End"))
 
-    
+    # @app.route('/get_existing', methods=['POST'])
+    # def create_new_run():
+    #     pass
     @app.route('/create_new_run', methods=['POST'])
     def create_new_run():
         #real user input data  unused for now
@@ -576,6 +584,8 @@ def create_app(config):
         script_path =  '/host/localdisk/yue/mockup_qaas.sh'
         # unique_temp_dir = tempfile.mktemp()
         unique_temp_dir = '/tmp/myout'
+        os.makedirs(unique_temp_dir, exist_ok=True)
+
         print(unique_temp_dir)
         result = subprocess.run(['whoami'], capture_output=True, text=True)
         print(result.stdout.strip())

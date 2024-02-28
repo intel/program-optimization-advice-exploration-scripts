@@ -38,6 +38,7 @@ def get_config():
     config.read(CONFIG_PATH)
     return config
 
+
 def connect_db(config):
     engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI_QAAS'])
     engine.connect()

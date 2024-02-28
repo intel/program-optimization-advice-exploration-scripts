@@ -180,7 +180,7 @@ def update_web(force_install=False):
     give_permission('/etc/apache2/auth', 'www-data')
 
     #sync db last
-    # sync_db(alembic_ini_file)
+    sync_db(alembic_ini_file)
 
 def give_permission(folder, user):
     os.system(f"sudo chown -R {user}:{user} {folder}")

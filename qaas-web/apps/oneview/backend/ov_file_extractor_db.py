@@ -52,10 +52,11 @@ def main():
     parser = argparse.ArgumentParser(description="OV data extractor")
     parser.add_argument('--input', help='input Oneview folder', required=True)
     parser.add_argument('--output', help='output Oneview folder', required=True)
+    parser.add_argument('--keep-db', action='store_true', help='Keep the temporary database', require=False)
     args = parser.parse_args()
     #ov_path = "/host/localdisk/yue/data/test_qaas_ov_data/runs/170-335-6350/oneview_runs/defaults/orig/oneview_results_1703356350" # hardcoded now
     #output_path = "/tmp/test123"  #hardcoded now
-    extract_ov_file(args.input, args.output)
+    extract_ov_file(args.input, args.output, keep_db = args.keep_db)
 
 if __name__ == "__main__":
     main()
