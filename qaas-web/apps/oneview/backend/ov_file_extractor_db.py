@@ -29,7 +29,7 @@
 # Contributors: Yue/David
 import os
 from qaas_database import QaaSDatabase
-from oneview_model_accessor import OneViewModelInitializerAndFileCopier
+from oneview_model_accessor import OneViewModelInitializerAndFileCopier, OneViewModelInitializer
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import sys
@@ -38,30 +38,16 @@ base_directory = os.path.join(current_directory, '../../common/backend/')
 base_directory = os.path.normpath(base_directory)  
 sys.path.insert(0, base_directory)
 from model import connect_db, create_all
+from base_util import QaaSFileAccessMonitor
 
 import argparse
-import sqlite3
-def extract_ov_file(report_path, output_path, config=None):
-    #connect db
-    engine = create_engine('sqlite:///sqlitetest.db')
-    #engine = create_engine('mysql://qaas:qaas@localhost/qaas')
-    engine.connect()
+def extract_ov_file(input_path, output_path):
+    with QaaSFileAccessMonitor(input_path, output_path) as session:
+        ######################populate database tables######################
+        initializer = OneViewModelInitializer(session, input_path, "test_timestamp", "test_version", "workload_name", "workload_version_name", "workload_program_name", "workload_program_commit_id")
+        qaas_ov_database = QaaSDatabase()
+        qaas_ov_database.accept(initializer)
 
-    create_all(engine)
-
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    
-    #######################populate database tables######################
-    initializer = OneViewModelInitializerAndFileCopier(session, report_path, "test_timestamp", "test_version", "workload_name", "workload_version_name", "workload_program_name", "workload_program_commit_id", output_path)
-    qaas_ov_database = QaaSDatabase()
-    qaas_ov_database.accept(initializer)
-    
-    session.commit()
-    session.close()
-
-    #delete database
 def main():
     parser = argparse.ArgumentParser(description="OV data extractor")
     parser.add_argument('--input', help='input Oneview folder', required=True)
@@ -69,8 +55,6 @@ def main():
     args = parser.parse_args()
     #ov_path = "/host/localdisk/yue/data/test_qaas_ov_data/runs/170-335-6350/oneview_runs/defaults/orig/oneview_results_1703356350" # hardcoded now
     #output_path = "/tmp/test123"  #hardcoded now
-    ov_path = "/tmp/test123"
-    output_path = "/tmp/test4"  #hardcoded now
     extract_ov_file(args.input, args.output)
 
 if __name__ == "__main__":

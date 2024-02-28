@@ -10,6 +10,9 @@ import re
 from datetime import datetime
 import configparser
 import numpy as np
+import tempfile
+import builtins
+import shutil
 ####constants
 level_map = {0: 'Single', 1: 'Innermost', 2: 'InBetween', 3: 'Outermost'}
 reverse_level_map = {v: k for k, v in level_map.items()}
@@ -814,3 +817,84 @@ def convert_callchain_python_to_binary(data, binary_file_path, session):
             #only write if there are objects to write 
             if len(objects) > 0:
                 write_callchains(f, objects)
+
+# File access monitoring and copying context manager
+# Usage:
+#    with QaaSFileAccessMonitor(input_path, output_path) as session:
+#        ....
+#
+# The context manager will track files being accessed under input_path and copy them to output_path
+# preserving the relative path location
+# it also returns a db session that can be used to for database visitor to fill in data.
+class QaaSFileAccessMonitor:
+    DEBUG = False
+    def __init__(self, in_path, out_path):
+        self.accessed_files = set()
+        self.full_input_path = os.path.abspath(in_path)
+        self.full_output_path = os.path.abspath(out_path)
+
+        #connect db
+        temp_file = tempfile.NamedTemporaryFile(suffix=".db", prefix=f'{self.full_output_path}_', delete=False)
+        db_file_name = temp_file.name
+        self.engine = create_engine(f'sqlite:///{db_file_name}')
+        #engine = create_engine('mysql://qaas:qaas@localhost/qaas')
+        self.engine.connect()
+
+        create_all(self.engine)
+
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+    def __enter__(self):
+        if QaaSFileAccessMonitor.DEBUG:
+            print("Enter")
+        self.saved_open = builtins.open
+        self.saved_pd_read_csv = pd.read_csv
+        builtins.open = self.my_open
+        pd.read_csv = self.my_pd_read_csv
+        return self.session
+
+    def my_pd_read_csv(self, *args, **kwargs):
+        self.peek_filename('filepath_or_buffer', args, kwargs)
+        return self.saved_pd_read_csv(*args, **kwargs)
+    
+    def my_open(self, *args, **kwargs):
+        self.peek_filename('file', args, kwargs)
+        return self.saved_open(*args, **kwargs)
+
+    def peek_filename(self, file_arg_name, args, kwargs):
+        if file_arg_name in kwargs:
+            filename = kwargs[file_arg_name]
+        elif args:
+            filename = args[0]
+        else:
+            filename = None
+        full_filename=os.path.abspath(filename)
+        #print(f"my open called: {filename}")
+        if os.path.commonpath([self.full_input_path]) == os.path.commonpath([self.full_input_path, full_filename]):
+            self.accessed_files.add(full_filename)
+
+    def visit_file(self, full_file_path):
+        if QaaSFileAccessMonitor.DEBUG:
+            print(f"IN: {full_file_path}")
+        rel_path = os.path.relpath(full_file_path, self.full_input_path)
+        full_outfile_path = os.path.join(self.full_output_path, rel_path)
+        full_outfile_dir = os.path.dirname(full_outfile_path)
+        os.makedirs(full_outfile_dir, exist_ok=True)
+        shutil.copy(full_file_path, full_outfile_path)
+        if QaaSFileAccessMonitor.DEBUG:
+            print(f"OUT: {full_outfile_dir}")
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if QaaSFileAccessMonitor.DEBUG:
+            print("Exit")
+        builtins.open = self.saved_open
+        pd.read_csv = self.saved_pd_read_csv
+        for file in sorted(self.accessed_files):
+            self.visit_file(file)
+            if QaaSFileAccessMonitor.DEBUG:
+                print(f'FILE: {file}')
+
+        self.session.commit()
+        self.session.close()
+        return False
