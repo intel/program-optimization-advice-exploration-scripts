@@ -47,18 +47,15 @@ sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../commo
 from base_util import *
 sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../../../qaas-backplane/src')))
 sys.path.insert(0,  os.path.normpath(os.path.join(current_directory, '../../../deployment')))
-from populate_db import read_qaas_ov
-from qaas_ov_db import export_data
+from qaas_ov_db import export_data, populate_database_qaas_ov
 from model import *
 import threading
-from qaas import launch_qaas
+# from qaas import launch_qaas
 import time
 import queue
 import json
 import subprocess
 import asyncio
-
-# from qaas_ov_db import populate_database_qaas_ov
 
 #set config
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -81,8 +78,8 @@ class QaaSThread(threading.Thread):
         self.qaas_message_queue = qaas_message_queue
 
 
-    def run(self):
-        self.rc, self.output_ov_dir = launch_qaas (self.json_file, lambda msg: self.qaas_message_queue.put(msg), self.qaas_data_folder)
+    # def run(self):
+    #     self.rc, self.output_ov_dir = launch_qaas (self.json_file, lambda msg: self.qaas_message_queue.put(msg), self.qaas_data_folder)
 
 class QaasMessage:
     def __init__(self, text):
@@ -144,7 +141,7 @@ def create_app(config):
         #read all unicore runs that have turbo on
         #TODO ask what is the threshold to check if a machine has turbo on or off
         data = {}
-        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(Os.scaling_min_frequency > 3000000,  Execution.config['MPI_threads'] == 1, Execution.config['OMP_threads'] == 1).distinct().all()
+        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(Os.scaling_min_frequency > 3000000,  QaaSRun.type != 'scalability_report').distinct().all()
         for qaas in qaass:
             #execution obj that has min time across this qaas run
             min_time_execution = (db.session.query(Execution)
@@ -360,9 +357,17 @@ def create_app(config):
         multi_df = get_multicore_data()
         uni_df = get_unicore_data()
 
-       
-
-        df = pd.merge(multi_df, uni_df, on='Apps', how='inner', suffixes=('_multi_df', '_uni_df'))
+        print(multi_df)
+        print(uni_df)
+        if not multi_df.empty and not uni_df.empty:
+            return {}
+        
+        if not multi_df.empty:
+            df = multi_df
+        elif not uni_df.empty:
+            df = uni_df
+        else:
+            df = pd.merge(multi_df, uni_df, on='Apps', how='inner', suffixes=('_multi_df', '_uni_df'))
         df.rename({'Apps':'miniapp', 'ICL.cores':'cores_used', 'Intel ICL':'unicore_gf', 'ICL.Gf':'gflops'}, axis=1, inplace=True)
 
         df['gf_per_core'] = df['gflops'] / df['cores_used']
@@ -552,6 +557,10 @@ def create_app(config):
         subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "--strip-components=1", "-C", unique_temp_dir], check=True)
         qaas_out_dir = os.path.join(unique_temp_dir, 'qaas_out')
         # qaas_compiler_df = read_file()
+        for report_timestamp in os.listdir(qaas_out_dir):
+            report_path = os.path.join(qaas_out_dir, report_timestamp)
+            populate_database_qaas_ov(report_path, config)
+
         # read_qaas_ov(unique_temp_dir)
 
         time.sleep(10)

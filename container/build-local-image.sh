@@ -79,7 +79,7 @@ tar cvfz ./maqao.tar.gz -C ${maqao_package_dir} .
 
 #tar cvfz ./qaas-web.tar.gz -C ../qaas-web .
 
-tar cvfz QAAS_SCRIPT_ROOT.tar.gz --exclude=qaas-web --exclude=container --exclude='.git' -C .. .
+tar cvfz QAAS_SCRIPT_ROOT.tar.gz --exclude='qaas-web/*/frontend' --exclude=container --exclude='.git' -C .. .
 cp ../scripts/setup_compilers_container.sh .
 
 common_image=local_image_qaas_common

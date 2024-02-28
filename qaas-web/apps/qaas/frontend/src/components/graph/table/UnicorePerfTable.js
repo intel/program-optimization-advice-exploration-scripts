@@ -42,8 +42,13 @@ export default function UnicorePerfTable() {
     }
 
     function processData(data) {
+        if (!data.Apps || data.Apps.length === 0) {
+            return [];
+        }
         const numberOfRows = data.Apps.length;
         const processedData = [];
+        //no data
+
 
         for (let i = 0; i < numberOfRows; i++) {
             let row = {};

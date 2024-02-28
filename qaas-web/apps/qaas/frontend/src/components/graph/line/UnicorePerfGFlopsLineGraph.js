@@ -33,6 +33,10 @@ export default function UnicorePerfGFlopsLineGraph() {
 
     const processRawData = (rawData) => {
         const { Apps, ...processors } = rawData;
+        //no data
+        if (!Apps || Apps.length === 0) {
+            return [];
+        }
         const transformedApps = Apps.map(app => getAppName(app));
 
         return Object.keys(processors).map(processor => {
