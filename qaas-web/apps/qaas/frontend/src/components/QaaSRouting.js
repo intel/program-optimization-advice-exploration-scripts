@@ -50,9 +50,12 @@ import AMGHACCClickTarget from './text_pages/clickin/AMGHACCClickTarget';
 import TableOfContents from './TableOfContents';
 import ApplicationPortability from './text_pages/clickin/ApplicationPortability';
 import BrowseResult from './job_submission/BrowseResult';
+import SettingsSelector from './job_submission/SettingSelector';
 export const layoutRoutes = [
     { path: "/input", component: UserInputStepper },
-    { path: "/result", component: BrowseResult },
+    { path: "/settings_select", component: SettingsSelector },
+
+    { path: "/results", component: BrowseResult },
     { path: "/definitions", component: DefinitionsTab },
     { path: "/login", component: LoginPage },
     { path: "/", component: NavigationPage },
@@ -102,7 +105,7 @@ export const layoutRoutes = [
     // { path: "/system_config/gcc", component: GCC }
 ];
 const otherRoutes = [
-    { path: "/results", component: BrowseResult },
+
     { path: "/generated", component: GeneratedPage },
 ]
 

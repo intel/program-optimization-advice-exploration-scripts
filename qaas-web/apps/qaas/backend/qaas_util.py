@@ -30,17 +30,37 @@
 import os
 import pandas as pd
 import configparser
-SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH=os.path.join(SCRIPT_DIR, "..", '..',"config", "qaas-web.conf")
-#get the config
-def get_config():
-    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-    config.read(CONFIG_PATH)
-    return config
+import json
+input_json_dir = '/tmp/input_jsons'
 
+#save json after getting from frontend
+def save_json(data, filename):
+    os.makedirs(input_json_dir, exist_ok=True)  # create directory if it doesn't exist
+    file_path = os.path.join(input_json_dir, filename)
+    
+    with open(file_path, 'w') as f:
+        json.dump(data, f)
+    return file_path
 
-def connect_db(config):
-    engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI_QAAS'])
-    engine.connect()
-    return engine
+#get all json file
+def get_all_jsons():
+    if not os.path.exists(input_json_dir):
+        return []  
+    
+    files = os.listdir(input_json_dir)
+    json_data = {}
+    for filename in files:
+        data = load_json(input_json_dir, filename)
+        json_data [filename] = data
+    return json_data 
 
+#load json
+def load_json(input_json_dir, filename):
+    file_path = os.path.join(input_json_dir, filename)
+    
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"The file {filename} does not exist in {input_json_dir}")
+    
+    with open(file_path, 'r') as f:
+        data = json.load(f)
+    return data

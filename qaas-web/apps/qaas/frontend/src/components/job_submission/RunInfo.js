@@ -54,12 +54,34 @@ export const RunInfo = ({ input, setInput }) => {
 
                 <div >
                     <div className="infoSubTitle">Data URL</div>
-                    <TextField sx={{ width: '55ch' }} label="Data URL" variant="outlined"
-                        onChange={e => handleChange(['application', 'GIT', 'DATA_URL'], e.target.value)}
+                    <TextField label="User" id="outlined-basic" variant="outlined"
+                        onChange={e => handleChange(['application', 'GIT', 'USER'], e.target.value)}
+
+                        value={input.application.GIT.USER}
 
                     />
+                    <TextField sx={{ width: '55ch' }} label="Source URL" variant="outlined"
+                        onChange={e => handleChange(['application', 'GIT', 'SRC_URL'], e.target.value)}
+                        value={input.application.GIT.SRC_URL}
+
+
+                    />
+                    <TextField label="Token" id="outlined-basic" variant="outlined"
+                        onChange={e => handleChange(['application', 'GIT', 'TOKEN'], e.target.value)}
+
+                        value={input.application.GIT.TOKEN}
+
+                    />
+                    <TextField sx={{ width: '55ch' }} label="Data URL" variant="outlined"
+                        onChange={e => handleChange(['application', 'GIT', 'DATA_URL'], e.target.value)}
+                        value={input.application.GIT.DATA_URL}
+
+
+                    />
+
                     <TextField id="outlined-basic" label="Data Branch" variant="outlined"
-                        onChange={e => handleChange(['application', 'GIT', 'DATA_BRANCH'], e.target.value)}
+                        onChange={e => handleChange(['application', 'GIT', 'BRANCH'], e.target.value)}
+                        value={input.application.GIT.BRANCH}
 
 
                     />
@@ -67,17 +89,20 @@ export const RunInfo = ({ input, setInput }) => {
                         <TextField label="Data User" id="outlined-basic" variant="outlined"
                             onChange={e => handleChange(['application', 'GIT', 'DATA_USER'], e.target.value)}
 
+                            value={input.application.GIT.DATA_USER}
 
                         />
                         <TextField label="Data Token" id="outlined-basic" variant="outlined"
                             onChange={e => handleChange(['application', 'GIT', 'DATA_TOKEN'], e.target.value)}
 
+                            value={input.application.GIT.DATA_TOKEN}
 
                         />
                     </div>
                     <div>
                         <TextField fullWidth label="Data Download Path" id="outlined-basic" variant="outlined"
                             onChange={e => handleChange(['application', 'GIT', 'DATA_DOWNLOAD_PATH'], e.target.value)}
+                            value={input.application.GIT.DATA_DOWNLOAD_PATH}
 
 
                         />
@@ -87,6 +112,8 @@ export const RunInfo = ({ input, setInput }) => {
                         <TextField defaultValue={input.application.RUN.APP_RUN_CMD} fullWidth label="Data Download Path" id="outlined-basic" variant="outlined"
 
                             onChange={e => handleChange(['application', 'RUN', 'APP_RUN_CMD'], e.target.value)}
+                            value={input.application.RUN.APP_RUN_CMD}
+
 
                         />
                     </div>

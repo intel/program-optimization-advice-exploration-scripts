@@ -56,7 +56,7 @@ import queue
 import json
 import subprocess
 import asyncio
-
+from qaas_util import save_json, load_json, get_all_jsons
 #set config
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
@@ -122,11 +122,12 @@ def create_app(config):
                     msg = qaas_message_queue.get_nowait()
                     print('stream', msg.str())
                     yield f'event: ping\ndata: {msg.str()}\n\n'
+                    if msg and msg.is_end_qaas():
+                        break
+               
                 except queue.Empty:
                     # NO message  sleep a bit
                     time.sleep(0.1)
-                if msg and msg.is_end_qaas():
-                    break
                
 
         return Response(get_data(), mimetype='text/event-stream')
@@ -549,50 +550,49 @@ def create_app(config):
 
     
 
-    def perform_long_running_tasks(unique_temp_dir):
+    def perform_long_running_tasks(unique_temp_dir, saved_file_path):
+        filename = os.path.basename(saved_file_path)
         qaas_message_queue.put(QaasMessage("Job Begin"))
-        subprocess.run(["scp", "-P", "2222", "/host/tmp/input-AMG.intel.json", "qaas@fxilab165.an.intel.com:/tmp"], check=True)
+        subprocess.run(["scp", "-P", "2222", f"{saved_file_path}", "qaas@fxilab165.an.intel.com:/tmp"], check=True)
         subprocess.run([ "ssh", "qaas@fxilab165.an.intel.com", "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
         subprocess.run( ["ssh", "qaas@fxilab165.an.intel.com", "-p", "2222",
                         "PYTHONPATH=/home/qaas/QAAS_SCRIPT_ROOT/qaas-web/apps/oneview/backend " +
                         "python3 /home/qaas/QAAS_SCRIPT_ROOT/qaas-backplane/src/qaas.py -ap " +
-                        "/nfs/site/proj/alac/data/QaaS/qaas-tested-json-recipes-hafid/MiniApps/input-AMG.intel.json " +
+                        f"/tmp/{filename} " +
                         "--logic strategizer --no-container -D --local-job"])
-        subprocess.run(["ssh", "qaas@fxilab165.an.intel.com", "-p", "2222", "tar cvfz /tmp/qaas_out.tar.gz /tmp/qaas_out"], check=True, stdout=subprocess.DEVNULL)
         subprocess.run(["scp", "-P", "2222", "qaas@fxilab165.an.intel.com:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
-        subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "--strip-components=1", "-C", unique_temp_dir], check=True)
-        qaas_out_dir = os.path.join(unique_temp_dir, 'qaas_out')
-        # qaas_compiler_df = read_file()
-        for report_timestamp in os.listdir(qaas_out_dir):
-            report_path = os.path.join(qaas_out_dir, report_timestamp, 'reorg', report_timestamp)
-            populate_database_qaas_ov(report_path, config)
-
-        # read_qaas_ov(unique_temp_dir)
-
-        time.sleep(10)
+        subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
+        qaas_out_dir = unique_temp_dir
+        timestamped_dirs = os.listdir(qaas_out_dir)
+        assert(len(timestamped_dirs) == 1)
+        report_path = os.path.join(qaas_out_dir, timestamped_dirs[0])
+        populate_database_qaas_ov(report_path, config)
 
         qaas_message_queue.put(QaasMessage("Job End"))
 
-    # @app.route('/get_existing', methods=['POST'])
-    # def create_new_run():
-    #     pass
+    @app.route('/get_all_input_settings', methods=['GET'])
+    def get_all_input_settings():
+        return jsonify(get_all_jsons())
+
     @app.route('/create_new_run', methods=['POST'])
     def create_new_run():
-        #real user input data  unused for now
-        qaas_request = request.get_json()
-        print(qaas_request)
-        script_path =  '/host/localdisk/yue/mockup_qaas.sh'
-        # unique_temp_dir = tempfile.mktemp()
-        unique_temp_dir = '/tmp/myout'
+        #real user input data  
+        request_json = request.get_json()
+
+        #save intput json to a folder can read later
+        saved_file_path = save_json(request_json, request_json['application']['APP_NAME'])
+
+
+        unique_temp_dir = tempfile.mktemp()
         os.makedirs(unique_temp_dir, exist_ok=True)
 
-        print(unique_temp_dir)
-        result = subprocess.run(['whoami'], capture_output=True, text=True)
-        print(result.stdout.strip())
+        print(saved_file_path, unique_temp_dir)
+
+
        
         # qaas_message_queue.put(QaasMessage("Job Begin"))
         #go to backplane and just cp qaas out for now
-        t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, ))
+        t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, saved_file_path,))
         t.start()
         t.join()
         # subprocess.run([script_path, unique_temp_dir], check=True)

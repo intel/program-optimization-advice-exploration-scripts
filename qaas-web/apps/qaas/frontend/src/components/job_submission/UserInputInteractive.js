@@ -17,14 +17,39 @@ import { ValidationInfo } from './ValidationInfo';
 import { JOB_SUB_THEME } from './JobSubUtil';
 import StatusPanel from './StatusPanel';
 import '../css/input.css'
+import { useLocation } from 'react-router-dom';
+
 const steps = ['Build Info', 'Run Info', 'Golden Run System Settings', 'Optional Run System Settings', 'Validation and Domain Specific Rate', 'Status Info'];
 
 export default function UserInputStepper() {
+    const location = useLocation();
+    const selectedSettingData = location.state?.data;
     const navigate = useNavigate();
     const [activeStep, setActiveStep] = React.useState(0);
     const [skipped, setSkipped] = React.useState(new Set());
     const [statusMsg, setStatusMsg] = useState("");
+    const [SSEStatus, setSSEStatus] = useState(false);
+    //user input state
+    const [input, setInput] = useState(selectedSettingData || INITIAL_INPUT)
 
+    //initial check of the form
+    const getInitialFormErrors = () => {
+        if (input.application && input.application.APP_NAME && input.application.APP_NAME.trim() !== '') {
+            return {};
+        }
+        return { APP_NAME: 'App Name is required' };
+    };
+    const [formErrors, setFormErrors] = useState(getInitialFormErrors);
+
+
+    // set error
+    const updateFormErrors = (field, error) => {
+        setFormErrors(prevErrors => ({ ...prevErrors, [field]: error }));
+    };
+
+    const hasErrors = () => {
+        return Object.values(formErrors).some(error => error !== '');
+    };
     const isStepOptional = (step) => {
         return step === 4;
     };
@@ -129,13 +154,6 @@ export default function UserInputStepper() {
     };
     //state
     //socket
-    const [SSEStatus, setSSEStatus] = useState(false);
-    //default checked
-
-    //user input state
-    //input state
-    const [input, setInput] = useState(INITIAL_INPUT)
-
 
     /******************************************************************* Finish prepare Written Code *************************************************/
 
@@ -175,7 +193,7 @@ export default function UserInputStepper() {
                     ) : (
                         <div>
 
-                            {activeStep === 0 && <BuildInfo input={input} setInput={setInput} />}
+                            {activeStep === 0 && <BuildInfo input={input} setInput={setInput} errors={formErrors} updateFormErrors={updateFormErrors} />}
                             {activeStep === 1 && <RunInfo input={input} setInput={setInput} />}
                             {activeStep === 4 && <ValidationInfo input={input} setInput={setInput} />}
                             {activeStep === 2 && <GoldenRunInfo input={input} setInput={setInput} />}
@@ -197,11 +215,11 @@ export default function UserInputStepper() {
 
                                 {activeStep === 4 ?
 
-                                    <Button onClick={handleSumbitNext}>
-                                        Submit
+                                    <Button onClick={handleSumbitNext} disabled={hasErrors()}>
+                                        Submit and Save Input Settings
 
                                     </Button> :
-                                    <Button onClick={handleNext}>
+                                    <Button onClick={handleNext} disabled={hasErrors()}>
                                         {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
 
                                     </Button>

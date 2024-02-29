@@ -23,8 +23,8 @@ const pageGroups = {
         { page: 'legal', label: 'Legal' },
     ],
     'Use QaaS': [
-        { page: 'input', label: 'Job Submission' },
-        { page: 'result', label: 'Results' },
+        { page: 'settings_select', label: 'Job Submission' },
+        { page: 'results', label: 'Results' },
 
     ]
 };

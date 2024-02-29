@@ -21,7 +21,6 @@ export default function BrowseResult() {
 
     return (
         <div >
-            test
             <ApplicationTable data={tableData} />
 
             {/* <CompilerComparisonHistogram /> */}

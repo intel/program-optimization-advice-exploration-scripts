@@ -19,6 +19,10 @@ export const updateState = (setState, path, value) => {
         return newState;
     });
 };
+const getValueByPath = (input, path) => {
+    return path.reduce((acc, part) => acc && acc[part], input);
+};
+
 export const JOB_SUB_THEME = createTheme({
     palette: {
         primary: {
