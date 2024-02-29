@@ -29,9 +29,10 @@ declare -A port_map=( [2222:22]=qaas_backplane [8080:80]=qaas_container [443:443
 restart_policy=no
 detached_cmd=
 container_user=qaas
+env_file_flag=
 
 
-while getopts ":i:rdp" opt; do
+while getopts ":i:e:rdp" opt; do
  case ${opt} in
  i)
    QAAS_IMAGE_NAME=${OPTARG}
@@ -41,6 +42,9 @@ while getopts ":i:rdp" opt; do
    ;;
  d)
    detached_cmd=-d
+   ;;
+ e)
+   env_file_flag="--env-file ${OPTARG}"
    ;;
  p)
    container_user=root
@@ -115,6 +119,7 @@ for var in ${vars[*]}; do
     env_args+=("-e $var=${var_value}")
   fi
 done
+env_args+=($env_file_flag)
 
 
 #docker run --rm  ${mount_args[*]} ${env_args[*]} -v /:/host -v /usr/src/linux-headers-$(uname -r):/usr/src/linux-headers-$(uname -r) -v /lib/modules:/lib/modules -v /usr/src/linux-headers-4.4.0-62:/usr/src/linux-headers-4.4.0-62 -v /tmp/tmp:/tmp/tmp -v /dev:/dev -v /usr/include:/usr/include --pid=host --ipc=host -w /host/$(pwd) -it --privileged local_image_qaas:latest 
