@@ -64,6 +64,7 @@ fi
 echo -n "Enter Qaas user password:"
 read -s QAAS_PASSWORD
 echo
+export QAAS_PASSWORD
 
 # TODO Make script input
 maqao_package_dir=/nfs/site/proj/alac/software/UvsqTools/20231214
