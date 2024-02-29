@@ -553,14 +553,18 @@ def create_app(config):
     def perform_long_running_tasks(unique_temp_dir, saved_file_path):
         filename = os.path.basename(saved_file_path)
         qaas_message_queue.put(QaasMessage("Job Begin"))
-        subprocess.run(["scp", "-P", "2222", f"{saved_file_path}", "qaas@fxilab165.an.intel.com:/tmp"], check=True)
-        subprocess.run([ "ssh", "qaas@fxilab165.an.intel.com", "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
-        subprocess.run( ["ssh", "qaas@fxilab165.an.intel.com", "-p", "2222",
+        #machine = "ancodskx1020.an.intel.com"
+        machine = "fxilab165.an.intel.com"
+
+        user_and_machine = f"qaas@{machine}"
+        subprocess.run(["scp", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)
+        subprocess.run([ "ssh", user_and_machine, "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
+        subprocess.run( ["ssh", user_and_machine, "-p", "2222",
                         "PYTHONPATH=/home/qaas/QAAS_SCRIPT_ROOT/qaas-web/apps/oneview/backend " +
                         "python3 /home/qaas/QAAS_SCRIPT_ROOT/qaas-backplane/src/qaas.py -ap " +
                         f"/tmp/{filename} " +
                         "--logic strategizer --no-container -D --local-job"])
-        subprocess.run(["scp", "-P", "2222", "qaas@fxilab165.an.intel.com:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
+        subprocess.run(["scp", "-P", "2222", f"{user_and_machine}:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
         subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
         qaas_out_dir = unique_temp_dir
         timestamped_dirs = os.listdir(qaas_out_dir)
