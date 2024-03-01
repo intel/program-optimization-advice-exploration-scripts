@@ -44,7 +44,7 @@ if [[ ${USER} != "qaas" ]]; then
   echo "QAAS_DB_PASSWORD=${QAAS_DB_PASSWORD}" >> ${env_secret_file}
   # Run this script again inside to set up the rest
   echo "Proceed rest of setup INSIDE WEBDB container"
-  ./container/run-container.sh -e ${env_secret_file} -i local_image_qaas:latest ./setup.sh
+  ./container/run-container.sh -e ${env_secret_file} -i local_image_qaas_webdb:latest ./setup.sh
   echo "Proceed rest of setup INSIDE BACKPLANE container"
   ./container/run-container.sh -e ${env_secret_file} -i local_image_qaas_backplane:latest ./setup.sh
   rm ${env_secret_file}
