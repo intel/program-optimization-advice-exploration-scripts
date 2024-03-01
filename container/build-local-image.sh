@@ -38,13 +38,13 @@ docker login registry.gitlab.com
 # Fetch latest image
 docker pull ${img_name}
 
-if [[ $http_proxy != http* ]]; then
+if [[ -n $http_proxy && $http_proxy != http* ]]; then
   http_proxy_arg=http://${http_proxy}
 else
   http_proxy_arg=${http_proxy}
 fi
 
-if [[ $https_proxy != http* ]]; then
+if [[ -n $https_proxy && $https_proxy != http* ]]; then
   https_proxy_arg=http://${https_proxy}
 else
   https_proxy_arg=${https_proxy}
