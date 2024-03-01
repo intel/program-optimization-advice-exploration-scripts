@@ -76,6 +76,9 @@ def get_intel_processor_name():
             CPU = 'ICL'
         elif model == 85:
             CPU = 'SKL'
+        # Should be Coffee Lake or Kaby Lake, but consider them SKL (needed for UVSQ "intel" machine)
+        elif model == 158:
+            CPU = 'SKL'
         elif model == 63 or model == 79:
             CPU = 'HSW'
         else:
