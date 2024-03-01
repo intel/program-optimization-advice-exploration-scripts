@@ -61,10 +61,12 @@ fi
 #rm -rf cere
 #git clone git@github.com:benchmark-subsetting/cere.git --config core.autocrlf=input
 
-echo -n "Enter Qaas user password:"
-read -s QAAS_PASSWORD
-echo
-export QAAS_PASSWORD
+if [ -z ${QAAS_PASSWORD} ]; then
+  echo -n "Enter Qaas user password:"
+  read -s QAAS_PASSWORD
+  echo
+  export QAAS_PASSWORD
+fi
 
 # TODO Make script input
 maqao_package_dir=/nfs/site/proj/alac/software/UvsqTools/20231214
