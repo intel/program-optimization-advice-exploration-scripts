@@ -554,23 +554,24 @@ def create_app(config):
         filename = os.path.basename(saved_file_path)
         qaas_message_queue.put(QaasMessage("Job Begin"))
         #machine = "ancodskx1020.an.intel.com"
-        machine = "fxilab165.an.intel.com"
+        # machine = "fxilab165.an.intel.com"
+        machine = "intel"
 
         user_and_machine = f"qaas@{machine}"
-        subprocess.run(["scp", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)
-        subprocess.run([ "ssh", user_and_machine, "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
-        subprocess.run( ["ssh", user_and_machine, "-p", "2222",
-                        "PYTHONPATH=/home/qaas/QAAS_SCRIPT_ROOT/qaas-web/apps/oneview/backend " +
-                        "python3 /home/qaas/QAAS_SCRIPT_ROOT/qaas-backplane/src/qaas.py -ap " +
-                        f"/tmp/{filename} " +
-                        "--logic strategizer --no-container -D --local-job"])
-        subprocess.run(["scp", "-P", "2222", f"{user_and_machine}:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
-        subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
-        qaas_out_dir = unique_temp_dir
-        timestamped_dirs = os.listdir(qaas_out_dir)
-        assert(len(timestamped_dirs) == 1)
-        report_path = os.path.join(qaas_out_dir, timestamped_dirs[0])
-        populate_database_qaas_ov(report_path, config)
+        # subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)
+        # subprocess.run([ "ssh", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
+        # subprocess.run( ["ssh", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222",
+        #                 "PYTHONPATH=/home/qaas/QAAS_SCRIPT_ROOT/qaas-web/apps/oneview/backend " +
+        #                 "python3 /home/qaas/QAAS_SCRIPT_ROOT/qaas-backplane/src/qaas.py -ap " +
+        #                 f"/tmp/{filename} " +
+        #                 "--logic strategizer --no-container -D --local-job"])
+        # subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{user_and_machine}:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
+        # subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
+        # qaas_out_dir = unique_temp_dir
+        # timestamped_dirs = os.listdir(qaas_out_dir)
+        # assert(len(timestamped_dirs) == 1)
+        # report_path = os.path.join(qaas_out_dir, timestamped_dirs[0])
+        # populate_database_qaas_ov(report_path, config)
 
         qaas_message_queue.put(QaasMessage("Job End"))
 
