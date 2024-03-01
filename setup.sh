@@ -19,9 +19,15 @@ if [[ ${USER} != "qaas" ]]; then
   echo -n "Customized dockerfile for backplane container (Press enter for none):"
   read custom_dockerfile
 
+  echo -n "Enter Qaas user password:"
+  read -s QAAS_PASSWORD
+  echo
+  export QAAS_PASSWORD
+
   # Collect DB password early to make the setup.sh process runs more smoothly
   echo -n "Enter Qaas DB user password:"
   read -s QAAS_DB_PASSWORD
+  echo
   export QAAS_DB_PASSWORD
 
   # First stop running containers
@@ -34,7 +40,7 @@ if [[ ${USER} != "qaas" ]]; then
     . ./build-local-image.sh -f $custom_dockerfile
   fi
   popd
-  # Also collected QAAS_PASSWORD because build-local-image.sh is sourced
+  # QAAS_PASSWORD set here but Still sourced the above script in case it decided to change password of qaas
 
   # Setup components outside the container
   run_component_setup
