@@ -5,6 +5,8 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
+import SettingsSelector from "./SettingSelector";
+import SaveSettingButton from "./SaveSettingButton";
 export const BuildInfo = ({ input, setInput, errors, updateFormErrors }) => {
 
 
@@ -27,10 +29,19 @@ export const BuildInfo = ({ input, setInput, errors, updateFormErrors }) => {
             <div className="infoContent">
 
 
-                <div className="infoTitle">Build</div>
+                <div className="headerContainer" >
+                    <div className="infoTitle">Build</div>
+                    <div className="settingSelector">
+                        <SaveSettingButton input={input} />
+                        <SettingsSelector setInput={setInput} />
+                    </div>
+
+
+                </div>
+
                 <div >
                     <div className="infoSubTitle">App Name</div>
-                    <TextField label="App Name" variant="outlined" required
+                    <TextField label="App Name" variant="outlined"
                         onChange={e => handleChange(['application', 'APP_NAME'], e.target.value)}
                         error={!!errors.APP_NAME}
                         helperText={errors.APP_NAME || ''}
@@ -133,43 +144,7 @@ export const BuildInfo = ({ input, setInput, errors, updateFormErrors }) => {
 
                 </div>
 
-                <div >
-                    <div className="infoSubTitle">Libraries</div>
-                    <div>
-                        <FormControl sx={{ minWidth: 160 }}>
-                            <InputLabel id="demo-simple-select-label">Math Libraries</InputLabel>
-                            <Select
-                                labelId="demo-simple-select-label"
-                                id="demo-simple-select"
-                                value={input.library.USER_MATH}
-                                label="Math Libraries"
-                                onChange={(event) => handleChange(['library', 'USER_MATH'], event.target.value)}
 
-                            >
-                                <MenuItem value={"Intel MKL"}>Intel MKL</MenuItem>
-                                <MenuItem value={"OpenBLAS"}>OpenBLAS</MenuItem>
-                                <MenuItem value={"GNU Scientific"}>GNU Scientific</MenuItem>
-                            </Select>
-
-                        </FormControl>
-                        <FormControl sx={{ minWidth: 160 }}>
-                            <InputLabel id="demo-simple-select-label">MPI Libraries</InputLabel>
-                            <Select
-                                labelId="demo-simple-select-label"
-                                id="demo-simple-select"
-                                value={input.library.USER_MPI}
-                                label="MPI Libraries"
-                                onChange={(event) => handleChange(['library', 'USER_MPI'], event.target.value)}
-
-                            >
-                                <MenuItem value={"Intel MPI"}>Intel MPI</MenuItem>
-                                <MenuItem value={"Open MPI"}>Open MPI</MenuItem>
-                                <MenuItem value={"OPAL MPI"}>OPAL MPI</MenuItem>
-                            </Select>
-                        </FormControl>
-
-                    </div>
-                </div>
                 <div >
                     <div className="infoSubTitle">Target Binary Location</div>
                     <TextField sx={{ pr: '5px' }} id="outlined-basic" label="User Target" variant="outlined"

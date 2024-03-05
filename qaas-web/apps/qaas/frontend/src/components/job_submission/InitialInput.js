@@ -16,7 +16,9 @@ export var INITIAL_INPUT = {
             DATA_DOWNLOAD_PATH: ""
         },
         RUN: {
+            APP_DATA_ARGS: "",
             APP_RUN_CMD: "<binary>",
+
             APP_ENV_MAP: {},
         }
     },
@@ -30,30 +32,8 @@ export var INITIAL_INPUT = {
         USER_TARGET: "",
         USER_TARGET_LOCATION: ""
     },
-    library: {
-        USER_MPI: "Intel MPI",
-        USER_MATH: "Intel MKL"
-    },
-    system: {
-        USER_OPTION: {
-            CPU: "",
-            HYPERTHREADING: "",
-            HUGEPAGE: "",
-            TURBO_BOOST: "",
-            FREQ_SCALING: "",
-            PREFETCH: "",
-        },
-        SEARCH_OPTIONS: {
-            CPU: ["Default"],
-            HYPERTHREADING: ["Default"],
-            HUGEPAGE: ["Default"],
-            TURBO_BOOST: ["Default"],
-            FREQ_SCALING: ["Default"],
-            PREFETCH: ["Default"],
-            COMPILER: ["Default"]
-        }
 
-    },
+
     runtime: {
         MPI: "no",
         OPENMP: "strong"

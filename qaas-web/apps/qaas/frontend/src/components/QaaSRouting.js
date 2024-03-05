@@ -50,10 +50,8 @@ import AMGHACCClickTarget from './text_pages/clickin/AMGHACCClickTarget';
 import TableOfContents from './TableOfContents';
 import ApplicationPortability from './text_pages/clickin/ApplicationPortability';
 import BrowseResult from './job_submission/BrowseResult';
-import SettingsSelector from './job_submission/SettingSelector';
 export const layoutRoutes = [
     { path: "/input", component: UserInputStepper },
-    { path: "/settings_select", component: SettingsSelector },
 
     { path: "/results", component: BrowseResult },
     { path: "/definitions", component: DefinitionsTab },
@@ -104,10 +102,6 @@ export const layoutRoutes = [
     // { path: "/system_config/icc", component: ICC },
     // { path: "/system_config/gcc", component: GCC }
 ];
-const otherRoutes = [
-
-    { path: "/generated", component: GeneratedPage },
-]
 
 export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const location = useLocation();
@@ -129,9 +123,7 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
             {layoutRoutes.map(({ path, component: Component }) => (
                 <Route key={path} path={path} element={<Component />} />
             ))}
-            {otherRoutes.map(({ path, component: Component }) => (
-                <Route key={path} path={path} element={<Component />} />
-            ))}
+
             {/* <Route path="*" element={
                 <FixedMenuLayout drawerContent={drawerContent} mainContent={
                     <Routes>

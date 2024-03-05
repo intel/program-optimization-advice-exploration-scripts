@@ -14,6 +14,8 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import DeleteIcon from '@mui/icons-material/RemoveCircleOutline';
 import AddIcon from '@mui/icons-material/AddCircleOutline';
+import SettingsSelector from "./SettingSelector";
+import SaveSettingButton from "./SaveSettingButton";
 export const RunInfo = ({ input, setInput }) => {
 
     const handleDelete = (key) => {
@@ -50,7 +52,15 @@ export const RunInfo = ({ input, setInput }) => {
     return (
         <div className="centeredBox">
             <div className="infoContent">
-                <div className="infoTitle">Run</div>
+
+                <div className="headerContainer" >
+                    <div className="infoTitle">Run</div>
+                    <div className="settingSelector">
+                        <SaveSettingButton input={input} />
+                        <SettingsSelector setInput={setInput} />
+                    </div>
+
+                </div>
 
                 <div >
                     <div className="infoSubTitle">Data URL</div>
