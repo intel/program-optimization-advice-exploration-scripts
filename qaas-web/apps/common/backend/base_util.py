@@ -14,6 +14,7 @@ import tempfile
 import builtins
 import shutil
 import configparser
+import shlex
 
 ####constants
 level_map = {0: 'Single', 1: 'Innermost', 2: 'InBetween', 3: 'Outermost'}
@@ -922,3 +923,17 @@ class QaaSFileAccessMonitor:
         if not self.keep_db:
             os.unlink(self.temp_file.name)
         return False
+
+def send_ssh_key_to_backplane(machine, password):
+    user_and_machine = f"qaas@{machine}"
+    args=["sshpass", "-e", "ssh-copy-id", "-i", "/home/qaas/.ssh/id_rsa.pub", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222" ]
+    # Use shlex.quote() sanitize inputs
+    args_shlex = [shlex.quote(s) for s in args]
+    # Tried to use subprocess.run() with shell=False and shell=True and none work
+    os.environ["SSHPASS"] = password
+    result = os.system(" ".join(args_shlex))
+    del os.environ['SSHPASS']
+    #result = subprocess.run([ "sshpass", "-e", "ssh-copy-id", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222" ], 
+    #                        env={"SSHPASS":password}, check=True)
+    return result
+    
