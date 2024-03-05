@@ -13,7 +13,8 @@ ARG QAAS_PASSWORD
 
 RUN apt-get update && apt-get install --no-install-recommends -y apache2 mariadb-server \ 
   libmysqlclient-dev \
-  python3-certbot-apache 
+  python3-certbot-apache \
+  sshpass
 # Have to break the apt-get command to work (looks like --no-install-recommends is bad for this package)
 RUN apt-get install -y libmariadbclient-dev
 

@@ -10,7 +10,7 @@ if [[ ${USER} != "qaas" ]]; then
   sed 's/#DB_USER_NAME#/qaas/g ; s/#DB_USER_PASSWD#/'${QAAS_DB_PASSWORD}'/g' ./apps/config/qaas-web.conf.template > ./apps/config/qaas-web.conf
   sed 's/#DB_USER_NAME#/qaas/g ; s/#DB_USER_PASSWD#/'${QAAS_DB_PASSWORD}'/g' ./apps/config/alembic.ini.template > ./apps/config/alembic.ini
   echo "Starting persistent webdb container"
-  ../container/run-container.sh -i local_image_qaas:latest -p -d -r ./deployment/entrypoint.sh
+  ../container/run-container.sh -i local_image_qaas_webdb:latest -p -d -r ./deployment/entrypoint.sh
 else
   echo "INSIDE ${QAAS_CONTAINER_NAME} container setting up $me"
   if [[ ${QAAS_CONTAINER_NAME} == "webdb" ]]; then
