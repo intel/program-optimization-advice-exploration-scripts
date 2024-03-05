@@ -301,14 +301,17 @@ def create_app(config):
     @app.route('/run_comparative_view_for_selected_runs', methods=['POST'])
     def run_comparative_view_for_selected_runs():
         selected_runs = request.get_json()
+        timestamp_list = []
+
         data_folder_list = []
         for index, run in enumerate(selected_runs):
             timestamp = run['timestamp']
             universal_timestamp = datetime_to_universal_timestamp(timestamp)
             qaas_output_run_folder_run = os.path.join(qaas_output_folder, str(index))
             export_data(universal_timestamp, qaas_output_run_folder_run, db.session)
+            timestamp_list.append(universal_timestamp)
             data_folder_list.append(qaas_output_run_folder_run)
-        create_manifest_comparison(manifest_file_path, data_folder_list)
+        create_manifest_comparison(manifest_file_path, data_folder_list, timestamp_list, db.session)
         manifest_out_path = create_out_manifest(frontend_html_path)
 
         run_otter_command(manifest_file_path, manifest_out_path, config)
@@ -325,14 +328,11 @@ def create_app(config):
 
         export_data(query_time, qaas_output_folder, db.session)
         
-        create_manifest_monorun(manifest_file_path,qaas_output_folder)
+        create_manifest_monorun(manifest_file_path,qaas_output_folder, query_time, db.session)
         manifest_out_path = create_out_manifest(frontend_html_path)
 
         run_otter_command(manifest_file_path, manifest_out_path, config)
-        # print(query_time)
-        # for version in ['opt','orig']:
-        #     update_html(version)
-        # run_comparison_report()
+
 
         #get table using timestamp
         return jsonify(isError= False,
@@ -397,35 +397,7 @@ def delete_created_path(path_list):
 
 
 
-def run_comparison_report():
 
-    manifest_file_path = os.path.join(frontend_html_path, 'input_manifest.csv')
-    opt_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'], 'opt')
-    orig_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'], 'orig')
-    data_folder_list = [opt_folder, orig_folder]
-    create_manifest_comparison(manifest_file_path, data_folder_list)
-    manifest_out_path = create_out_manifest(frontend_html_path)
-
-    run_otter_command(manifest_file_path, manifest_out_path, config)
-
-
-  
-def update_html(version):
-
-    manifest_file_path = os.path.join(frontend_html_path, 'input_manifest.csv')
-    output_data_dir = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'], version)
-    #####create manifest.csv 
-    create_manifest_monorun(manifest_file_path,output_data_dir)
-    manifest_out_path = create_out_manifest(frontend_html_path)
-    
-
-    run_otter_command(manifest_file_path, manifest_out_path, config)
-
-    # delete_created_path(to_delete)
-
-
-
-    
 
 def main(config):
     

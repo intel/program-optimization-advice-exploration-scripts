@@ -13,13 +13,12 @@ const GeneratedPage = () => {
     const queryParams = new URLSearchParams(location.search);
     const loading = queryParams.get("loading") === "true";
     return (
-        <div>
+        <div >
             {loading ? (
                 <div>iframe URL: {iframeSrc} Loading, please wait...</div>
             ) : (
 
                 <div>
-                    <div>iframe URL: {iframeSrc}</div>
                     <iframe
                         title="Generated Content"
                         src={iframeSrc}

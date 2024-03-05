@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useTable, useExpanded, usePagination } from "react-table";
 import '../../../css/table.css';
+import { formatValue } from "../../../Constants";
 function NestedTable({ columns, data, SubComponent, hiddenColumns, columnFilters, setColumnFilters }) {
     const {
         getTableProps,
@@ -133,9 +134,12 @@ function NestedTable({ columns, data, SubComponent, hiddenColumns, columnFilters
                                     )}
                                     {row.cells.map((cell) => {
                                         //title is for tool tip
+                                        const isActionColumn = cell.column.Header === 'Action';
+
+                                        const formattedValue = formatValue(cell.value);
                                         return (
                                             <td title={cell.value} {...cell.getCellProps()}>
-                                                {cell.render('Cell')}
+                                                {isActionColumn ? cell.render('Cell') : formattedValue}
                                             </td>
                                         );
                                     })}

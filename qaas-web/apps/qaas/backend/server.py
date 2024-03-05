@@ -120,14 +120,13 @@ def create_app(config):
             while True:
                 try:
                     msg = qaas_message_queue.get_nowait()
-                    print('stream', msg.str())
                     yield f'event: ping\ndata: {msg.str()}\n\n'
                     if msg and msg.is_end_qaas():
                         break
-               
+                    print("in stream", msg.str())
                 except queue.Empty:
                     # NO message  sleep a bit
-                    time.sleep(0.1)
+                    time.sleep(1)
                
 
         return Response(get_data(), mimetype='text/event-stream')
@@ -142,7 +141,7 @@ def create_app(config):
         #read all unicore runs that have turbo on
         #TODO ask what is the threshold to check if a machine has turbo on or off
         data = {}
-        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(Os.scaling_min_frequency > 3000000,  QaaSRun.type != 'scalability_report').distinct().all()
+        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(  QaaSRun.type != 'scalability_report').distinct().all()
         for qaas in qaass:
             #execution obj that has min time across this qaas run
             min_time_execution = (db.session.query(Execution)
@@ -150,6 +149,7 @@ def create_app(config):
                     .filter(QaaSRun.qaas == qaas)
                     .order_by(Execution.time.asc())
                     .first())
+
             gflops = min_time_execution.global_metrics['Gflops']
             app_name = min_time_execution.application.workload
             architecture = min_time_execution.hwsystem.architecture
@@ -173,7 +173,8 @@ def create_app(config):
         df.drop('Mean', axis=1, inplace=True)
 
 
-        
+        print(df)
+
 
         return df
 
@@ -358,8 +359,6 @@ def create_app(config):
         multi_df = get_multicore_data()
         uni_df = get_unicore_data()
 
-        print(multi_df)
-        print(uni_df)
         if not multi_df.empty and not uni_df.empty:
             return {}
         
@@ -550,13 +549,14 @@ def create_app(config):
 
     
 
-    def perform_long_running_tasks(unique_temp_dir, saved_file_path):
+    def perform_long_running_tasks(unique_temp_dir, saved_file_path, machine):
         filename = os.path.basename(saved_file_path)
         qaas_message_queue.put(QaasMessage("Job Begin"))
+        print('machine to use', machine)
         #machine = "ancodskx1020.an.intel.com"
         # machine = "fxilab165.an.intel.com"
-        machine = "intel"
-
+        # machine = "intel"
+        # time.sleep(10)
         user_and_machine = f"qaas@{machine}"
         # subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)
         # subprocess.run([ "ssh", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
@@ -572,45 +572,57 @@ def create_app(config):
         # assert(len(timestamped_dirs) == 1)
         # report_path = os.path.join(qaas_out_dir, timestamped_dirs[0])
         # populate_database_qaas_ov(report_path, config)
-
         qaas_message_queue.put(QaasMessage("Job End"))
 
     @app.route('/get_all_input_settings', methods=['GET'])
     def get_all_input_settings():
-        return jsonify(get_all_jsons())
+        data = get_all_jsons(os.path.join(config['web']['SAVED_JSON_FOLDER']))
+        return jsonify(data)
+
+    @app.route('/get_json_from_file', methods=['POST'])
+    def get_json_from_file():
+        filename = request.json.get('filename')
+        #if no filename is passed try get the wokring json
+        if not filename:
+            return load_json(os.path.join(config['web']['WORKING_JSON_FOLDER'], 'working.json'))
+        #load the saved file
+        return load_json(os.path.join(config['web']['SAVED_JSON_FOLDER'], filename))
+     
+
+
+    #this is called when user click save button, it should save the wokring json and save current json to json folders
+    @app.route('/save_input_json', methods=['POST'])
+    def save_input_json():
+        request_json = request.get_json()['json']
+        filename = request.get_json()['filename']
+
+        working_json_path = os.path.join(config['web']['WORKING_JSON_FOLDER'], 'working.json')
+        saved_json_path = os.path.join(config['web']['SAVED_JSON_FOLDER'], filename)
+
+        save_json(request_json, working_json_path)
+        save_json(request_json, saved_json_path)
+        return {}
 
     @app.route('/create_new_run', methods=['POST'])
     def create_new_run():
         #real user input data  
-        request_json = request.get_json()
+        request_json = request.get_json()['input']
+        machine = request.get_json()['machine']
 
+        print(request_json, machine)
         #save intput json to a folder can read later
-        saved_file_path = save_json(request_json, request_json['application']['APP_NAME'])
+        working_json_path = os.path.join(config['web']['WORKING_JSON_FOLDER'], 'working.json')
+        save_json(request_json, working_json_path)
 
+        saved_file_path = working_json_path
 
         unique_temp_dir = tempfile.mktemp()
         os.makedirs(unique_temp_dir, exist_ok=True)
 
-        print(saved_file_path, unique_temp_dir)
-
-
-       
-        # qaas_message_queue.put(QaasMessage("Job Begin"))
         #go to backplane and just cp qaas out for now
-        t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, saved_file_path,))
+        t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, saved_file_path, machine))
         t.start()
         t.join()
-        # subprocess.run([script_path, unique_temp_dir], check=True)
-
-    
-        # ov_data_dir = os.path.join(config['web']['QAAS_DATA_FOLDER'], 'ov_data')
-        # os.makedirs(ov_data_dir, exist_ok=True)
-        # json_file = config['web']['INPUT_JSON_FILE']
-        
-        # #call backplane and wait to finish
-        # t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
-        # t.start()
-        # t.join()
         
         return jsonify({})
     
@@ -621,6 +633,7 @@ def create_app(config):
         qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
         manifest_file_path = os.path.join(qaas_output_folder, 'input_manifest.csv')
         data_folder_list = []
+        timestamp_list = []
 
         query_time = request.get_json()['timestamp'] 
         print("query timestamp", query_time)
@@ -636,11 +649,12 @@ def create_app(config):
             qaas_output_run_folder_run = os.path.join(qaas_output_folder, str(index))
             try:
                 export_data(timestamp, qaas_output_run_folder_run, db.session)
+                timestamp_list.append(timestamp)
             except:
                 print("report cannot be generated")
                 continue
             data_folder_list.append(qaas_output_run_folder_run)
-        create_manifest_comparison(manifest_file_path, data_folder_list)
+        create_manifest_comparison(manifest_file_path, data_folder_list, timestamp_list, db.session)
         manifest_out_path = create_out_manifest(qaas_output_folder)
 
         run_otter_command(manifest_file_path, manifest_out_path, config)
@@ -660,7 +674,7 @@ def create_app(config):
         query_time = request.get_json()['timestamp'] 
         print("query timestamp", query_time)
         export_data(query_time, qaas_output_folder, db.session)
-        create_manifest_monorun(manifest_file_path,qaas_output_folder)
+        create_manifest_monorun(manifest_file_path,qaas_output_folder, query_time, db.session)
         manifest_out_path = create_out_manifest(qaas_output_folder)
 
         run_otter_command(manifest_file_path, manifest_out_path, config)

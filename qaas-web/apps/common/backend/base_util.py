@@ -88,19 +88,27 @@ def create_out_manifest(output_file_path):
     df.to_csv(out_manifest_path, index=False)
     return out_manifest_path
 
-def create_manifest_comparison(manifest_path, output_data_dir_list):
+def create_manifest_comparison(manifest_path, output_data_dir_list, timestamp_list, session):
     if os.path.isfile(manifest_path):
         os.remove(manifest_path)
     write_manifest_header(manifest_path, 'multirun')
     index = 0
-    for output_data_dir in output_data_dir_list:
-        create_manifest_file_for_run(index, f'run_{index}', output_data_dir, manifest_path)
+    for output_data_dir, query_time in zip(output_data_dir_list, timestamp_list):
+        base_run_name = get_base_run_name(query_time, session)
+        create_manifest_file_for_run(index, base_run_name, output_data_dir, manifest_path)
         index += 1
-def create_manifest_monorun(manifest_path, output_data_dir):
+def get_base_run_name(query_time, session):
+    current_execution = Execution.get_obj(query_time, session)
+    base_run_name = current_execution.config['base_run_name']
+    return base_run_name
+def create_manifest_monorun(manifest_path, output_data_dir, query_time, session):
     if os.path.isfile(manifest_path):
         os.remove(manifest_path)
     write_manifest_header(manifest_path, 'monorun')
-    create_manifest_file_for_run(0, 'run_0', output_data_dir, manifest_path)
+    base_run_name = get_base_run_name(query_time, session)
+    print("monorun", query_time, base_run_name)
+
+    create_manifest_file_for_run(0, base_run_name, output_data_dir, manifest_path)
 
 def run_otter_command(manifest_file_path, out_manifest_path, config):
     run_dir = os.path.dirname(manifest_file_path)

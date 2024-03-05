@@ -55,7 +55,7 @@ export const JOB_SUB_THEME = createTheme({
 
 export const validateField = (value, field) => {
     let error = '';
-    const requiredFields = ['APP_NAME'];
+    const requiredFields = [];
     if (requiredFields.includes(field) && !value.trim()) {
         error = 'This field is required.';
         return error;

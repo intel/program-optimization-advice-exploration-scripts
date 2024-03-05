@@ -11,37 +11,59 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { INITIAL_INPUT } from './InitialInput';
 import { BuildInfo } from './BuildInfo';
 import { RunInfo } from './RunInfo';
-import { GoldenRunInfo } from './GoldenRunInfo';
-import { OptionalRunInfo } from './OptionalRunInfo';
-import { ValidationInfo } from './ValidationInfo';
+import { MachineInfo } from './MachineInfo';
 import { JOB_SUB_THEME } from './JobSubUtil';
 import StatusPanel from './StatusPanel';
 import '../css/input.css'
-import { useLocation } from 'react-router-dom';
+import { StepperSettingProvider } from '../contexts/StepperSettingContext';
+import { useSSE } from '../contexts/SSEContext';
 
-const steps = ['Build Info', 'Run Info', 'Golden Run System Settings', 'Optional Run System Settings', 'Validation and Domain Specific Rate', 'Status Info'];
+const steps = ['Build Info', 'Run Info', 'Machine Info'];
+
+function StepContent({ stepIndex, input, setInput, formErrors, updateFormErrors, selectedMachine, setSelectedMachine }) {
+    switch (stepIndex) {
+        case 0:
+            return <BuildInfo input={input} setInput={setInput} errors={formErrors} updateFormErrors={updateFormErrors} />;
+        case 1:
+            return <RunInfo input={input} setInput={setInput} />;
+        case 2:
+            return <MachineInfo input={input} setInput={setInput} selectedMachine={selectedMachine} setSelectedMachine={setSelectedMachine} />;
+        default:
+            return null;
+    }
+}
 
 export default function UserInputStepper() {
-    const location = useLocation();
-    const selectedSettingData = location.state?.data;
     const navigate = useNavigate();
     const [activeStep, setActiveStep] = React.useState(0);
-    const [skipped, setSkipped] = React.useState(new Set());
-    const [statusMsg, setStatusMsg] = useState("");
-    const [SSEStatus, setSSEStatus] = useState(false);
-    //user input state
-    const [input, setInput] = useState(selectedSettingData || INITIAL_INPUT)
-
     //initial check of the form
-    const getInitialFormErrors = () => {
-        if (input.application && input.application.APP_NAME && input.application.APP_NAME.trim() !== '') {
-            return {};
+    const [formErrors, setFormErrors] = useState({});
+    const { setSSEStatus, startSSEConnection, closeSSEConnection } = useSSE();
+    const [selectedMachine, setSelectedMachine] = useState(null);
+
+    //user input state, loading the last saved wokring json or empty
+    const [input, setInput] = useState(INITIAL_INPUT)
+    useEffect(() => {
+        const init = async () => {
+            const fetchedInput = await fetchInitialInput();
+            if (fetchedInput) {
+                setInput(fetchedInput); // set the fetched data as the initial state
+            }
+        };
+        init();
+    }, []);
+
+    const fetchInitialInput = async () => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_json_from_file`, {});
+            if (response.data) {
+                return response.data;
+            }
+        } catch (error) {
+            console.error('Failed to fetch initial input:', error);
+            return null;
         }
-        return { APP_NAME: 'App Name is required' };
     };
-    const [formErrors, setFormErrors] = useState(getInitialFormErrors);
-
-
     // set error
     const updateFormErrors = (field, error) => {
         setFormErrors(prevErrors => ({ ...prevErrors, [field]: error }));
@@ -50,77 +72,32 @@ export default function UserInputStepper() {
     const hasErrors = () => {
         return Object.values(formErrors).some(error => error !== '');
     };
-    const isStepOptional = (step) => {
-        return step === 4;
-    };
-
-    const isStepSkipped = (step) => {
-        return skipped.has(step);
-    };
 
     const handleNext = () => {
-        let newSkipped = skipped;
-        if (isStepSkipped(activeStep)) {
-            newSkipped = new Set(newSkipped.values());
-            newSkipped.delete(activeStep);
-        }
-
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
-        setSkipped(newSkipped);
     };
 
+
     const handleSumbitNext = () => {
-        let newSkipped = skipped;
-        if (isStepSkipped(activeStep)) {
-            newSkipped = new Set(newSkipped.values());
-            newSkipped.delete(activeStep);
-        }
-
-
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
-        setSkipped(newSkipped);
-
-        //build connection stream
-
-        const sse = new EventSource(`${process.env.REACT_APP_API_BASE_URL}/stream`)
-
-        function handleStream(e) {
-            console.log("got mes", e.data)
-            setStatusMsg(e.data)
-        }
-        sse.onopen = e => {
-            console.log("connection open", e.data)
-
-        }
-        sse.onmessage = e => {
-            console.log("got mes", e.data)
-
-            handleStream(e)
-        }
-        sse.addEventListener('ping', e => {
-            console.log("event listener got mes", e.data)
-
-            setStatusMsg(e.data)
-        })
-        sse.onerror = e => {
-            //GOTCHA - can close stream and 'stall'
-            console.log("close stream", e.data)
-
-            sse.close()
-        }
+        startSSEConnection();
 
 
         //call backend
         setSSEStatus(true)
-        axios.post(`${process.env.REACT_APP_API_BASE_URL}/create_new_run`, input)
+        axios.post(`${process.env.REACT_APP_API_BASE_URL}/create_new_run`, { input: input, machine: selectedMachine })
             .then((response) => {
                 setSSEStatus(false)
+                //jump to results directly after create new run
                 return () => {
-                    sse.close()
+                    closeSSEConnection()
 
                 }
             }
             )
+
+        //navigate to results page immediately
+        navigate('/results');
 
 
     };
@@ -130,97 +107,53 @@ export default function UserInputStepper() {
         setActiveStep((prevActiveStep) => prevActiveStep - 1);
     };
 
-    const handleSkip = () => {
-        if (!isStepOptional(activeStep)) {
-            // it should never occur unless someone's actively trying to break something.
-            throw new Error("You can't skip a step that isn't optional.");
-        }
 
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-        setSkipped((prevSkipped) => {
-            const newSkipped = new Set(prevSkipped.values());
-            newSkipped.add(activeStep);
-            return newSkipped;
-        });
-    };
 
-    const handleReset = () => {
-        setActiveStep(0);
-    };
-
-    //see results button click
-    const handleFinishButtonClick = () => {
-        navigate('/results');
-    };
     //state
     //socket
 
     /******************************************************************* Finish prepare Written Code *************************************************/
 
     return (
-        <ThemeProvider theme={JOB_SUB_THEME}>
+        <StepperSettingProvider>
 
-            <div className='jobSubContainer'>
-                <Stepper activeStep={activeStep}>
-                    {steps.map((label, index) => {
-                        const stepProps = {};
-                        const labelProps = {};
-                        if (isStepOptional(index)) {
-                            labelProps.optional = (
-                                <Typography variant="caption">Optional</Typography>
+            <ThemeProvider theme={JOB_SUB_THEME}>
+
+                <div className='jobSubContainer'>
+
+                    <Stepper activeStep={activeStep}>
+                        {steps.map((label, index) => {
+                            const stepProps = {};
+                            const labelProps = {};
+
+
+                            return (
+                                <Step key={label} {...stepProps}>
+                                    <StepLabel {...labelProps}>{label}</StepLabel>
+                                </Step>
                             );
-                        }
-                        if (isStepSkipped(index)) {
-                            stepProps.completed = false;
-                        }
-                        return (
-                            <Step key={label} {...stepProps}>
-                                <StepLabel {...labelProps}>{label}</StepLabel>
-                            </Step>
-                        );
-                    })}
-                </Stepper>
-                <div className="contentAndNavigation">
+                        })}
+                    </Stepper>
 
-                    {activeStep === steps.length ? (
-                        <div>
-                            <Typography >
-                                All steps completed - you&apos;re finished
-                            </Typography>
-                            <Button variant="contained" onClick={handleFinishButtonClick} endIcon={<ArrowForwardIcon />}>See Result</Button>
-                            <Button onClick={handleReset}>Reset</Button>
-                        </div>
-                    ) : (
+                    <div className="contentAndNavigation">
                         <div>
 
-                            {activeStep === 0 && <BuildInfo input={input} setInput={setInput} errors={formErrors} updateFormErrors={updateFormErrors} />}
-                            {activeStep === 1 && <RunInfo input={input} setInput={setInput} />}
-                            {activeStep === 4 && <ValidationInfo input={input} setInput={setInput} />}
-                            {activeStep === 2 && <GoldenRunInfo input={input} setInput={setInput} />}
-                            {activeStep === 3 && <OptionalRunInfo input={input} setInput={setInput} />}
-                            {activeStep === 5 && <StatusPanel msg={statusMsg} />}
+
+                            <StepContent stepIndex={activeStep} input={input} setInput={setInput} formErrors={formErrors}
+                                updateFormErrors={updateFormErrors} selectedMachine={selectedMachine} setSelectedMachine={setSelectedMachine} />
+
                             <div className='navButton'>
-                                <Button
-                                    color="inherit"
-                                    disabled={activeStep === 0}
-                                    onClick={handleBack}
-                                >
-                                    Back
-                                </Button>
-                                {isStepOptional(activeStep) && (
-                                    <Button color="inherit" onClick={handleSkip} >
-                                        Skip
-                                    </Button>
-                                )}
+                                <Button color="inherit" disabled={activeStep === 0} onClick={handleBack}>Back</Button>
 
-                                {activeStep === 4 ?
+
+                                {activeStep === steps.length - 1 ?
 
                                     <Button onClick={handleSumbitNext} disabled={hasErrors()}>
-                                        Submit and Save Input Settings
+                                        Submit
 
                                     </Button> :
                                     <Button onClick={handleNext} disabled={hasErrors()}>
-                                        {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
+                                        {activeStep === steps.length - 1 ? '' : 'Next'}
 
                                     </Button>
 
@@ -229,10 +162,11 @@ export default function UserInputStepper() {
 
 
                         </div>
-                    )}
+
+                    </div>
                 </div>
-            </div>
-        </ThemeProvider>
+            </ThemeProvider>
+        </StepperSettingProvider>
 
     );
 }

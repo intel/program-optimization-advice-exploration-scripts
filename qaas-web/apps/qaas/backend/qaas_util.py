@@ -31,36 +31,33 @@ import os
 import pandas as pd
 import configparser
 import json
-input_json_dir = '/tmp/input_jsons'
+from flask import jsonify
+
+def give_permission(folder, user):
+    os.system(f"sudo chown -R {user}:{user} {folder}")
+    os.system(f"sudo chmod -R 775 {folder}")
 
 #save json after getting from frontend
-def save_json(data, filename):
-    os.makedirs(input_json_dir, exist_ok=True)  # create directory if it doesn't exist
-    file_path = os.path.join(input_json_dir, filename)
-    
+def save_json(data, file_path):
     with open(file_path, 'w') as f:
         json.dump(data, f)
     return file_path
 
 #get all json file
-def get_all_jsons():
+def get_all_jsons(input_json_dir):
     if not os.path.exists(input_json_dir):
         return []  
     
-    files = os.listdir(input_json_dir)
-    json_data = {}
-    for filename in files:
-        data = load_json(input_json_dir, filename)
-        json_data [filename] = data
-    return json_data 
+    filenames = os.listdir(input_json_dir)
+
+    return {'filenames': filenames} 
 
 #load json
-def load_json(input_json_dir, filename):
-    file_path = os.path.join(input_json_dir, filename)
+def load_json(file_path):
     
     if not os.path.exists(file_path):
-        raise FileNotFoundError(f"The file {filename} does not exist in {input_json_dir}")
+        return jsonify({"error": f"The file does not exist in {file_path}"}), 404
     
     with open(file_path, 'r') as f:
         data = json.load(f)
-    return data
+    return jsonify(data)
