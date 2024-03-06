@@ -372,16 +372,18 @@ def package_data(local_out_dir):
         tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name)
     with open("/tmp/debug-tar.txt", "w") as f: f.write(f'{reorg_local_out_dir}, {reorg_local_dir_name}')
 
-def process_oneview_data(ov_folder_for_best_compilers, out_oneview_folders, compilers, compiler_options, folders, 
+def process_oneview_data(ov_folder_to_extract, out_oneview_folders, compilers, compiler_options, folders, 
                          parse_compiler_folder_name_fn):
-    for compiler_folder in os.listdir(ov_folder_for_best_compilers):
+    if not os.path.exists(ov_folder_to_extract):
+        return # Skip if ov folder not exist
+    for compiler_folder in os.listdir(ov_folder_to_extract):
         #print(compiler_folder)
-        in_path=os.path.join(ov_folder_for_best_compilers, compiler_folder)
+        in_path=os.path.join(ov_folder_to_extract, compiler_folder)
     # Need to go one more level to get the real oneview folder
         in_oneview_folder = os.listdir(in_path)
         assert(len(in_oneview_folder)==1)
         in_oneview_folder = in_oneview_folder[0]
-        full_in_oneview_folder = os.path.join(ov_folder_for_best_compilers, compiler_folder, in_oneview_folder)
+        full_in_oneview_folder = os.path.join(ov_folder_to_extract, compiler_folder, in_oneview_folder)
 
         compiler_folder_parts = parse_compiler_folder_name_fn(compiler_folder)
         compiler, option_num, out_compiler_folder = compiler_folder_parts
