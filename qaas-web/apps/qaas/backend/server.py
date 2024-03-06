@@ -39,6 +39,8 @@ import os
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, exists, and_, cast
 from sqlalchemy import func
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+
 import sys
 import tempfile
 #import files from common 
@@ -65,7 +67,7 @@ config.read(config_path)
 #set app
 app = Flask(__name__)
 CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV']
+app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 db.init_app(app)
@@ -172,10 +174,6 @@ def create_app(config):
         df.sort_values('Mean', inplace=True)
         df.drop('Mean', axis=1, inplace=True)
 
-
-        print(df)
-
-
         return df
 
     @app.route('/get_qaas_unicore_perf_gflops_data', methods=['GET'])
@@ -218,11 +216,17 @@ def create_app(config):
                 .order_by(Execution.time)\
                 .first()
             best_qaas_compiler = best_qaas_execution.compiler_option.compiler.vendor
-            ref_qaas_run = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler)\
-                        .filter(QaaSRun.qaas == qaas, QaaSRun.type == "scalability_report", Compiler.vendor == best_qaas_compiler, QaaSRun.is_baseline == 1).one()
-            #for case like https://gitlab.com/amazouz/qaas-runs/-/blob/main/runs/169-617-8814/qaas_multicore.csv?ref_type=heads just skip
-            if not ref_qaas_run:
+            try:
+                ref_qaas_run = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler)\
+                            .filter(QaaSRun.qaas == qaas, QaaSRun.type == "scalability_report", Compiler.vendor == best_qaas_compiler, QaaSRun.is_baseline == 1).one()
+                #for case like https://gitlab.com/amazouz/qaas-runs/-/blob/main/runs/169-617-8814/qaas_multicore.csv?ref_type=heads just skip
+            except NoResultFound:
+                print("No matching QaaSRun found.")
                 continue
+            except MultipleResultsFound:
+                print("Multiple matching QaaSRuns found.")
+                continue
+      
             
             ref_time = ref_qaas_run.execution.time
             best_compiler_qaas_runs = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler)\
@@ -277,7 +281,8 @@ def create_app(config):
     @app.route('/get_arccomp_data', methods=['GET'])
     def get_arccomp_data():
         df = get_multicore_data()
-
+        if df.empty:
+            return {}
         #get min tiqaame from multicompiler set for applicaiton
         df['ICL per-core GFlops'] = df['ICL.Gf'] / df['ICL.cores']
         df['SPR per-core GFlops'] = df['SPR.Gf'] / df['SPR.cores']
@@ -301,6 +306,8 @@ def create_app(config):
     @app.route('/get_mpratio_data', methods=['GET'])
     def get_mpratio_data():
         df = get_multicore_data()
+        if df.empty:
+            return {}
         ICL_CORES = 48
         SPR_CORES = 64
         df['total_cores_ratio'] = df['SPR.cores'] / df['ICL.cores']
@@ -359,17 +366,13 @@ def create_app(config):
         multi_df = get_multicore_data()
         uni_df = get_unicore_data()
 
-        if not multi_df.empty and not uni_df.empty:
+        if multi_df.empty or uni_df.empty:
             return {}
         
-        if not multi_df.empty:
-            df = multi_df
-        elif not uni_df.empty:
-            df = uni_df
-        else:
-            df = pd.merge(multi_df, uni_df, on='Apps', how='inner', suffixes=('_multi_df', '_uni_df'))
-        df.rename({'Apps':'miniapp', 'ICL.cores':'cores_used', 'Intel ICL':'unicore_gf', 'ICL.Gf':'gflops'}, axis=1, inplace=True)
+        df = pd.merge(multi_df, uni_df, on='Apps', how='inner', suffixes=('_multi_df', '_uni_df'))
 
+        df.rename({'Apps':'miniapp', 'ICL.cores':'cores_used', 'Intel ICL':'unicore_gf', 'ICL.Gf':'gflops'}, axis=1, inplace=True)
+        print(df)
         df['gf_per_core'] = df['gflops'] / df['cores_used']
         df['ratio_unicore_df_over_df_per_core'] = df['unicore_gf'] / df['gf_per_core']
 
@@ -391,6 +394,8 @@ def create_app(config):
     @app.route('/get_qaas_multicore_perf_gflops_data', methods=['GET'])
     def get_qaas_multicore_perf_gflops_data():
         df = get_multicore_data()
+        if df.empty:
+            return {}
         #sort by x axis
         #drop all non numberic columns to get mean
         cols_to_convert = df.columns.drop(['Apps', 'ICL_time', 'SPR_time', 'ICL.cores', 'SPR.cores'])
@@ -404,7 +409,6 @@ def create_app(config):
         df.drop('SPR.cores', axis=1, inplace=True)
         df.rename({'ICL.Gf':'ICL total Gf', 'SPR.Gf':'SPR total Gf'}, axis=1, inplace=True)
 
-        print(df)
         df = df.drop(columns=['ICL_time', 'best_compiler', 'SPR_time', 'Mean'])
 
         data_dict = df.to_dict(orient='list')
@@ -556,7 +560,7 @@ def create_app(config):
         #machine = "ancodskx1020.an.intel.com"
         # machine = "fxilab165.an.intel.com"
         # machine = "intel"
-        # time.sleep(10)
+        time.sleep(10)
         user_and_machine = f"qaas@{machine}"
         # subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)
         # subprocess.run([ "ssh", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
