@@ -86,7 +86,8 @@ class QaaSOneViewModelInitializer(QaaSModelInitializer, OneViewModelInitializer)
         OneViewModelInitializer.visitEnvironment(self, environment)
 
     def visitApplication(self, application):
-        pass
+        QaaSModelInitializer.visitApplication(self, application)
+
 
     def visitExecution(self, execution):
         QaaSModelInitializer.visitExecution(self, execution)
@@ -97,12 +98,16 @@ class QaaSOneViewModelInitializer(QaaSModelInitializer, OneViewModelInitializer)
         OneViewModelInitializer.visitExecution(self, execution)
 
     def visitOs(self, os):
+        QaaSModelInitializer.visitOs(self, os)
+
         #only run below if there is ov report avaiable
         if not self.cur_run_has_ov_data:
             return
         OneViewModelInitializer.visitOs(self, os)
 
     def visitHwSystem(self, hwsystem):
+        QaaSModelInitializer.visitHwSystem(self, hwsystem)
+
         #only run below if there is ov report avaiable
         if not self.cur_run_has_ov_data:
             return

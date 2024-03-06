@@ -43,7 +43,7 @@ def get_config():
 
 ################################### run otter ###########################
 def create_manifest_file_for_run(run_id, run_name, output_data_dir, manifest_path):
-    content =  f"""meta;{run_id};{run_name};run_{run_id};
+    content =  f"""meta;{run_id};run_name;{run_name};
 virtual;0;executable;./mpi_hello_world;
 file;{run_id};expert_run;{output_data_dir}/shared/run_0/expert_run.csv;
 file;{run_id};config;{output_data_dir}/shared/run_0/config.lua;
@@ -106,7 +106,6 @@ def create_manifest_monorun(manifest_path, output_data_dir, query_time, session)
         os.remove(manifest_path)
     write_manifest_header(manifest_path, 'monorun')
     base_run_name = get_base_run_name(query_time, session)
-    print("monorun", query_time, base_run_name)
 
     create_manifest_file_for_run(0, base_run_name, output_data_dir, manifest_path)
 

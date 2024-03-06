@@ -6,22 +6,33 @@ import { getAppName } from '../../Constants';
 import axios from "axios";
 
 
-const columns = [
-    { Header: 'Mini-Apps', accessor: 'Apps' },
-    { Header: 'Intel SKL 2015', accessor: 'Intel SKL' },
-    { Header: 'Intel ICL 2021', accessor: 'Intel ICL' },
-    { Header: 'Intel SPR 3.9 GHz 2023', accessor: 'Intel SPR' },
-    { Header: 'AMD Zen4 2022', accessor: 'AMD Zen4' },
-    { Header: 'AWS G3E 2.6 GHz2022', accessor: 'AWS G3E' },
-];
+// const columns = [
+//     { Header: 'Mini-Apps', accessor: 'Apps' },
+//     { Header: 'Intel SKL 2015', accessor: 'Intel SKL' },
+//     { Header: 'Intel ICL 2021', accessor: 'Intel ICL' },
+//     { Header: 'Intel SPR 3.9 GHz 2023', accessor: 'Intel SPR' },
+//     { Header: 'AMD Zen4 2022', accessor: 'AMD Zen4' },
+//     { Header: 'AWS G3E 2.6 GHz2022', accessor: 'AWS G3E' },
+// ];
 
 export default function UnicorePerfTable() {
     const [chartData, setChartData] = useState([]);
+    const [columns, setColumns] = useState([]);
+
     useEffect(() => {
         axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_utab_data`)
             .then((response) => {
 
                 const rawData = response.data
+                // set the columns and check if rawData is not empty
+                if (Object.keys(rawData).length > 0) {
+                    // dynamiclly generate columns from keys
+                    const dynamicColumns = Object.keys(rawData).map(key => ({
+                        Header: key.charAt(0).toUpperCase() + key.slice(1), // capitalize the first letter
+                        accessor: key // use key from the data
+                    }));
+                    setColumns(dynamicColumns);
+                }
                 const preparedData = processData(rawData);
                 setChartData(preparedData);
 
@@ -30,16 +41,6 @@ export default function UnicorePerfTable() {
             })
 
     }, [])
-
-    function formatValue(value) {
-        if (typeof value === 'number') {
-            return value.toFixed(2);
-        } else if (value === null || value === undefined) {
-            return 'NA';
-        } else {
-            return value;
-        }
-    }
 
     function processData(data) {
         if (!data.Apps || data.Apps.length === 0) {
@@ -58,7 +59,7 @@ export default function UnicorePerfTable() {
                     row[key] = getAppName(data[key][i]);
                 } else {
                     //  other columns, format value
-                    row[key] = formatValue(data[key][i]);
+                    row[key] = data[key][i];
                 }
             }
             processedData.push(row);

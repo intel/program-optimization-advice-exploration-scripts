@@ -69,6 +69,9 @@ export default function MpratioTable() {
     }, [])
 
     function processData(rawData) {
+        if (!rawData || Object.keys(rawData).length === 0) {
+            return [];
+        }
         const formattedData = [];
         const numRows = rawData.miniapp.length;
 

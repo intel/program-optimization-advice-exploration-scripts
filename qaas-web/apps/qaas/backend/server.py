@@ -67,7 +67,7 @@ config.read(config_path)
 #set app
 app = Flask(__name__)
 CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS']
+app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 db.init_app(app)
@@ -154,12 +154,20 @@ def create_app(config):
 
             gflops = min_time_execution.global_metrics['Gflops']
             app_name = min_time_execution.application.workload
-            architecture = min_time_execution.hwsystem.architecture
-            architecture = architecture_mapping.get(architecture)
-
+            #use uarchitecture here for merged data
+            architecture = min_time_execution.hwsystem.uarchitecture
+            if not architecture:
+                architecture = min_time_execution.hwsystem.architecture
+                architecture = architecture_mapping.get(architecture, architecture)
+            if not architecture:
+                continue
             if app_name not in data:
-                data[app_name] = {"Apps": app_name, "Intel ICL": None, "Intel SKL": None, "Intel SPR": None, "AMD Zen4": None, "AWS G3E": None}
-        
+                data[app_name] = {"Apps": app_name}
+            
+            print("architecture",architecture)
+            for app_data in data.values():
+                if architecture not in app_data:
+                    app_data[architecture] = None
             data[app_name][architecture] = gflops
 
         
@@ -179,6 +187,9 @@ def create_app(config):
     @app.route('/get_qaas_unicore_perf_gflops_data', methods=['GET'])
     def get_qaas_unicore_perf_gflops_data():
         df = get_unicore_data()
+        if df.empty:
+            return {}
+        print(df)
         data_dict = df.to_dict(orient='list')
         # replace NaN with None (null in JSON)
         for key in data_dict.keys():
@@ -555,13 +566,8 @@ def create_app(config):
 
     def perform_long_running_tasks(unique_temp_dir, saved_file_path, machine):
         filename = os.path.basename(saved_file_path)
-        qaas_message_queue.put(QaasMessage("Job Begin"))
-        print('machine to use', machine)
-        #machine = "ancodskx1020.an.intel.com"
-        # machine = "fxilab165.an.intel.com"
-        # machine = "intel"
-        time.sleep(10)
-        user_and_machine = f"qaas@{machine}"
+        qaas_message_queue.put(QaasMessage("Job Begin"))    
+        # user_and_machine = f"qaas@{machine}"
         # subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)
         # subprocess.run([ "ssh", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
         # subprocess.run( ["ssh", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222",
@@ -612,8 +618,9 @@ def create_app(config):
         #real user input data  
         request_json = request.get_json()['input']
         machine = request.get_json()['machine']
+        run_mode = request.get_json()['mode']
 
-        print(request_json, machine)
+        print(request_json, machine, run_mode)
         #save intput json to a folder can read later
         working_json_path = os.path.join(config['web']['WORKING_JSON_FOLDER'], 'working.json')
         save_json(request_json, working_json_path)
@@ -621,6 +628,7 @@ def create_app(config):
         saved_file_path = working_json_path
 
         unique_temp_dir = tempfile.mktemp()
+        # unique_temp_dir = '/tmp/test_data_population'
         os.makedirs(unique_temp_dir, exist_ok=True)
 
         #go to backplane and just cp qaas out for now

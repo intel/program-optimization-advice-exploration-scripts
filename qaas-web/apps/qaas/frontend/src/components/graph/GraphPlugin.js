@@ -61,22 +61,25 @@ export const createMinMaxAnnotations = (chartData) => {
             if (maxValue !== -Infinity && minValue !== Infinity) {
                 const ratio = maxValue / minValue;
                 // have to use log max value to get correct place
-                const adjustedYValue = Math.log10(maxValue)
+                if (maxValue > 0) {
 
-                const annotation = {
-                    x: chartData[maxIndex].x[labelIndex],
-                    y: adjustedYValue,
-                    text: `${ratio.toFixed(2)}`,
-                    xanchor: 'center',
-                    yanchor: 'bottom',
-                    showarrow: false, // Do not show an arrow
-                    font: {
-                        family: 'Arial',
-                        size: 12,
-                        color: chartData[maxIndex].line.color, // use max index color for the text
-                    }
-                };
-                annotations.push(annotation);
+                    const adjustedYValue = Math.log10(maxValue)
+
+                    const annotation = {
+                        x: chartData[maxIndex].x[labelIndex],
+                        y: adjustedYValue,
+                        text: `${ratio.toFixed(2)}`,
+                        xanchor: 'center',
+                        yanchor: 'bottom',
+                        showarrow: false, // do not show an arrow
+                        font: {
+                            family: 'Arial',
+                            size: 12,
+                            color: chartData[maxIndex].line.color, // use max index color for the text
+                        }
+                    };
+                    annotations.push(annotation);
+                }
             }
         }
     }

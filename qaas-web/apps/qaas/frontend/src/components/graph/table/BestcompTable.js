@@ -50,6 +50,9 @@ function BestCompTable() {
 
     function processData(rawData) {
         const formattedData = [];
+        if (!rawData || Object.keys(rawData).length === 0) {
+            return [];
+        }
         const numRows = rawData.miniapp.length;
 
         for (let i = 0; i < numRows; i++) {

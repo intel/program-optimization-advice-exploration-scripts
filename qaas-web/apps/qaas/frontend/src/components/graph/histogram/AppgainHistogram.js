@@ -69,6 +69,9 @@ export default function AppgainHistogram() {
 
     }, [])
     const processRawData = (rawData) => {
+        if (!rawData || Object.keys(rawData).length === 0) {
+            return [];
+        }
         const histogramData = rawData.app.map((app, index) => {
             const largestGain = rawData['largest_gain'][index];
             let binKey = categorizeIntoBin(largestGain, range);

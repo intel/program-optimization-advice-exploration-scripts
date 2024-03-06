@@ -67,6 +67,9 @@ export default function ArccompHistogram() {
     }, [])
 
     const processRawData = (rawData) => {
+        if (!rawData || Object.keys(rawData).length === 0) {
+            return [];
+        }
         const histogramData = rawData.Apps.map((app, index) => {
             const ratio = rawData['winner ratio'][index];
             let binKey = categorizeIntoBin(ratio, range);

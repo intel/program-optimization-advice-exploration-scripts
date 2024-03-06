@@ -77,11 +77,11 @@ var APP_NAME_MAP = {
 
 
 export function getProcessorPointStyle(processor) {
-    return PROCESSOR_POINT_SHAPE[processor];
+    return PROCESSOR_POINT_SHAPE[processor] || 'circle';
 
 }
 export function getProcessorColor(processor) {
-    return PROCESSOR_COLORS[processor];
+    return PROCESSOR_COLORS[processor] || '#FF6B6B';
 }
 
 export function getGeneralColor(type) {

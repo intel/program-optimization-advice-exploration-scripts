@@ -20,14 +20,14 @@ import { useSSE } from '../contexts/SSEContext';
 
 const steps = ['Build Info', 'Run Info', 'Machine Info'];
 
-function StepContent({ stepIndex, input, setInput, formErrors, updateFormErrors, selectedMachine, setSelectedMachine }) {
+function StepContent({ stepIndex, input, setInput, formErrors, updateFormErrors, selectedMachine, setSelectedMachine, selectedRunMode, setSelectedRunMode }) {
     switch (stepIndex) {
         case 0:
             return <BuildInfo input={input} setInput={setInput} errors={formErrors} updateFormErrors={updateFormErrors} />;
         case 1:
             return <RunInfo input={input} setInput={setInput} />;
         case 2:
-            return <MachineInfo input={input} setInput={setInput} selectedMachine={selectedMachine} setSelectedMachine={setSelectedMachine} />;
+            return <MachineInfo input={input} setInput={setInput} selectedMachine={selectedMachine} setSelectedMachine={setSelectedMachine} selectedRunMode={selectedRunMode} setSelectedRunMode={setSelectedRunMode} />;
         default:
             return null;
     }
@@ -39,7 +39,8 @@ export default function UserInputStepper() {
     //initial check of the form
     const [formErrors, setFormErrors] = useState({});
     const { setSSEStatus, startSSEConnection, closeSSEConnection } = useSSE();
-    const [selectedMachine, setSelectedMachine] = useState(null);
+    const [selectedMachine, setSelectedMachine] = useState('fxilab165.an.intel.com');
+    const [selectedRunMode, setSelectedRunMode] = useState('disable_multicompiler_defaults');
 
     //user input state, loading the last saved wokring json or empty
     const [input, setInput] = useState(INITIAL_INPUT)
@@ -85,7 +86,7 @@ export default function UserInputStepper() {
 
         //call backend
         setSSEStatus(true)
-        axios.post(`${process.env.REACT_APP_API_BASE_URL}/create_new_run`, { input: input, machine: selectedMachine })
+        axios.post(`${process.env.REACT_APP_API_BASE_URL}/create_new_run`, { input: input, machine: selectedMachine, mode: selectedRunMode })
             .then((response) => {
                 setSSEStatus(false)
                 //jump to results directly after create new run
@@ -140,7 +141,9 @@ export default function UserInputStepper() {
 
 
                             <StepContent stepIndex={activeStep} input={input} setInput={setInput} formErrors={formErrors}
-                                updateFormErrors={updateFormErrors} selectedMachine={selectedMachine} setSelectedMachine={setSelectedMachine} />
+                                updateFormErrors={updateFormErrors} selectedMachine={selectedMachine} setSelectedMachine={setSelectedMachine}
+                                selectedRunMode={selectedRunMode} setSelectedRunMode={setSelectedRunMode}
+                            />
 
                             <div className='navButton'>
                                 <Button color="inherit" disabled={activeStep === 0} onClick={handleBack}>Back</Button>
