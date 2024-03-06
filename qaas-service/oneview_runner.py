@@ -94,7 +94,13 @@ class OneviewRunner(BaseRunner):
         ov_filter_option = '--filter="{type=\\\"number\\\", value=1}"' if self.level != 1 else ''
         ov_extra_libs_option = '--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"' if self.found_so_libs else ""
 
+        # Try to get run name from path
+        run_names_in_path = os.path.relpath(self.ov_result_root, os.path.join(self.ov_result_root, '..', '..')).split("/")
+        # Try to use the same name as csv file.  Compiler runs: just the directory name under compilers/ and default run, add _0 as option 0 
+        run_name = run_names_in_path[1] if run_names_in_path[0] == "compilers" else f'{run_names_in_path[1]}_0'
+
         ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} {ov_config_option}'\
+            f' --base-run-name={run_name} ' \
             f' --with-FLOPS ' \
             f' {ov_extra_libs_option} '\
             f'--run-directory="{run_dir}" {pinning_cmd} '\
