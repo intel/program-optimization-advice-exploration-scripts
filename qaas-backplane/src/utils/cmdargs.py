@@ -94,6 +94,9 @@ def parse_cli_args(argv):
     # parse arguments
     args = global_parser.parse_args()
 
+    # Add some implied rule for mutally exclusive group
+    args.no_compiler_flags = True if args.no_compiler_default else args.no_compiler_flags
+
     # configure logging
     if args.debug:
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
