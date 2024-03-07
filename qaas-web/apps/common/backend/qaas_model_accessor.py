@@ -101,6 +101,7 @@ class QaaSModelInitializer(ModelAccessor):
         #get metadata
         self.current_metadata_config = get_config_from_path(self.qaas_metadata_file_path)
         #get data files
+        print(self.current_metadata_config)
         if self.current_metadata_config['REPORTS'].get('multicompiler_report'):
             multicompiler_report_file_name = self.current_metadata_config['REPORTS'].get('multicompiler_report')
             multicompiler_report_path = os.path.join(self.report_path, multicompiler_report_file_name)

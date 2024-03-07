@@ -578,6 +578,7 @@ def create_app(config):
                         f"/tmp/{filename} " +
                         f"{run_mode_flags} " +
                         "--logic strategizer --no-container -D --local-job"])
+        print("call finished")
         subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{user_and_machine}:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
         subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
         qaas_out_dir = unique_temp_dir
@@ -634,6 +635,7 @@ def create_app(config):
         # unique_temp_dir = '/tmp/test_data_population'
         os.makedirs(unique_temp_dir, exist_ok=True)
 
+
         #go to backplane and just cp qaas out for now
         t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, saved_file_path, machine, run_mode))
         t.start()
@@ -646,7 +648,10 @@ def create_app(config):
     def get_comparison_html_by_timestamp():
         #place to put files
         qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
-        manifest_file_path = os.path.join(qaas_output_folder, 'input_manifest.csv')
+        otter_folder_path = os.path.join(qaas_output_folder, 'OTTER')
+        manifest_file_path = os.path.join(otter_folder_path, 'input_manifest.csv')
+        os.makedirs(otter_folder_path, exist_ok=True)
+
         data_folder_list = []
         timestamp_list = []
 
@@ -660,17 +665,16 @@ def create_app(config):
         # data_folder_list = []
         for index, run in enumerate(qaas_runs_with_ov_report):
             timestamp = run.execution.universal_timestamp
-            print(timestamp)
+            timestamp_list.append(timestamp)
             qaas_output_run_folder_run = os.path.join(qaas_output_folder, str(index))
-            try:
-                export_data(timestamp, qaas_output_run_folder_run, db.session)
-                timestamp_list.append(timestamp)
-            except:
-                print("report cannot be generated")
-                continue
             data_folder_list.append(qaas_output_run_folder_run)
+
         create_manifest_comparison(manifest_file_path, data_folder_list, timestamp_list, db.session)
         manifest_out_path = create_out_manifest(qaas_output_folder)
+
+        for timestamp, qaas_output_run_folder_run in zip(timestamp_list, data_folder_list):
+            export_data(timestamp, qaas_output_run_folder_run, db.session)
+
 
         run_otter_command(manifest_file_path, manifest_out_path, config)
         
@@ -684,13 +688,16 @@ def create_app(config):
     def get_html_by_timestamp():
         #place to put files
         qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
-        manifest_file_path = os.path.join(qaas_output_folder, 'input_manifest.csv')
+        otter_folder_path = os.path.join(qaas_output_folder, 'OTTER')
+        manifest_file_path = os.path.join(otter_folder_path, 'input_manifest.csv')
+        os.makedirs(otter_folder_path, exist_ok=True)
+
 
         query_time = request.get_json()['timestamp'] 
         print("query timestamp", query_time)
-        export_data(query_time, qaas_output_folder, db.session)
         create_manifest_monorun(manifest_file_path,qaas_output_folder, query_time, db.session)
         manifest_out_path = create_out_manifest(qaas_output_folder)
+        export_data(query_time, qaas_output_folder, db.session)
 
         run_otter_command(manifest_file_path, manifest_out_path, config)
 

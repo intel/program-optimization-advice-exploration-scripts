@@ -45,41 +45,31 @@ class OneviewModelAccessor(ModelAccessor):
 
     def set_ov_path(self, qaas_data_dir):
         self.qaas_data_dir = qaas_data_dir
-        self.cur_run_id = 0
-        self.static_dir_path = os.path.join(self.qaas_data_dir, "static_data")
-        self.run_dir_path = os.path.join(self.qaas_data_dir, "shared", self.get_run_name())
-
-        self.log_dir = os.path.join(self.qaas_data_dir, 'logs')
-        self.source_dir = os.path.join(self.static_dir_path, "sources")
-        self.lprof_dir_path = os.path.join(self.qaas_data_dir, "shared",f"lprof_npsu_{self.get_run_name()}")
-        self.hierarchy_dir_path = os.path.join(self.static_dir_path, 'hierarchy')
-        self.callchain_dir_path = os.path.join(self.lprof_dir_path, 'callchains')
-
-        self.local_vars_path = os.path.join(self.run_dir_path, 'local_vars.csv')
+        #read otter input manifest as df
+        manifest_path = '/var/www/html/private/OTTER/input_manifest.csv' if "/var/www/html" in self.qaas_data_dir else  os.path.join(self.qaas_data_dir, 'OTTER', 'input_manifest.csv')
+        self.input_manifest_df = read_file(manifest_path, delimiter=';')
+      
+        self.source_dir = get_path_from_input_manifest_df(self.input_manifest_df, 'sources_dir', self.qaas_data_dir) 
+        self.lprof_dir_path = get_path_from_input_manifest_df(self.input_manifest_df, 'lprof_dir', self.qaas_data_dir) 
+        self.hierarchy_dir_path = get_path_from_input_manifest_df(self.input_manifest_df, 'hierarchy_dir', self.qaas_data_dir) 
+        self.callchain_dir_path = get_path_from_input_manifest_df(self.input_manifest_df, 'callchains_dir', self.qaas_data_dir) 
+        self.local_vars_path = get_path_from_input_manifest_df(self.input_manifest_df, 'localvars', self.qaas_data_dir) 
+        self.run_dir_path = get_path_from_input_manifest_df(self.input_manifest_df, 'env_dir', self.qaas_data_dir) 
         self.expert_loop_path = os.path.join(self.run_dir_path, "expert_loops.csv")
 
-
-
-    def get_run_name(self):
-        return f"run_{self.cur_run_id}"
-    
     def get_env_path(self):
-        self.run_dir_path = os.path.join(self.qaas_data_dir, "shared",self.get_run_name())
         os.makedirs(self.run_dir_path, exist_ok=True)
-
         return self.run_dir_path
     def get_execution_path(self):
         # Directory paths
 
         # File paths
-        # local_vars_path = os.path.join(self.static_dir_path, 'local_vars.csv')
-        config_path = os.path.join(self.run_dir_path, 'config.lua')
-        config_out_path = os.path.join(self.run_dir_path, 'config.lua')
-        cqa_context_path = os.path.join(self.static_dir_path, "cqa", "cqa_context.lua")
-        expert_run_path = os.path.join(self.run_dir_path, 'expert_run.csv')
+        config_path = get_path_from_input_manifest_df(self.input_manifest_df, 'config', self.qaas_data_dir) 
+        cqa_context_path = os.path.join(get_path_from_input_manifest_df(self.input_manifest_df, 'cqa_dir', self.qaas_data_dir) , "cqa_context.lua")
+        expert_run_path = get_path_from_input_manifest_df(self.input_manifest_df, 'expert_run', self.qaas_data_dir) 
         #log files
-        log_path = os.path.join(self.log_dir, 'log.txt')
-        lprof_log_path = os.path.join(self.log_dir, self.get_run_name(), 'lprof.log')
+        log_path = get_path_from_input_manifest_df(self.input_manifest_df, 'log', self.qaas_data_dir)
+        lprof_log_path = os.path.join(get_path_from_input_manifest_df(self.input_manifest_df, 'logs_subdir', self.qaas_data_dir),  'lprof.log')
         #location binaries
         fct_locations_path = os.path.join(self.source_dir, 'fct_locations.bin')
         loop_locations_path = os.path.join(self.source_dir, 'loop_locations.bin')
@@ -88,10 +78,10 @@ class OneviewModelAccessor(ModelAccessor):
         fct_callchain_path = os.path.join(self.callchain_dir_path, 'cc_fcts.cc')
         loop_callchain_path = os.path.join(self.callchain_dir_path, 'cc_loops.cc')
         #global_metrics csv and compilation options lua
-        global_metrics_path = os.path.join(self.run_dir_path, 'global_metrics.csv')
+        global_metrics_path = get_path_from_input_manifest_df(self.input_manifest_df, 'global_metrics', self.qaas_data_dir)
         compilation_options_path = os.path.join(self.source_dir, 'compilation_options.csv')
 
-        return  self.local_vars_path, config_path, config_out_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
+        return  self.local_vars_path, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
                 fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path
     
     def get_os_path(self):
@@ -105,12 +95,13 @@ class OneviewModelAccessor(ModelAccessor):
         return  self.local_vars_path
     
     def get_decan_path(self):
-        return os.path.join(self.run_dir_path, "decan.csv")
+        print("decan",get_path_from_input_manifest_df(self.input_manifest_df, 'decan', self.qaas_data_dir))
+        return get_path_from_input_manifest_df(self.input_manifest_df, 'decan', self.qaas_data_dir)
     
     def get_vprof_path(self):
-        return os.path.join(self.run_dir_path, "vprof.csv")
+        return get_path_from_input_manifest_df(self.input_manifest_df, 'vprof', self.qaas_data_dir)
     def get_lprof_categorization_path(self):
-        lprof_categorization_path1 = os.path.join(self.run_dir_path, 'lprof_categorization.csv')
+        lprof_categorization_path1 = get_path_from_input_manifest_df(self.input_manifest_df, 'categorization', self.qaas_data_dir)
         lprof_categorization_path2 = os.path.join(self.lprof_dir_path, 'lprof_categorization.csv')
 
         return lprof_categorization_path1, lprof_categorization_path2
@@ -129,18 +120,17 @@ class OneviewModelAccessor(ModelAccessor):
     def get_lprof_measurement_path(self):
         return self.lprof_dir_path, self.expert_loop_path,self.hierarchy_dir_path
     def get_cqa_path(self):
-        cqa_dir_path = os.path.join(self.static_dir_path, "cqa")
+        cqa_dir_path = get_path_from_input_manifest_df(self.input_manifest_df, 'cqa_dir', self.qaas_data_dir)
         return cqa_dir_path, self.expert_loop_path
     def get_asm_path(self):
-        asm_dir_path = os.path.join(self.static_dir_path, "asm")
-        asm_mapping_dir = os.path.join(self.qaas_data_dir, "tools", "decan", self.get_run_name(), "others")
+        asm_dir_path = get_path_from_input_manifest_df(self.input_manifest_df, 'asm_dir', self.qaas_data_dir)
+        asm_mapping_dir = get_path_from_input_manifest_df(self.input_manifest_df, 'asm_mapping_dir', self.qaas_data_dir)
         return asm_dir_path, asm_mapping_dir
     def get_group_path(self):
-        group_dir_path = os.path.join(self.static_dir_path, "groups")
+        group_dir_path = get_path_from_input_manifest_df(self.input_manifest_df, 'groups_dir', self.qaas_data_dir)
         return group_dir_path
     def get_source_path(self):
-        source_dir_path = os.path.join(self.static_dir_path, "sources")
-        return source_dir_path
+        return self.source_dir
 
    
    
@@ -290,7 +280,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
     def visitExecution(self, execution):
         execution.qaas_timestamp = self.qaas_timestamp
         execution.version = self.version
-        local_vars_path, config_path, config_out_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
+        local_vars_path, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,\
             fct_locations_path,loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
         local_vars_df = read_file(self.visit_file(local_vars_path))
         local_vars_dict = local_vars_df.set_index('metric')['value'].to_dict()
@@ -400,7 +390,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitDecanCollection(self, decan_collection):
         decan_path = self.get_decan_path()
-        if not os.path.exists(decan_path):
+        if not decan_path or not os.path.exists(decan_path):
             return
         decan_data = read_file(self.visit_file(decan_path)).to_dict(orient='records')
         for dic in decan_data:
@@ -424,7 +414,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitVprofCollection(self, vprof_collection):
         vprof_path = self.get_vprof_path()
-        if not os.path.exists(vprof_path):
+        if not vprof_path or not os.path.exists(vprof_path):
             return
 
         vprof_data = read_file(self.visit_file(vprof_path), delimiter=',')
@@ -881,11 +871,11 @@ class OneViewModelExporter(OneviewModelAccessor):
   
  
     def visitExecution(self, execution, qaas_timestamp = None, version = None):
-        local_vars_path, config_path, config_out_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,fct_locations_path,\
+        local_vars_path, config_path, cqa_context_path, expert_run_path, log_path,lprof_log_path,fct_locations_path,\
             loop_locations_path, global_metrics_path, compilation_options_path, fct_callchain_path, loop_callchain_path = self.get_execution_path()
         # Create directories
         os.makedirs(os.path.dirname(local_vars_path), exist_ok=True)
-        os.makedirs(os.path.dirname(config_out_path), exist_ok=True)
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
         os.makedirs(os.path.dirname(cqa_context_path), exist_ok=True)
         os.makedirs(os.path.dirname(expert_run_path), exist_ok=True)
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
@@ -903,7 +893,7 @@ class OneViewModelExporter(OneviewModelAccessor):
 
 
         # config lua file and cqa_context lua
-        convert_python_to_lua(execution.config, config_out_path) 
+        convert_python_to_lua(execution.config, config_path) 
         convert_python_to_lua(execution.cqa_context, cqa_context_path) 
         #expert run csv
         expert_run_df = pd.DataFrame({'time': [execution.time],\

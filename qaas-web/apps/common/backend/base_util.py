@@ -219,6 +219,29 @@ def parse_file_name(file_name):
     else:
         return None
 
+#this funciton is used to get path from input manifest using usage type
+def get_path_from_input_manifest_df(df, usage_type, qaas_data_dir):
+    filtered_df = df[df['usage'] == usage_type]
+    if not filtered_df.empty:
+        path = filtered_df.iloc[0]['path']
+        match = re.search(r'oneview_results_\d+/|private(/\d+)?/', path)
+        if match:
+            start_index = match.end()
+            return os.path.join(qaas_data_dir,path[start_index:])
+    return None
+
+def get_run_path_and_id(path):
+    path_parts = path.split("/")
+    run_component = next((part for part in path_parts if "run_" in part), None)
+    run_id = None
+    if run_component:
+        run_id = run_component.split("_")[1]
+
+    if run_component:
+        sub_path_index = path_parts.index(run_component)
+        sub_path = "/".join(path_parts[:sub_path_index+1])
+
+    return run_id, sub_path
 def get_all_functions_for_run(modules):
     res = []
     for module in modules:
