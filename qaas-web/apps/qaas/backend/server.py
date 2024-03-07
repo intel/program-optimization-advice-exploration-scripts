@@ -564,7 +564,8 @@ def create_app(config):
 
     @app.route('/get_machine_list', methods=['GET'])
     def get_machine_list():
-        machines = ['fxilab165.an.intel.com', 'intel', 'ancodskx1020.an.intel.com']
+        #machines = ['fxilab165.an.intel.com', 'intel', 'ancodskx1020.an.intel.com']
+        machines = app.config["BACKPLANE_SERVER_LIST"]
         return jsonify({'machines': machines})
 
     def perform_long_running_tasks(unique_temp_dir, saved_file_path, machine, run_mode):
