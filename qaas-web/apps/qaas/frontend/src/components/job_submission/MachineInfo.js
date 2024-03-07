@@ -8,11 +8,25 @@ import Paper from '@mui/material/Paper';
 import DeleteIcon from '@mui/icons-material/RemoveCircleOutline';
 import AddIcon from '@mui/icons-material/AddCircleOutline';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import axios from 'axios';
 
 import SettingsSelector from "./SettingSelector";
 import SaveSettingButton from "./SaveSettingButton";
 export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachine, selectedRunMode, setSelectedRunMode }) => {
-    const machines = ['fxilab165.an.intel.com', 'intel', 'ancodskx1020.an.intel.com']
+    const [machines, setMachines] = useState([]);
+
+    useEffect(() => {
+        fetchMachines();
+    }, []);
+
+    const fetchMachines = async () => {
+        try {
+            const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_machine_list`);
+            setMachines(response.data['machines']);
+        } catch (error) {
+            console.error('Error fetching setting:', error);
+        }
+    };
 
     const handleMachineChange = (event) => {
         const machine = event.target.value;

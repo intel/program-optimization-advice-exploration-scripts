@@ -562,7 +562,10 @@ def create_app(config):
                 
         return jsonify(data)
 
-    
+    @app.route('/get_machine_list', methods=['GET'])
+    def get_machine_list():
+        machines = ['fxilab165.an.intel.com', 'intel', 'ancodskx1020.an.intel.com']
+        return jsonify({'machines': machines})
 
     def perform_long_running_tasks(unique_temp_dir, saved_file_path, machine, run_mode):
         filename = os.path.basename(saved_file_path)
