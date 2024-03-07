@@ -41,8 +41,8 @@ from model import connect_db, create_all
 from base_util import QaaSFileAccessMonitor
 
 import argparse
-def extract_ov_file(input_path, output_path):
-    with QaaSFileAccessMonitor(input_path, output_path) as session:
+def extract_ov_file(input_path, output_path, keep_db=False):
+    with QaaSFileAccessMonitor(input_path, output_path, keep_db) as session:
         ######################populate database tables######################
         initializer = OneViewModelInitializer(session, input_path, "test_timestamp", "test_version", "workload_name", "workload_version_name", "workload_program_name", "workload_program_commit_id")
         qaas_ov_database = QaaSDatabase()
@@ -52,7 +52,7 @@ def main():
     parser = argparse.ArgumentParser(description="OV data extractor")
     parser.add_argument('--input', help='input Oneview folder', required=True)
     parser.add_argument('--output', help='output Oneview folder', required=True)
-    parser.add_argument('--keep-db', action='store_true', help='Keep the temporary database', require=False)
+    parser.add_argument('--keep-db', action='store_true', help='Keep the temporary database', required=False)
     args = parser.parse_args()
     #ov_path = "/host/localdisk/yue/data/test_qaas_ov_data/runs/170-335-6350/oneview_runs/defaults/orig/oneview_results_1703356350" # hardcoded now
     #output_path = "/tmp/test123"  #hardcoded now
