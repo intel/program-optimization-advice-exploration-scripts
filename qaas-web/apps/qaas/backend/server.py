@@ -564,24 +564,27 @@ def create_app(config):
 
     
 
-    def perform_long_running_tasks(unique_temp_dir, saved_file_path, machine):
+    def perform_long_running_tasks(unique_temp_dir, saved_file_path, machine, run_mode):
         filename = os.path.basename(saved_file_path)
+        run_mode_flags = "--no-compiler-default" if run_mode == "disable_multicompiler_defaults_and_flags" \
+            else "--no-compiler-flags" if run_mode == "disable_multicompiler_flags" else ""
         qaas_message_queue.put(QaasMessage("Job Begin"))    
-        # user_and_machine = f"qaas@{machine}"
-        # subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)
-        # subprocess.run([ "ssh", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
-        # subprocess.run( ["ssh", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222",
-        #                 "PYTHONPATH=/home/qaas/QAAS_SCRIPT_ROOT/qaas-web/apps/oneview/backend " +
-        #                 "python3 /home/qaas/QAAS_SCRIPT_ROOT/qaas-backplane/src/qaas.py -ap " +
-        #                 f"/tmp/{filename} " +
-        #                 "--logic strategizer --no-container -D --local-job"])
-        # subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{user_and_machine}:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
-        # subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
-        # qaas_out_dir = unique_temp_dir
-        # timestamped_dirs = os.listdir(qaas_out_dir)
-        # assert(len(timestamped_dirs) == 1)
-        # report_path = os.path.join(qaas_out_dir, timestamped_dirs[0])
-        # populate_database_qaas_ov(report_path, config)
+        user_and_machine = f"qaas@{machine}"
+        subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)
+        subprocess.run([ "ssh", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222", "rm", "-rf", "/tmp/qaas_out"], check=True)
+        subprocess.run( ["ssh", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222",
+                        "PYTHONPATH=/home/qaas/QAAS_SCRIPT_ROOT/qaas-web/apps/oneview/backend " +
+                        "python3 /home/qaas/QAAS_SCRIPT_ROOT/qaas-backplane/src/qaas.py -ap " +
+                        f"/tmp/{filename} " +
+                        f"{run_mode_flags} " +
+                        "--logic strategizer --no-container -D --local-job"])
+        subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{user_and_machine}:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
+        subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
+        qaas_out_dir = unique_temp_dir
+        timestamped_dirs = os.listdir(qaas_out_dir)
+        assert(len(timestamped_dirs) == 1)
+        report_path = os.path.join(qaas_out_dir, timestamped_dirs[0])
+        populate_database_qaas_ov(report_path, config)
         qaas_message_queue.put(QaasMessage("Job End"))
 
     @app.route('/get_all_input_settings', methods=['GET'])
@@ -632,7 +635,7 @@ def create_app(config):
         os.makedirs(unique_temp_dir, exist_ok=True)
 
         #go to backplane and just cp qaas out for now
-        t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, saved_file_path, machine))
+        t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, saved_file_path, machine, run_mode))
         t.start()
         t.join()
         

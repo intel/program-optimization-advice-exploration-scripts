@@ -40,7 +40,7 @@ export default function UserInputStepper() {
     const [formErrors, setFormErrors] = useState({});
     const { setSSEStatus, startSSEConnection, closeSSEConnection } = useSSE();
     const [selectedMachine, setSelectedMachine] = useState('fxilab165.an.intel.com');
-    const [selectedRunMode, setSelectedRunMode] = useState('disable_multicompiler_defaults');
+    const [selectedRunMode, setSelectedRunMode] = useState('disable_multicompiler_defaults_and_flags');
 
     //user input state, loading the last saved wokring json or empty
     const [input, setInput] = useState(INITIAL_INPUT)

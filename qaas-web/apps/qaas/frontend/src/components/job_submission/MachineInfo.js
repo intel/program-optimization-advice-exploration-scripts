@@ -67,8 +67,8 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
                         defaultValue={selectedRunMode}
                         onChange={handleModeChange}
                     >
-                        <FormControlLabel value="disable_multicompiler_defaults" control={<Radio />} label="Disable multi-compiler defaults" />
-                        <FormControlLabel value="disable_multicompiler_defaults_and_flags" control={<Radio />} label="Disable multi-compiler defaults and flags" />
+                        <FormControlLabel value="disable_multicompiler_flags" control={<Radio />} label="Disable compiler flags search" />
+                        <FormControlLabel value="disable_multicompiler_defaults_and_flags" control={<Radio />} label="Disable multi-compiler and flags search" />
                         <FormControlLabel value="multicompiler" control={<Radio />} label="Multi-compiler" />
                     </RadioGroup>
                 </div>
