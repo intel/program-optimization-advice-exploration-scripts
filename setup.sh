@@ -16,8 +16,6 @@ if [[ ${USER} != "qaas" ]]; then
   echo "OUTSIDE container setting up local image"
   # Build local image
 
-  echo -n "Customized dockerfile for backplane container (Press enter for none):"
-  read custom_dockerfile
 
   echo -n "Enter Qaas user password:"
   read -s QAAS_PASSWORD
@@ -29,6 +27,17 @@ if [[ ${USER} != "qaas" ]]; then
   read -s QAAS_DB_PASSWORD
   echo
   export QAAS_DB_PASSWORD
+
+	SSH_PARENT_FOLDER=$(readlink -f ~/)
+  echo -n "Enter the folder parent of .ssh folder which has SSH configuration and key for webdb and backplane container (Press enter for $SSH_PARENT_FOLDER):"
+  read ssh_parent_folder_input
+  if [ ! -z $ssh_parent_folder_input ]; then
+    SSH_PARENT_FOLDER=${ssh_parent_folder_input}
+  fi
+  export SSH_PARENT_FOLDER
+
+  echo -n "Customized dockerfile for backplane container (Press enter for none):"
+  read custom_dockerfile
 
   # First stop running containers
   ./container/stop-container.sh

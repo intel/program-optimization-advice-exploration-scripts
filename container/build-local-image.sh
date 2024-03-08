@@ -51,8 +51,10 @@ else
 fi
 
 rm -f ssh.tar.gz
+# SSH_PARENT_FOLDER is parent of .ssh folder default to ~
 if [[ $ENABLE_DEVELOPMENT == "1" ]]; then
-  tar cvfz ssh.tar.gz -C $HOME .ssh
+  #tar cvfz ssh.tar.gz -C $HOME .ssh
+  tar cvfz ssh.tar.gz -C $SSH_PARENT_FOLDER .ssh
 else
   # Create empty dummy file to copy in
   touch ssh.tar.gz
