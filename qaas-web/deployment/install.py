@@ -2,12 +2,28 @@ import os
 import sys
 import subprocess
 import configparser
+import getpass
 
 from urllib.parse import urlparse
 
 from update_web import update_web, create_directory
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, os.path.normpath(os.path.join(script_dir, '../apps/common/backend/')))
+from base_util import send_ssh_key_to_backplane 
+
+def setup_backplane_machine_connections():
+    machine_names = []
+    while True:
+        machine_name = input("Please provide machine name for backplane runs [Enter for done]: ")
+        if not machine_name:
+            return ",".join(machine_names)
+        mypass = getpass.getpass(prompt=f"Enter password for {machine_name}: ")
+        rc = send_ssh_key_to_backplane(machine_name, mypass)
+        if rc != 0:
+            print ("Incorrect password, try again.")
+            continue
+        machine_names += [machine_name]
 
 # def install_packages():
 #     try:
@@ -163,9 +179,11 @@ if __name__ == "__main__":
     #os.system(f"sudo a2enmod rewrite")
 
     # # #setup database
+
     config_path = os.path.join(config_dir, "qaas-web.conf")
     config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     config.read(config_path)
+
     db_connection_strings = set()
     for var, val in config.items("web"):
         if var.upper().startswith("SQLALCHEMY_DATABASE_URI"):
@@ -179,6 +197,10 @@ if __name__ == "__main__":
         setup_database(db_connection_string)
 
     #database_url = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
+    # update conf file just before update_web()
+    config['web']['BACKPLANE_SERVER_LIST'] = setup_backplane_machine_connections()
+    with open(config_path, 'w') as ff:
+        config.write(ff)
 
     update_web()
 
