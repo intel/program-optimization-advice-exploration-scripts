@@ -1024,16 +1024,8 @@ class VprofBucketMeasure(QaaSBase):
     def __init__(self, initializer):
         super().__init__(initializer.session)
 
-def connect_db(config, db="oneview"):
-    engine = ''
-    if db == 'oneview':
-        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_ONEVIEW"])
-    elif db == 'qaas':
-        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_QAAS"])
-    elif db == 'lore':
-        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_LORE"])
-    elif db == 'qaas_ov':
-        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_QAAS_OV"])
+def connect_db(url):
+    engine = create_engine(url)
     engine.connect()
     return engine
 
@@ -1043,8 +1035,8 @@ def create_all(engine):
     print("created all tables")
     return engine
 
-def create_all_tables(config, db="oneview"):
-    engine = connect_db(config, db)
+def create_all_tables(url):
+    engine = connect_db(url)
     return create_all(engine)
     
 

@@ -43,7 +43,7 @@ def populate_database(qaas_data_dir, qaas_timestamp, version,
                       workload_name, workload_version_name, workload_program_name, workload_program_commit_id):
     #connect db
     config = get_config()
-    engine = connect_db(config)
+    engine = connect_db(config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW'])
     Session = sessionmaker(bind=engine)
     session = Session()
 

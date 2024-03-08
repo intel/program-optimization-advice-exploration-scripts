@@ -155,27 +155,27 @@ def main():
  
     if args.ov_path:
         # Create all tables
-        create_all_tables(config, db='oneview')
+        create_all_tables(config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW'])
         read_ov(args.ov_path)
 
     elif args.ov_fr_path:
-        create_all_tables(config, db='oneview')
+        create_all_tables(config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW'])
         read_ov_french(args.ov_fr_path)
 
     elif args.ov_web_path:
-        create_all_tables(config, db='oneview')
+        create_all_tables(config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW'])
         read_ov_web(args.ov_web_path)
     
     elif args.ov_report_path:
-        create_all_tables(config, db='oneview')
+        create_all_tables(config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW'])
         read_ov_from_report(args.ov_web_path)
 
     elif args.qaas_path:
-        create_all_tables(config, db='qaas')
+        create_all_tables(config['web']['SQLALCHEMY_DATABASE_URI_QAAS'])
         read_qaas(args.qaas_path)
     
     elif args.qaas_ov_path:
-        create_all_tables(config, db='qaas_ov')
+        create_all_tables(config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV'])
         read_qaas_ov(args.qaas_ov_path)
 
     else:

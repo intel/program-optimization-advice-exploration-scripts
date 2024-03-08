@@ -39,7 +39,7 @@ from sqlalchemy.orm import sessionmaker
 # populate database given the data in qaas data folder, gui timestamp is the timestamp for both opt and orig
 def populate_database_qaas(report_path, config):
     #connect db
-    engine = connect_db(config, "qaas")
+    engine = connect_db(config['web']['SQLALCHEMY_DATABASE_URI_QAAS'])
     Session = sessionmaker(bind=engine)
     session = Session()
 

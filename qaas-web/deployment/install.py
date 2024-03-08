@@ -11,6 +11,7 @@ from update_web import update_web, create_directory
 script_dir=os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.normpath(os.path.join(script_dir, '../apps/common/backend/')))
 from base_util import send_ssh_key_to_backplane 
+from model import create_all_tables
 
 def setup_backplane_machine_connections():
     machine_names = []
@@ -75,7 +76,7 @@ def install_common_dependencies(apache_common_dir):
 
 
 
-def setup_database(database_url):
+def setup_database(database_url, config):
     try:
         # Parse the database URL
         result = urlparse(database_url)
@@ -122,10 +123,13 @@ def setup_database(database_url):
             os.system(f"sudo mysql -u root -e \"CREATE DATABASE {database_name};\"")
             os.system(f"sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON {database_name}.* TO '{username}'@'localhost';\"")
             os.system("sudo mysql -u root -e \"FLUSH PRIVILEGES;\"")
+            create_all_tables(database_url)
+
         else:
             #print(f'Database "{database_name}" already exists, skipping creation of "{database_name}" database.')
             print(f'Database already exists, skipping creation of database.')
         
+
         #print(f'Database "{database_name}" set up successfully.')
         print(f'Database set up successfully.')
     except Exception as e:
@@ -195,7 +199,7 @@ if __name__ == "__main__":
     os.system("sudo service mysql start")
     for db_connection_string in db_connection_strings: 
         # print(f'Setting up database for connection string: {db_connection_string}')
-        setup_database(db_connection_string)
+        setup_database(db_connection_string, config)
 
     #database_url = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
     # update conf file just before update_web()
