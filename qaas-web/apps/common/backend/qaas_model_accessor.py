@@ -183,15 +183,17 @@ class QaaSModelInitializer(ModelAccessor):
         os.scaling_governor = self.current_metadata_config['SYSTEM'].get('frequency_governor')
         os.huge_pages = self.current_metadata_config['SYSTEM'].get('huge_pages')
         os.hostname = self.current_metadata_config['SYSTEM'].get('machine')
-        os.scaling_max_frequency = self.current_metadata_config['SYSTEM'].get('scaling_max_frequency')
-        os.scaling_min_frequency = self.current_metadata_config['SYSTEM'].get('scaling_min_frequency')
-      
+       
     def visitHwSystem(self, hwsystem):
         hwsystem.cpui_model_name = self.current_metadata_config['SYSTEM'].get('model_name')
         hwsystem.cpui_cpu_cores = self.current_metadata_config['SYSTEM'].get('number_of_cores')
         hwsystem.sockets = self.current_metadata_config['SYSTEM'].get('number_of_sockets')
         hwsystem.cores_per_socket = self.current_metadata_config['SYSTEM'].get('number_of_cores_per_socket')
-        hwsystem.architecture = self.current_metadata_config['SYSTEM'].get('architecture')
+        hwsystem.uarchitecture = self.current_metadata_config['SYSTEM'].get('architecture')
+        hwsystem.architecture = self.current_metadata_config['SYSTEM'].get('ISA')
+        hwsystem.max_frequency = self.current_metadata_config['SYSTEM'].get('scaling_max_frequency')
+        hwsystem.min_frequency = self.current_metadata_config['SYSTEM'].get('scaling_min_frequency')
+      
     def visitMaqao(self, maqao):
         pass
     def visitCompilerCollection(self, compiler_collection):

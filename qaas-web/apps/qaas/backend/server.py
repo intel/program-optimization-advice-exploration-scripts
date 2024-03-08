@@ -141,7 +141,6 @@ def create_app(config):
         
 
         #read all unicore runs that have turbo on
-        #TODO ask what is the threshold to check if a machine has turbo on or off
         data = {}
         qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(  QaaSRun.type != 'scalability_report').distinct().all()
         for qaas in qaass:
@@ -156,9 +155,6 @@ def create_app(config):
             app_name = min_time_execution.application.workload
             #use uarchitecture here for merged data
             architecture = min_time_execution.hwsystem.uarchitecture
-            if not architecture:
-                architecture = min_time_execution.hwsystem.architecture
-                architecture = architecture_mapping.get(architecture, architecture)
             if not architecture:
                 continue
             if app_name not in data:
@@ -216,7 +212,6 @@ def create_app(config):
         qaass = db.session.query(QaaS).join(QaaSRun.qaas).filter(QaaSRun.type == 'scalability_report').distinct().all()
         for qaas in qaass:
             scalability_qaas_runs = db.session.query(QaaSRun).filter_by(qaas = qaas, type = "scalability_report" ).all()
-            #TODO this check is not very good
             if len(scalability_qaas_runs) == 0:
                 continue
 
@@ -583,7 +578,6 @@ def create_app(config):
                         f"/tmp/{filename} " +
                         f"{run_mode_flags} " +
                         "--logic strategizer --no-container -D --local-job"])
-        print("call finished")
         subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{user_and_machine}:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
         subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
         qaas_out_dir = unique_temp_dir

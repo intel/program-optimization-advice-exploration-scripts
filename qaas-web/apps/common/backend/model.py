@@ -251,8 +251,6 @@ class Os(QaaSBase):
 
     huge_pages = Column(Text, nullable = True)
     driver_frequency = Column(Text, nullable = True)
-    scaling_min_frequency = Column(Integer, nullable = True)
-    scaling_max_frequency = Column(Integer, nullable = True)
     fk_environment_id = Column(Integer, ForeignKey('environment.table_id'))
 
     executions  = relationship("Execution", back_populates="os")
@@ -287,8 +285,9 @@ class HwSystem(QaaSBase):
     cpui_model_name = Column(String(50), nullable = True)
     cpui_cpu_cores = Column(Integer, nullable = True)
     cpui_cache_size = Column(String(50), nullable = True)
-    cur_frequency = Column(String(50), nullable = True)
+    cur_frequency = Column(Integer, nullable = True)
     max_frequency = Column(Integer, nullable = True)
+    min_frequency = Column(Integer, nullable = True)
     architecture = Column(String(50), nullable = True)
     uarchitecture = Column(String(50), nullable = True)
     proc_name = Column(String(50), nullable = True)
