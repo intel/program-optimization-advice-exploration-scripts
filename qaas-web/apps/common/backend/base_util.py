@@ -956,7 +956,8 @@ class QaaSFileAccessMonitor:
 
 def send_ssh_key_to_backplane(machine, password):
     user_and_machine = f"qaas@{machine}"
-    args=["sshpass", "-e", "ssh-copy-id", "-i", "/home/qaas/.ssh/id_rsa.pub", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222" ]
+    home_directory = os.path.expanduser("~")
+    args=["sshpass", "-e", "ssh-copy-id", "-i", f"{home_directory}/.ssh/id_rsa.pub", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222" ]
     # Use shlex.quote() sanitize inputs
     args_shlex = [shlex.quote(s) for s in args]
     # Tried to use subprocess.run() with shell=False and shell=True and none work
