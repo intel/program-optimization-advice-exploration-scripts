@@ -203,7 +203,7 @@ if __name__ == "__main__":
     with open(config_path, 'w') as ff:
         config.write(ff)
 
-    update_web()
+    update_web(force_install=True)
 
 
     # # #delete default index html
