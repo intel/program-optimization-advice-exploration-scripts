@@ -185,12 +185,11 @@ class QaaSModelInitializer(ModelAccessor):
         os.hostname = self.current_metadata_config['SYSTEM'].get('machine')
        
     def visitHwSystem(self, hwsystem):
-        hwsystem.cpui_model_name = self.current_metadata_config['SYSTEM'].get('model_name')
+        #need to get or set cannot create in hwsystem
+        hwsystem = HwSystem.get_or_set_hwsystem(self.current_metadata_config['SYSTEM'].get('model_name'), self.current_metadata_config['SYSTEM'].get('ISA'), self.current_metadata_config['SYSTEM'].get('architecture'), hwsystem, self)
         hwsystem.cpui_cpu_cores = self.current_metadata_config['SYSTEM'].get('number_of_cores')
         hwsystem.sockets = self.current_metadata_config['SYSTEM'].get('number_of_sockets')
         hwsystem.cores_per_socket = self.current_metadata_config['SYSTEM'].get('number_of_cores_per_socket')
-        hwsystem.uarchitecture = self.current_metadata_config['SYSTEM'].get('architecture')
-        hwsystem.architecture = self.current_metadata_config['SYSTEM'].get('ISA')
         hwsystem.max_frequency = self.current_metadata_config['SYSTEM'].get('scaling_max_frequency')
         hwsystem.min_frequency = self.current_metadata_config['SYSTEM'].get('scaling_min_frequency')
       

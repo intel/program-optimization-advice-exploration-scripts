@@ -300,6 +300,17 @@ class HwSystem(QaaSBase):
     def __init__(self, initializer):
         super().__init__(initializer.session)
         self.accept(initializer)
+
+    @classmethod
+    def get_or_set_hwsystem(cls, cpui_model_name, architecture, uarchitecture, hwsystem, initializer):
+        result = initializer.session.query(cls).filter_by(cpui_model_name = cpui_model_name, architecture = architecture, uarchitecture = uarchitecture).first()
+        if result:
+            return result
+        else:
+            hwsystem.cpui_model_name = cpui_model_name 
+            hwsystem.architecture = architecture 
+            hwsystem.uarchitecture = uarchitecture 
+            return hwsystem
     
     def export(self, exporter):
         self.accept(exporter)
@@ -307,18 +318,6 @@ class HwSystem(QaaSBase):
     def accept(self, accessor):
         accessor.visitHwSystem(self)
 
-    @classmethod
-    def get_or_create_hwsystem_by_hw_info(cls, hw_name, cpui_model_name, memory, initializer):
-        result = initializer.session.query(cls).filter_by(hw_name = hw_name, cpui_model_name = cpui_model_name, memory = memory).first()
-        if result:
-            return result
-        else:
-            new_hw_obj = cls(initializer)
-            new_hw_obj.hw_name = hw_name
-            new_hw_obj.cpui_model_name = cpui_model_name
-            new_hw_obj.memory = memory
-
-            return new_hw_obj
     
    
 class Maqao(QaaSBase):
