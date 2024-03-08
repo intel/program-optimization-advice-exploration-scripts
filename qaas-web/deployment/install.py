@@ -15,6 +15,7 @@ from base_util import send_ssh_key_to_backplane
 def setup_backplane_machine_connections():
     machine_names = []
     while True:
+        print("")
         machine_name = input("Please provide machine name for backplane runs [Enter for done]: ")
         if not machine_name:
             return ",".join(machine_names)

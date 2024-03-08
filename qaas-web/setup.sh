@@ -29,7 +29,8 @@ else
     cat deployment/000-default.conf | sudo tee /etc/apache2/sites-available/000-default.conf
     echo $QAAS_PASSWORD | sudo -S a2ensite 000-default.conf
     cd deployment
-    echo $QAAS_PASSWORD | sudo -S -E python3 install.py  
+    echo $QAAS_PASSWORD | sudo -S whoami
+    sudo -E python3 install.py  
     echo $QAAS_PASSWORD | sudo -S -E python3 start_server.py
   else 
     echo "Skipping webdb setup in ${QAAS_CONTAINER_NAME} container"
