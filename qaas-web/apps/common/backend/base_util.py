@@ -902,10 +902,16 @@ class QaaSFileAccessMonitor:
         if QaaSFileAccessMonitor.DEBUG:
             print("Enter")
         self.saved_open = builtins.open
+        self.saved_os_listdir = os.listdir
         self.saved_pd_read_csv = pd.read_csv
         builtins.open = self.my_open
         pd.read_csv = self.my_pd_read_csv
+        os.listdir = self.my_os_listdir
         return self.session
+
+    def my_os_listdir(self, *args, **kwargs):
+        self.peek_filename('path', args, kwargs)
+        return self.saved_os_listdir(*args, **kwargs)
 
     def my_pd_read_csv(self, *args, **kwargs):
         self.peek_filename('filepath_or_buffer', args, kwargs)
@@ -934,7 +940,11 @@ class QaaSFileAccessMonitor:
         full_outfile_path = os.path.join(self.full_output_path, rel_path)
         full_outfile_dir = os.path.dirname(full_outfile_path)
         os.makedirs(full_outfile_dir, exist_ok=True)
-        shutil.copy(full_file_path, full_outfile_path)
+        if os.path.isfile(full_file_path):
+            shutil.copy(full_file_path, full_outfile_path)
+        else:
+            assert os.path.isdir(full_file_path)
+            os.makedirs(full_outfile_path, exist_ok=True) 
         if QaaSFileAccessMonitor.DEBUG:
             print(f"OUT: {full_outfile_dir}")
 
@@ -942,6 +952,7 @@ class QaaSFileAccessMonitor:
         if QaaSFileAccessMonitor.DEBUG:
             print("Exit")
         builtins.open = self.saved_open
+        os.listdir = self.saved_os_listdir
         pd.read_csv = self.saved_pd_read_csv
         for file in sorted(self.accessed_files):
             self.visit_file(file)
