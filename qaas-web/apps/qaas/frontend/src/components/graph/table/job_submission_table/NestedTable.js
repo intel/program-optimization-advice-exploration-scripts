@@ -1,8 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useTable, useExpanded, usePagination } from "react-table";
 import '../../../css/table.css';
 import { formatValue } from "../../../Constants";
-function NestedTable({ columns, data, SubComponent, hiddenColumns, columnFilters, setColumnFilters }) {
+function NestedTable({ columns, data, hiddenColumns, columnFilters, setColumnFilters, fetchSubTableData, SubTableComponent }) {
+    //keep track loaded data for each row
+    const [loadedData, setLoadedData] = useState({});
     const {
         getTableProps,
         getTableBodyProps,
@@ -18,8 +20,10 @@ function NestedTable({ columns, data, SubComponent, hiddenColumns, columnFilters
         nextPage,
         previousPage,
         setPageSize,
-        state: { pageIndex, pageSize },
+        state: { pageIndex, pageSize, expanded },
         setHiddenColumns,
+        toggleRowExpanded,
+        visibleColumns,
     } = useTable(
         {
             columns,
@@ -41,6 +45,36 @@ function NestedTable({ columns, data, SubComponent, hiddenColumns, columnFilters
         const values = new Set(data.map(row => row[columnId]).filter(Boolean));
         return [...values];
     }
+
+    //called when expand finger button is clicked
+    const handleRowExpand = async (row) => {
+        //if row is expanded
+        const isExpanded = !!expanded[row.id];
+        // toggle row first
+        toggleRowExpanded(row.id, !isExpanded);
+
+        // if row is being expanded and data is not already loaded
+        if (!expanded[row.id] && !loadedData[row.id]) {
+            try {
+                const subData = await fetchSubTableData(row.original['qaas_timestamp']);
+                setLoadedData(prev => ({ ...prev, [row.id]: subData }));
+            } catch (error) {
+                console.error('Error fetching sub-table data:', error);
+            }
+        }
+    };
+
+    const renderExpandedRowContent = (rowId) => {
+        const rowData = loadedData[rowId];
+        if (!rowData) {
+            return <div>Loading...</div>;
+        }
+
+        return <SubTableComponent data={rowData} />;
+
+    };
+
+
 
 
     return (
@@ -81,7 +115,7 @@ function NestedTable({ columns, data, SubComponent, hiddenColumns, columnFilters
                 <thead>
                     {headerGroups.map(headerGroup => (
                         <tr {...headerGroup.getHeaderGroupProps()}>
-                            {SubComponent && <th></th>}  {/* conditionally add extra header cell for the button */}
+                            {SubTableComponent && <th></th>}   {/* conditionally add extra header cell for the button */}
                             {/* header inherit color set in constant */}
                             {headerGroup.headers.map(column => (
                                 <th
@@ -119,22 +153,25 @@ function NestedTable({ columns, data, SubComponent, hiddenColumns, columnFilters
                     ))}
                 </thead>
 
+
                 <tbody {...getTableBodyProps()}>
                     {page.map((row, i) => {
                         prepareRow(row);
                         return (
                             <React.Fragment key={i}>
                                 <tr {...row.getRowProps()}>
-                                    {SubComponent && (
+                                    {/* include the expand/collapse button with handleRowExpand */}
+                                    {SubTableComponent && (
                                         <td>
-                                            <span {...row.getToggleRowExpandedProps()}>
+                                            <span {...row.getToggleRowExpandedProps()} onClick={() => handleRowExpand(row)} >
                                                 {row.isExpanded ? '👇' : '👉'}
                                             </span>
                                         </td>
                                     )}
+                                    {/* render and format the value  */}
                                     {row.cells.map((cell) => {
                                         //title is for tool tip
-                                        const isActionColumn = cell.column.Header === 'Action';
+                                        const isActionColumn = cell.column.Header.toLowerCase().includes('action');
 
                                         const formattedValue = formatValue(cell.value);
                                         return (
@@ -143,17 +180,14 @@ function NestedTable({ columns, data, SubComponent, hiddenColumns, columnFilters
                                             </td>
                                         );
                                     })}
-
                                 </tr>
-                                {/* add row index */}
-                                {row.isExpanded ? (
+                                {expanded[row.id] && (
                                     <tr>
-                                        <td colSpan={columns.length + 1}>
-                                            <SubComponent row={row.original} rowIndex={row.index} />
-
+                                        <td colSpan={visibleColumns.length + 1}>
+                                            {renderExpandedRowContent(row.id)}
                                         </td>
                                     </tr>
-                                ) : null}
+                                )}
                             </React.Fragment>
                         );
                     })}

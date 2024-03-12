@@ -9,6 +9,7 @@ import DeleteIcon from '@mui/icons-material/RemoveCircleOutline';
 import AddIcon from '@mui/icons-material/AddCircleOutline';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import axios from 'axios';
+import Checkbox from '@mui/material/Checkbox';
 
 import SettingsSelector from "./SettingSelector";
 import SaveSettingButton from "./SaveSettingButton";
@@ -33,10 +34,35 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
         setSelectedMachine(machine)
     };
 
-    const handleModeChange = (event) => {
-        const mode = event.target.value;
-        setSelectedRunMode(mode)
+    const handleModeChange = (option, isChecked) => {
+        setSelectedRunMode(currentModes => {
+            let newModes = [...currentModes]; // cp the current state
+
+            if (isChecked) {
+                // if 'enable_compiler_flag_exploration' is being checked, make sure 'enable_compiler_exploration' is already checked
+
+                if (option === 'enable_compiler_flag_exploration' && !newModes.includes('enable_compiler_exploration')) {
+                    // if it's not, add 'enable_compiler_exploration' first
+                    newModes.push('enable_compiler_exploration');
+                }
+                if (!newModes.includes(option)) {
+                    newModes.push(option);
+                }
+            } else {
+                // if the checkbox is unchecked, remove the option
+                newModes = newModes.filter(mode => mode !== option);
+                // If 'enable_compiler_exploration' is being unchecked, also uncheck 'enable_compiler_flag_exploration'
+
+                // special handling: when unchecking --no-compiler-flags also uncheck --no-compiler-default
+                if (option === 'enable_compiler_flag_exploration') {
+                    newModes = newModes.filter(mode => mode !== 'enable_compiler_exploration');
+                }
+            }
+            return newModes;
+
+        });
     };
+
 
     return (
         <div className="centeredBox">
@@ -74,17 +100,30 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
                 <div>
                     <div className="infoSubTitle">Select Run Mode</div>
 
-                    <RadioGroup
+                    <div>
+                        Enable compiler exploration
+                        <Checkbox
+                            checked={selectedRunMode.includes('enable_compiler_exploration')}
+                            onChange={(e) => handleModeChange('enable_compiler_exploration', e.target.checked)}
+                        />
+                        Enable compiler flag exploration
+                        <Checkbox
+                            checked={selectedRunMode.includes('enable_compiler_flag_exploration')}
+                            onChange={(e) => handleModeChange('enable_compiler_flag_exploration', e.target.checked)}
+                        />
+
+                    </div>
+
+                    {/* <RadioGroup
                         row
                         aria-labelledby="demo-row-radio-buttons-group-label"
                         name="row-radio-buttons-group"
                         defaultValue={selectedRunMode}
                         onChange={handleModeChange}
                     >
-                        <FormControlLabel value="disable_multicompiler_flags" control={<Radio />} label="Disable compiler flags search" />
-                        <FormControlLabel value="disable_multicompiler_defaults_and_flags" control={<Radio />} label="Disable multi-compiler and flags search" />
-                        <FormControlLabel value="multicompiler" control={<Radio />} label="Multi-compiler" />
-                    </RadioGroup>
+                        <FormControlLabel value="disable_multicompiler_defaults_and_flags" control={<Radio />} label="enable compiler exploration" />
+                        <FormControlLabel value="disable_multicompiler_flags" control={<Radio />} label="enable compiler flag exploration" />
+                    </RadioGroup> */}
                 </div>
 
             </div>

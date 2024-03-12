@@ -4,7 +4,7 @@ import '../../../css/table.css';
 import { useMemo } from 'react';
 import NestedTable from "./NestedTable";
 import { useSearchFilters } from "../../../hooks/useSearchFilters";
-function Table({ data, columns, SubComponent, defaultPageSize, hiddenColumns }) {
+function Table({ data, columns, defaultPageSize, hiddenColumns, fetchSubTableData, SubTableComponent }) {
 
     const [filterInput, setFilterInput] = useState("");
     const { filteredData, setColumnFilters, columnFilters } = useSearchFilters(data);
@@ -38,10 +38,10 @@ function Table({ data, columns, SubComponent, defaultPageSize, hiddenColumns }) 
                     columns={columns}
                     data={filteredData}
                     hiddenColumns={hiddenColumns}
-
-                    SubComponent={SubComponent}
                     setColumnFilters={setColumnFilters}
                     columnFilters={columnFilters}
+                    fetchSubTableData={fetchSubTableData}
+                    SubTableComponent={SubTableComponent}
                 />
             </div>
         </div>

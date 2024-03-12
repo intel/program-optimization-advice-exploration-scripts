@@ -11,7 +11,6 @@ export default function BrowseResult() {
     const [tableData, setTableData] = useState([]);
     const location = useLocation();
     const { statusMsg, SSEStatus } = useSSE();
-    console.log("browse results", statusMsg)
 
 
     useEffect(() => {

@@ -100,3 +100,12 @@ tr:hover {
     margin-bottom: 5px;
     clear: right;
 }
+
+.expand-collapse-button {
+    border: none;
+    /* removes the border */
+    outline: none;
+    background: none;
+    cursor: pointer;
+    font-size: 18px;
+}
