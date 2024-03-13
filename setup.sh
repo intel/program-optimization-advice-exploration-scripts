@@ -39,6 +39,10 @@ if [[ ${USER} != "qaas" ]]; then
   echo -n "Customized dockerfile for backplane container (Press enter for none):"
   read custom_dockerfile
 
+  echo -n "Enter port for web service"
+  read web_port
+  echo "declare -A port_map=( [2222:22]=qaas_backplane [${web_port}:80]=qaas_webdb [443:443]=qaas_webdb [3000:3000]=qaas_webdb )" > ./container/port_map.sh
+
   # First stop running containers
   ./container/stop-container.sh
   pushd container

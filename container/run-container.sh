@@ -22,8 +22,10 @@
 #     (The idea of entrypoint.sh is like a boot up script. TODO: ensure component 
 #      specific code, may be split into different QaaS folders )
 
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 declare -A img_container_map=( [local_image_qaas_webdb:latest]=qaas_webdb [local_image_qaas_backplane:latest]=qaas_backplane )
-declare -A port_map=( [2222:22]=qaas_backplane [8080:80]=qaas_webdb [443:443]=qaas_webdb [3000:3000]=qaas_webdb )
+#declare -A port_map=( [2222:22]=qaas_backplane [8080:80]=qaas_webdb [443:443]=qaas_webdb [3000:3000]=qaas_webdb )
+source ${SCRIPT_DIR}/port_map.sh
 
 
 restart_policy=no
