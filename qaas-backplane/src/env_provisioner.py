@@ -35,11 +35,10 @@ import pandas as pd
 import shutil
 import logging
 import urllib.parse
+import sys
 from utils.runcmd import QAASRunCMD
 from utils.comm import ServiceMessageReceiver
 from utils.util import split_compiler_combo, generate_timestamp, timestamp_str
-# following import requires qaas-web/apps/oneview/backend in PYTHONPATH
-from ov_file_extractor_db import extract_ov_file
 
 # define QAAS GIT-related constants
 GIT_USER = "USER"
@@ -127,6 +126,11 @@ class QAASEnvProvisioner:
         self.compiler_mappings = compiler_mappings
         self._launch_output_dir = launch_output_dir
         self.analyzers = analyzers
+
+    def get_script_root(self, container):
+        script_root = self.script_root
+        container_script_root = "/app/QAAS_SCRIPT_ROOT"  if container else script_root
+        return container_script_root
 
     @property
     def service_dir(self):
@@ -289,7 +293,7 @@ class QAASEnvProvisioner:
             url = url.replace('://', f'://{credential}@')
         return branch, url
 
-    def retrieve_results(self):
+    def retrieve_results(self, in_container):
         ov_run_dir = self.get_workdir("oneview_runs")
         ov_name = "oneview_runs"
         gz_file = f"{ov_name}.tar.gz"
@@ -320,7 +324,7 @@ class QAASEnvProvisioner:
         if rc != 0:
             return rc
 
-        package_data(self.launch_output_dir)
+        self.package_data(in_container)
 
         rm_gz_cmd = f"'rm -f {remote_gz_file}'"
         if self.remote_job:
@@ -335,65 +339,77 @@ class QAASEnvProvisioner:
 
 
 
-def package_data(local_out_dir):
-    reorg_local_out_dir=os.path.join(local_out_dir, 'reorg', os.path.basename(local_out_dir))
-    real_qaas_data_root=os.path.join(local_out_dir, "oneview_runs")
-    qaas_reports_folder=os.path.join(real_qaas_data_root, "qaas_reports")
-    ov_folder_for_best_compilers=os.path.join(real_qaas_data_root, "compilers")
-    ov_folder_for_default=os.path.join(real_qaas_data_root, "defaults")
+    def package_data(self, in_container):
+        local_out_dir = self.launch_output_dir
+        reorg_local_out_dir=os.path.join(local_out_dir, 'reorg', os.path.basename(local_out_dir))
+        real_qaas_data_root=os.path.join(local_out_dir, "oneview_runs")
+        qaas_reports_folder=os.path.join(real_qaas_data_root, "qaas_reports")
+        ov_folder_for_best_compilers=os.path.join(real_qaas_data_root, "compilers")
+        ov_folder_for_default=os.path.join(real_qaas_data_root, "defaults")
 
-    os.makedirs(reorg_local_out_dir, exist_ok=True)
-    for compiler_folder in os.listdir(qaas_reports_folder):
-        shutil.copy(os.path.join(qaas_reports_folder, compiler_folder), reorg_local_out_dir)
-    out_oneview_folders=os.path.join(reorg_local_out_dir, "oneview_runs")
+        os.makedirs(reorg_local_out_dir, exist_ok=True)
+        for compiler_folder in os.listdir(qaas_reports_folder):
+            shutil.copy(os.path.join(qaas_reports_folder, compiler_folder), reorg_local_out_dir)
+        out_oneview_folders=os.path.join(reorg_local_out_dir, "oneview_runs")
 
-    compilers=[]
-    compiler_options=[]
-    folders=[]
+        compilers=[]
+        compiler_options=[]
+        folders=[]
 
-    process_oneview_data(ov_folder_for_best_compilers, out_oneview_folders, compilers, compiler_options, folders, lambda folder: folder.split("_")+[folder])
-    process_oneview_data(ov_folder_for_default, out_oneview_folders, compilers, compiler_options, folders, lambda folder: [folder, 0, f'{folder}_default'])
+        self.process_oneview_data(ov_folder_for_best_compilers, out_oneview_folders, compilers, compiler_options, folders, lambda folder: folder.split("_")+[folder], in_container)
+        self.process_oneview_data(ov_folder_for_default, out_oneview_folders, compilers, compiler_options, folders, lambda folder: [folder, 0, f'{folder}_default'], in_container)
 
-    ov_folders_info_df = pd.DataFrame({"compiler":compilers, "option #":compiler_options, "ov_folder":folders})
-    #print(ov_folders_info_df)
+        ov_folders_info_df = pd.DataFrame({"compiler":compilers, "option #":compiler_options, "ov_folder":folders})
+        #print(ov_folders_info_df)
 
-# Now add the ov_folder column to data
-# This is for multi-compiler data
-    multi_compiler_data_fn = os.path.join(reorg_local_out_dir, 'qaas_compilers.csv')
-    multi_compiler_data_df = pd.read_csv(multi_compiler_data_fn)
-    result = pd.merge(multi_compiler_data_df, ov_folders_info_df, on=['compiler', 'option #'], how='left')
-    #print(result)
-    result.to_csv(multi_compiler_data_fn, index=False)
-    #print(reorg_local_out_dir)
-    reorg_local_dir_name = os.path.basename(reorg_local_out_dir)
-    with tarfile.open(os.path.join('/tmp/qaas_out.tar.gz'), 'w:gz') as tar:
-        tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name)
-    with tarfile.open(os.path.join('/tmp/qaas_out-debug.tar.gz'), 'w:gz') as tar:
-        tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name)
-    with open("/tmp/debug-tar.txt", "w") as f: f.write(f'{reorg_local_out_dir}, {reorg_local_dir_name}')
+    # Now add the ov_folder column to data
+    # This is for multi-compiler data
+        multi_compiler_data_fn = os.path.join(reorg_local_out_dir, 'qaas_compilers.csv')
+        multi_compiler_data_df = pd.read_csv(multi_compiler_data_fn)
+        result = pd.merge(multi_compiler_data_df, ov_folders_info_df, on=['compiler', 'option #'], how='left')
+        #print(result)
+        result.to_csv(multi_compiler_data_fn, index=False)
+        #print(reorg_local_out_dir)
+        reorg_local_dir_name = os.path.basename(reorg_local_out_dir)
+        with tarfile.open(os.path.join('/tmp/qaas_out.tar.gz'), 'w:gz') as tar:
+            tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name)
+        with tarfile.open(os.path.join('/tmp/qaas_out-debug.tar.gz'), 'w:gz') as tar:
+            tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name)
+        with open("/tmp/debug-tar.txt", "w") as f: f.write(f'{reorg_local_out_dir}, {reorg_local_dir_name}')
 
-def process_oneview_data(ov_folder_to_extract, out_oneview_folders, compilers, compiler_options, folders, 
-                         parse_compiler_folder_name_fn):
-    if not os.path.exists(ov_folder_to_extract):
-        return # Skip if ov folder not exist
-    for compiler_folder in os.listdir(ov_folder_to_extract):
-        #print(compiler_folder)
-        in_path=os.path.join(ov_folder_to_extract, compiler_folder)
-    # Need to go one more level to get the real oneview folder
-        in_oneview_folder = os.listdir(in_path)
-        assert(len(in_oneview_folder)==1)
-        in_oneview_folder = in_oneview_folder[0]
-        full_in_oneview_folder = os.path.join(ov_folder_to_extract, compiler_folder, in_oneview_folder)
+    def process_oneview_data(self, ov_folder_to_extract, out_oneview_folders, compilers, compiler_options, folders, 
+                            parse_compiler_folder_name_fn, in_container):
+        if not os.path.exists(ov_folder_to_extract):
+            return # Skip if ov folder not exist
+        for compiler_folder in os.listdir(ov_folder_to_extract):
+            #print(compiler_folder)
+            in_path=os.path.join(ov_folder_to_extract, compiler_folder)
+        # Need to go one more level to get the real oneview folder
+            in_oneview_folder = os.listdir(in_path)
+            assert(len(in_oneview_folder)==1)
+            in_oneview_folder = in_oneview_folder[0]
+            full_in_oneview_folder = os.path.join(ov_folder_to_extract, compiler_folder, in_oneview_folder)
 
-        compiler_folder_parts = parse_compiler_folder_name_fn(compiler_folder)
-        compiler, option_num, out_compiler_folder = compiler_folder_parts
+            compiler_folder_parts = parse_compiler_folder_name_fn(compiler_folder)
+            compiler, option_num, out_compiler_folder = compiler_folder_parts
 
-        full_out_oneview_folder=os.path.join(out_oneview_folders, out_compiler_folder, in_oneview_folder)
+            full_out_oneview_folder=os.path.join(out_oneview_folders, out_compiler_folder, in_oneview_folder)
 
-        compilers.append(compiler)
-        compiler_options.append(int(option_num))
-        folders.append(os.path.relpath(full_out_oneview_folder, out_oneview_folders))
-        extract_ov_file(full_in_oneview_folder, full_out_oneview_folder)
+            compilers.append(compiler)
+            compiler_options.append(int(option_num))
+            folders.append(os.path.relpath(full_out_oneview_folder, out_oneview_folders))
+            script_dir = self.get_script_root(in_container)
+            ov_backend_path = os.path.join(script_dir, "qaas-web", "apps", "oneview", "backend")
+            print("CURRENT SCRIPTDIR")
+            print(script_dir)
+            # Try to add script path temporarily.   
+            # Similar to run_job() in job_submit.py but not running function as separate script.
+            original_sys_path = sys.path.copy()
+            sys.path.insert(0, ov_backend_path)
+            # following import requires qaas-web/apps/oneview/backend in PYTHONPATH
+            from ov_file_extractor_db import extract_ov_file
+            sys.path = original_sys_path
+            extract_ov_file(full_in_oneview_folder, full_out_oneview_folder)
 
 #TEST_LOCAL_OUT_DIR="/nfs/site/proj/alac/tmp/qaas_out-amg/tmp/qaas_out-test/170-852-0034"
 #TEST_LOCAL_OUT_DIR="/tmp/qaas_out/170-909-9726-test"
