@@ -90,7 +90,7 @@ def delete_qaas_flags_from_ninja(ninja_file, compiler, user_CC, flags):
 
 def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
                     user_c_flags, user_cxx_flags, user_fc_flags,
-                    user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map, multi_compilers_dirs):
+                    user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map, multi_compilers_dirs, maqao_dir):
     '''Compile the app using all available compilers.'''
 
     # Get the vendor name of target processor
@@ -99,7 +99,7 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
         printf("Unknown / unsupported vendor")
         return None
     # Get the processor architecture
-    processor = system.get_intel_processor_name()
+    processor = system.get_intel_processor_name(maqao_dir)
 
     # Get the list of flags for the CPU vendor (x86, ...) and processor.
     compiler_flags = read_compiler_flags(vendor, processor)
