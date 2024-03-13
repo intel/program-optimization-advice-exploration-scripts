@@ -38,10 +38,10 @@ const SaveSettingButton = ({ input }) => {
     return (
         <div>
             <Button onClick={handleOpenDialog}>
-                Save Current Setting
+                Save Job Request
             </Button>
             <Dialog open={isDialogOpen} onClose={handleCloseDialog}>
-                <DialogTitle>Save Setting</DialogTitle>
+                <DialogTitle>Save Job Request</DialogTitle>
                 <DialogContent>
                     <TextField
                         autoFocus

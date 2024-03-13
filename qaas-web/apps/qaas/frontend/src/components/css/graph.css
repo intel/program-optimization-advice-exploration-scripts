@@ -68,6 +68,8 @@
 
 }
 
+
+
 .graph-container-tall-histogram {
 
     width: 100%;
@@ -111,4 +113,8 @@
 .graph-container-short-histogram .ant-slider-handle-dragging {
     border-color: #1e5a66 !important;
     background-color: #1e5a66 !important;
+}
+
+.center-histogram {
+    text-align: center;
 }

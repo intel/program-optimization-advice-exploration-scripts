@@ -1,6 +1,7 @@
 import React from "react";
 import axios from 'axios';
 import Table from "./table";
+import CompilerSpeedupComparisonHistorgram from "../../histogram/CompilerSpeedupComparisonHistorgram";
 const ApplicationSubTable = React.memo(({ data }) => {
 
     const handleButtonClick = async (timestamp) => {
@@ -20,6 +21,8 @@ const ApplicationSubTable = React.memo(({ data }) => {
     };
 
 
+
+
     const columns = [
 
         {
@@ -33,19 +36,27 @@ const ApplicationSubTable = React.memo(({ data }) => {
             ),
         },
         { Header: 'Timestamp', accessor: 'run_timestamp' },
-        { Header: 'MPI Threads', accessor: 'mpi' },
-        { Header: 'OMP Threads', accessor: 'omp' },
         { Header: 'GFlops', accessor: 'gflops' },
         { Header: 'Compiler', accessor: 'compiler' },
         { Header: 'Time', accessor: 'time' },
     ];
 
+    //used to show only data for ov in the table
+    const filterDataForOV = (data) => {
+        return data.filter(item => item.has_ov);
+    };
+    const filteredData = filterDataForOV(data);
+
+
     return (
-        <Table
-            data={data}
-            columns={columns}
-            defaultPageSize={5}
-        />
+        <div className="center-children">
+            <CompilerSpeedupComparisonHistorgram data={data} />
+            {/* <Table
+                data={filteredData}
+                columns={columns}
+                defaultPageSize={5}
+            /> */}
+        </div>
     );
 })
 

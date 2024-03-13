@@ -36,12 +36,12 @@ const SettingsSelector = ({ input, setInput }) => {
             <div className="settingSelectionContainer">
 
                 <FormControl sx={{ minWidth: 200 }}>
-                    <InputLabel id="setting-selector-label">Select Past Settings</InputLabel>
+                    <InputLabel id="setting-selector-label">Select Past Job Requests</InputLabel>
                     <Select
                         labelId="setting-selector-label"
                         id="setting-selector"
                         value={selectedSetting}
-                        label="Select Past Settings"
+                        label="Select Past Job Requests"
                         onChange={handleChange}
                     >
                         {settings.map((filename) => (

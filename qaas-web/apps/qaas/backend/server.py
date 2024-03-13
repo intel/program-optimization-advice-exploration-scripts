@@ -525,38 +525,48 @@ def create_app(config):
         data = []
         qaass = db.session.query(QaaS).distinct().all()
         for qaas in qaass:
-            qaas_runs = qaas.qaas_runs
             qaas_timestamp = qaas.timestamp
+            qaas_run_with_min_time = db.session.query(QaaSRun).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).order_by(Execution.time).first()
+            min_execution = qaas_run_with_min_time.execution
+            min_application = min_execution.application
+            best_compiler_vendor = min_execution.compiler_option.compiler.vendor
+            best_time = min_execution.time
+            app_name = min_application.workload
+            arch = min_execution.hwsystem.architecture
+            machine = min_execution.os.hostname
 
-            arch = None
-            model = None
-            app_name = None
-            run_data = []
+            data.append({'app_name': app_name, 'qaas_timestamp': qaas_timestamp, 'arch':arch, 'machine': machine, 'best_time': best_time, 'best_compiler': best_compiler_vendor})
+        sorted_data = sorted(data, key=lambda x: int(x['qaas_timestamp'].replace('-', '')), reverse=True)
 
-            for qaas_run in qaas_runs:
-                execution = qaas_run.execution
-                #only add the the execution that have maqao data
-                if not execution.maqaos:
-                    continue
-                if not arch:
-                    arch = execution.hwsystem.architecture
-                if not model:
-                    model = execution.hwsystem.cpui_model_name
-                if not app_name:
-                    app_name = execution.application.workload
-                MPI_threads = execution.config['MPI_threads']
-                OMP_threads = execution.config['OMP_threads']
-                gflops = execution.global_metrics['Gflops']
-                time = execution.time
-                compiler = execution.compiler_option.compiler
-                vendor = compiler.vendor
-                run_timestamp = execution.universal_timestamp
-                run_data.append({'mpi': MPI_threads, 'omp': OMP_threads, 'gflops': gflops, 'time': time, 'compiler': vendor, 'run_timestamp': run_timestamp})
-            
-            data.append({'app_name': app_name, 'qaas_timestamp': qaas_timestamp, 'arch':arch, 'model': model, 'run_data': run_data})
-                
-        return jsonify(data)
+        return jsonify(sorted_data)
 
+    @app.route('/get_job_submission_subtable_data', methods=['POST'])
+    def get_job_submission_subtable_data():
+        qaas_timestamp = request.json.get('qaas_timestamp')
+        qaas = db.session.query(QaaS).filter_by(timestamp = qaas_timestamp).one()
+        run_data = []
+        orig_execution = qaas.orig_execution
+        orig_time = orig_execution.time
+        best_qaas_run = db.session.query(QaaSRun).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).order_by(Execution.time).first()
+        best_execution = best_qaas_run.execution
+
+        for qaas_run in qaas.qaas_runs:
+            execution = qaas_run.execution
+            time = float(execution.time)
+            compiler = execution.compiler_option.compiler
+            vendor = compiler.vendor
+            gflops = execution.global_metrics['Gflops']
+            run_timestamp = execution.universal_timestamp
+            has_ov = execution.maqaos != None
+            speedup = time / orig_time
+            is_orig = execution == orig_execution
+            is_best = execution == best_execution
+            run_data.append({ 'gflops': gflops, 'time': time, 'compiler': vendor, 'run_timestamp': run_timestamp, 'has_ov': has_ov, 'speedup': speedup, 'is_orig': is_orig, 'is_best': is_best})
+
+        print(run_data)
+        sorted_run_data = sorted(run_data, key=lambda x: x['speedup'])
+
+        return jsonify(sorted_run_data)
     @app.route('/get_machine_list', methods=['GET'])
     def get_machine_list():
         #machines = ['fxilab165.an.intel.com', 'intel', 'ancodskx1020.an.intel.com']
@@ -564,10 +574,17 @@ def create_app(config):
         print(machines, type(machines))
         return jsonify({'machines': machines})
 
+    def get_run_mode_flags(run_mode):
+        #both enabled normal run
+        run_mode_flags = "--no-compiler-default" if 'enable_compiler_exploration' not in run_mode else ""
+        if not run_mode_flags:
+            run_mode_flags = "--no-compiler-flags" if 'enable_compiler_flag_exploration' not in run_mode else ""
+        return run_mode_flags
+
     def perform_long_running_tasks(unique_temp_dir, saved_file_path, machine, run_mode):
         filename = os.path.basename(saved_file_path)
-        run_mode_flags = "--no-compiler-default" if run_mode == "disable_multicompiler_defaults_and_flags" \
-            else "--no-compiler-flags" if run_mode == "disable_multicompiler_flags" else ""
+        run_mode_flags = get_run_mode_flags(run_mode)
+        print(run_mode_flags)
         qaas_message_queue.put(QaasMessage("Job Begin"))    
         user_and_machine = f"qaas@{machine}"
         subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)
@@ -643,40 +660,62 @@ def create_app(config):
         return jsonify({})
     
     ##########################run otter#####################
-    @app.route('/get_comparison_html_by_timestamp', methods=['POST'])
-    def get_comparison_html_by_timestamp():
-        #place to put files
-        qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
-        otter_folder_path = os.path.join(qaas_output_folder, 'OTTER')
-        manifest_file_path = os.path.join(otter_folder_path, 'input_manifest.csv')
-        os.makedirs(otter_folder_path, exist_ok=True)
-
-        data_folder_list = []
-        timestamp_list = []
-
+    @app.route('/generate_ov_best_compiler_vs_orig', methods=['POST'])
+    def generate_ov_best_compiler_vs_orig():
+        #get qaas
         query_time = request.get_json()['timestamp'] 
         print("query timestamp", query_time)
+        #should only have 1 that match
+        qaas = db.session.query(QaaS).filter(QaaS.timestamp == query_time).one()
+       
+        #get best and orig qaas run
+        qaas_run_with_min_time = db.session.query(QaaSRun).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).order_by(Execution.time).first()
+        orig_execution = qaas.orig_execution
+        assert orig_execution is not None, "orig_execution should not be None"
         
+        #call otter
+        qaas_output_folder, manifest_file_path = get_base_qaas_output_dir_and_manifest_path()
+        data_folder_list = [os.path.join(qaas_output_folder, str(0)), os.path.join(qaas_output_folder, str(1))]
+        timestamp_list = [orig_execution.universal_timestamp, qaas_run_with_min_time.execution.universal_timestamp]
+        print(timestamp_list)
+        create_manifest_and_run_otter(qaas_output_folder, manifest_file_path, data_folder_list, timestamp_list)
 
-        qaas_runs_with_ov_report = db.session.query(QaaSRun).join(QaaSRun.qaas).join(QaaSRun.execution).filter(QaaS.timestamp == query_time, Execution.maqaos != None).all()
-        print(len(qaas_runs_with_ov_report))
-        # selected_runs = request.get_json()
-        # data_folder_list = []
-        for index, run in enumerate(qaas_runs_with_ov_report):
-            timestamp = run.execution.universal_timestamp
-            timestamp_list.append(timestamp)
-            qaas_output_run_folder_run = os.path.join(qaas_output_folder, str(index))
-            data_folder_list.append(qaas_output_run_folder_run)
+        return jsonify({})
 
+    #function to creat manifest and run otter
+    def create_manifest_and_run_otter(qaas_output_folder, manifest_file_path, data_folder_list, timestamp_list):
         create_manifest_comparison(manifest_file_path, data_folder_list, timestamp_list, db.session)
         manifest_out_path = create_out_manifest(qaas_output_folder)
 
         for timestamp, qaas_output_run_folder_run in zip(timestamp_list, data_folder_list):
             export_data(timestamp, qaas_output_run_folder_run, db.session)
-
-
         run_otter_command(manifest_file_path, manifest_out_path, config)
-        
+
+    @app.route('/generate_ov_best_compilers_comparison', methods=['POST'])
+    def generate_ov_best_compilers_comparison():
+        #place to put files
+        qaas_output_folder, manifest_file_path = get_base_qaas_output_dir_and_manifest_path()
+        data_folder_list = []
+        timestamp_list = []
+        query_time = request.get_json()['timestamp'] 
+
+        #get best for each compiler
+        best_runs_for_each_compiler = (db.session.query(QaaSRun, Compiler.vendor, func.min(Execution.time).label('min_time'))
+                        .join(QaaSRun.execution)  
+                        .join(Execution.compiler_option)
+                        .join(CompilerOption.compiler)  
+                        .filter(QaaSRun.qaas.has(timestamp=query_time))  
+                        .group_by(Compiler.vendor)  #group by compiler vendor
+                        .all())
+        #iterate and get the best qaas run for each compiler to use for otter
+        for index, (qaas_run, compiler_vendor, min_time) in enumerate(best_runs_for_each_compiler):
+            timestamp = qaas_run.execution.universal_timestamp
+            timestamp_list.append(timestamp)
+            qaas_output_run_folder_run = os.path.join(qaas_output_folder, str(index))
+            data_folder_list.append(qaas_output_run_folder_run)
+
+        create_manifest_and_run_otter(qaas_output_folder, manifest_file_path, data_folder_list, timestamp_list)
+
 
         #get table using timestamp
         return jsonify(isError= False,
@@ -686,10 +725,7 @@ def create_app(config):
     @app.route('/get_html_by_timestamp', methods=['POST'])
     def get_html_by_timestamp():
         #place to put files
-        qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
-        otter_folder_path = os.path.join(qaas_output_folder, 'OTTER')
-        manifest_file_path = os.path.join(otter_folder_path, 'input_manifest.csv')
-        os.makedirs(otter_folder_path, exist_ok=True)
+        qaas_output_folder, manifest_file_path = get_base_qaas_output_dir_and_manifest_path()
 
 
         query_time = request.get_json()['timestamp'] 
@@ -705,6 +741,13 @@ def create_app(config):
                         message= "Success",
                         statusCode= 200,
                         )
+
+    def get_base_qaas_output_dir_and_manifest_path():
+        qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
+        otter_folder_path = os.path.join(qaas_output_folder, 'OTTER')
+        manifest_file_path = os.path.join(otter_folder_path, 'input_manifest.csv')
+        os.makedirs(otter_folder_path, exist_ok=True)
+        return qaas_output_folder,manifest_file_path
 
 
 

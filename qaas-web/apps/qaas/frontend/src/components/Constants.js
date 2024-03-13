@@ -21,11 +21,12 @@ export const APP_COLORS = {
 };
 
 export var COMPILER_COLORS = {
-    'ICX': '#FAD2E1',
-    'ICC': '#C7CEEA',
-    'GCC': '#E3EAA7',
-    'TIE': '#FFD3B4',
-    'Tie': '#FFD3B4',
+    'ICX': '#c96b91',
+    'ICC': '#959ad1',
+    'GCC': '#b1b179',
+    'TIE': '#cc9270',
+    'NO GAIN': '#cc9270',
+
 };
 
 export var PROCESSOR_COLORS = {
@@ -136,7 +137,7 @@ export function categorizeIntoBin(dataPoint, bins) {
             if (dataPoint >= start && dataPoint < end) {
                 foundBin = bin;
             }
-        } else if (cleanBin.includes('tie')) {
+        } else if (cleanBin.includes('tie') || cleanBin.includes('no gain')) {
             //  'tie' 
             const tieBinUpperBound = parseFloat(bins[1].split('-')[0]);
 
@@ -228,3 +229,15 @@ export function formatValue(value) {
         return value;
     }
 }
+
+export const handleSliderChange = (newValue, range, setRange) => {
+    const secondRangeParts = range[1].split('-');
+    secondRangeParts[0] = newValue;
+    const updatedSecondRange = secondRangeParts.join('-');
+    const updatedRange = [
+        ...range.slice(0, 1), //  before the second item
+        updatedSecondRange,
+        ...range.slice(2) //  after the second item
+    ];
+    setRange(updatedRange);
+};
