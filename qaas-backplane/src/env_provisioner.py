@@ -400,8 +400,6 @@ class QAASEnvProvisioner:
             folders.append(os.path.relpath(full_out_oneview_folder, out_oneview_folders))
             script_dir = self.get_script_root(in_container)
             ov_backend_path = os.path.join(script_dir, "qaas-web", "apps", "oneview", "backend")
-            print("CURRENT SCRIPTDIR")
-            print(script_dir)
             # Try to add script path temporarily.   
             # Similar to run_job() in job_submit.py but not running function as separate script.
             original_sys_path = sys.path.copy()
