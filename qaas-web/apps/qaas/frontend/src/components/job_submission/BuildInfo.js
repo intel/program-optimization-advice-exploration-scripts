@@ -39,7 +39,6 @@ export const BuildInfo = ({ input, setInput, errors, updateFormErrors }) => {
 
                 </div>
                 <div className="block">
-                    <div className="blockTitle">Required</div>
                     <div >
                         <div className="infoSubTitle">App Name</div>
                         <TextField label="App Name" variant="outlined"

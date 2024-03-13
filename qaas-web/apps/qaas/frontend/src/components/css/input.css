@@ -42,7 +42,7 @@
 
 .block {
     margin: 4px;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 }
 
 /* reduce margin for text field input*/
@@ -82,7 +82,7 @@
 
 /* reduce spave for table */
 .infoContent .MuiTableCell-root {
-    padding: 8px;
+    padding: 4px;
 }
 
 /* reduce space for radio group */

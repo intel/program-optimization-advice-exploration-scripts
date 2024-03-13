@@ -64,8 +64,6 @@ export const RunInfo = ({ input, setInput }) => {
 
                 <div >
                     <div className="block">
-                        <div className="blockTitle">Required</div>
-
                         <div>
                             <div className="infoSubTitle">APP Run Command</div>
                             <TextField defaultValue={input.application.RUN.APP_RUN_CMD} fullWidth label="APP Run Command" id="outlined-basic" variant="outlined"
