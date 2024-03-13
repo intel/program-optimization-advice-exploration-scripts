@@ -105,7 +105,7 @@
                     "-O2 -march=haswell -fno-tree-vectorize -fno-openmp-simd -flto -funroll-loops -ffast-math"]
         }
     },
-    "SKL": {
+    "SKX": {
         "compilers": ["icx", "icc", "gcc"],
         "flags": {
             "icx": ["-O3 -xSKYLAKE-AVX512",
@@ -154,6 +154,35 @@
                     "-O3 -march=haswell -fno-tree-vectorize -fno-openmp-simd -flto -funroll-loops -ffast-math",
                     "-O2 -march=skylake-avx512 -flto -funroll-loops -ffast-math",
                     "-O2 -march=skylake-avx512 -mprefer-vector-width=512 -flto -funroll-loops -ffast-math",
+                    "-O2 -march=haswell -flto -funroll-loops -ffast-math",
+                    "-O2 -march=haswell -fno-tree-vectorize -fno-openmp-simd -flto -funroll-loops -ffast-math"]
+        }
+    },
+    "SKL": {
+        "compilers": ["icx", "icc", "gcc"],
+        "flags": {
+            "icx": ["-O3 -xCORE-AVX2",
+                    "-O3 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd",
+                    "-O2 -xCORE-AVX2",
+                    "-O2 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd",
+                    "-O3 -xCORE-AVX2 -flto",
+                    "-O3 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd -flto",
+                    "-O2 -xCORE-AVX2 -flto",
+                    "-O2 -xCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd -flto"],
+            "icc": ["-O3 -xCORE-AVX2",
+                    "-O3 -xCORE-AVX2 -no-vec -qno-openmp-simd",
+                    "-O2 -xCORE-AVX2",
+                    "-O2 -xCORE-AVX2 -no-vec -qno-openmp-simd",
+                    "-O3 -xCORE-AVX2 -flto",
+                    "-O3 -xCORE-AVX2 -no-vec -qno-openmp-simd -flto",
+                    "-O2 -xCORE-AVX2 -flto",
+                    "-O2 -xCORE-AVX2 -no-vec -qno-openmp-simd -flto"],
+            "gcc": ["-O3 -march=haswell -funroll-loops -ffast-math",
+                    "-O3 -march=haswell -fno-tree-vectorize -fno-openmp-simd -funroll-loops -ffast-math",
+                    "-O2 -march=haswell -funroll-loops -ffast-math",
+                    "-O2 -march=haswell -fno-tree-vectorize -fno-openmp-simd -funroll-loops -ffast-math",
+                    "-O3 -march=haswell -flto -funroll-loops -ffast-math",
+                    "-O3 -march=haswell -fno-tree-vectorize -fno-openmp-simd -flto -funroll-loops -ffast-math",
                     "-O2 -march=haswell -flto -funroll-loops -ffast-math",
                     "-O2 -march=haswell -fno-tree-vectorize -fno-openmp-simd -flto -funroll-loops -ffast-math"]
         }

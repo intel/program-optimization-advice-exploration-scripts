@@ -147,7 +147,7 @@ def launch_qaas(app_params, logic, remote_job,
        return rc, None
 
     # just for testing
-    rc = prov.retrieve_results()
+    rc = prov.retrieve_results(container)
     if rc != 0:
        return rc, None
 
