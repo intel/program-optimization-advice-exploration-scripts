@@ -4,7 +4,7 @@ import axios from "axios";
 import { getAppColor, categorizeIntoBin } from "../../Constants";
 import '../../css/graph.css'
 import PlotlyHistogram from "./PlotlyHistogram";
-import { baseHistogramLayout, getAppName } from "../../Constants";
+import { baseHistogramLayout, getAppName, handleSliderChange } from "../../Constants";
 import HistogramBinSlider from "./HistogramBinSlider";
 
 
@@ -35,17 +35,7 @@ export default function AppgainHistogram() {
     const [rawData, setRawData] = useState(null);
     const [range, setRange] = useState(['tie', '1.1-1.2', '1.2-1.5', '1.5-2x', '2x-4x', '>4x']);
 
-    const handleSliderChange = (newValue) => {
-        const secondRangeParts = range[1].split('-');
-        secondRangeParts[0] = newValue;
-        const updatedSecondRange = secondRangeParts.join('-');
-        const updatedRange = [
-            ...range.slice(0, 1), //  before the second item
-            updatedSecondRange,
-            ...range.slice(2) //  after the second item
-        ];
-        setRange(updatedRange);
-    };
+
 
 
     useEffect(() => {
@@ -105,7 +95,7 @@ export default function AppgainHistogram() {
         <div className='graph-container-short-histogram'>
             <PlotlyHistogram data={data} layout={chartLayout} />
             <HistogramBinSlider
-                onChange={handleSliderChange}
+                onChange={(e, newValue) => handleSliderChange(newValue, range, setRange)}
                 min={1.02}
                 max={1.1}
                 step={0.01}

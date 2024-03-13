@@ -536,8 +536,9 @@ def create_app(config):
             machine = min_execution.os.hostname
 
             data.append({'app_name': app_name, 'qaas_timestamp': qaas_timestamp, 'arch':arch, 'machine': machine, 'best_time': best_time, 'best_compiler': best_compiler_vendor})
-                
-        return jsonify(data)
+        sorted_data = sorted(data, key=lambda x: int(x['qaas_timestamp'].replace('-', '')), reverse=True)
+
+        return jsonify(sorted_data)
 
     @app.route('/get_job_submission_subtable_data', methods=['POST'])
     def get_job_submission_subtable_data():
@@ -546,6 +547,8 @@ def create_app(config):
         run_data = []
         orig_execution = qaas.orig_execution
         orig_time = orig_execution.time
+        best_qaas_run = db.session.query(QaaSRun).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).order_by(Execution.time).first()
+        best_execution = best_qaas_run.execution
 
         for qaas_run in qaas.qaas_runs:
             execution = qaas_run.execution
@@ -556,10 +559,14 @@ def create_app(config):
             run_timestamp = execution.universal_timestamp
             has_ov = execution.maqaos != None
             speedup = time / orig_time
-            run_data.append({ 'gflops': gflops, 'time': time, 'compiler': vendor, 'run_timestamp': run_timestamp, 'has_ov': has_ov, 'speedup': speedup})
+            is_orig = execution == orig_execution
+            is_best = execution == best_execution
+            run_data.append({ 'gflops': gflops, 'time': time, 'compiler': vendor, 'run_timestamp': run_timestamp, 'has_ov': has_ov, 'speedup': speedup, 'is_orig': is_orig, 'is_best': is_best})
 
         print(run_data)
-        return jsonify(run_data)
+        sorted_run_data = sorted(run_data, key=lambda x: x['speedup'])
+
+        return jsonify(sorted_run_data)
     @app.route('/get_machine_list', methods=['GET'])
     def get_machine_list():
         #machines = ['fxilab165.an.intel.com', 'intel', 'ancodskx1020.an.intel.com']
@@ -569,18 +576,15 @@ def create_app(config):
 
     def get_run_mode_flags(run_mode):
         #both enabled normal run
-        if 'enable_compiler_exploration' in run_mode and 'enable_compiler_flag_exploration' in run_mode:
-            run_mode_flags = ""
-        #just enable compiler exploration, just get best compilers
-        elif 'enable_compiler_exploration' in run_mode:
-            run_mode_flags = "--no-compiler-flags"
-        #empty disabled single orig run
-        else:
-            run_mode_flags = "--no-compiler-default"
+        run_mode_flags = "--no-compiler-default" if 'enable_compiler_exploration' not in run_mode else ""
+        if not run_mode_flags:
+            run_mode_flags = "--no-compiler-flags" if 'enable_compiler_flag_exploration' not in run_mode else ""
         return run_mode_flags
+
     def perform_long_running_tasks(unique_temp_dir, saved_file_path, machine, run_mode):
         filename = os.path.basename(saved_file_path)
         run_mode_flags = get_run_mode_flags(run_mode)
+        print(run_mode_flags)
         qaas_message_queue.put(QaasMessage("Job Begin"))    
         user_and_machine = f"qaas@{machine}"
         subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)

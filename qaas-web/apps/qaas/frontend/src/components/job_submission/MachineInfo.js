@@ -24,6 +24,10 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
         try {
             const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_machine_list`);
             setMachines(response.data['machines']);
+            //only set if machine has at least one item
+            if (response.data['machines'].length > 0) {
+                setSelectedMachine(response.data['machines'][0]);
+            }
         } catch (error) {
             console.error('Error fetching setting:', error);
         }
@@ -53,9 +57,9 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
                 newModes = newModes.filter(mode => mode !== option);
                 // If 'enable_compiler_exploration' is being unchecked, also uncheck 'enable_compiler_flag_exploration'
 
-                // special handling: when unchecking --no-compiler-flags also uncheck --no-compiler-default
-                if (option === 'enable_compiler_flag_exploration') {
-                    newModes = newModes.filter(mode => mode !== 'enable_compiler_exploration');
+                // special handling
+                if (option === 'enable_compiler_exploration') {
+                    newModes = newModes.filter(mode => mode !== 'enable_compiler_flag_exploration');
                 }
             }
             return newModes;
@@ -77,44 +81,47 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
 
 
                 </div>
-                <div>
-                    <div className="infoSubTitle">Select Available Machines</div>
-
-                    <FormControl sx={{ minWidth: 200 }}>
-                        <InputLabel id="machine-selector-label">Select Available Machines</InputLabel>
-                        <Select
-                            labelId="machine-selector-label"
-                            id="machine-selector"
-                            value={selectedMachine}
-                            label="Select Available Machines"
-                            onChange={handleMachineChange}
-                        >
-                            {machines.map((machine) => (
-                                <MenuItem key={machine} value={machine}>
-                                    {machine}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </div>
-                <div>
-                    <div className="infoSubTitle">Select Run Mode</div>
+                <div className="block">
+                    <div className="blockTitle">Optional</div>
 
                     <div>
-                        Enable compiler exploration
-                        <Checkbox
-                            checked={selectedRunMode.includes('enable_compiler_exploration')}
-                            onChange={(e) => handleModeChange('enable_compiler_exploration', e.target.checked)}
-                        />
-                        Enable compiler flag exploration
-                        <Checkbox
-                            checked={selectedRunMode.includes('enable_compiler_flag_exploration')}
-                            onChange={(e) => handleModeChange('enable_compiler_flag_exploration', e.target.checked)}
-                        />
+                        <div className="infoSubTitle">Select Available Machines</div>
 
+                        <FormControl sx={{ minWidth: 200 }}>
+                            <InputLabel id="machine-selector-label">Select Available Machines</InputLabel>
+                            <Select
+                                labelId="machine-selector-label"
+                                id="machine-selector"
+                                value={selectedMachine}
+                                label="Select Available Machines"
+                                onChange={handleMachineChange}
+                            >
+                                {machines.map((machine) => (
+                                    <MenuItem key={machine} value={machine}>
+                                        {machine}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
                     </div>
+                    <div>
+                        <div className="infoSubTitle">Select Run Mode</div>
 
-                    {/* <RadioGroup
+                        <div>
+                            Enable compiler exploration
+                            <Checkbox
+                                checked={selectedRunMode.includes('enable_compiler_exploration')}
+                                onChange={(e) => handleModeChange('enable_compiler_exploration', e.target.checked)}
+                            />
+                            Enable compiler flag exploration
+                            <Checkbox
+                                checked={selectedRunMode.includes('enable_compiler_flag_exploration')}
+                                onChange={(e) => handleModeChange('enable_compiler_flag_exploration', e.target.checked)}
+                            />
+
+                        </div>
+
+                        {/* <RadioGroup
                         row
                         aria-labelledby="demo-row-radio-buttons-group-label"
                         name="row-radio-buttons-group"
@@ -124,8 +131,8 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
                         <FormControlLabel value="disable_multicompiler_defaults_and_flags" control={<Radio />} label="enable compiler exploration" />
                         <FormControlLabel value="disable_multicompiler_flags" control={<Radio />} label="enable compiler flag exploration" />
                     </RadioGroup> */}
+                    </div>
                 </div>
-
             </div>
         </div>
     );

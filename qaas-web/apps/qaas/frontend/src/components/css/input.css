@@ -6,6 +6,9 @@
 .settingSelectionContainer {}
 
 
+.env-table {
+    width: 50%;
+}
 
 .infoTitle {
     font-size: 1.6em;
@@ -26,9 +29,20 @@
 }
 
 .infoSubTitle {
-    font-size: '1.2em';
+    font-size: 1em;
     font-weight: bold;
     margin: 4px;
+}
+
+.blockTitle {
+    font-size: 1.2em;
+    font-weight: bolder;
+    margin: 4px;
+}
+
+.block {
+    margin: 4px;
+    margin-bottom: 10px;
 }
 
 /* reduce margin for text field input*/

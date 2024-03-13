@@ -115,7 +115,7 @@ function NestedTable({ columns, data, hiddenColumns, columnFilters, setColumnFil
                 <thead>
                     {headerGroups.map(headerGroup => (
                         <tr {...headerGroup.getHeaderGroupProps()}>
-                            {SubTableComponent && <th></th>}   {/* conditionally add extra header cell for the button */}
+                            {SubTableComponent && <th>Show Graph</th>}   {/* conditionally add extra header cell for the button */}
                             {/* header inherit color set in constant */}
                             {headerGroup.headers.map(column => (
                                 <th
@@ -171,7 +171,7 @@ function NestedTable({ columns, data, hiddenColumns, columnFilters, setColumnFil
                                     {/* render and format the value  */}
                                     {row.cells.map((cell) => {
                                         //title is for tool tip
-                                        const isActionColumn = cell.column.Header.toLowerCase().includes('action');
+                                        const isActionColumn = typeof cell.column.Cell === 'function';
 
                                         const formattedValue = formatValue(cell.value);
                                         return (

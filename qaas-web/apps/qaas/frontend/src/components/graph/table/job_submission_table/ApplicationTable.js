@@ -49,32 +49,35 @@ const ApplicationTable = React.memo(({ data }) => {
     };
     // add color to colums
     const columns = [
-        {
-            Header: 'Action Compilers Comparison',
-            id: 'comparison-best-compilers-comparison',
-            Cell: ({ row }) => (
-                <div className="table-action">
-                    <button className="table-action-button" onClick={() => handleBestCompilersComparisonButtonClick(row.original.qaas_timestamp)}>See OV Best Compilers Comparison</button>
-                </div>
 
-            ),
-        },
+
+        { Header: 'Application', accessor: 'app_name', },
+        { Header: 'Best Compiler', accessor: 'best_compiler' },
+        { Header: 'Best Time', accessor: 'best_time' },
         {
-            Header: 'Action Best Compiler VS Orig',
+            Header: 'Best Compiler VS Orig',
             id: 'comparison-best-compiler-vs-orig',
             Cell: ({ row }) => (
                 <div className="table-action">
-                    <button className="table-action-button" onClick={() => handleBestCompilerVSOriginalButtonClick(row.original.qaas_timestamp)}>See OV Best Compiler vs Original Comparison</button>
+                    <button className="table-action-button" onClick={() => handleBestCompilerVSOriginalButtonClick(row.original.qaas_timestamp)}>See Details</button>
                 </div>
 
             ),
         },
-        { Header: 'Application', accessor: 'app_name', },
-        { Header: 'Timestamp', accessor: 'qaas_timestamp' },
+        {
+            Header: 'Compilers Comparison',
+            id: 'comparison-best-compilers-comparison',
+            Cell: ({ row }) => (
+                <div className="table-action">
+                    <button className="table-action-button" onClick={() => handleBestCompilersComparisonButtonClick(row.original.qaas_timestamp)}>See Details</button>
+                </div>
+
+            ),
+        },
         { Header: 'Machine', accessor: 'machine' },
         { Header: 'Archicture', accessor: 'arch' },
-        { Header: 'Best Compiler', accessor: 'best_compiler' },
-        { Header: 'Best Time', accessor: 'best_time' },
+        { Header: 'Timestamp', accessor: 'qaas_timestamp' },
+
 
     ];;
 

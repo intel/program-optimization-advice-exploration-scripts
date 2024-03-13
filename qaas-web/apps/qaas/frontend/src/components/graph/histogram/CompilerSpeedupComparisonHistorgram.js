@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { getAppColor, categorizeIntoBin, getCompilerColor } from "../../Constants";
 import '../../css/graph.css'
 import PlotlyHistogram from "./PlotlyHistogram";
-import { baseHistogramLayout, getAppName } from "../../Constants";
+import { baseHistogramLayout, getAppName, handleSliderChange } from "../../Constants";
 import HistogramBinSlider from "./HistogramBinSlider";
 
 
@@ -29,56 +29,73 @@ const chartLayout = {
 
 export default function CompilerSpeedupComparisonHistorgram({ data }) {
 
-    const [range, setRange] = useState(['tie', '1.1-1.2', '1.2-1.5', '1.5-2x', '2x-4x', '>4x']);
+    const [range, setRange] = useState(['no gain', '1.1-1.2', '1.2-1.5', '1.5-2x', '2x-4x', '>4x']);
 
-    const handleSliderChange = (newValue) => {
-        const secondRangeParts = range[1].split('-');
-        secondRangeParts[0] = newValue;
-        const updatedSecondRange = secondRangeParts.join('-');
-        const updatedRange = [
-            ...range.slice(0, 1), //  before the second item
-            updatedSecondRange,
-            ...range.slice(2) //  after the second item
-        ];
-        setRange(updatedRange);
-    };
+
 
     const processRawData = (rawData) => {
-        if (!rawData || rawData.length === 0) {
+        if (!rawData || Object.keys(rawData).length === 0) {
             return [];
         }
-        let processedData = rawData.map(dataPoint => {
+
+        const binAggregates = {};
+
+        rawData.forEach(dataPoint => {
             const binKey = categorizeIntoBin(dataPoint.speedup, range);
-            const compilerColor = getCompilerColor(dataPoint.compiler.toUpperCase());
+            const compilerName = dataPoint.compiler.toUpperCase();
+            const hoverText = `${compilerName}${dataPoint.is_best ? ' (Best)' : ''}${dataPoint.is_orig ? ' (Orig)' : ''} - Speedup: ${dataPoint.speedup.toFixed(2)}`; // show is orig, is best, and speepdup
+            const color = getCompilerColor(compilerName);
+
+            //empty list to still show bin
+            if (!binAggregates[binKey]) {
+                binAggregates[binKey] = [];
+            }
+
+            binAggregates[binKey].push({
+                compilerName,
+                hoverText,
+                color,
+            });
+        });
+
+        // map each bin to plotly format add data from agggated results
+        const histogramData = range.map(binKey => {
+            const binDetails = binAggregates[binKey] || [];
             return {
-                x: [binKey],
-                y: [1], // each data point is 1 count
+                x: binDetails.length > 0 ? binDetails.map(() => binKey) : [binKey],
+                y: binDetails.length > 0 ? binDetails.map(() => 1) : [0],
                 type: 'bar',
-                name: dataPoint.compiler,
+                name: binDetails.map(detail => detail.compilerName).join(', ') || 'No data',
                 marker: {
-                    color: compilerColor,
+                    color: binDetails.length > 0 ? binDetails.map(detail => detail.color) : ['#ddd'],
                 },
-                hoverinfo: 'x+y+name',
+                hoverinfo: 'text',
+                text: binDetails.length > 0 ? binDetails.map(detail => detail.compilerName) : ['No data'], // add text for each stack
+
+                hovertext: binDetails.length > 0 ? binDetails.map(detail => detail.hoverText) : ['No data'],
+                textposition: 'inside',
+                insidetextanchor: 'middle',
+                textangle: 0,
             };
         });
 
-
-        return processedData;
+        return histogramData;
     };
+
 
     const processedData = processRawData(data);
 
     return (
-        <div className='graph-container-short-histogram center-histogram'>
+        <div >
             <PlotlyHistogram data={processedData} layout={chartLayout} />
-            <HistogramBinSlider
-                onChange={handleSliderChange}
+            {/* <HistogramBinSlider
+                onChange={(e, newValue) => handleSliderChange(newValue, range, setRange)}
                 min={1.02}
                 max={1.1}
                 step={0.01}
                 defaultValue={1.1}
 
-            />
+            /> */}
             <div className="plot-title-short-histogram" id="compiler-comparison">
                 Fig. compiler speedup comparison
             </div>

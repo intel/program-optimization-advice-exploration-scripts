@@ -39,7 +39,7 @@ export default function UserInputStepper() {
     //initial check of the form
     const [formErrors, setFormErrors] = useState({});
     const { setSSEStatus, startSSEConnection, closeSSEConnection } = useSSE();
-    const [selectedMachine, setSelectedMachine] = useState('fxilab165.an.intel.com');
+    const [selectedMachine, setSelectedMachine] = useState('');
     const [selectedRunMode, setSelectedRunMode] = useState([]);
 
     //user input state, loading the last saved wokring json or empty
@@ -146,16 +146,16 @@ export default function UserInputStepper() {
                             />
 
                             <div className='navButton'>
-                                <Button color="inherit" disabled={activeStep === 0} onClick={handleBack}>Back</Button>
+                                <Button variant="contained" color="inherit" disabled={activeStep === 0} onClick={handleBack}>Back</Button>
 
 
                                 {activeStep === steps.length - 1 ?
 
-                                    <Button onClick={handleSumbitNext} disabled={hasErrors()}>
+                                    <Button variant="contained" onClick={handleSumbitNext} disabled={hasErrors()}>
                                         Submit
 
                                     </Button> :
-                                    <Button onClick={handleNext} disabled={hasErrors()}>
+                                    <Button variant="contained" onClick={handleNext} disabled={hasErrors()}>
                                         {activeStep === steps.length - 1 ? '' : 'Next'}
 
                                     </Button>

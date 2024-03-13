@@ -49,7 +49,7 @@ const ApplicationSubTable = React.memo(({ data }) => {
 
 
     return (
-        <div>
+        <div className="center-children">
             <CompilerSpeedupComparisonHistorgram data={data} />
             {/* <Table
                 data={filteredData}
