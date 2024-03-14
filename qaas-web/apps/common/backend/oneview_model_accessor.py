@@ -241,7 +241,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
         qaas_database.add_to_data_list(current_vprof_collection)
         
     def visitQaaSDataBase(self, qaas_database):
-        print("ov visit qaad db called")
         current_application = Application(self)
         current_execution = Execution(self)
         ### set the execution 

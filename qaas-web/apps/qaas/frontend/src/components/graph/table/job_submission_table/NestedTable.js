@@ -115,7 +115,7 @@ function NestedTable({ columns, data, hiddenColumns, columnFilters, setColumnFil
                 <thead>
                     {headerGroups.map(headerGroup => (
                         <tr {...headerGroup.getHeaderGroupProps()}>
-                            {SubTableComponent && <th>Show Graph</th>}   {/* conditionally add extra header cell for the button */}
+                            {SubTableComponent && <th>Show All Compiler Speedups</th>}   {/* conditionally add extra header cell for the button */}
                             {/* header inherit color set in constant */}
                             {headerGroup.headers.map(column => (
                                 <th
@@ -130,6 +130,7 @@ function NestedTable({ columns, data, hiddenColumns, columnFilters, setColumnFil
                                         <select
                                             onChange={e => {
                                                 const value = e.target.value;
+                                                console.log("value", value)
                                                 if (value === "") {
                                                     const newFilters = { ...columnFilters };
                                                     delete newFilters[column.id];
@@ -143,7 +144,7 @@ function NestedTable({ columns, data, hiddenColumns, columnFilters, setColumnFil
                                             <option value="select" hidden>Select</option>
                                             <option value="">All</option>
                                             {uniqueValuesForColumn(column.id, data).map(value => (
-                                                <option value={value}>{value}</option>
+                                                <option value={value}>{formatValue(value)}</option>
                                             ))}
                                         </select>
                                     }
@@ -171,7 +172,8 @@ function NestedTable({ columns, data, hiddenColumns, columnFilters, setColumnFil
                                     {/* render and format the value  */}
                                     {row.cells.map((cell) => {
                                         //title is for tool tip
-                                        const isActionColumn = typeof cell.column.Cell === 'function';
+                                        const isActionColumn = cell.column.isAction;
+
 
                                         const formattedValue = formatValue(cell.value);
                                         return (

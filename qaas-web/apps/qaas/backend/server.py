@@ -527,15 +527,20 @@ def create_app(config):
         for qaas in qaass:
             qaas_timestamp = qaas.timestamp
             qaas_run_with_min_time = db.session.query(QaaSRun).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).order_by(Execution.time).first()
+            orig_execution = qaas.orig_execution
             min_execution = qaas_run_with_min_time.execution
             min_application = min_execution.application
             best_compiler_vendor = min_execution.compiler_option.compiler.vendor
             best_time = min_execution.time
+            best_speedup =  orig_execution.time / best_time
+            # print(best_time, orig_execution.time  )
             app_name = min_application.workload
             arch = min_execution.hwsystem.architecture
             machine = min_execution.os.hostname
+            
 
-            data.append({'app_name': app_name, 'qaas_timestamp': qaas_timestamp, 'arch':arch, 'machine': machine, 'best_time': best_time, 'best_compiler': best_compiler_vendor})
+
+            data.append({'app_name': app_name, 'qaas_timestamp': qaas_timestamp, 'arch':arch, 'machine': machine, 'best_time': best_time, 'best_compiler': best_compiler_vendor, 'best_speedup': best_speedup})
         sorted_data = sorted(data, key=lambda x: int(x['qaas_timestamp'].replace('-', '')), reverse=True)
 
         return jsonify(sorted_data)
@@ -558,14 +563,13 @@ def create_app(config):
             gflops = execution.global_metrics['Gflops']
             run_timestamp = execution.universal_timestamp
             has_ov = execution.maqaos != None
-            speedup = time / orig_time
+            speedup = orig_time / time
             is_orig = execution == orig_execution
             is_best = execution == best_execution
             run_data.append({ 'gflops': gflops, 'time': time, 'compiler': vendor, 'run_timestamp': run_timestamp, 'has_ov': has_ov, 'speedup': speedup, 'is_orig': is_orig, 'is_best': is_best})
 
-        print(run_data)
         sorted_run_data = sorted(run_data, key=lambda x: x['speedup'])
-
+        print(sorted_run_data)
         return jsonify(sorted_run_data)
     @app.route('/get_machine_list', methods=['GET'])
     def get_machine_list():
@@ -598,6 +602,7 @@ def create_app(config):
         subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{user_and_machine}:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
         subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
         qaas_out_dir = unique_temp_dir
+        print("output dir", qaas_out_dir)
         timestamped_dirs = os.listdir(qaas_out_dir)
         assert(len(timestamped_dirs) == 1)
         report_path = os.path.join(qaas_out_dir, timestamped_dirs[0])

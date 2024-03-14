@@ -50,6 +50,80 @@ export const JOB_SUB_THEME = createTheme({
                 },
             },
         },
+        MuiStepIcon: {
+            styleOverrides: {
+                root: {
+                    fontSize: '36px',
+                    fontWeight: 'bold',
+
+                    '&.MuiStepIcon-active': {
+                        color: '#2f889a',
+                    },
+                    '&.MuiStepIcon-completed': {
+                        color: '#2f889a',
+                    },
+                },
+            },
+        },
+        MuiStepLabel: {
+            styleOverrides: {
+                label: {
+                    fontSize: '1.25em',
+
+                    color: 'rgba(0, 0, 0, 0.87)',
+                },
+            },
+        }
+    },
+});
+
+export const OPTIONAL_BLOCK_THEME = createTheme({
+    palette: {
+        primary: {
+            main: '#4da6b3',
+        },
+        text: {
+            primary: '#a3a3a3',
+        },
+    },
+    components: {
+        MuiRadio: {
+            styleOverrides: {
+                root: {
+                    color: '#83c5be',
+                    '&.Mui-checked': {
+                        color: '#83c5be',
+                    },
+                    '&:hover': {
+                        backgroundColor: 'rgba(77, 166, 179, 0.04)',
+                    },
+                },
+            },
+        },
+        MuiSelect: {
+            styleOverrides: {
+                select: {
+                    color: '#a3a3a3',
+                },
+            },
+        },
+        MuiInputBase: {
+            styleOverrides: {
+                input: {
+                    color: '#a3a3a3',
+                },
+            },
+        },
+        MuiInputLabel: {
+            styleOverrides: {
+                root: {
+                    color: '#a3a3a3',
+                    '&.Mui-focused': {
+                        color: '#a3a3a3',
+                    },
+                },
+            },
+        },
     },
 });
 

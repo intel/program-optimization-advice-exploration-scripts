@@ -53,10 +53,13 @@ const ApplicationTable = React.memo(({ data }) => {
 
         { Header: 'Application', accessor: 'app_name', },
         { Header: 'Best Compiler', accessor: 'best_compiler' },
+        { Header: 'Best Speedup', accessor: 'best_speedup' },
+
         { Header: 'Best Time', accessor: 'best_time' },
         {
-            Header: 'Best Compiler VS Orig',
+            Header: 'Best Compiler vs Default Compiler',
             id: 'comparison-best-compiler-vs-orig',
+            isAction: true,
             Cell: ({ row }) => (
                 <div className="table-action">
                     <button className="table-action-button" onClick={() => handleBestCompilerVSOriginalButtonClick(row.original.qaas_timestamp)}>See Details</button>
@@ -65,8 +68,9 @@ const ApplicationTable = React.memo(({ data }) => {
             ),
         },
         {
-            Header: 'Compilers Comparison',
+            Header: 'Best Compilers Comparison',
             id: 'comparison-best-compilers-comparison',
+            isAction: true,
             Cell: ({ row }) => (
                 <div className="table-action">
                     <button className="table-action-button" onClick={() => handleBestCompilersComparisonButtonClick(row.original.qaas_timestamp)}>See Details</button>

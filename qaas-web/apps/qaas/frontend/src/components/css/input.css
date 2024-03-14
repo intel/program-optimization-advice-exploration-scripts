@@ -45,6 +45,10 @@
     margin-bottom: 20px;
 }
 
+.optional-block {
+    color: #a3a3a3;
+}
+
 /* reduce margin for text field input*/
 .infoContent .MuiTextField-root {
     margin: 2px;
@@ -82,7 +86,7 @@
 
 /* reduce spave for table */
 .infoContent .MuiTableCell-root {
-    padding: 4px;
+    padding: 0px;
 }
 
 /* reduce space for radio group */
@@ -109,7 +113,7 @@
     margin: 0 auto;
     width: 100%;
     margin-top: 10px;
-    max-width: calc(100% - 500px);
+    max-width: calc(100% - 400px);
 }
 
 .infoContent {

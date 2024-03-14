@@ -10,6 +10,8 @@ import AddIcon from '@mui/icons-material/AddCircleOutline';
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import axios from 'axios';
 import Checkbox from '@mui/material/Checkbox';
+import { OPTIONAL_BLOCK_THEME } from "./JobSubUtil";
+import { ThemeProvider } from '@mui/material/styles';
 
 import SettingsSelector from "./SettingSelector";
 import SaveSettingButton from "./SaveSettingButton";
@@ -73,7 +75,7 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
             <div className="infoContent">
 
                 <div className="headerContainer" >
-                    <div className="infoTitle">Machine</div>
+                    <div className="infoTitle">Machine Info</div>
                     <div className="settingSelector">
                         <SaveSettingButton input={input} />
                         <SettingsSelector setInput={setInput} />
@@ -82,10 +84,8 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
 
                 </div>
                 <div className="block">
-                    <div className="blockTitle">Optional</div>
-
                     <div>
-                        <div className="infoSubTitle">Select Available Machines</div>
+                        <div className="infoSubTitle">Machines For Job Submission</div>
 
                         <FormControl sx={{ minWidth: 200 }}>
                             <InputLabel id="machine-selector-label">Select Available Machines</InputLabel>
@@ -104,24 +104,31 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
                             </Select>
                         </FormControl>
                     </div>
-                    <div>
-                        <div className="infoSubTitle">Select Run Mode</div>
+                </div>
+                <ThemeProvider theme={OPTIONAL_BLOCK_THEME}>
+
+                    <div className="block optional-block">
+                        <div className="blockTitle">Optional</div>
+
 
                         <div>
-                            Enable compiler exploration
-                            <Checkbox
-                                checked={selectedRunMode.includes('enable_compiler_exploration')}
-                                onChange={(e) => handleModeChange('enable_compiler_exploration', e.target.checked)}
-                            />
-                            Enable compiler flag exploration
-                            <Checkbox
-                                checked={selectedRunMode.includes('enable_compiler_flag_exploration')}
-                                onChange={(e) => handleModeChange('enable_compiler_flag_exploration', e.target.checked)}
-                            />
+                            <div className="infoSubTitle">Select Run Mode</div>
 
-                        </div>
+                            <div>
+                                Enable compiler exploration
+                                <Checkbox
+                                    checked={selectedRunMode.includes('enable_compiler_exploration')}
+                                    onChange={(e) => handleModeChange('enable_compiler_exploration', e.target.checked)}
+                                />
+                                Enable compiler flag exploration
+                                <Checkbox
+                                    checked={selectedRunMode.includes('enable_compiler_flag_exploration')}
+                                    onChange={(e) => handleModeChange('enable_compiler_flag_exploration', e.target.checked)}
+                                />
 
-                        {/* <RadioGroup
+                            </div>
+
+                            {/* <RadioGroup
                         row
                         aria-labelledby="demo-row-radio-buttons-group-label"
                         name="row-radio-buttons-group"
@@ -131,8 +138,9 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
                         <FormControlLabel value="disable_multicompiler_defaults_and_flags" control={<Radio />} label="enable compiler exploration" />
                         <FormControlLabel value="disable_multicompiler_flags" control={<Radio />} label="enable compiler flag exploration" />
                     </RadioGroup> */}
+                        </div>
                     </div>
-                </div>
+                </ThemeProvider>
             </div>
         </div>
     );

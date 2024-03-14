@@ -13,57 +13,77 @@ export default function StatusPanel({ msg }) {
     let msgs = [
         "Job Begin",
         "Start Building orig app ",
-        "Done Building orig app ",
         "Start Running orig app ",
-        "Done Running orig app ",
         "Start Tuning orig app ",
-        "Done Tuning orig app ",
         "Start Running tuned app ",
-        "Done Running tuned app ",
         "Job End",
     ]
     let color_arr = colormap({
         colormap: 'jet',
-        nshades: 10,
+        nshades: msgs.length,
         format: 'hex',
         alpha: 1
     })
+
+    const [countdown, setCountdown] = useState(null);
+
+    useEffect(() => {
+        if (msg === "Job End") {
+            setCountdown(5);
+        }
+    }, [msg]);
+    useEffect(() => {
+        if (countdown === null || countdown <= 0) return;
+        const intervalId = setInterval(() => {
+            setCountdown(countdown - 1);
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [countdown]);
+    //reload the page when count down is 0
+    useEffect(() => {
+        if (countdown === 0) {
+            window.location.reload();
+        }
+    }, [countdown]);
     let index_of_msg = msgs.indexOf(msg)
+    let percent = (index_of_msg / (msgs.length - 1)) * 100;
+
     return (
         <div className="centeredBox">
             <div className="infoContent">
                 <div className="infoSubTitle">StatusPanel</div>
 
-
                 {index_of_msg > -1 &&
                     <ProgressBar
-                        percent={10 * (index_of_msg + 1)}
+                        percent={percent}
                         filledBackground="linear-gradient(to right, #e3f2fd, #0d47a1)"
                     >
-                        {color_arr.map(c =>
-                            <Step >
-                                {({ accomplished, position }) => (
+                        {color_arr.map((c, index) => (
+                            <Step key={index}>
+                                {({ accomplished }) => (
                                     <CircleIcon sx={{ color: c }} />
                                 )}
                             </Step>
-                        )
-                        }
-
+                        ))}
                     </ProgressBar>
                 }
 
                 {index_of_msg > -1 &&
                     <div>
-                        {msgs.map((m, i) =>
-                            < div style={{ color: color_arr[i] }} >
+                        {msgs.map((m, i) => (
+                            <div key={i} style={{ color: color_arr[i] }}>
                                 {m}
                             </div>
-                        )
-                        }
+                        ))}
                     </div>
                 }
+                {countdown !== null && (
+                    <Typography variant="body1" style={{ marginTop: '10px' }}>
+                        Refreshing in {countdown} seconds...
+                    </Typography>
+                )}
             </div>
-
         </div>
-    )
+    );
 }

@@ -16,6 +16,9 @@ import DeleteIcon from '@mui/icons-material/RemoveCircleOutline';
 import AddIcon from '@mui/icons-material/AddCircleOutline';
 import SettingsSelector from "./SettingSelector";
 import SaveSettingButton from "./SaveSettingButton";
+import { OPTIONAL_BLOCK_THEME } from "./JobSubUtil";
+import { ThemeProvider } from '@mui/material/styles';
+
 export const RunInfo = ({ input, setInput }) => {
 
     const handleDelete = (key) => {
@@ -54,7 +57,7 @@ export const RunInfo = ({ input, setInput }) => {
             <div className="infoContent">
 
                 <div className="headerContainer" >
-                    <div className="infoTitle">Run</div>
+                    <div className="infoTitle">Run Info</div>
                     <div className="settingSelector">
                         <SaveSettingButton input={input} />
                         <SettingsSelector setInput={setInput} />
@@ -65,8 +68,8 @@ export const RunInfo = ({ input, setInput }) => {
                 <div >
                     <div className="block">
                         <div>
-                            <div className="infoSubTitle">APP Run Command</div>
-                            <TextField defaultValue={input.application.RUN.APP_RUN_CMD} fullWidth label="APP Run Command" id="outlined-basic" variant="outlined"
+                            <div className="infoSubTitle">Run Command</div>
+                            <TextField defaultValue={input.application.RUN.APP_RUN_CMD} fullWidth label="Run Command" id="outlined-basic" variant="outlined"
 
                                 onChange={e => handleChange(['application', 'RUN', 'APP_RUN_CMD'], e.target.value)}
                                 value={input.application.RUN.APP_RUN_CMD}
@@ -75,140 +78,130 @@ export const RunInfo = ({ input, setInput }) => {
                             />
                         </div>
                     </div>
-                    <div className="block">
-                        <div className="blockTitle">Optional</div>
+                    <ThemeProvider theme={OPTIONAL_BLOCK_THEME}>
 
-                        <div className="infoSubTitle">Data URL</div>
-                        <TextField label="User" id="outlined-basic" variant="outlined"
-                            onChange={e => handleChange(['application', 'GIT', 'USER'], e.target.value)}
+                        <div className="block optional-block">
+                            <div className="blockTitle">Optional</div>
 
-                            value={input.application.GIT.USER}
+                            <div className="infoSubTitle">Data URL</div>
 
-                        />
-                        <TextField sx={{ width: '55ch' }} label="Source URL" variant="outlined"
-                            onChange={e => handleChange(['application', 'GIT', 'SRC_URL'], e.target.value)}
-                            value={input.application.GIT.SRC_URL}
-
-
-                        />
-                        <TextField label="Token" id="outlined-basic" variant="outlined"
-                            onChange={e => handleChange(['application', 'GIT', 'TOKEN'], e.target.value)}
-
-                            value={input.application.GIT.TOKEN}
-
-                        />
-                        <TextField sx={{ width: '55ch' }} label="Data URL" variant="outlined"
-                            onChange={e => handleChange(['application', 'GIT', 'DATA_URL'], e.target.value)}
-                            value={input.application.GIT.DATA_URL}
-
-
-                        />
-
-                        <TextField id="outlined-basic" label="Data Branch" variant="outlined"
-                            onChange={e => handleChange(['application', 'GIT', 'BRANCH'], e.target.value)}
-                            value={input.application.GIT.BRANCH}
-
-
-                        />
-                        <div>
-                            <TextField label="Data User" id="outlined-basic" variant="outlined"
-                                onChange={e => handleChange(['application', 'GIT', 'DATA_USER'], e.target.value)}
-
-                                value={input.application.GIT.DATA_USER}
-
-                            />
-                            <TextField label="Data Token" id="outlined-basic" variant="outlined"
-                                onChange={e => handleChange(['application', 'GIT', 'DATA_TOKEN'], e.target.value)}
-
-                                value={input.application.GIT.DATA_TOKEN}
-
-                            />
-                        </div>
-                        <div>
-                            <TextField fullWidth label="Data Download Path" id="outlined-basic" variant="outlined"
-                                onChange={e => handleChange(['application', 'GIT', 'DATA_DOWNLOAD_PATH'], e.target.value)}
-                                value={input.application.GIT.DATA_DOWNLOAD_PATH}
+                            <TextField sx={{ width: '55ch' }} label="Data URL" variant="outlined"
+                                onChange={e => handleChange(['application', 'GIT', 'DATA_URL'], e.target.value)}
+                                value={input.application.GIT.DATA_URL}
 
 
                             />
-                        </div>
 
-                        <div>
+                            <TextField id="outlined-basic" label="Data Branch" variant="outlined"
+                                onChange={e => handleChange(['application', 'GIT', 'BRANCH'], e.target.value)}
+                                value={input.application.GIT.BRANCH}
 
-                            <div className="infoSubTitle">MPI</div>
-                            <RadioGroup
-                                row
-                                aria-labelledby="demo-row-radio-buttons-group-label"
-                                name="row-radio-buttons-group"
-                                defaultValue={input.runtime.MPI}
-                                onChange={e => handleChange(['runtime', 'MPI'], e.target.value)}
 
-                            >
-                                <FormControlLabel value="no" control={<Radio />} label="No (Default)" />
-                                <FormControlLabel value="yes" control={<Radio />} label="Yes" />
-                                <FormControlLabel value="strong" control={<Radio />} label="Strong" />
-                                <FormControlLabel value="weak" control={<Radio />} label="Weak" />
-                            </RadioGroup>
-                        </div>
-                        <div>
+                            />
+                            <div>
+                                <TextField label="Data User" id="outlined-basic" variant="outlined"
+                                    onChange={e => handleChange(['application', 'GIT', 'DATA_USER'], e.target.value)}
 
-                            <div className="infoSubTitle">OPENMP</div>
-                            <RadioGroup
-                                row
-                                aria-labelledby="demo-row-radio-buttons-group-label"
-                                name="row-radio-buttons-group"
-                                defaultValue={input.runtime.OPENMP}
-                                onChange={e => handleChange(['runtime', 'OPENMP'], e.target.value)}
+                                    value={input.application.GIT.DATA_USER}
 
-                            >
-                                <FormControlLabel value="strong" control={<Radio />} label="Strong (Default)" />
-                                <FormControlLabel value="weak" control={<Radio />} label="Weak" />
-                            </RadioGroup>
-                        </div>
-                        <div >
-                            <div className="infoSubTitle">Env Variables</div>
-                            <div >
-                                <div className="env-table ">
-                                    <TableContainer component={Paper}>
-                                        <Table aria-label="simple table">
-                                            <TableHead>
-                                                <TableRow>
-                                                    <TableCell align="center">Name</TableCell>
-                                                    <TableCell align="center">Value</TableCell>
-                                                </TableRow>
-                                            </TableHead>
-                                            <TableBody>
-                                                {Object.entries(input.application.RUN.APP_ENV_MAP).map(([key, value]) => (
-                                                    <TableRow key={key}>
-                                                        <TableCell align="center">
-                                                            <TextField
-                                                                fullWidth
-                                                                defaultValue={key}
-                                                                onBlur={(e) => handleUpdateKey(key, e.target.value)}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell align="center">
-                                                            <TextField
-                                                                fullWidth
-                                                                defaultValue={value}
-                                                                onBlur={(e) => handleUpdateValue(value, e.target.value)}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell align="center">
-                                                            <DeleteIcon onClick={() => handleDelete(key)} />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                </div>
-                                <AddIcon onClick={() => handleCreate()} />
+                                />
+                                <TextField label="Data Password" id="outlined-basic" variant="outlined"
+                                    onChange={e => handleChange(['application', 'GIT', 'DATA_TOKEN'], e.target.value)}
 
+                                    value={input.application.GIT.DATA_TOKEN}
+
+                                />
+                            </div>
+                            <div>
+                                <TextField fullWidth label="Data File Location" id="outlined-basic" variant="outlined"
+                                    onChange={e => handleChange(['application', 'GIT', 'DATA_DOWNLOAD_PATH'], e.target.value)}
+                                    value={input.application.GIT.DATA_DOWNLOAD_PATH}
+
+
+                                />
                             </div>
 
+                            <div>
+
+                                <div className="infoSubTitle">MPI</div>
+                                <RadioGroup
+                                    row
+                                    aria-labelledby="demo-row-radio-buttons-group-label"
+                                    name="row-radio-buttons-group"
+                                    defaultValue={input.runtime.MPI}
+                                    onChange={e => handleChange(['runtime', 'MPI'], e.target.value)}
+
+                                >
+                                    <FormControlLabel value="no" control={<Radio />} label="No (Default)" />
+                                    <FormControlLabel value="yes" control={<Radio />} label="Yes" />
+                                    <FormControlLabel value="strong" control={<Radio />} label="Strong" />
+                                    <FormControlLabel value="weak" control={<Radio />} label="Weak" />
+                                </RadioGroup>
+                            </div>
+                            <div>
+
+                                <div className="infoSubTitle">OPENMP</div>
+                                <RadioGroup
+                                    row
+                                    aria-labelledby="demo-row-radio-buttons-group-label"
+                                    name="row-radio-buttons-group"
+                                    defaultValue={input.runtime.OPENMP}
+                                    onChange={e => handleChange(['runtime', 'OPENMP'], e.target.value)}
+
+                                >
+                                    <FormControlLabel value="strong" control={<Radio />} label="Strong (Default)" />
+                                    <FormControlLabel value="weak" control={<Radio />} label="Weak" />
+                                </RadioGroup>
+                            </div>
+                            <div >
+                                <div className="infoSubTitle">Env Variables</div>
+                                <div >
+                                    <div className="env-table ">
+                                        <TableContainer component={Paper}>
+                                            <Table aria-label="simple table">
+                                                {/* only show table header when there is env variables */}
+                                                {Object.entries(input.application.RUN.APP_ENV_MAP).length > 0 && (
+
+                                                    <TableHead>
+                                                        <TableRow>
+                                                            <TableCell align="center">Name</TableCell>
+                                                            <TableCell align="center">Value</TableCell>
+                                                        </TableRow>
+                                                    </TableHead>
+                                                )}
+                                                <TableBody>
+                                                    {Object.entries(input.application.RUN.APP_ENV_MAP).map(([key, value]) => (
+                                                        <TableRow key={key}>
+                                                            <TableCell align="center">
+                                                                <TextField
+                                                                    fullWidth
+                                                                    defaultValue={key}
+                                                                    onBlur={(e) => handleUpdateKey(key, e.target.value)}
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell align="center">
+                                                                <TextField
+                                                                    fullWidth
+                                                                    defaultValue={value}
+                                                                    onBlur={(e) => handleUpdateValue(value, e.target.value)}
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell align="center">
+                                                                <DeleteIcon onClick={() => handleDelete(key)} />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </TableContainer>
+                                    </div>
+                                    <AddIcon onClick={() => handleCreate()} />
+
+                                </div>
+
+                            </div>
                         </div>
-                    </div>
+                    </ThemeProvider>
 
                 </div>
 

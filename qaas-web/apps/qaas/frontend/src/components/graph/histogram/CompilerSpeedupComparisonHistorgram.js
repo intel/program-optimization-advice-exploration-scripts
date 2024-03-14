@@ -21,8 +21,8 @@ const chartLayout = {
 
 
     },
-    height: 110,
-    width: 400,
+    width: 600,
+    height: 350,
 
 
 };
@@ -39,7 +39,6 @@ export default function CompilerSpeedupComparisonHistorgram({ data }) {
         }
 
         const binAggregates = {};
-
         rawData.forEach(dataPoint => {
             const binKey = categorizeIntoBin(dataPoint.speedup, range);
             const compilerName = dataPoint.compiler.toUpperCase();
@@ -70,7 +69,6 @@ export default function CompilerSpeedupComparisonHistorgram({ data }) {
                     color: binDetails.length > 0 ? binDetails.map(detail => detail.color) : ['#ddd'],
                 },
                 hoverinfo: 'text',
-                text: binDetails.length > 0 ? binDetails.map(detail => detail.compilerName) : ['No data'], // add text for each stack
 
                 hovertext: binDetails.length > 0 ? binDetails.map(detail => detail.hoverText) : ['No data'],
                 textposition: 'inside',
@@ -81,6 +79,7 @@ export default function CompilerSpeedupComparisonHistorgram({ data }) {
 
         return histogramData;
     };
+
 
 
     const processedData = processRawData(data);
@@ -97,7 +96,7 @@ export default function CompilerSpeedupComparisonHistorgram({ data }) {
 
             /> */}
             <div className="plot-title-short-histogram" id="compiler-comparison">
-                Fig. compiler speedup comparison
+                Compiler Speedup Relative to Default Compiler
             </div>
         </div>
     );
