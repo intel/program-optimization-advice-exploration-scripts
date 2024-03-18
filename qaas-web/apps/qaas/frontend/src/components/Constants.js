@@ -20,15 +20,16 @@ export const APP_COLORS = {
 
 };
 
-export const COMPILER_COLORS = {
-    'ICX': '#FAD2E1',
-    'ICC': '#C7CEEA',
-    'GCC': '#E3EAA7',
-    'TIE': '#FFD3B4',
-    'Tie': '#FFD3B4',
+export var COMPILER_COLORS = {
+    'ICX': '#c96b91',
+    'ICC': '#959ad1',
+    'GCC': '#b1b179',
+    'TIE': '#cc9270',
+    'NO GAIN': '#cc9270',
+
 };
 
-export const PROCESSOR_COLORS = {
+export var PROCESSOR_COLORS = {
     'ICL': '#FF6B6B',
     'SPR': '#89CFF0',
     'Zen4': '#60d394',
@@ -39,7 +40,7 @@ export const PROCESSOR_COLORS = {
     'AWS G3E': '#FFD700'
 }
 
-export const PROCESSOR_POINT_SHAPE = {
+export var PROCESSOR_POINT_SHAPE = {
     'ICL': 'circle',
     'SPR': 'square',
     'Zen4': 'diamond',
@@ -49,7 +50,7 @@ export const PROCESSOR_POINT_SHAPE = {
     'AMD Zen4': 'diamond',
     'AWS G3E': 'cross'
 }
-const APP_NAME_MAP = {
+var APP_NAME_MAP = {
     'amg': 'AMG',
     'AMG': 'AMG',
     'Amg': 'AMG',
@@ -60,8 +61,10 @@ const APP_NAME_MAP = {
     'CoMD': 'CoMD',
     'cloverleaf cxx': 'Clov++',
     'CloverLeaf CXX': 'Clov++',
+    'CloverLeaf1.4-CXX': 'Clov++',
     'cloverleaf fc': 'ClovF',
     'CloverLeaf FC': 'ClovF',
+    'CloverLeaf1.3-FC': 'ClovF',
     'miniqmc': 'Miniqmc',
     'Miniqmc': 'Miniqmc',
     'kripke': 'Kripke',
@@ -73,16 +76,20 @@ const APP_NAME_MAP = {
 };
 
 
+
 export function getProcessorPointStyle(processor) {
-    return PROCESSOR_POINT_SHAPE[processor];
+    return PROCESSOR_POINT_SHAPE[processor] || 'circle';
 
 }
 export function getProcessorColor(processor) {
-    return PROCESSOR_COLORS[processor];
+    return PROCESSOR_COLORS[processor] || '#FF6B6B';
 }
 
 export function getGeneralColor(type) {
     return GENERAL_COLORS[type];
+}
+export function getAppName(app) {
+    return APP_NAME_MAP[app] || app;
 }
 
 export function getAppColor(app) {
@@ -130,7 +137,7 @@ export function categorizeIntoBin(dataPoint, bins) {
             if (dataPoint >= start && dataPoint < end) {
                 foundBin = bin;
             }
-        } else if (cleanBin.includes('tie')) {
+        } else if (cleanBin.includes('tie') || cleanBin.includes('no gain')) {
             //  'tie' 
             const tieBinUpperBound = parseFloat(bins[1].split('-')[0]);
 
@@ -162,14 +169,14 @@ export const baseLineLayout = {
     legend: {
         x: 0.2,
         xanchor: 'center',
-        y: 0.9,
+        y: 1.2,
         yanchor: 'top',
         orientation: 'v'
     },
     margin: {
         l: 40,
         r: 40,
-        b: 50,
+        b: 20,
         t: 0,
     },
     xaxis: {
@@ -207,4 +214,30 @@ export const baseHistogramLayout = {
     paper_bgcolor: 'rgba(0,0,0,0)',
 
     plot_bgcolor: 'rgba(0,0,0,0)',
+};
+
+export function formatValue(value) {
+    if (typeof value === 'number') {
+        if (Number.isInteger(value)) {
+            return value;
+        } else {
+            return value.toFixed(2);
+        }
+    } else if (value === null || value === undefined) {
+        return 'NA';
+    } else {
+        return value;
+    }
+}
+
+export const handleSliderChange = (newValue, range, setRange) => {
+    const secondRangeParts = range[1].split('-');
+    secondRangeParts[0] = newValue;
+    const updatedSecondRange = secondRangeParts.join('-');
+    const updatedRange = [
+        ...range.slice(0, 1), //  before the second item
+        updatedSecondRange,
+        ...range.slice(2) //  after the second item
+    ];
+    setRange(updatedRange);
 };

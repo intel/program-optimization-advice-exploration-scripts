@@ -27,10 +27,16 @@
 # HISTORY
 # Created October 2022
 # Contributors: Yue/David
+import os
+import sys
+current_directory = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../common/backend/')))
 
+from base_util import *
+from model import *
 from qaas_database import QaaSDatabase
 from model_collection import *
-from model_accessor import MetricGetter
+from oneview_model_accessor import MetricGetter
 from constants import *
 class FilterStrategy:
     def __init__(self, type, operator, value, mode):

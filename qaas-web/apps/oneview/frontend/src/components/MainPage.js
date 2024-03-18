@@ -5,7 +5,7 @@ import Title from './Title';
 import ApplicationTable from './data/ApplicationTable';
 import FilterComponent from './filters/FilterComponent';
 import axios from 'axios';
-import TotalTimeSpeedupGraph from './graph/TotalTimeSpeedupGraph';
+// import HWCompTable from './graph/table/HWCompTable';
 import { INITIAL_FILTERS } from './filters/InitialFilter';
 import { Modal } from 'antd';
 import AllSpeedupRangeGraph from './graph/AllSpeedupRangeGraph';
@@ -14,7 +14,6 @@ const MainPage = () => {
     const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filters, setFilters] = useState(INITIAL_FILTERS);
-    const [baseline, setBaseline] = useState(null);
     const [showGraph, setShowGraph] = useState(false);
 
     useEffect(() => {
@@ -28,7 +27,6 @@ const MainPage = () => {
 
     const fetchRunInfo = async () => {
         setIsLoading(true);
-        console.log("program", filters.Global['Run Info'].Program.value, "exp name", filters.Global['Run Info']['Experiment Name'].value)
         try {
             const currentFilters = {
                 program: filters.Global['Run Info'].Program.value,
@@ -84,7 +82,7 @@ const MainPage = () => {
             <div>
                 <div className="sticky-top">
 
-                    <TopBar baseline={baseline} setBaseline={setBaseline} setShowGraph={setShowGraph} />
+                    <TopBar setShowGraph={setShowGraph} />
                 </div>
 
                 <div className="page-container">
@@ -98,16 +96,13 @@ const MainPage = () => {
                             {/* <AllSpeedupRangeGraph application_table_data={data} /> */}
                             <ApplicationTable
                                 data={data}
-
-                                baseline={baseline}
-                                setBaseline={setBaseline}
                             />
                         </div>
                     }
 
-                    {/* <Modal title="Comparison" open={showGraph} onOk={handleOk} onCancel={handleCancel}>
-                    <TotalTimeSpeedupGraph selectedRows={selectedRows} baseline={baseline} open={showGraph} />
-                </Modal> */}
+                    <Modal title="Comparison" open={showGraph} onOk={handleOk} onCancel={handleCancel}>
+                        {/* <HWCompTable open={showGraph} /> */}
+                    </Modal>
                 </div>
             </div>
         </SelectionProvider>

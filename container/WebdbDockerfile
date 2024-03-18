@@ -1,0 +1,83 @@
+ARG IMG_NAME
+FROM ${IMG_NAME}
+
+LABEL description="Local CapeScripts"
+
+ARG LOCAL_UID
+ARG LOCAL_GID
+ARG LOCAL_GIDS
+ARG LOCAL_GNAMES
+ARG ENABLE_DEVELOPMENT
+ARG SEP_DIR
+ARG QAAS_PASSWORD
+
+RUN apt-get update && apt-get install --no-install-recommends -y apache2 mariadb-server \ 
+  libmysqlclient-dev \
+  python3-certbot-apache \
+  sshpass
+# Have to break the apt-get command to work (looks like --no-install-recommends is bad for this package)
+RUN apt-get install -y libmariadbclient-dev
+
+
+# for Node.js installation
+# Below receipts from: https://deb.nodesource.com/
+RUN NODE_MAJOR=20 && \
+  if [ -z "$http_proxy" ] || [ "$http_proxy" = "http://" ]; then \
+        echo "not using proxy" $https_proxy; \
+        unset http_proxy; \
+        unset https_proxy; \
+        nodejs_proxy_flags=(); \
+    else \
+        echo "using proxy" $https_proxy; \
+        nodejs_proxy_flags=(-x "$http_proxy"); \
+    fi && \
+#curl ${nodejs_proxy_flags[@]} -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+#    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+    curl ${nodejs_proxy_flags[@]} -L https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - 
+
+
+
+
+RUN apt-get install -y nodejs libapache2-mod-wsgi-py3 && \ 
+	apt-get clean && rm -rf /var/lib/apt/lists/*  && \
+  a2enmod proxy && a2enmod proxy_http && \
+# Give write access to www-data group
+# RUN apt-get update
+  mkdir -p /var/www/html/private && \
+  chmod -R g+w /var/www/html 
+
+#COPY ${MAQAO_PACKAGE_DIR}/bin/ /share/maqao
+# Below python installations mostly for web backend
+COPY local_install_pip.sh /root
+COPY local_requirements.txt /root
+WORKDIR /root
+RUN /root/local_install_pip.sh && \
+  a2enmod wsgi && \
+  a2enmod rewrite && \
+  rm -f /var/www/html/index.html 
+WORKDIR /var/www
+# also set up ssh key for www-data
+RUN	cd /var/www && \
+  tar xvf /root/ssh.tar.gz && \
+  chown -R www-data .ssh && \
+  chgrp -R www-data .ssh 
+# Following commented out 000-default.conf now done in update_web.py
+#COPY 000-default.conf /etc/apache2/sites-available/
+#RUN mkdir /var/www/html/config
+#COPY qaas-web.conf /var/www/html/config
+#RUN a2ensite 000-default.conf
+
+#COPY ../qaas-web /root/
+
+
+USER qaas
+WORKDIR /app/runner
+ENV USER=qaas
+ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install
+# CERE install its Python packages to site-packages directory
+ENV PYTHONPATH=/usr/local/lib/python3.8/site-packages
+
+ENV QAAS_CONTAINER_NAME=webdb
+
+#USER root
+#ENTRYPOINT /opt/intel/sep/sepdk/src/insmod-sep -g docker && su runner && /opt/intel/sep/sepdk/src/rmmod-sep

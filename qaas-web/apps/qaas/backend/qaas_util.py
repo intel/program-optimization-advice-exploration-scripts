@@ -30,27 +30,34 @@
 import os
 import pandas as pd
 import configparser
-SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH=os.path.join(SCRIPT_DIR, "..", '..',"config", "qaas-web.conf")
-#get the config
-def get_config():
-    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-    config.read(CONFIG_PATH)
-    return config
+import json
+from flask import jsonify
 
-def connect_db(config):
-    engine = create_engine(config['web']['SQLALCHEMY_DATABASE_URI_QAAS'])
-    engine.connect()
-    return engine
+def give_permission(folder, user):
+    os.system(f"sudo chown -R {user}:{user} {folder}")
+    os.system(f"sudo chmod -R 775 {folder}")
 
-#used to read the qaas metadata file
-def parse_text_to_dict(file_path):
-    data_dict = {}
-    with open(file_path, 'r') as file:
-        for line in file:
-            # split by =
-            parts = line.strip().split('=')
-            if len(parts) == 2:
-                key, value = parts
-                data_dict[key] = value
-    return data_dict
+#save json after getting from frontend
+def save_json(data, file_path):
+    with open(file_path, 'w') as f:
+        json.dump(data, f)
+    return file_path
+
+#get all json file
+def get_all_jsons(input_json_dir):
+    if not os.path.exists(input_json_dir):
+        return []  
+    
+    filenames = os.listdir(input_json_dir)
+
+    return {'filenames': filenames} 
+
+#load json
+def load_json(file_path):
+    
+    if not os.path.exists(file_path):
+        return jsonify({"error": f"The file does not exist in {file_path}"}), 404
+    
+    with open(file_path, 'r') as f:
+        data = json.load(f)
+    return jsonify(data)

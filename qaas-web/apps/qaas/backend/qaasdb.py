@@ -28,21 +28,24 @@
 # Created October 2022
 # Contributors: Yue/David
 import os
+import sys
+current_directory = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../common/backend/')))
 from qaas_model_accessor import QaaSModelInitializer
 from qaas_database import QaaSDatabase
 #import pickle
 from model import connect_db
 from sqlalchemy.orm import sessionmaker
 # populate database given the data in qaas data folder, gui timestamp is the timestamp for both opt and orig
-def populate_database_qaas(qaas_data_file_path, qaas_metadata_file_path, config):
+def populate_database_qaas(report_path, config):
     #connect db
-    engine = connect_db(config, "qaas")
+    engine = connect_db(config['web']['SQLALCHEMY_DATABASE_URI_QAAS'])
     Session = sessionmaker(bind=engine)
     session = Session()
 
     
     #######################populate database tables######################
-    initializer = QaaSModelInitializer(session, qaas_data_file_path, qaas_metadata_file_path)
+    initializer = QaaSModelInitializer(session, report_path)
     qaas_database = QaaSDatabase()
     qaas_database.accept(initializer)
     

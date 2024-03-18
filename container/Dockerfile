@@ -33,7 +33,8 @@ RUN apt-get update && \
    libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx python3-pandas
 
 # Ronn is needed even if we don't built CERE document
-RUN gem install ronn-ng
+RUN gem install nokogiri -v 1.15.5 && \
+	gem install ronn-ng -v 0.9.1 
 
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -75,9 +76,9 @@ RUN apt-get install --no-install-recommends -y \
    ninja-build \
 # web servers
    nodejs libapache2-mod-wsgi-py3 \
-   apache2 mariadb-server libmysqlclient-dev \
-   && apt-get clean \
-   && rm -rf /var/lib/apt/lists/*
+   apache2 mariadb-server libmysqlclient-dev 
+#   && apt-get clean \
+#   && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m pip install --no-cache-dir sympy \
    && python3 -m pip install --no-cache-dir csvkit \
@@ -87,19 +88,29 @@ RUN python3 -m pip install --no-cache-dir sympy \
   && python3 -m pip install --no-cache-dir parse \
   && python3 -m pip install --no-cache-dir pytrie \
   && python3 -m pip install --no-cache-dir pandas \
+  && python3 -m pip install --no-cache-dir numpy \
   && python3 -m pip install --no-cache-dir py-cpuinfo
 
 # Build cmake
-# NOTE: WHY WE NEED A SPECFIC VERSION instead of apt install cmake
+# NOTE: NEED NEW VERSION OF CMAKE to build code (e.g. amg)
+# See: https://apt.kitware.com/
+#wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - |  tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+RUN curl -L https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - |  tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null \
+  && echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' |  tee /etc/apt/sources.list.d/kitware.list >/dev/null \
+  && apt-get update \
+  && apt-get install --no-install-recommends -y cmake=3.28.3-0kitware1ubuntu20.04.1 \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /root
 # replace wget by curl
 #RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
-RUN curl -s https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
-  && tar xvf cmake-3.21.1.tar.gz 
-WORKDIR /root/cmake-3.21.1
-RUN ./bootstrap \
-  && make \
-  && make install
+#RUN curl -L -O https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
+#  && tar xvf cmake-3.21.1.tar.gz 
+#WORKDIR /root/cmake-3.21.1
+#RUN ./bootstrap \
+#  && make \
+#  && make install
 
 ENV ROSE_HOME=/usr/rose
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
@@ -145,7 +156,7 @@ WORKDIR /share/pips
 RUN alias g77=gfortran
 # replace wget by curl
 #RUN wget -q https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
-RUN curl -s https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
+RUN curl -L -O https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
    && chmod +x setup_pips.sh \
    && ./gen_svn_servers.sh \
    && ./setup_pips.sh --dynamic --light --pyconf=python3-config

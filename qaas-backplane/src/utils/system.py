@@ -62,9 +62,15 @@ def get_model_name():
     '''Get the CPU model name'''
     return cpuinfo.get_cpu_info()['brand_raw']
 
-def get_intel_processor_name():
+def get_intel_processor_name(maqao_dir):
     '''Get the processor name'''
-    # Get the CPU family ID
+    # Map from Micro-architure code from MAQAO detect-proc to short name used in intel.json
+    # Default to OTHER if nothing is found.
+    processor_name_dict = {
+        "SAPPHIRE_RAPIDS":"SPR", "ICELAKE_SP":"ICL", "KABY_LAKE":"SKL",
+        "SKYLAKE":"SKX", "HASWELL_E":"HSW", "HASWELL":"HSW" }
+    proc_arch_name = get_processor_architecture(maqao_dir)
+    return processor_name_dict.get(proc_arch_name, "OTHER")
     family = get_family ()
     # Get the CPU model ID
     model = get_model()
@@ -86,22 +92,29 @@ def get_intel_processor_name():
 
     return CPU
 
-def get_processor_architecture():
+def get_processor_architecture(maqao_dir):
     '''Get the processor architecture'''
     # Get the CPU code name
-    CPU =  get_intel_processor_name()
+    parsed_output = get_mach_info_using_maqao(maqao_dir)
+    return parsed_output['Micro-architecture code']
 
-    # Translate CPU name into architecture code
-    if CPU == 'SPR':
-        architecture = 'SAPPHIRE_RAPIDS'
-    elif CPU == 'ICL':
-        architecture = 'ICELAKE_SP'
-    elif CPU == 'SKL':
-        architecture = 'SKYLAKE'
-    else:
-        architecture = ''
+def get_mach_info_using_maqao(maqao_dir):
+    output = subprocess.check_output([os.path.join(maqao_dir, 'bin', 'maqao'), "--detect-proc"], universal_newlines=True)
+    parsed_output = { line.split(':', 1)[0].strip(): line.split(':',1)[1].strip() for line in output.split("\n") if line.strip()}
+    return parsed_output
+    # CPU =  get_intel_processor_name()
 
-    return architecture
+    # # Translate CPU name into architecture code
+    # if CPU == 'SPR':
+    #     architecture = 'SAPPHIRE_RAPIDS'
+    # elif CPU == 'ICL':
+    #     architecture = 'ICELAKE_SP'
+    # elif CPU == 'SKL':
+    #     architecture = 'SKYLAKE'
+    # else:
+    #     architecture = ''
+
+    # return architecture
 
 def get_number_of_cpus():
     '''Retrieve the number of logical CPUs from lscpu command'''

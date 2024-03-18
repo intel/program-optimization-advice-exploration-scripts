@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getAppColor, baseHistogramLayout, categorizeIntoBin, getProcessorColor } from "../../Constants";
+import { getAppColor, baseHistogramLayout, categorizeIntoBin, getProcessorColor, getAppName, formatValue } from "../../Constants";
 import PlotlyHistogram from "./PlotlyHistogram";
 import '../../css/graph.css'
 import axios from "axios";
@@ -67,23 +67,28 @@ export default function ArccompHistogram() {
     }, [])
 
     const processRawData = (rawData) => {
+        if (!rawData || Object.keys(rawData).length === 0) {
+            return [];
+        }
         const histogramData = rawData.Apps.map((app, index) => {
             const ratio = rawData['winner ratio'][index];
             let binKey = categorizeIntoBin(ratio, range);
+            const transformedAppName = getAppName(app);
+
             //each app
             const appHistogramData = {
                 x: range,
                 y: range.map((val, i) => (range[i] === binKey ? 1 : 0)),
                 type: 'bar',
-                name: app,
+                name: transformedAppName,
                 marker: {
                     //winner processor color
                     color: getProcessorColor(rawData.winner[index]),
 
                 },
-                text: range.map((key) => (key === binKey ? app : '')),
+                text: range.map((key) => (key === binKey ? transformedAppName : '')),
                 hoverinfo: 'text',
-                hovertext: `Ratio: ${rawData['winner ratio'][index].toFixed(2)} Winner: ${rawData['winner'][index]}`,
+                hovertext: `Ratio: ${formatValue(rawData['winner ratio'][index])} Winner: ${formatValue(rawData['winner'][index])}`,
 
                 textposition: 'inside',
                 insidetextanchor: 'middle',
