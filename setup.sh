@@ -28,13 +28,36 @@ if [[ ${USER} != "qaas" ]]; then
   echo
   export QAAS_DB_PASSWORD
 
-	SSH_PARENT_FOLDER=$(readlink -f ~/)
+  SSH_PARENT_FOLDER=$(readlink -f ~/)
   echo -n "Enter the folder parent of .ssh folder which has SSH configuration and key for webdb and backplane container (Press enter for $SSH_PARENT_FOLDER):"
   read ssh_parent_folder_input
   if [ ! -z $ssh_parent_folder_input ]; then
     SSH_PARENT_FOLDER=${ssh_parent_folder_input}
   fi
   export SSH_PARENT_FOLDER
+
+  while true; do
+    echo "Oneview FLOPS collection requires executing sudo sysctl command."
+    echo -n "Do you want to enable? (Y/N): "
+    read answer
+    case $answer in
+      [Yy])
+        if sudo sysctl kernel.perf_event_paranoid=-1; then
+          echo "Oneview FLOPS collection enabled successfully."
+          break
+        else
+          echo "sudo command falied."
+        fi
+        ;;
+      [Nn])
+        echo "Proceeding with Oneview FLOPS collection disabled."
+        break
+        ;;
+      *)
+        echo "Invalid choice. Please enter 'Y' or 'N'."
+        ;;
+    esac
+  done
 
   echo -n "Customized dockerfile for backplane container (Press enter for none):"
   read custom_dockerfile
