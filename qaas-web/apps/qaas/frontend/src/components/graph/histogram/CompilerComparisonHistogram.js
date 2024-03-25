@@ -3,7 +3,7 @@ import Histogram from './Histogram';
 import axios from "axios";
 import { RANGES } from '../../Constants';
 import { categorizeSpeedupDynamic, COMPILER_COLORS, getCompilerColor } from '../../Constants';
-import { DEFAULT_COLOR_SCHEME } from "../../Constants";
+import { DEFAULT_COLOR_SCHEME, REACT_APP_API_BASE_URL } from "../../Constants";
 import { Chart, registerables } from "chart.js"
 import HistogramBinSlider from './HistogramBinSlider';
 import { BarTextPlugin } from '../GraphPlugin';
@@ -70,7 +70,7 @@ export default function CompilerComparisonHistogram() {
 
     //set raw data first time
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_qaas_compiler_comparison_historgram_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_qaas_compiler_comparison_historgram_data`)
             .then((response) => {
                 setRawData(response.data);
 

@@ -3,7 +3,7 @@ import Table from './table';
 import '../../../css/table.css';
 import ApplicationSubTable from './ApplicationSubTable';
 import axios from 'axios';
-
+import { REACT_APP_API_BASE_URL } from '../../../Constants';
 const ApplicationTable = React.memo(({ data }) => {
 
 
@@ -11,7 +11,7 @@ const ApplicationTable = React.memo(({ data }) => {
         const newWindow = window.open(`#/generated?loading=true`, "_blank");
 
         try {
-            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/generate_ov_best_compilers_comparison`, { 'timestamp': timestamp })
+            const result = await axios.post(`${REACT_APP_API_BASE_URL}/generate_ov_best_compilers_comparison`, { 'timestamp': timestamp })
             //send user to new page
             newWindow.location.href = `#/generated?loading=false`;
 
@@ -25,7 +25,7 @@ const ApplicationTable = React.memo(({ data }) => {
         const newWindow = window.open(`#/generated?loading=true`, "_blank");
 
         try {
-            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/generate_ov_best_compiler_vs_orig`, { 'timestamp': timestamp })
+            const result = await axios.post(`${REACT_APP_API_BASE_URL}/generate_ov_best_compiler_vs_orig`, { 'timestamp': timestamp })
             //send user to new page
             newWindow.location.href = `#/generated?loading=false`;
 
@@ -39,8 +39,7 @@ const ApplicationTable = React.memo(({ data }) => {
 
     const fetchSubTableData = async (qaas_timestamp) => {
         try {
-            console.log("timestamp", qaas_timestamp)
-            const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_job_submission_subtable_data`, { 'qaas_timestamp': qaas_timestamp });
+            const response = await axios.post(`${REACT_APP_API_BASE_URL}/get_job_submission_subtable_data`, { 'qaas_timestamp': qaas_timestamp });
             return response.data;
         } catch (error) {
             console.error('Error fetching sub-table data:', error);

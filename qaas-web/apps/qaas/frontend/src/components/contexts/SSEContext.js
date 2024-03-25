@@ -1,6 +1,6 @@
 //this context is used to keep global message
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
+import { REACT_APP_API_BASE_URL } from '../Constants';
 const initialContextState = {
     statusMsg: '',
     SSEStatus: false,
@@ -17,7 +17,7 @@ export const SSEProvider = ({ children }) => {
     const [SSEStatus, setSSEStatus] = useState(initialContextState.SSEStatus);
     // start SSE connection
     const startSSEConnection = () => {
-        const newSse = new EventSource(`${process.env.REACT_APP_API_BASE_URL}/stream`);
+        const newSse = new EventSource(`${REACT_APP_API_BASE_URL}/stream`);
         newSse.onmessage = e => {
             setStatusMsg(e.data);
         };

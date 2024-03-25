@@ -5,8 +5,9 @@ import { } from '../GraphPlugin';
 import PlotlyLineGraph from './PlotlyLineGraph';
 import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout, getAppName } from '../../Constants';
 import { createMultileMinMaxAnnotations } from '../GraphPlugin';
-Chart.register(...registerables);
+import { REACT_APP_API_BASE_URL } from '../../Constants';
 
+Chart.register(...registerables);
 
 export default function MulticorePerfGFlopsLineGraph() {
     const [chartData, setChartData] = useState(null);
@@ -15,7 +16,7 @@ export default function MulticorePerfGFlopsLineGraph() {
 
     //set raw data first time
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_qaas_multicore_perf_gflops_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_qaas_multicore_perf_gflops_data`)
             .then((response) => {
 
                 const rawData = response.data
