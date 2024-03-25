@@ -1050,6 +1050,12 @@ def run_replay_steps(cc, cxx, cflags, cxxflags, binary, extractor_work_dir, loop
     all_successful_cycles_df.to_csv(all_successful_cycles_csv)
     print(f'Successful Cycles csv at: {all_successful_cycles_csv}')
 
+def ensure_simple_name(input):
+    white_list_pattern = re.compile(r'^[a-zA-Z0-9_-]+$')
+    if white_list_pattern.match(input):
+        return input
+    raise Exception(f"Invalid simple name: {input}")
+
 def make_extracted_folder(extractor_work_dir, loop_extractor_data_dir, cere_src_folder, cere_out_dir, full_trace_binary, instance_num, extracted_codelets_dir, top_cmakelist, loop_src, replay_loop_src, global_vars):
     loop_filename = os.path.basename(loop_src)
     loop_name = os.path.splitext(loop_filename)[0]
@@ -1063,7 +1069,7 @@ def make_extracted_folder(extractor_work_dir, loop_extractor_data_dir, cere_src_
     from_replay_loop_src = os.path.join(loop_extractor_data_dir, replay_loop_src)
             #dump_name = re.search(r"dump\(\"([^\"]*)", 
             #                      open(os.path.join(loop_extractor_data_dir, base_src)).read()).group(1)
-    dump_name = re.search(r"load\(\"([^\"]*)", open(from_replay_loop_src).read()).group(1)
+    dump_name = ensure_simple_name(re.search(r"load\(\"([^\"]*)", open(from_replay_loop_src).read()).group(1))
     restore_data_dir = ensure_dir_exists(restore_data_root_dir, f"dumps/{dump_name}/{instance_num}")
     cere_dump_dir = os.path.join(cere_out_dir, "dumps", dump_name, str(instance_num))
             # Copy .map files
