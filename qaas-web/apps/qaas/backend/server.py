@@ -766,6 +766,21 @@ def create_app(config):
     def apply_hsts(response):
         response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
         return response
+
+    @app.after_request
+    def apply_no_cache(response):
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Cache-Control"]= "no-cache; no-store; max-age=0; must-revalidate"
+        response.headers["Expires"]= -1
+        return response
+
+
+    @app.after_request
+    def apply_limit_frame(response):
+        response.headers["X-Frame-Options"] = "self"
+        response.headers["Content-Security-Policy"] = "frame-ancestors"
+
+        return response
     
     return app
 if __name__ == '__main__':
