@@ -6,6 +6,7 @@ import Title from './Title';
 import ApplicationTable from './data/ApplicationTable';
 import FilterComponent from '../components/filters/FilterComponent'
 import axios from 'axios';
+import { REACT_APP_API_BASE_URL } from './Constants';
 import AllLoopsSpeedupRangeGraph from './graphs/AllLoopsSpeedupRangeGraph';
 const MainPage = () => {
     const [data, setData] = useState([]);
@@ -23,7 +24,7 @@ const MainPage = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_application_table_info_lore`, {});
+            const result = await axios.post(`${REACT_APP_API_BASE_URL}/get_application_table_info_lore`, {});
             setData(result.data.data);
             setFilteredData(result.data.data);
             setTotalRecords(result.data.totalCount); // replace `totalCount` with the actual property name
@@ -46,7 +47,7 @@ const MainPage = () => {
 
         setIsLoading(true);
         try {
-            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_application_table_info_lore`, { filters: filterParams });
+            const result = await axios.post(`${REACT_APP_API_BASE_URL}/get_application_table_info_lore`, { filters: filterParams });
             setData(result.data.data);
             setFilteredData(result.data.data);
             setTotalRecords(result.data.totalCount); // replace `totalCount` with the actual property name

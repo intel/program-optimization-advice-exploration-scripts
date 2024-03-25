@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import CustomReactTable from "./CustomReactTable";
-import { getCompilerColor, formatValue } from "../../Constants";
+import { getCompilerColor, formatValue, REACT_APP_API_BASE_URL } from "../../Constants";
 import TooltipComponent from "../../TooltipComponent";
 import axios from "axios";
 
@@ -34,7 +34,7 @@ function BestCompTable() {
 
     const [chartData, setChartData] = useState([]);
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_bestcomp_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_bestcomp_data`)
             .then((response) => {
 
                 const rawData = response.data

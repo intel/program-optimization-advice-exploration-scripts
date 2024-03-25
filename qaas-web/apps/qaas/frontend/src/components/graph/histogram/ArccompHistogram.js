@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getAppColor, baseHistogramLayout, categorizeIntoBin, getProcessorColor, getAppName, formatValue } from "../../Constants";
+import { getAppColor, baseHistogramLayout, categorizeIntoBin, getProcessorColor, getAppName, formatValue, REACT_APP_API_BASE_URL } from "../../Constants";
 import PlotlyHistogram from "./PlotlyHistogram";
 import '../../css/graph.css'
 import axios from "axios";
@@ -51,7 +51,7 @@ export default function ArccompHistogram() {
     }, [range]);
 
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_arccomp_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_arccomp_data`)
             .then((response) => {
 
                 const rawData = response.data

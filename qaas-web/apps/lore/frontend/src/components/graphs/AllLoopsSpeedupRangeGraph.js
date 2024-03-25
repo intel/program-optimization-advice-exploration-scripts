@@ -4,6 +4,7 @@ import { Modal } from 'antd';
 import axios from 'axios';
 import { RANGES } from "../Constants";
 import { DEFAULT_COLOR_SCHEME } from "../Constants";
+import { REACT_APP_API_BASE_URL } from "../Constants";
 export default function AllLoopsSpeedupRangeGraph() {
     const [data, setData] = useState(null);
     const [open, setOpen] = useState(false);
@@ -12,7 +13,7 @@ export default function AllLoopsSpeedupRangeGraph() {
     const fetchData = () => {
         setLoading(true);
 
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/lore_get_all_speedup_range`)
+        axios.get(`${REACT_APP_API_BASE_URL}/lore_get_all_speedup_range`)
             .then(response => {
                 setData(response.data);
                 setOpen(true);
