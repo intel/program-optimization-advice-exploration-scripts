@@ -71,26 +71,26 @@ def get_intel_processor_name(maqao_dir):
         "SKYLAKE":"SKX", "HASWELL_E":"HSW", "HASWELL":"HSW" }
     proc_arch_name = get_processor_architecture(maqao_dir)
     return processor_name_dict.get(proc_arch_name, "OTHER")
-    family = get_family ()
-    # Get the CPU model ID
-    model = get_model()
+    # family = get_family ()
+    # # Get the CPU model ID
+    # model = get_model()
 
-    if family == 6:
-        if model == 143:
-            CPU = 'SPR'
-        elif model == 106:
-            CPU = 'ICL'
-        elif model == 85:
-            CPU = 'SKL'
-        # Should be Coffee Lake or Kaby Lake, but consider them SKL (needed for UVSQ "intel" machine)
-        elif model == 158:
-            CPU = 'SKL'
-        elif model == 63 or model == 79:
-            CPU = 'HSW'
-        else:
-            CPU = 'OTHER'
+    # if family == 6:
+    #     if model == 143:
+    #         CPU = 'SPR'
+    #     elif model == 106:
+    #         CPU = 'ICL'
+    #     elif model == 85:
+    #         CPU = 'SKL'
+    #     # Should be Coffee Lake or Kaby Lake, but consider them SKL (needed for UVSQ "intel" machine)
+    #     elif model == 158:
+    #         CPU = 'SKL'
+    #     elif model == 63 or model == 79:
+    #         CPU = 'HSW'
+    #     else:
+    #         CPU = 'OTHER'
 
-    return CPU
+    # return CPU
 
 def get_processor_architecture(maqao_dir):
     '''Get the processor architecture'''
