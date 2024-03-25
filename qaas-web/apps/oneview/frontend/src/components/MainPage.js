@@ -10,7 +10,7 @@ import { INITIAL_FILTERS } from './filters/InitialFilter';
 import { Modal } from 'antd';
 import AllSpeedupRangeGraph from './graph/AllSpeedupRangeGraph';
 import { SelectionProvider } from './contexts/SelectionContext';
-import { REACT_APP_API_BASE_URL } from '../../../../qaas/frontend/src/components/Constants';
+import { REACT_APP_API_BASE_URL } from './Constants';
 const MainPage = () => {
     const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
