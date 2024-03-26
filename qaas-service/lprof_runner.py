@@ -35,6 +35,7 @@ import subprocess
 import shutil
 from utils.util import parse_env_map
 from base_runner import BaseRunner
+import shlex
 
 LPROF_MAX_OVERHEAD = 1.03
 
@@ -50,16 +51,24 @@ class LProfRunner(BaseRunner):
         true_run_cmd = run_cmd.replace('<binary>', binary_path)
         self.lprof_result_dir = os.path.join(self.run_dir, f'lprof_results')
         lprof_mpi_command = f"--mpi-command=\"{mpi_command}\"" if mpi_command else ""
-        lprof_run_cmd=f'{self.maqao_dir}/bin/maqao lprof --mute {lprof_mpi_command} '\
-            f'xp={self.lprof_result_dir} -- {true_run_cmd} > output.out 2>&1'
+        lprof_run_cmds = [f'{self.maqao_dir}/bin/maqao', 'lprof', '--mute', f'{lprof_mpi_command}', 
+                          f'xp={self.lprof_result_dir}', '--', f'{shlex.quote(true_run_cmd)}']
+        #lprof_run_cmd=f'{self.maqao_dir}/bin/maqao lprof --mute {lprof_mpi_command} '\
+        #    f'xp={self.lprof_result_dir} -- {true_run_cmd} > output.out 2>&1'
+        lprof_run_cmd = " ".join(lprof_run_cmds)
         print(lprof_run_cmd)
-        subprocess.run(lprof_run_cmd, shell=True, env=run_env, cwd=self.run_dir)
+        with open(os.path.join(self.run_dir, 'output.txt'), 'w') as outfile:
+            subprocess.run(lprof_run_cmds, stdout=outfile, stderr=subprocess.STDOUT, env=run_env, cwd=self.run_dir)
+        #subprocess.run(lprof_run_cmd, shell=True, env=run_env, cwd=self.run_dir)
         return True
 
     def compute_lprof_time(self, lprof_walltime_script_path):
-        run_cmd = f'{self.maqao_dir}/bin/maqao {lprof_walltime_script_path} {self.lprof_result_dir}'
+        run_cmds = [f'{self.maqao_dir}/bin/maqao', f'{lprof_walltime_script_path}', f'{self.lprof_result_dir}']
+        #run_cmd = f'{self.maqao_dir}/bin/maqao {lprof_walltime_script_path} {self.lprof_result_dir}'
+        run_cmd = " ".join(run_cmds)
         print(run_cmd)
-        result = subprocess.run(run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(run_cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        #result = subprocess.run(run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
             print(result.stderr.decode("utf-8"))
             return
