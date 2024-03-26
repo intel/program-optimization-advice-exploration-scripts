@@ -194,7 +194,7 @@ class QAASEnvProvisioner:
         cmds = "mkdir -p " + self.work_dirs[0]
         for index in range(1, len(self.work_dirs), 1):
             cmds = cmds + " && " + "mkdir -p " + self.work_dirs[index]
-        cmds = "'" + cmds + "'"
+        #cmds = "'" + cmds + "'"
         cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
         if self.remote_job:
             rc, cmdout = cmd_runner.run_remote_cmd(cmds)
@@ -222,14 +222,14 @@ class QAASEnvProvisioner:
         logging.info("Cloning application GIT repo on %s", self.machine)
         target_branch, git_url = self.generate_git_url_branch(self.git_branch, self.git_src_url,
                                                               self.git_user, self.git_token)
-        cmdline = "'cd " + self.get_workdir("build") + \
+        cmdline = "cd " + self.get_workdir("build") + \
                   " && if [[ ! -d " + self.app_name + " ]]; then" + \
                   " git clone -b " + target_branch + \
                   " " + git_url + " " + self.app_name + \
                   " && cd " + self.app_name + \
                   f" && if [[ -f .gitmodules ]]; then git submodule update --init --recursive; fi" + \
                   " && cd .." + \
-                  " && rm -rf " + self.app_name + "/.git; fi'"
+                  " && rm -rf " + self.app_name + "/.git; fi"
         cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
         if self.remote_job:
             rc, cmdout = cmd_runner.run_remote_cmd(cmdline)
