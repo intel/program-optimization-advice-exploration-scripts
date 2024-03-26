@@ -60,4 +60,7 @@ def load_json(file_path):
     
     with open(file_path, 'r') as f:
         data = json.load(f)
+    data['application']['GIT']['TOKEN'] = '*' * len(data['application']['GIT']['TOKEN'])
+    data['application']['GIT']['DATA_TOKEN'] = '*' * len(data['application']['GIT']['TOKEN'])
+
     return jsonify(data)
