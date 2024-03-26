@@ -4,7 +4,6 @@ from flask import request,jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask import current_app
 import pandas as pd
-import subprocess
 import json
 import os
 import sys

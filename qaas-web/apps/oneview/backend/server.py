@@ -32,7 +32,6 @@ from flask import request,jsonify
 from flask_sqlalchemy import SQLAlchemy
 from multiprocessing import Process, Queue
 import pandas as pd
-import subprocess
 import json
 import pandas as pd
 import os

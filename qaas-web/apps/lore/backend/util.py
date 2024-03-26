@@ -46,7 +46,7 @@ from datetime import datetime
 import configparser
 from sqlalchemy import distinct, func
 from sqlalchemy.sql import and_
-import subprocess
+# import subprocess
 from constants import dyn_cntr, derived_metrics, inst_cnt, compiler_flags
 from sqlalchemy import exists, and_
 
@@ -80,9 +80,9 @@ def check_mutation(session, execution, value):
         return False
     return True
 #format code
-def format_code(code):
-    process = subprocess.run(['clang-format'], input=code, text=True, capture_output=True)
-    return process.stdout
+# def format_code(code):
+#     process = subprocess.run(['clang-format'], input=code, text=True, capture_output=True)
+#     return process.stdout
 #get the config
 def get_config():
     config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())

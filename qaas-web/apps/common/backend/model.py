@@ -21,7 +21,7 @@ from sqlalchemy.dialects.mysql import LONGBLOB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship,registry
 import inspect
-from pickle import dumps, loads
+# from pickle import dumps, loads
 from gzip import zlib
 import os
 import math
@@ -44,23 +44,23 @@ class QaaSBase(Base):
 
 mapper_registry = registry()
 
-class CompressedPickler(object):
-    @classmethod
-    def dumps(cls, obj, protocol=2):
-        s = dumps(obj, protocol)
-        sz = zlib.compress(s, 9)
-        if len(sz) < len(s):
-            return sz
-        else:
-            return s
+# class CompressedPickler(object):
+#     @classmethod
+#     def dumps(cls, obj, protocol=2):
+#         s = dumps(obj, protocol)
+#         sz = zlib.compress(s, 9)
+#         if len(sz) < len(s):
+#             return sz
+#         else:
+#             return s
 
-    @classmethod
-    def loads(cls, string):
-        try:
-            s = zlib.decompress(string)
-        except:
-            s = string
-        return loads(s)
+#     @classmethod
+#     def loads(cls, string):
+#         try:
+#             s = zlib.decompress(string)
+#         except:
+#             s = string
+#         return loads(s)
 
 
 class Application(QaaSBase):
