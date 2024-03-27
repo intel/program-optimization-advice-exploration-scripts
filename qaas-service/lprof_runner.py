@@ -50,9 +50,9 @@ class LProfRunner(BaseRunner):
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         true_run_cmd = run_cmd.replace('<binary>', binary_path)
         self.lprof_result_dir = os.path.join(self.run_dir, f'lprof_results')
-        lprof_mpi_command = f"--mpi-command=\"{mpi_command}\"" if mpi_command else ""
+        lprof_mpi_command = f"--mpi-command={mpi_command}" if mpi_command else ""
         lprof_run_cmds = [f'{self.maqao_dir}/bin/maqao', 'lprof', '--mute', f'{lprof_mpi_command}', 
-                          f'xp={self.lprof_result_dir}', '--', f'{shlex.quote(true_run_cmd)}']
+                          f'xp={self.lprof_result_dir}', '--'] + shlex.split(true_run_cmd)
         #lprof_run_cmd=f'{self.maqao_dir}/bin/maqao lprof --mute {lprof_mpi_command} '\
         #    f'xp={self.lprof_result_dir} -- {true_run_cmd} > output.out 2>&1'
         lprof_run_cmd = " ".join(lprof_run_cmds)

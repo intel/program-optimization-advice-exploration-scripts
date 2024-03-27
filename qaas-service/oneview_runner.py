@@ -35,6 +35,7 @@ import argparse
 import subprocess
 from utils.util import generate_timestamp_str
 from base_runner import BaseRunner
+import shlex
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
 # TODO: refactor with Profiler.py
@@ -84,12 +85,13 @@ class OneviewRunner(BaseRunner):
 
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         true_run_cmd = run_cmd.replace('<binary>', binary_path)
-        pinning_cmd = "" if mpi_command or self.ov_config != "unused" else f"--pinning-command=\"{self.get_pinning_cmd()}\""
+        pinning_cmds = [] if mpi_command or self.ov_config != "unused" else [f"--pinning-command=\"{self.get_pinning_cmd()}\""]
+        #pinning_cmd = "" if mpi_command or self.ov_config != "unused" else f"--pinning-command=\"{self.get_pinning_cmd()}\""
 
         self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
         os.makedirs(self.ov_result_dir)
 
-        ov_mpi_command = f"--mpi-command=\"{mpi_command}\"" if mpi_command else ""
+        ov_mpi_command = f"--mpi-command={mpi_command}" if mpi_command else ""
         ov_config_options = [] if self.ov_config == "unused" else [f"-WC", f"-c={self.ov_config}"]
         #ov_config_option = "" if self.ov_config == "unused" else f"-WC -c={self.ov_config}"
         ov_filter_options = ['--filter="{type=\\\"number\\\", value=1}"'] if self.level != 1 else []
@@ -107,11 +109,11 @@ class OneviewRunner(BaseRunner):
             [f'--base-run-name={run_name}',
             f'--with-FLOPS '] + \
             ov_extra_libs_options + \
-            [ f'--run-directory="{run_dir}"', f'{pinning_cmd}',
-            f'--replace xp={self.ov_result_dir}'] + \
+            [ f'--run-directory="{run_dir}"']+ pinning_cmds + \
+            [f'--replace', f'xp={self.ov_result_dir}'] + \
             ov_filter_options + \
             [f'-of={self.ov_of}',
-            f'--', '{true_run_cmd}']
+            f'--'] + shlex.split(true_run_cmd)
         #ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} {ov_config_option}'\
         #    f' --base-run-name={run_name} ' \
         #    f' --with-FLOPS ' \

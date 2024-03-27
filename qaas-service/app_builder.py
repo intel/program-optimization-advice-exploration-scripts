@@ -217,7 +217,7 @@ def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target
     env['VERBOSE']='1'
     log_file_name = os.path.join(os.path.dirname(src_dir), "qaas_build.log")
     with open(log_file_name, 'w') as log_file:
-        subprocess.run(cmake_config_cmd, stdout=log_file, stderr=subprocess.STDOUT, env=env, text=True)
+        subprocess.run(cmake_config_cmds, stdout=log_file, stderr=subprocess.STDOUT, env=env, text=True)
     shutil.move(log_file_name, build_dir)
     # Allow search any compiler generated files
     env['QAAS_BUILD_DIR']=build_dir
@@ -295,7 +295,7 @@ def build_binary(user_target, build_dir, target_location, env, output_dir, outpu
     cmake_build_cmd = " ".join(cmake_build_cmds)
     print(cmake_build_cmd)
     log_file_name = os.path.join(os.path.dirname(build_dir), "qaas_build.log")
-    with open(log_file_name) as log_file:
+    with open(log_file_name, "a") as log_file:
         subprocess.run(cmake_build_cmds, stdout=log_file, stderr=subprocess.STDOUT, text=True, env=env)
     built_bin = os.path.join(build_dir, target_location)
     out_bin = os.path.join(output_dir, output_name)

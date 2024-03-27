@@ -50,7 +50,7 @@ class AppRunner(BaseRunner):
         self.exec_times = []
 
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
-        true_run_cmd = shlex.quote(run_cmd.replace('<binary>', binary_path))
+        true_run_cmd = run_cmd.replace('<binary>', binary_path)
         pinning_cmd = "" if mpi_command else f"{self.get_pinning_cmd()}"
         base_run_cmd=f'{mpi_command} {true_run_cmd}' if mpi_command else f'{pinning_cmd} {true_run_cmd}'
         print(f"run_dir is: {run_dir}")
