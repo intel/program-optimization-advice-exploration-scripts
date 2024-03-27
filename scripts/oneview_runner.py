@@ -6,6 +6,7 @@ import argparse
 import subprocess
 from util import generate_timestamp_str
 from base_runner import BaseRunner
+import shlex
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
 # TODO: refactor with Profiler.py
@@ -52,19 +53,22 @@ class OneviewRunner(BaseRunner):
     #     self.true_run(binary_path, run_dir, run_cmd, run_env, mpi_command)
 
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
-        true_run_cmd = run_cmd.replace('<binary>', binary_path)
+        true_run_cmd = shlex.quote(run_cmd.replace('<binary>', binary_path))
 
         self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
         os.makedirs(self.ov_result_dir)
 
         ov_mpi_command = f"--mpi_command=\"{mpi_command}\"" if mpi_command else ""
-        ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} '\
-            f'--run-directory="{run_dir}" '\
-            f'xp={self.ov_result_dir} --replace -- {true_run_cmd}'
-            #f'--dataset={data_dir} --dataset-handler=copy --run-directory="<dataset>" '\
+        ov_run_cmds = [self.maqao_bin, "oneview", f"-R{self.level}"] + \
+            ([ov_mpi_command] if ov_mpi_command else []) + \
+            [ f'--run-directory="{run_dir}"', f'xp={self.ov_result_dir}', '--replace', '--', true_run_cmd]
+        #ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} '\
+        #    f'--run-directory="{run_dir}" '\
+        #    f'xp={self.ov_result_dir} --replace -- {true_run_cmd}'
+        ov_run_cmd = " ".join(ov_run_cmds)
         print(ov_run_cmd)
         print(self.ov_result_dir)
-        subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.ov_result_root)
+        subprocess.run(ov_run_cmds, env=run_env, cwd=self.ov_result_root)
 
 
 def exec(env, binary_path, data_path, ov_result_root, run_cmd, ov_dir, ov_config, mode,

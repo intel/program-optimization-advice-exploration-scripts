@@ -16,6 +16,7 @@ from Cheetah.Template import Template
 import tempfile
 import tarfile
 import argparse
+import shlex
 from processSuccessfulLoops import process_successful_loops
 
 SCRIPT_DIR=os.path.dirname(os.path.abspath(__file__))
@@ -45,16 +46,30 @@ isDebug = False
 
 ##################################################################################################
 ## Utility functions that move files, create or remove directories, and run other commands in bash
-def runCmdGetRst(myCmd, cwd, env=os.environ.copy()):
-    result = run_subprocess_run(myCmd, cwd, env, capture_output = True, text=True)
+def runCmdGetRst_safe_pipes(pipeCmds, cwd, env=os.environ.copy()):
+    last_stdin=None
+    for pipeCmd in pipeCmds:
+        result = subprocess.Popen(pipeCmd, cwd=cwd, env=env, text=True, stdin=last_stdin, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        last_stdin = result.stdout
+    output, error = result.communicate()
+    return output.strip(), error.strip()
+
+def runCmdGetRst_safe(myCmds, cwd, env=os.environ.copy()):
+    result = run_subprocess_run_safe(myCmds, cwd, env, capture_output = True, text=True)
     return result.stdout.strip(), result.stderr.strip()
 
-def runCmd(myCmd, cwd, env=os.environ.copy(), verbose=False, throwException=False):
-    print(f'Running command (CMD:{myCmd}) under directory ({cwd})')
-    run_subprocess_run(myCmd, cwd, env, capture_output = not verbose, text=False, throwException = throwException)
+def runCmd_safe(myCmds, cwd, env=os.environ.copy(), verbose=False, throwException=False):
+    print(f'Running command (CMD:{myCmds}) under directory ({cwd})')
+    run_subprocess_run_safe(myCmds, cwd, env, capture_output = not verbose, text=False, throwException = throwException)
 
-def run_subprocess_run(myCmd, cwd, env, capture_output, text=False, throwException=False):
-    result = subprocess.run(myCmd, shell=True, env=env, cwd=cwd, capture_output=capture_output, text=text)
+def runCmd_safe_redirect(myCmds, outfile, cwd, env=os.environ.copy(), verbose=False, throwException=False):
+    print(f'Running command (CMD:{myCmds}) under directory ({cwd})')
+    result = run_subprocess_run_safe(myCmds, cwd, env, capture_output = True, text=False, throwException = throwException)
+    with open(outfile, 'w') as of:
+        of.write(result.stdout)
+
+def run_subprocess_run_safe(myCmds, cwd, env, capture_output, text=False, throwException=False):
+    result = subprocess.run(myCmds, env=env, cwd=cwd, capture_output=capture_output, text=text)
     if throwException and result.returncode != 0:
         raise Exception(f'Non-zero return code in execution: {result.returncode}')
     else:
@@ -123,7 +138,9 @@ def initiateConfig(outdir, instanceNum=0):
 def load_advisor_env():
     #script = os.path.join(compiler_dir, 'Linux/intel64/load.sh')
     #script = '/nfs/site/proj/openmp/compilers/intel/19.0/Linux/intel64/load.sh'
-    pipe = subprocess.Popen(f"/bin/bash -c 'source {ADVISOR_VARS_SH} --force && env'", stdout=subprocess.PIPE, shell=True)
+    # ADVISOR_VARS_SH is not user input, so safe
+    pipe = subprocess.Popen([f"/bin/bash", "-c", f'source {ADVISOR_VARS_SH} --force && env'], stdout=subprocess.PIPE)
+    #pipe = subprocess.Popen(f"/bin/bash -c 'source {ADVISOR_VARS_SH} --force && env'", stdout=subprocess.PIPE, shell=True)
     output = pipe.communicate()[0]
     #for line in output.splitlines():
     #    print(str(line).split("=", 1))
@@ -248,8 +265,8 @@ class Extraction(ABC):
             
 
         if not SKIP:
-            runCmd(f'cere profile', cwd=cere_profile_data_dir, verbose=True)
-            runCmd(f'cere regions --estimate-cycles', cwd=cere_profile_data_dir, verbose=True)
+            runCmd_safe([f'cere', 'profile'], cwd=cere_profile_data_dir, verbose=True)
+            runCmd_safe([f'cere', 'region', '--estimate-cycles'], cwd=cere_profile_data_dir, verbose=True)
         regions_df = pd.read_csv(os.path.join(cere_profile_data_dir, 'regions.csv'))
         # COMMENTED OUT FOR TESTING
         # regions_df = regions_df.sort_values(by='Coverage (self)', ascending=False)
@@ -284,14 +301,14 @@ class Extraction(ABC):
         if not SKIP:
             regions = ";".join(regions_df['Region Name'])
             if BATCH:
-                runCmd(f'cere trace --region "{regions}"', cwd=cere_profile_data_dir, verbose=True) 
+                runCmd_safe(['cere', 'trace', '--region', f'{regions}'], cwd=cere_profile_data_dir, verbose=True) 
             else:
                 for region in regions_df['Region Name']:
             #        if region != "__cere___host_localdisk_cwong29_working_codelet_extractor_work_SPEC2017_benchmark_benchspec_CPU_525_x264_r_src_x264_src_encoder_encoder_x264_slices_write_2079":
             #            continue
 
                     try:
-                        runCmd(f'cere trace --region {region}', cwd=cere_profile_data_dir, verbose=True) 
+                        runCmd_safe(['cere', 'trace', '--region', f'{region}'], cwd=cere_profile_data_dir, verbose=True) 
                     except:
                         pass
 
@@ -300,7 +317,7 @@ class Extraction(ABC):
             #if region != "__cere___host_localdisk_cwong29_working_codelet_extractor_work_SPEC2017_benchmark_benchspec_CPU_525_x264_r_src_x264_src_encoder_encoder_x264_slices_write_2079": 
             #    continue
             try:
-                runCmd(f'cere selectinv --region {region} --dump-clusters', cwd=cere_profile_data_dir, verbose=True) 
+                runCmd_safe(['cere', 'selectinv', '--region', f'{region}', '--dump-clusters'], cwd=cere_profile_data_dir, verbose=True) 
                 inv_df = pd.read_csv(os.path.join(cere_traces_dir, f'{region}.invocations'), delimiter=' ', names=['Cluster ID', 'Cluster Weight', 'Cluster Cycles']) 
                 inv_df['Region Name'] = region
                 inv_df = pd.merge(inv_df, regions_df, on='Region Name', how='inner')
@@ -464,7 +481,11 @@ class Extraction(ABC):
         #shutil.copy2(app_data_file, profile_data_dir)
         adv_proj_dir = os.path.join(profile_data_dir, f'proj_{timestamp_str}')
 
-        main_src_file_info, _ = runCmdGetRst(f'nm -a {self.binary} | grep " main$" | cut -d " " -f 1 | xargs addr2line -e {self.binary}', cwd=profile_data_dir)
+        main_src_file_info, _ = runCmdGetRst_safe_pipes([[f'nm', '-a', f'{self.binary}'], 
+                                                         ['grep', ' main$'],
+                                                         ['cut', '-d', " ", '-f', '1'], 
+                                                         ['xargs', 'addr2line', '-e', f'{self.binary}']], 
+                                                        cwd=profile_data_dir)
         #app_cmd = f'./{binary}'
         app_cmd = f'./{self.binary}{app_flags}'
         profile_csv = os.path.join(profile_data_dir, 'profile.csv')
@@ -496,10 +517,11 @@ class Extraction(ABC):
         adv_env = load_advisor_env()
         mockup_profile_csv = mockup_profile_csvs[app_cmd] if app_cmd in mockup_profile_csvs else None
         if not mockup_profile_csv or not use_mockup:
-            runCmd(f'advixe-cl --collect survey --project-dir {adv_proj_dir} -- {app_cmd}', 
+            runCmd_safe([f'advixe-cl', '--collect', 'survey', '--project-dir', 
+                         f'{adv_proj_dir}', '--', f'{shlex.quote(app_cmd)}'], 
             cwd=advisor_run_dir, env=adv_env, verbose=True)
-            runCmd(f'advisor --report joined --project-dir={adv_proj_dir} > {profile_csv}',
-            cwd=advisor_run_dir, env=adv_env, verbose=True)
+            runCmd_safe_redirect([f'advisor', '--report', 'joined', f'--project-dir={adv_proj_dir}'],
+            profile_csv, cwd=advisor_run_dir, env=adv_env, verbose=True)
         else:
             # mockup csv found and use_mockup
             shutil.copy2(mockup_profile_csv, profile_csv)
@@ -557,7 +579,7 @@ class Extraction(ABC):
         if os.path.isfile(loop_file_names_txt):
             os.remove(loop_file_names_txt)
             # removed loop file if exists
-        runCmd(loop_extractor_command, cwd=command_directory, env=env, verbose=True)
+        runCmd_safe(shlex.split(loop_extractor_command), cwd=command_directory, env=env, verbose=True)
         if not os.path.isfile(loop_file_names_txt):
             # Failed extraction return empty list
             return []
@@ -678,7 +700,7 @@ class InvitroExtraction(Extraction):
     def run_trace_binary(self, app_flags):
         trace_binary = os.path.basename(self.full_trace_path)
         run_trace_binary = f'./{trace_binary}{app_flags}'
-        runCmd(run_trace_binary, cwd=self.tracer_run_dir, verbose=True)
+        runCmd_safe(shlex.split(run_trace_binary), cwd=self.tracer_run_dir, verbose=True)
 
     def perform_replay(self):
         self.cere_out_dir = os.path.join(self.tracer_run_dir, ".cere")
@@ -951,11 +973,13 @@ def get_spec_cmake_flags(binary, cc, cxx, datafile_names, is_int):
 
 
 def run_oneview(myCmd, cwd, xp_dir, env=os.environ.copy()):
-    oneviewCmd = f'{OV_PATH} oneview -R1 -xp={xp_dir} -- {myCmd}'
-    runCmd(oneviewCmd, cwd, env)
+    oneviewCmds = [f'{OV_PATH}', 'oneview', '-R1', f'-xp={xp_dir}', '--', f'{shlex.quote(myCmd)}']
+    #oneviewCmd = f'{OV_PATH} oneview -R1 -xp={xp_dir} -- {myCmd}'
+    runCmd_safe(oneviewCmds, cwd, env)
 def run_oneview_cmp(xp1, xp2, xp_out, cwd, env=os.environ.copy()):
-    oneviewCmd = f'{OV_PATH} oneview --compare-reports --inputs={xp1},{xp2} -xp={xp_out}'
-    runCmd(oneviewCmd, cwd, env)
+    oneviewCmds = [f'{OV_PATH}', 'oneview', '--compare-reports', f'--inputs={xp1},{xp2}', f'-xp={xp_out}']
+    #oneviewCmd = f'{OV_PATH} oneview --compare-reports --inputs={xp1},{xp2} -xp={xp_out}'
+    runCmd_safe(oneviewCmds, cwd, env)
 
 def link_app_data_files(profile_data_dir, app_data_files):
     for app_data_file in app_data_files:
@@ -1102,9 +1126,12 @@ def make_extracted_folder(extractor_work_dir, loop_extractor_data_dir, cere_src_
 
     global_linker_flags = []
     for global_var in global_vars:
-        addr_cmd = f"objdump -t {full_trace_binary}|grep '{global_var}$'|awk '{{print $1}}'"
+        addr_cmds = [[f"objdump", "-t", f"{full_trace_binary}"], 
+                     ["grep", f"{global_var}$"], 
+                     ["awk", "'{{print $1}}'"]]
+        #addr_cmd = f"objdump -t {full_trace_binary}|grep '{global_var}$'|awk '{{print $1}}'"
                 # cwd should not matter
-        rst,_ = runCmdGetRst(addr_cmd, cwd = extractor_work_dir)
+        rst,_ = runCmdGetRst_safe_pipes(addr_cmds, cwd = extractor_work_dir)
         global_linker_flags.append(f" -Wl,-defsym,{global_var}=0x{rst}")
                 
     restore_linker_flags = "-Wl,--section-start=.text=0x60004000 -Wl,--section-start=.init=0x60000000" \
@@ -1118,15 +1145,18 @@ def make_extracted_folder(extractor_work_dir, loop_extractor_data_dir, cere_src_
 def run_extracted_loop(cmd, codelet_run_dir, cere_data_dir, env=os.environ.copy()):
     env['CERE_WORKING_PATH'] = cere_data_dir
     env['MYCERE_INSTANCE_NUM'] = str(INSTANCE_NUM)
-    runCmd(cmd, cwd=codelet_run_dir, env=env, verbose=True)
+    runCmd_safe(shlex.split(cmd), cwd=codelet_run_dir, env=env, verbose=True)
 
 
 
 def run_cmake(cmakelist_dir, build_dir, run_cmake_dir, cmake_flags, trace_binary):
-    cmake_first_cmd = f'cmake {cmake_flags} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {cmakelist_dir} -B {build_dir}'
-    runCmd(cmake_first_cmd, cwd=run_cmake_dir, verbose=True, throwException=True)
-    cmake_build_cmd = f'cmake --build {build_dir} --target {trace_binary}'
-    runCmd(cmake_build_cmd, cwd=run_cmake_dir, verbose=True, throwException=True)
+    cmake_first_cmds = [f'cmake', f'{cmake_flags}', '-DCMAKE_EXPORT_COMPILE_COMMANDS=1', 
+                        '-S', f'{cmakelist_dir}', '-B', f'{build_dir}']
+    #cmake_first_cmd = f'cmake {cmake_flags} -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S {cmakelist_dir} -B {build_dir}'
+    runCmd_safe(cmake_first_cmds, cwd=run_cmake_dir, verbose=True, throwException=True)
+    cmake_build_cmds = [f'cmake', '--build', f'{build_dir}', '--target', f'{trace_binary}']
+    #cmake_build_cmd = f'cmake --build {build_dir} --target {trace_binary}'
+    runCmd_safe(cmake_build_cmds, cwd=run_cmake_dir, verbose=True, throwException=True)
 
 def update_app_cmakelists_file(src_dir, name_map, added_cmakelists_txt, in_template):
     orig_cmakelist_txt_file = os.path.join(src_dir, 'CMakeLists.txt')

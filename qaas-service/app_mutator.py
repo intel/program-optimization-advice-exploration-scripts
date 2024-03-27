@@ -122,6 +122,21 @@ def generate_build_cmd():
 		+ f" --user-target \"$QAAS_user_target\"" \
 		+ f" --user-target-location \"$QAAS_user_target_location\""
     return make_cmd
+def generate_build_cmds(env):
+    make_cmd=f'python {script_dir}/app_builder.py' \
+        + f" --src-dir \"{env['QAAS_locus_src_dir']}\"" \
+		+ " --mode make " \
+		+ f" --output-binary-path \"{env['QAAS_binary_path']}\"" \
+		+ f" --compiler-dir \"{env['QAAS_compiler_dir']}\"" \
+		+ f" --orig-user-CC \"{env['QAAS_orig_user_CC']}\"" \
+		+ f" --target-CC \"{env['QAAS_user_CC']}\"" \
+		+ f" --user-c-flags=\"{env['QAAS_user_c_flags']}\"" \
+		+ f" --user-cxx-flags=\"{env['QAAS_user_cxx_flags']}\"" \
+		+ f" --user-fc-flags=\"{env['QAAS_user_fc_flags']}\"" \
+		+ f" --user-link-flags=\"{env['QAAS_user_link_flags']}\"" \
+		+ f" --user-target \"{env['QAAS_user_target']}\"" \
+		+ f" --user-target-location \"{env['QAAS_user_target_location']}\""
+    return make_cmd
 
 # def generate_locus_scripts(run_dir, names, build_cmd_sh_file,
 #                            run_cmd_sh_file, insert_pragma_before_line,
@@ -207,12 +222,6 @@ def exec(locus_run_root, src_dir, compiler_dir, maqao_path, output_binary_path, 
 def get_target_loop(compiler_dir, maqao_path, orig_user_CC, user_CC, user_c_flags, user_cxx_flags, user_fc_flags, \
     user_link_flags, user_target, data_path, app_run_cmd, target_location, run_dir, locus_src_dir, locus_bin_run_dir, \
         locus_bin, env, mpi_run_command):
-    make_cmd = generate_build_cmd()
-
-    #build_binary(user_target, build_dir, env, output_dir, output_name)
-    # See script generation function for the user of these variables
-    #make_sh_cmd=f'./{build_cmd_sh_file}'
-    make_sh_cmd = make_cmd
     env["QAAS_locus_src_dir"]=f"{locus_src_dir}"
     env["QAAS_binary_path"]=f"{locus_bin}"
     env["QAAS_compiler_dir"]=f"{compiler_dir}"
@@ -224,9 +233,16 @@ def get_target_loop(compiler_dir, maqao_path, orig_user_CC, user_CC, user_c_flag
     env["QAAS_user_link_flags"]=f"{user_link_flags}"
     env["QAAS_user_target"]=f"{user_target}"
     env["QAAS_user_target_location"]=f"{target_location}"
+    make_cmds = generate_build_cmds(env)
+
+    #build_binary(user_target, build_dir, env, output_dir, output_name)
+    # See script generation function for the user of these variables
+    #make_sh_cmd=f'./{build_cmd_sh_file}'
+    make_sh_cmds = make_cmds
 
     # below command try the make script
-    subprocess.run(f'/bin/bash -c \'{make_sh_cmd}\'', shell=True, env=env, cwd=run_dir)
+    subprocess.run([f'/bin/bash', '-c', f'{make_sh_cmds}'], env=env, cwd=run_dir)
+    #subprocess.run(f'/bin/bash -c \'{make_sh_cmd}\'', shell=True, env=env, cwd=run_dir)
     build_dir = get_build_dir(locus_src_dir)
     compile_command_json_file = os.path.join(build_dir, 'compile_commands.json')
 
@@ -349,6 +365,15 @@ class QaaSLocusRunner(LocusRunner):
 		+ f" --data-path $QAAS_data_path" \
 		+ f" --mode run" \
 		+ f" --run-cmd \"$QAAS_run_cmd\""
+
+    def get_run_cmd_safe(self, env):
+        return ['python', f'{script_dir}/profiler_runner.py', \
+            f"--binary-path", env["QAAS_binary_path"], \
+            f"--maqao-path", env["QAAS_maqao_path"], \
+                f"--run-dir", env["QAAS_run_dir"], \
+		f"--data-path", env["QAAS_data_path"], \
+		f"--mode run", \
+		f"--run-cmd",  env["QAAS_run_cmd"]]
 
     @property
     def exe_file(self):

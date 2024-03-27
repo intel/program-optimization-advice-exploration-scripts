@@ -31,6 +31,7 @@
 import os
 import subprocess
 import datetime
+import shlex
 
 # routine providing api usable for chaining
 def make_dir(path):
@@ -61,7 +62,8 @@ def split_compiler_combo(CC_combo):
 def load_compiler_env(compiler_dir):
     script = os.path.join(compiler_dir, 'Linux/intel64/load.sh')
     #script = '/nfs/site/proj/openmp/compilers/intel/19.0/Linux/intel64/load.sh'
-    pipe = subprocess.Popen(f"/bin/bash -c 'source {script} --force && env'", stdout=subprocess.PIPE, shell=True)
+    pipe = subprocess.Popen(["/bin/bash", "-c", f"source {shlex.quote(script)} --force && env"], stdout=subprocess.PIPE)
+    #pipe = subprocess.Popen(f"/bin/bash -c 'source {script} --force && env'", stdout=subprocess.PIPE, shell=True)
     pipe.wait()
     if pipe.returncode != 0:
         # Error in loading compiler env
