@@ -652,7 +652,7 @@ def create_app(config):
 
         saved_file_path = working_json_path
 
-        unique_temp_dir = tempfile.mkstemp()
+        unique_temp_dir = tempfile.mkdtemp()
         # unique_temp_dir = '/tmp/test_data_population'
         os.makedirs(unique_temp_dir, exist_ok=True)
 
