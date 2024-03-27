@@ -111,8 +111,8 @@ class Execution(QaaSBase):
     #print(LargeBinary().with_variant(LONGBLOB,"mysql", "mariadb"))
     # log = Column(LargeBinary, nullable = True)
     # lprof_log = Column(LargeBinary, nullable = True)
-    log = Column(LONGBLOB, nullable = True)
-    lprof_log = Column(LONGBLOB, nullable = True)
+    log = Column(LargeBinary, nullable = True)
+    lprof_log = Column(LargeBinary, nullable = True)
     cqa_context = Column(JSON, nullable = True)
     config = Column(JSON, nullable = True)
     global_metrics = Column(JSON, nullable = True)
@@ -424,7 +424,7 @@ class Compiler(QaaSBase):
 class CompilerReport(QaaSBase):
     __tablename__ = "compiler_report"
     # content = Column(LargeBinary, nullable = True)
-    content = Column(LONGBLOB, nullable = True)
+    content = Column(LargeBinary, nullable = True)
 
     hash = Column(String(64), nullable = True)
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
@@ -835,7 +835,7 @@ class CqaMetric(QaaSBase):
 class Asm(QaaSBase):
     __tablename__ = "asm"
     # content = Column(LargeBinary, nullable = True)
-    content = Column(LONGBLOB, nullable = True)
+    content = Column(LargeBinary, nullable = True)
     hash = Column(String(64), nullable = True)
     fk_decan_variant_id = Column(Integer, ForeignKey('decan_variant.table_id'))
     fk_loop_id = Column(Integer, ForeignKey('loop.table_id'))
@@ -851,7 +851,7 @@ class Asm(QaaSBase):
 class Source(QaaSBase):
     __tablename__ = "source"
     # content = Column(LargeBinary, nullable = True)
-    content = Column(LONGBLOB, nullable = True)
+    content = Column(LargeBinary, nullable = True)
 
     hash = Column(String(64), nullable = True)
 
