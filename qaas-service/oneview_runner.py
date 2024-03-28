@@ -109,7 +109,7 @@ class OneviewRunner(BaseRunner):
             f'-of={self.ov_of} '\
             f'-- {true_run_cmd}'
         print(self.ov_result_dir)
-        run_env["LD_LIBRARY_PATH"] = run_env.get("LD_LIBRARY_PATH") + ":" + self.maqao_lib_dir
+        run_env["LD_LIBRARY_PATH"] = run_env.get("LD_LIBRARY_PATH") + ":" + self.maqao_lib_dir if "LD_LIBRARY_PATH" in run_env.keys() else self.maqao_lib_dir
 
         while self.level != 0:
             print(ov_run_cmd)
