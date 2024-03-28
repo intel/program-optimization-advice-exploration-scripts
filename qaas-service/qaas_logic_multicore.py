@@ -48,7 +48,7 @@ from qaas_metadata import QAASMetaDATA
 script_dir=os.path.dirname(os.path.realpath(__file__))
 #script_name=os.path.basename(os.path.realpath(__file__))
 
-DEFAULT_REPETITIONS = 3
+DEFAULT_REPETITIONS = 1
 CORES = [1, 2, 4, 8, 16, 32, 64, 128]
 
 def dump_multicore_log_file(qaas_reports_dir, file_name, message):
@@ -77,51 +77,6 @@ def dump_multicore_csv_file(qaas_reports_dir, file_name, table, best_only=False,
         else:
             writer.writerow(table[compiler][best_options[compiler]])
     csv_unicore.close()
-
-def eval_parallel_stability(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, has_mpi, has_omp):
-    '''Evaluate Multicore runs stability for apps that use MPI, OpenMP (OMP) or hybrid MPIxOMP'''
-
-    # Get system/topology information
-    nb_cores = system.get_number_of_cores()
-    nb_sockets = system.get_number_of_sockets()
-
-    # run a stability analysis depending on parallel runtime characteristics
-    if has_mpi and has_omp:
-        # Stability for hybrid MPIxOMP mode
-        mpi_ranks = nb_sockets
-        omp_threads = int(nb_cores / nb_sockets)
-        basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 11, "mpirun",
-                                    mpi_num_processes=mpi_ranks, omp_num_threads=omp_threads,
-                                    mpi_envs={"I_MPI_PIN_DOMAIN":"auto:scatter"},
-                                    omp_envs={"OMP_PLACES":"threads", "OMP_PROC_BIND":"spread"})
-    elif has_mpi:
-        # Stability for pure MPI mode
-        mpi_ranks = nb_cores
-        omp_threads = 1
-        basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 11, "mpirun",
-                                    mpi_num_processes=mpi_ranks, omp_num_threads=omp_threads,
-                                    mpi_envs={"I_MPI_PIN_PROCESSOR_LIST":"all:map=scatter"})
-    elif has_omp:
-        # Stability for pure OMP mode
-        mpi_ranks = 1
-        omp_threads = nb_cores
-        basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 11, "mpirun",
-                                    mpi_num_processes=mpi_ranks, omp_num_threads=omp_threads,
-                                    mpi_envs={"I_MPI_PIN_DOMAIN":"auto:scatter"},
-                                    omp_envs={"OMP_PLACES":"threads", "OMP_PROC_BIND":"spread"})
-
-    # Compute median execution time and check stability
-    median_time = basic_run.compute_median_exec_time()
-    stability = basic_run.compute_stability_metric()
-    # Compute stability
-    if stability > 10:
-        status = (-1, 0, None, None)
-    elif stability > 3:
-        status = (3, median_time, mpi_ranks, omp_threads)
-    else:
-        status = (1, median_time, mpi_ranks, omp_threads)
-
-    return status
 
 def set_run_params(best_opt_index, compiled_options):
     '''Find and set run parameters for best compiler/options configuration.'''
@@ -250,13 +205,8 @@ def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt
 
         # Init arrays
         t_compiler = []
-
-        # First stability run
-        repetitions, median_time, nmpi, nomp = eval_parallel_stability(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, has_mpi, has_omp)
-        if repetitions == -1:
-            print(f"Stop parallel runs for compiler {compiler}: too unstable!")
-            continue
-        #t_compiler.append([app_name, compiler, option, nmpi, nomp, "scatter", median_time])
+        # Setup number of iterations 
+        repetitions = DEFAULT_REPETITIONS
 
         # Make a single core run for reference in scalability analysis
         basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 1, "mpirun", mpi_num_processes=1)
