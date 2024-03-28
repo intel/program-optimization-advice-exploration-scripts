@@ -144,10 +144,10 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         if mpi_weak and omp_weak:
             # App has MPI and OpenMP and both scale through replication
             flops_per_app = flops/(nb_mpi * nb_omp)
-        elif mpi_weak and not has_omp:
+        elif mpi_weak and (not has_omp or not omp_weak):
             # App implements replication through MPI only
             flops_per_app = flops/nb_mpi
-        elif omp_weak and not has_mpi:
+        elif omp_weak and (not has_mpi or not mpi_weak):
             # App implements replication through OpenMP only
             flops_per_app = flops/nb_omp
         else:
