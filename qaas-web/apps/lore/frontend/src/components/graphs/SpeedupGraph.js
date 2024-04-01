@@ -1,7 +1,5 @@
 import React from 'react';
-import Chart from 'chart.js/auto';
 import { Line } from "react-chartjs-2";
-import 'chartjs-adapter-date-fns'
 import { getCompilerColor } from '../Constants';
 const SpeedupGraph = ({ data }) => {
 
@@ -45,7 +43,6 @@ const SpeedupGraph = ({ data }) => {
             }
         }
     };
-    console.log(data)
     return (
         <div className='speedup-graph-container'>
             <Line data={chartData} options={options} />

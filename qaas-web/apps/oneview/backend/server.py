@@ -422,6 +422,5 @@ if __name__ == "__main__":
     # thread = threading.Thread(target=create_all_tables(config))
     # thread.start()
     # thread.join()
-    create_all_tables(config)
     print("finsihed creating all the tables")
     main(config)
