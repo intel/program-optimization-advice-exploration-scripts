@@ -1,5 +1,5 @@
 import React from 'react';
-import { Line } from "react-chartjs-2";
+// import { Line } from "react-chartjs-2";
 import { getCompilerColor } from '../Constants';
 const SpeedupGraph = ({ data }) => {
 
@@ -45,7 +45,7 @@ const SpeedupGraph = ({ data }) => {
     };
     return (
         <div className='speedup-graph-container'>
-            <Line data={chartData} options={options} />
+            {/* <Line data={chartData} options={options} /> */}
         </div>
     );
 };
