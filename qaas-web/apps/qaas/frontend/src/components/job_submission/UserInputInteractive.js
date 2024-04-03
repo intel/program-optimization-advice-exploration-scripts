@@ -38,7 +38,7 @@ export default function UserInputStepper() {
     const [activeStep, setActiveStep] = React.useState(0);
     //initial check of the form
     const [formErrors, setFormErrors] = useState({});
-    const { setSSEStatus, startSSEConnection, closeSSEConnection } = useSSE();
+    const { setSSEStatus, setStatusMsg, startSSEConnection, closeSSEConnection } = useSSE();
     const [selectedMachine, setSelectedMachine] = useState('');
     const [selectedRunMode, setSelectedRunMode] = useState([]);
 
@@ -86,6 +86,7 @@ export default function UserInputStepper() {
 
         //call backend
         setSSEStatus(true)
+        setStatusMsg('Job Begin')
         axios.post(`${REACT_APP_API_BASE_URL}/create_new_run`, { input: input, machine: selectedMachine, mode: selectedRunMode })
             .then((response) => {
                 setSSEStatus(false)
