@@ -31,7 +31,9 @@ RUN apt-get update && \
    python3-matplotlib \
 #   python3-jinja2 \
    python3-numpy python3-pulp python3-pydot \
-   libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx && \
+   libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx \
+   # Per Trivy image scan request for newer version, installing explictly
+   util-linux && \
    python3 -m pip install --no-cache-dir "certifi>=2023.7.22" "joblib>=1.2.0" "requests>=2.31.0" \
         "urllib3>=2.0.7" "scipy>=1.10.0" "pandas>=1.4.3" && \
    # install skleran via apt-get after pip installs for SDP version needs
