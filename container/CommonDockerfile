@@ -134,7 +134,10 @@ RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
   tar xvfz ssh.tar.gz && \
   chown -R qaas .ssh && \
   chgrp -R qaas .ssh && \
-  cd .ssh && \
+  fi
+
+WORKDIR /home/qaas/.ssh
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
   cat *.pub >> authorized_keys; \
   fi
 
