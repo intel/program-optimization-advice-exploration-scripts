@@ -35,7 +35,10 @@ RUN apt-get update && \
    python3 -m pip install --no-cache-dir "certifi>=2023.7.22" "joblib>=1.2.0" "requests>=2.31.0" \
         "urllib3>=2.0.7" "scipy>=1.10.0" "pandas>=1.4.3" && \
    # install skleran via apt-get after pip installs for SDP version needs
-   apt-get install --no-install-recommends -y python3-sklearn
+   apt-get install --no-install-recommends -y python3-sklearn \
+# most recent version of compilers
+# Need to install gcc-4.9 
+      make gcc g++ gfortran 
 
 # Ronn is needed even if we don't built CERE document
 RUN gem install nokogiri -v 1.15.5 && \
@@ -45,12 +48,8 @@ RUN gem install nokogiri -v 1.15.5 && \
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 #RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
 
-RUN apt-get install --no-install-recommends -y \
-# most recent version of compilers
-   make gcc g++ gfortran && \
-# Need to install gcc-4.9 
 # See https://askubuntu.com/questions/1235819/ubuntu-20-04-gcc-version-lower-than-gcc-7
-   echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial universe" >> /etc/apt/sources.list && \
+RUN echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial universe" >> /etc/apt/sources.list && \
    add-apt-repository ppa:rosecompiler/rose-development && \
    apt-get update && apt-get install --no-install-recommends -y \
 # Following steps from ROSE website: https://github.com/rose-compiler/rose/wiki/Install-Using-apt-get
