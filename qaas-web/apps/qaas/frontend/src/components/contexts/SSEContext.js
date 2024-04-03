@@ -4,6 +4,7 @@ import { REACT_APP_API_BASE_URL } from '../Constants';
 const initialContextState = {
     statusMsg: '',
     SSEStatus: false,
+    setStatusMsg: () => { },
     setSSEStatus: () => { },
     startSSEConnection: () => { },
     closeSSEConnection: () => { },
@@ -47,7 +48,7 @@ export const SSEProvider = ({ children }) => {
     }, []);
 
     return (
-        <SSEContext.Provider value={{ statusMsg, SSEStatus, setSSEStatus, startSSEConnection, closeSSEConnection }}>
+        <SSEContext.Provider value={{ statusMsg, setStatusMsg, SSEStatus, setSSEStatus, startSSEConnection, closeSSEConnection }}>
             {children}
         </SSEContext.Provider>
     );

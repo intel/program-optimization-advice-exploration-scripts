@@ -6,9 +6,11 @@ import Box from '@mui/material/Box';
 import "react-step-progress-bar/styles.css";
 import { ProgressBar, Step } from "react-step-progress-bar";
 import CircleIcon from '@mui/icons-material/Circle';
+
 let colormap = require('colormap')
 
 export default function StatusPanel({ msg }) {
+
 
     let msgs = [
         "Job Begin",
