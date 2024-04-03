@@ -29,8 +29,12 @@ RUN apt-get update && \
    dc opt libgmp3-dev \
    libomp-7-dev \
    python3-matplotlib \
-   python3-jinja2 python3-sklearn python3-numpy python3-pulp python3-pydot \
-   libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx python3-pandas
+#   python3-jinja2 \
+   python3-numpy python3-pulp python3-pydot \
+   libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx python3-pandas && \
+   python3 -m pip install --no-cache-dir "certifi>=2023.7.22" "joblib>=1.2.0" "requests>=2.31.0" "urllib3>=2.0.7" "scipy>=1.10.0" && \
+   # install skleran via apt-get after pip installs for SDP version needs
+   apt-get install --no-install-recommends -y python3-sklearn
 
 # Ronn is needed even if we don't built CERE document
 RUN gem install nokogiri -v 1.15.5 && \
@@ -38,7 +42,7 @@ RUN gem install nokogiri -v 1.15.5 && \
 
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
+#RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
 
 RUN apt-get install --no-install-recommends -y \
 # most recent version of compilers
@@ -89,6 +93,7 @@ RUN python3 -m pip install --no-cache-dir sympy \
   && python3 -m pip install --no-cache-dir pytrie \
   && python3 -m pip install --no-cache-dir pandas \
   && python3 -m pip install --no-cache-dir numpy \
+  && python3 -m pip install --no-cache-dir Jinja2>=3.1.3 \
   && python3 -m pip install --no-cache-dir py-cpuinfo
 
 # Build cmake
@@ -98,7 +103,7 @@ RUN python3 -m pip install --no-cache-dir sympy \
 RUN curl -L https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - |  tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null \
   && echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' |  tee /etc/apt/sources.list.d/kitware.list >/dev/null \
   && apt-get update \
-  && apt-get install --no-install-recommends -y cmake=3.28.3-0kitware1ubuntu20.04.1 \
+  && apt-get install --no-install-recommends -y cmake=3.29.0-0kitware1ubuntu20.04.1 \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
