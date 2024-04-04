@@ -74,7 +74,7 @@ export default function SpeedupGraphCompareTab({ current_src_loop_id, data }) {
         xAxis: 'Range',
         yAxis: 'Count Speedup R',
     };
-    console.log(data)
+    // console.log(data)
 
     return (
         <div className="component-background">

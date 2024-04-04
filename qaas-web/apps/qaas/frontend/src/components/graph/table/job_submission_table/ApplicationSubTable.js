@@ -16,7 +16,7 @@ const ApplicationSubTable = React.memo(({ data }) => {
 
 
         } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error('Error fetching data:');
         }
 
     };

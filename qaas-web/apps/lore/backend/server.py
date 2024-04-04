@@ -67,7 +67,7 @@ app = Flask(__name__)
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(config_path)
 app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_LORE']
-print(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
+# print(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 

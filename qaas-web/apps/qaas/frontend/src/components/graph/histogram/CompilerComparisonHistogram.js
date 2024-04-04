@@ -21,16 +21,16 @@ export default function CompilerComparisonHistogram() {
 
     const applyFilters = () => {
         if (rawData) {
-            console.log("apply filter", selectedFilters)
+            // console.log("apply filter", selectedFilters)
             const filteredData = filterData(rawData, selectedFilters);
-            console.log(filteredData)
+            // console.log(filteredData)
             setChartData(processData(filteredData, leftMostBin));
         }
     };
     //filter data that has selected = false
     const filterData = (data, filters) => {
         const unselectedFilters = getUnselectedFilters(filters);
-        console.log(unselectedFilters)
+        // console.log(unselectedFilters)
         //filer unselected applicaiton
         let filteredApplications = data.applications.filter((app) =>
             !unselectedFilters.includes(app.application)
@@ -52,7 +52,7 @@ export default function CompilerComparisonHistogram() {
         filteredApplications = filteredApplications.filter((app) => {
             return app.is_n_way_tie || (app.win_lose && app.win_lose.length > 0);
         });
-        console.log("data after filtered", filteredApplications)
+        // console.log("data after filtered", filteredApplications)
 
         return {
             ...data,
@@ -186,7 +186,7 @@ export default function CompilerComparisonHistogram() {
 
     };
 
-    console.log("chart data", chartData)
+    // console.log("chart data", chartData)
 
     return (
         <div >

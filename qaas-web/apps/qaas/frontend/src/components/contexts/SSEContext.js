@@ -23,7 +23,7 @@ export const SSEProvider = ({ children }) => {
             setStatusMsg(e.data);
         };
         newSse.addEventListener('ping', e => {
-            console.log("set sse", e.data)
+            // console.log("set sse", e.data)
             setStatusMsg(e.data)
         })
         newSse.onerror = e => {

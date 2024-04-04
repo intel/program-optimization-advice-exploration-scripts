@@ -169,7 +169,7 @@ def create_app(config):
     def get_application_table_info_ov():
         request_data = request.get_json()
         filters = filters = request_data.get('filters', []) 
-        print(filters)
+        # print(filters)
         filter_context = FilterContext(filters, db.session)
 
         data = []
@@ -422,5 +422,5 @@ if __name__ == "__main__":
     # thread = threading.Thread(target=create_all_tables(config))
     # thread.start()
     # thread.join()
-    print("finsihed creating all the tables")
+    # print("finsihed creating all the tables")
     main(config)

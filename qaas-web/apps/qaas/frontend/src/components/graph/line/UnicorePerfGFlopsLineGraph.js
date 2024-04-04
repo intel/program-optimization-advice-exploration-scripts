@@ -43,7 +43,7 @@ export default function UnicorePerfGFlopsLineGraph() {
             const processorData = processors[processor];
             const symbol = getProcessorPointStyle(processor); // get the point symbol 
             const color = getProcessorColor(processor);
-            console.log("processors", processorData, processor, symbol, color, transformedApps)
+            // console.log("processors", processorData, processor, symbol, color, transformedApps)
             return {
                 type: 'scatter',
                 mode: 'markers+lines',

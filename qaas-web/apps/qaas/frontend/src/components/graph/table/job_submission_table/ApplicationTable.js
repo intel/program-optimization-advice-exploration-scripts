@@ -17,7 +17,7 @@ const ApplicationTable = React.memo(({ data }) => {
 
 
         } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error('Error fetching data:');
         }
 
     };
@@ -31,7 +31,7 @@ const ApplicationTable = React.memo(({ data }) => {
 
 
         } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error('Error fetching data:');
         }
 
     };
@@ -42,7 +42,7 @@ const ApplicationTable = React.memo(({ data }) => {
             const response = await axios.post(`${REACT_APP_API_BASE_URL}/get_job_submission_subtable_data`, { 'qaas_timestamp': qaas_timestamp });
             return response.data;
         } catch (error) {
-            console.error('Error fetching sub-table data:', error);
+            console.error('Error fetching sub-table data:');
             return [];
         }
     };

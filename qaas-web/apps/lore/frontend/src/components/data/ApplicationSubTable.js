@@ -28,7 +28,7 @@ function ApplicationSubTable({ application_id, workload, program, workload_versi
 
         // Call your backend API here and fetch data
         const queryString = new URLSearchParams({ ...data, workload, program, workload_version, loading: 'false' }).toString();
-        console.log(queryString)
+        // console.log(queryString)
         navigate(`/loop?${queryString}`);
         // window.open(`/loop?${queryString}`, '_blank');
 

@@ -25,7 +25,7 @@ export const StepperSettingProvider = ({ children }) => {
                 setSettings(response.data.filenames);
             }
         } catch (error) {
-            console.error('Error fetching settings:', error);
+            console.error('Error fetching settings:');
         }
     };
 
