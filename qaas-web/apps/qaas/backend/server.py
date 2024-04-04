@@ -640,27 +640,30 @@ def create_app(config):
 
     @app.route('/create_new_run', methods=['POST'])
     def create_new_run():
-        #real user input data  
-        request_json = request.get_json()['input']
-        machine = request.get_json()['machine']
-        run_mode = request.get_json()['mode']
+        try:
+            #real user input data  
+            request_json = request.get_json()['input']
+            machine = request.get_json()['machine']
+            run_mode = request.get_json()['mode']
 
-        print(request_json, machine, run_mode)
-        #save intput json to a folder can read later
-        working_json_path = os.path.join(config['web']['WORKING_JSON_FOLDER'], 'working.json')
-        save_json(request_json, working_json_path)
+            print(request_json, machine, run_mode)
+            #save intput json to a folder can read later
+            working_json_path = os.path.join(config['web']['WORKING_JSON_FOLDER'], 'working.json')
+            save_json(request_json, working_json_path)
 
-        saved_file_path = working_json_path
+            saved_file_path = working_json_path
 
-        unique_temp_dir = tempfile.mkdtemp()
-        # unique_temp_dir = '/tmp/test_data_population'
-        os.makedirs(unique_temp_dir, exist_ok=True)
+            unique_temp_dir = tempfile.mkdtemp()
+            # unique_temp_dir = '/tmp/test_data_population'
+            os.makedirs(unique_temp_dir, exist_ok=True)
 
 
-        #go to backplane and just cp qaas out for now
-        t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, saved_file_path, machine, run_mode))
-        t.start()
-        t.join()
+            #go to backplane and just cp qaas out for now
+            t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, saved_file_path, machine, run_mode))
+            t.start()
+            t.join()
+        except Exception as e:
+            pass
         
         return jsonify({})
     
