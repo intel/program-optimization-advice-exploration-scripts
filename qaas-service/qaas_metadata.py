@@ -71,7 +71,8 @@ class QAASMetaDATA:
     @property
     def qaas_dataset_label(self):
         dataset_file_path = os.path.join(os.path.dirname(self.qaas_rundir), "dataset", "dataset_label.txt")
-        return subprocess.check_output(f"cat {dataset_file_path}", shell=True).decode("utf-8")
+        return subprocess.check_output([f"cat", f"{dataset_file_path}"]).decode("utf-8")
+        #return subprocess.check_output(f"cat {dataset_file_path}", shell=True).decode("utf-8")
 
 
     def add_qaas_metadata(self, run_cmd, dataset_name=""):
@@ -97,12 +98,12 @@ class QAASMetaDATA:
         self.config[REPORTS_SECTION_NAME]["scalability_reference_line"] = f'{scalability_reference_line}'
         self.write_data(self.config)
 
-    def add_system_metadata(self):
+    def add_system_metadata(self, maqao_dir):
         # System info
         self.config[SYSTEM_SECTION_NAME]["machine"] = system.get_hostname()
         self.config[SYSTEM_SECTION_NAME]["model_name"] = system.get_model_name()
         self.config[SYSTEM_SECTION_NAME]["ISA"] = system.get_ISA()
-        self.config[SYSTEM_SECTION_NAME]["architecture"] = system.get_processor_architecture()
+        self.config[SYSTEM_SECTION_NAME]["architecture"] = system.get_processor_architecture(maqao_dir)
         # CPU info
         self.config[SYSTEM_SECTION_NAME]["number_of_cpus"] = str(system.get_number_of_cpus())
         self.config[SYSTEM_SECTION_NAME]["number_of_cores"] = str(system.get_number_of_cores())

@@ -41,6 +41,7 @@ import lprof_runner
 import oneview_runner
 from logger import log, QaasComponents
 from wrapper_runner import compiler_run
+import configparser
 
 #this_script=os.path.realpath(__file__)
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -186,6 +187,12 @@ def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir
     dump_compilers_csv_file(qaas_reports_dir, 'qaas_compilers.csv', qaas_table, defaults)
     # Dump best options csv file
     dump_compilers_csv_file(qaas_reports_dir, 'qaas_compilers_best.csv', qaas_table, defaults, True, qaas_best_opt)
+
+    # Dump meta data file
+    #meta_config = configparser.ConfigParser()
+    #meta_config['qaas'] = { "run_cmd": f'"{run_cmd}"' }
+    #with open(os.path.join(qaas_reports_dir, 'input.txt'), 'w') as meta_config_file:
+    #    meta_config.write(meta_config_file)
 
     # Run oneview on best options
     run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, parallel_runs)

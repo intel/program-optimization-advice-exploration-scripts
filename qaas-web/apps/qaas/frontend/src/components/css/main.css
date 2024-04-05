@@ -47,8 +47,8 @@ li {
     margin-bottom: 10px;
 }
 
-.check-color{
-    color:#FF0000;
+.check-color {
+    color: #FF0000;
 }
 
 .link {
@@ -186,4 +186,10 @@ li {
 
 .default-button:hover {
     background-color: #1e5a66;
+}
+
+.center-children {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }

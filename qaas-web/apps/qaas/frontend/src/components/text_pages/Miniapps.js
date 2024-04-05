@@ -1,7 +1,5 @@
 import React from 'react';
 
-import bestcompImage from '../imgs/bestcomp.png';
-import appGainImage from '../imgs/appgain.png';
 import { Link } from 'react-router-dom';
 
 export default function Miniapps() {
@@ -41,9 +39,7 @@ export default function Miniapps() {
 
                 . For more details about these codes and their compilation, see C 1 1 1 A or B? Need notation.
             </p>
-            <div className='imageContainer'>
-                <img src={bestcompImage} alt="BestComp Description" />
-            </div>
+
             <h2>Compilation</h2>
 
             <p>
@@ -53,9 +49,7 @@ export default function Miniapps() {
 
 
             </p>
-            <div className='imageContainer'>
-                <img src={appGainImage} alt="appGain Description" />
-            </div>
+
             <p>
                 At a high level, ISVs and multi-app developers, or CSPs and computer managers, are mostly interested in compiler choice outcomes
                 based on performance gains, measured in numbers of codes. There are practical subtleties here; Fig. bestcomp shows the best performing compiler,

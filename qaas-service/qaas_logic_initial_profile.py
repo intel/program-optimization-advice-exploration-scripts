@@ -121,8 +121,10 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     # Add any user-provided environment variables
     app_builder_env.update(env_var_map)
     # Create sym links to orig build run folders
-    subprocess.run(f"ln -s build {user_CC}", shell=True, cwd=os.path.dirname(src_dir))
-    subprocess.run(f"ln -s orig {user_CC}", shell=True, cwd=os.path.dirname(base_run_dir_orig))
+    subprocess.run([f"ln", "-s", "build", f"{user_CC}"], cwd=os.path.dirname(src_dir))
+    #subprocess.run(f"ln -s build {user_CC}", shell=True, cwd=os.path.dirname(src_dir))
+    subprocess.run([f"ln", "-s", "orig", f"{user_CC}"], cwd=os.path.dirname(base_run_dir_orig))
+    #subprocess.run(f"ln -s orig {user_CC}", shell=True, cwd=os.path.dirname(base_run_dir_orig))
 
     # Setup run directory and launch initial run
     basic_run,nb_mpi,nb_omp = compiler_run(app_builder_env, orig_binary, data_dir, base_run_dir_orig, run_cmd,
@@ -145,8 +147,10 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
         error_msg=f"ABORT: median execution time {median_value} greater than allowed {MAX_ALLOWED_EXEC_TIME}"
         return rc,error_msg,0
     # Dump median exec time to file
-    cmd = f"echo 'base_median_time;{user_CC};" + str(median_value) + "' > initial_profile.csv"
-    subprocess.run(cmd, shell=True, cwd=basic_run.run_dir)
+    with open(os.path.join(basic_run.run_dir, "initial_profile.csv"), "w") as csv_file:
+        csv_file.write(f"base_median_time;{user_CC};" + str(median_value)+"\n")
+    #cmd = f"echo 'base_median_time;{user_CC};" + str(median_value) + "' > initial_profile.csv"
+    #subprocess.run(cmd, shell=True, cwd=basic_run.run_dir)
     # Set dict of median values
     defaults = {}
     defaults['orig'] = median_value
@@ -171,7 +175,8 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     # Add any user-provided environment variables
     app_builder_env.update(env_var_map)
     # Create sym links to orig ov folder
-    subprocess.run(f"ln -s orig {user_CC}", shell=True, cwd=os.path.dirname(ov_run_dir_orig))
+    subprocess.run([f"ln", "-s", "orig", f"{user_CC}"], cwd=os.path.dirname(ov_run_dir_orig))
+    #subprocess.run(f"ln -s orig {user_CC}", shell=True, cwd=os.path.dirname(ov_run_dir_orig))
 
     # Generate Level 2 oneview report on original app
     ov_run,_,_ = compiler_run(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
@@ -185,7 +190,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             print("Unknown / unsupported vendor")
             return None
         # Get the processor architecture
-        processor = system.get_intel_processor_name()
+        processor = system.get_intel_processor_name(maqao_dir)
 
         # Get the list of flags for the CPU vendor (x86, ...) and processor.
         compiler_params = read_compiler_flags(vendor, processor)
@@ -219,8 +224,10 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             defaults[compiler] = basic_run.compute_median_exec_time()
 
             # Dump median exec time to file
-            cmd = f"echo 'base_median_time;{compiler};" + str(defaults[compiler]) + "' > initial_profile.csv"
-            subprocess.run(cmd, shell=True, cwd=basic_run.run_dir)
+            with open(os.path.join(basic_run.run_dir, "initial_profile.csv"), "w") as csv_file:
+                csv_file.write(f"base_median_time;{compiler};" + str(defaults[compiler])+"\n")
+            #cmd = f"echo 'base_median_time;{compiler};" + str(defaults[compiler]) + "' > initial_profile.csv"
+            #subprocess.run(cmd, shell=True, cwd=basic_run.run_dir)
 
             # Make an OV run
             ov_run_bin_dir = os.path.join(ov_run_dir, 'defaults', compiler)

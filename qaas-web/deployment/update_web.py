@@ -1,6 +1,8 @@
 import os
 import sys
 import subprocess
+import configparser
+import argparse
 
 #global variable
 apache_dir = f"/var/www/html"
@@ -9,7 +11,7 @@ qaas_web_dir = os.path.join(script_dir, '..',)
 apps_dir = os.path.join(qaas_web_dir, "apps")
 qaas_web_backend_common_dir = os.path.join(apps_dir, 'common','backend')
 sys.path.append(qaas_web_backend_common_dir)
-
+config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 def install_backend_dependencies(backend_dir, apache_html_dir):
     try:
         print(f"Installing backend dependencies in {backend_dir}...")
@@ -179,6 +181,14 @@ def update_web(force_install=False):
     give_permission(apache_dir, 'www-data')
     give_permission('/etc/apache2/auth', 'www-data')
 
+    #give permission for input jsons
+    saved_input_jsons_dir =  os.path.join(apache_dir, 'input_jsons', 'saved')
+    input_jsons_dir =  os.path.join(apache_dir, 'input_jsons')
+
+    os.system(f"sudo mkdir -p {saved_input_jsons_dir}")
+    give_permission(saved_input_jsons_dir, 'www-data')
+    give_permission(input_jsons_dir, 'www-data')
+
     #sync db last
     sync_db(alembic_ini_file)
 
@@ -187,15 +197,7 @@ def give_permission(folder, user):
     os.system(f"sudo chmod -R 755 {folder}")
     os.system(f"sudo chmod -R g+w {folder}")
 
-    output_dir = os.path.join(apache_dir, 'private')
-    give_permission(output_dir, 'www-data')
-    give_permission(apache_dir, 'www-data')
-    give_permission('/etc/apache2/auth', 'www-data')
 
-def give_permission(folder, user):
-    os.system(f"sudo chown -R {user}:{user} {folder}")
-    os.system(f"sudo chmod -R 755 {folder}")
-    os.system(f"sudo chmod -R g+w {folder}")
 
 if __name__ == "__main__":
     

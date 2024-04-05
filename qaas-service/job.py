@@ -93,7 +93,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     # Dump meta data file
     qaas_meta = QAASMetaDATA(qaas_reports_dir)
     qaas_meta.add_qaas_metadata(run_cmd)
-    qaas_meta.add_system_metadata()
+    qaas_meta.add_system_metadata(maqao_dir)
     for compiler in multi_compilers_dirs:
         qaas_meta.add_compiler_version(compiler, multi_compilers_dirs[compiler])
 
@@ -115,7 +115,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         binaries_dir = os.path.join(os.path.dirname(base_run_dir), 'binaries')
         compiled_options = compile_all(src_dir, binaries_dir, compiler_dir,
                     orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags,
-                    user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map, multi_compilers_dirs)
+                    user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map, multi_compilers_dirs, maqao_dir)
         to_backplane.send(qm.GeneralStatus("Done compile all binaries!"))
 
         # Start unicore runs
@@ -199,14 +199,20 @@ if __name__ == '__main__':
 
     to_backplane = ServiceMessageSender(args.comm_port)
     to_backplane.send(qm.BeginJob())
-    if args.logic == "demo":
-        run_demo_phase(to_backplane, args.src_dir, args.data_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
-                     args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
-                     args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags)
-    else:
-        run_multiple_phase(to_backplane, args.src_dir, args.data_dir, args.base_run_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
-                     args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
-                     args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags,
-                     args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs, runtime, multi_compilers_dirs)
+    rc = 0
+    try:
+        if args.logic == "demo":
+            run_demo_phase(to_backplane, args.src_dir, args.data_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
+                        args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
+                        args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags)
+        else:
+            run_multiple_phase(to_backplane, args.src_dir, args.data_dir, args.base_run_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
+                        args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
+                        args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags,
+                        args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs, runtime, multi_compilers_dirs)
+    except Exception as e:
+        to_backplane.send(qm.GeneralStatus(str(e)))
+        rc = -1
     to_backplane.send(qm.EndJob())
     to_backplane.close()
+    exit(rc)
