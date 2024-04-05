@@ -137,13 +137,14 @@ WORKDIR /home/qaas
 RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
   tar xvfz ssh.tar.gz && \
   chown -R qaas .ssh && \
-  chgrp -R qaas .ssh ; \
+  chgrp -R qaas .ssh; \
   fi
 
 WORKDIR /home/qaas/.ssh
 RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
   cat *.pub >> authorized_keys; \
   fi
+
 
 ENV PYTHONPATH=/usr/local/lib/python3.8/site-packages
 ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install
