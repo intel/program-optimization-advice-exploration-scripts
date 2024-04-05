@@ -3,7 +3,7 @@ import Histogram from './Histogram';
 import axios from "axios";
 import { RANGES } from '../../Constants';
 import { categorizeSpeedupDynamic, COMPILER_COLORS, getCompilerColor } from '../../Constants';
-import { DEFAULT_COLOR_SCHEME } from "../../Constants";
+import { DEFAULT_COLOR_SCHEME, REACT_APP_API_BASE_URL } from "../../Constants";
 import { Chart, registerables } from "chart.js"
 import HistogramBinSlider from './HistogramBinSlider';
 import { BarTextPlugin } from '../GraphPlugin';
@@ -21,16 +21,16 @@ export default function CompilerComparisonHistogram() {
 
     const applyFilters = () => {
         if (rawData) {
-            console.log("apply filter", selectedFilters)
+            // console.log("apply filter", selectedFilters)
             const filteredData = filterData(rawData, selectedFilters);
-            console.log(filteredData)
+            // console.log(filteredData)
             setChartData(processData(filteredData, leftMostBin));
         }
     };
     //filter data that has selected = false
     const filterData = (data, filters) => {
         const unselectedFilters = getUnselectedFilters(filters);
-        console.log(unselectedFilters)
+        // console.log(unselectedFilters)
         //filer unselected applicaiton
         let filteredApplications = data.applications.filter((app) =>
             !unselectedFilters.includes(app.application)
@@ -52,7 +52,7 @@ export default function CompilerComparisonHistogram() {
         filteredApplications = filteredApplications.filter((app) => {
             return app.is_n_way_tie || (app.win_lose && app.win_lose.length > 0);
         });
-        console.log("data after filtered", filteredApplications)
+        // console.log("data after filtered", filteredApplications)
 
         return {
             ...data,
@@ -70,7 +70,7 @@ export default function CompilerComparisonHistogram() {
 
     //set raw data first time
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_qaas_compiler_comparison_historgram_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_qaas_compiler_comparison_historgram_data`)
             .then((response) => {
                 setRawData(response.data);
 
@@ -186,7 +186,7 @@ export default function CompilerComparisonHistogram() {
 
     };
 
-    console.log("chart data", chartData)
+    // console.log("chart data", chartData)
 
     return (
         <div >

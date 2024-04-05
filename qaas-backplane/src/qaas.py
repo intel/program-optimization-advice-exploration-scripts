@@ -144,12 +144,12 @@ def launch_qaas(app_params, logic, remote_job,
 
     rc = job.run_job(container, user_ns_root)
     if rc != 0:
-       return rc
+       return rc, None
 
     # just for testing
-    rc = prov.retrieve_results()
+    rc = prov.retrieve_results(container)
     if rc != 0:
-       return rc
+       return rc, None
 
     print(f'ov results under: {prov.launch_output_dir}')
     prov.finish()

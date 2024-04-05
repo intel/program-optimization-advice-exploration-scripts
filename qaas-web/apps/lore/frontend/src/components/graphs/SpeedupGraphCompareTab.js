@@ -4,7 +4,8 @@ import TabSelector from "../data/TabSelector";
 import axios from 'axios';
 import Histogram from './Histogram'
 import { RANGES } from "../Constants";
-import { getCompilerColor } from "../Constants";
+import { getCompilerColor, REACT_APP_API_BASE_URL } from "../Constants";
+
 export default function SpeedupGraphCompareTab({ current_src_loop_id, data }) {
 
 
@@ -15,7 +16,7 @@ export default function SpeedupGraphCompareTab({ current_src_loop_id, data }) {
 
     useEffect(() => {
         // Fetch both datasets
-        axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_performance_data_for_specific_loop`, {
+        axios.post(`${REACT_APP_API_BASE_URL}/get_performance_data_for_specific_loop`, {
             current_src_loop_id
 
         })
@@ -73,7 +74,7 @@ export default function SpeedupGraphCompareTab({ current_src_loop_id, data }) {
         xAxis: 'Range',
         yAxis: 'Count Speedup R',
     };
-    console.log(data)
+    // console.log(data)
 
     return (
         <div className="component-background">

@@ -42,6 +42,7 @@ import lprof_runner
 import oneview_runner
 import utils.system as system
 from logger import log, QaasComponents
+from qaas_metadata import QAASMetaDATA
 
 #this_script=os.path.realpath(__file__)
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -370,14 +371,25 @@ def add_speedups_to_runs(p_runs, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_wea
 
     # Search reference runs
     mp_ref_runs = {}
-    for compiler in p_runs:
+    ref_lines = {}
+    for c in range(0, len(p_runs)):
+        compiler = list(p_runs.keys())[c]
+        index = 1 # start at 1 because of CSV header
+        offset = 0 # Fix: SDP found offset uninitialized
         for run in p_runs[compiler]:
+            index = index + 1 # line numbering start from 1 not 0
             if run[i_time] != None and run[i_omp] == 1:
+                # find the first valid run (!= None)
                 mp_ref_runs[compiler] = [run[i_time], run[i_mpi], run[i_omp]]
                 break
         if not compiler in mp_ref_runs:
+            # all runs for this compiler have failed
             mp_ref_runs[compiler] = [0.0, 0, 0]
+            index = 0
+        offset = offset + len(p_runs[list(p_runs.keys())[c-1]]) if c > 0 else 0
+        ref_lines[compiler] = index + offset if index > 0 else 0
 
+    # Compute speedups
     for compiler in p_runs:
         for run  in p_runs[compiler]:
             for item in mp_ref_runs:
@@ -396,6 +408,7 @@ def add_speedups_to_runs(p_runs, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_wea
                 else:
                     # Compare to
                     run.append(0.0)
+    return ",".join([item+':'+str(ref_lines[item]) for item in ref_lines])
 
 def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                 orig_user_CC, run_cmd, compiled_options, qaas_best_opt, qaas_best_comp, qaas_reports_dir,
@@ -420,7 +433,7 @@ def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_d
     # Update run tables with GFlops/s
     add_gflops_to_runs(qaas_table, flops_per_app, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_weak, omp_weak)
     # Update run tables with Speedups/s
-    add_speedups_to_runs(qaas_table, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_weak, omp_weak)
+    ref_lines = add_speedups_to_runs(qaas_table, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_weak, omp_weak)
 
     # Print log to file
     dump_multicore_log_file(qaas_reports_dir, 'qaas_multicore.log', log)
@@ -430,5 +443,9 @@ def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_d
 
     # Run a oneview scalability run on best compiler/option
     run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd, qaas_best_opt, qaas_best_comp, compiled_options, has_mpi, has_omp)
+
+    # Dump meta data file
+    qaas_meta = QAASMetaDATA(qaas_reports_dir)
+    qaas_meta.add_scalability_metadata("", "", 'qaas_multicore.csv', ref_lines)
 
     return rc,mp_best_opt,""

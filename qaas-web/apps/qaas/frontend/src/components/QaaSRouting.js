@@ -3,10 +3,9 @@ import { useLocation } from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
 
 import WelcomePage from './text_pages/WelcomePage';
-import BrowseResult from './BrowseResult';
-import UserInputStepper from './UserInputInteractive';
+import UserInputStepper from './job_submission/UserInputInteractive';
 import LoginPage from './LoginPage';
-import GeneratedPage from './GeneratedPage';
+import GeneratedPage from './job_submission/GeneratedPage';
 import QualityDefinitions from './text_pages/QualityDefinitions';
 import ConstraintsAndScope from './text_pages/ConstraintsAndScope';
 import WelcomePageTableOfContentsDrawer from './sidebar/WelcomePageTableOfContentsDrawer';
@@ -37,7 +36,6 @@ import Oneview from './text_pages/Oneview';
 import BestAppInsightsPerDomain from './text_pages/BestAppInsightsPerDomain';
 import CompilerDetails from './text_pages/CompilerDetails';
 import SystemConfig from './text_pages/systemconfig/SystemConfig';
-import SkyLake from './text_pages/systemconfig/SkyLake';
 import MultiCompilerGains from './text_pages/MultiCompilerGains';
 import QaaSSearches from './text_pages/QaaSSearches';
 import QaaSSearchesL2 from './text_pages/QaaSSearchesL2';
@@ -49,13 +47,13 @@ import MultiprocessorPerfContents from './text_pages/clickin/MultiprocessorPerfC
 import PerfImprove from './text_pages/clickin/PerfImprove';
 import FlagRecMiniapps from './text_pages/clickin/FlagRecMiniapps';
 import AMGHACCClickTarget from './text_pages/clickin/AMGHACCClickTarget';
-import ICC from './text_pages/systemconfig/ICC';
-import GCC from './text_pages/systemconfig/GCC';
 import TableOfContents from './TableOfContents';
 import ApplicationPortability from './text_pages/clickin/ApplicationPortability';
+import BrowseResult from './job_submission/BrowseResult';
 export const layoutRoutes = [
     { path: "/input", component: UserInputStepper },
-    { path: "/result", component: BrowseResult },
+
+    { path: "/results", component: BrowseResult },
     { path: "/definitions", component: DefinitionsTab },
     { path: "/login", component: LoginPage },
     { path: "/", component: NavigationPage },
@@ -97,13 +95,14 @@ export const layoutRoutes = [
     // { path: "/qaas/multi_compiler_gains", component: MultiCompilerGains },
     // { path: "/qaas/qaas_searches", component: QaaSSearches },
     // { path: "/qaas/qaas_searches_l2", component: QaaSSearchesL2 },
-    { path: "/system_config", component: SkyLake },
+    { path: "/system_config", component: SystemConfig },
     // { path: "/system_config/sky_lake", component: SkyLake },
     // { path: "/system_config/ice_lake", component: IceLake },
     // { path: "/system_config/sapphire_rapids", component: SapphireRapids },
     // { path: "/system_config/icc", component: ICC },
     // { path: "/system_config/gcc", component: GCC }
 ];
+
 export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading, shouldLoadHTML, setIsLoading, setShouldLoadHTML }) {
     const location = useLocation();
 
@@ -124,6 +123,7 @@ export default function QaaSRouting({ drawerContent, setDrawerContent, isLoading
             {layoutRoutes.map(({ path, component: Component }) => (
                 <Route key={path} path={path} element={<Component />} />
             ))}
+
             {/* <Route path="*" element={
                 <FixedMenuLayout drawerContent={drawerContent} mainContent={
                     <Routes>

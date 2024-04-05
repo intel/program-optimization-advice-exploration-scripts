@@ -3,10 +3,11 @@ import axios from "axios";
 import { Chart, registerables } from "chart.js"
 import { } from '../GraphPlugin';
 import PlotlyLineGraph from './PlotlyLineGraph';
-import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout } from '../../Constants';
+import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout, getAppName } from '../../Constants';
 import { createMultileMinMaxAnnotations } from '../GraphPlugin';
-Chart.register(...registerables);
+import { REACT_APP_API_BASE_URL } from '../../Constants';
 
+Chart.register(...registerables);
 
 export default function MulticorePerfGFlopsLineGraph() {
     const [chartData, setChartData] = useState(null);
@@ -15,7 +16,7 @@ export default function MulticorePerfGFlopsLineGraph() {
 
     //set raw data first time
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_qaas_multicore_perf_gflops_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_qaas_multicore_perf_gflops_data`)
             .then((response) => {
 
                 const rawData = response.data
@@ -46,6 +47,12 @@ export default function MulticorePerfGFlopsLineGraph() {
     }
     const processRawData = (rawData) => {
         const { Apps, ...processors } = rawData;
+        //no data
+        if (!Apps || Apps.length === 0) {
+            return [];
+        }
+        const transformedApps = Apps.map(app => getAppName(app));
+
         return Object.keys(processors).map(processor => {
             const processorData = processors[processor];
             const processType = getProcessor(processor);
@@ -57,7 +64,7 @@ export default function MulticorePerfGFlopsLineGraph() {
                 type: 'scatter',
                 mode: 'markers+lines',
                 name: processor,
-                x: Apps,
+                x: transformedApps,
                 y: processorData.map(value => value === null ? undefined : value),
                 yaxis: yAxis,
                 line: {
@@ -87,9 +94,9 @@ export default function MulticorePerfGFlopsLineGraph() {
         yaxis: {
             title: 'Total Gf',
             type: 'log',
-            tickvals: [10, 20, 50, 100, 500, 2000],
-            ticktext: ['10', '20', '50', '100', '500', '2000'],
-            range: [1, Math.log10(2000) + 0.1],//a bit more space to show the text
+            tickvals: [0, 5, 10, 20, 50, 100, 500, 2000],
+            ticktext: ['0', '5', '10', '20', '50', '100', '500', '2000'],
+            range: [0, Math.log10(2000)],//a bit more space to show the text
 
 
         },

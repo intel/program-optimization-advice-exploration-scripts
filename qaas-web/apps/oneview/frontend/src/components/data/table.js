@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import ReactTable from "react-table-6";
 import TableSearchBar from "./TableSearchBar";
-import "react-table-6/react-table.css";
 import '../css/table.css'
 import { useMemo } from 'react';
 import CustomReactTable from "./CustomReactTable";
