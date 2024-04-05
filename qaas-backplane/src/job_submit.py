@@ -86,7 +86,7 @@ class QAASJobSubmit:
             return exp.rc
 
     def run_native(self, run_cmd):
-        job_cmd = f"'{run_cmd}'"
+        job_cmd = f"{run_cmd}"
         try:
             rc, _ = self.run_remote_job_cmd(job_cmd)
             return rc

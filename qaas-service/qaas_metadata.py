@@ -71,7 +71,8 @@ class QAASMetaDATA:
     @property
     def qaas_dataset_label(self):
         dataset_file_path = os.path.join(os.path.dirname(self.qaas_rundir), "dataset", "dataset_label.txt")
-        return subprocess.check_output(f"cat {dataset_file_path}", shell=True).decode("utf-8")
+        return subprocess.check_output([f"cat", f"{dataset_file_path}"]).decode("utf-8")
+        #return subprocess.check_output(f"cat {dataset_file_path}", shell=True).decode("utf-8")
 
 
     def add_qaas_metadata(self, run_cmd, dataset_name=""):

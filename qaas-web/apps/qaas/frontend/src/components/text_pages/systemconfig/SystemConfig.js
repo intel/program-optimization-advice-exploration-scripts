@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
 import SingleRowTable from '../../graph/table/SingleRowTable';
+import { REACT_APP_API_BASE_URL } from '../../Constants';
 const columns = [
     { Header: 'Machine Name', accessor: 'machine' },
     { Header: 'Model Name', accessor: 'model_name' },
@@ -20,7 +21,7 @@ export default function SystemConfig() {
 
     const [tableData, setTableData] = useState([]);
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_system_config_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_system_config_data`)
             .then((response) => {
 
                 const rawData = response.data

@@ -27,7 +27,8 @@
     "url-loader": "^4.1.1",
     "webpack": "^5.88.2",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1"
+    "webpack-dev-server": "^4.15.1",
+    "react-scripts": "5.0.1"
   },
   "dependencies": {
     "@emotion/react": "^11.10.4",
@@ -57,12 +58,14 @@
     "react-listbox": "^1.2.13",
     "react-plotly.js": "^2.6.0",
     "react-router-dom": "^6.4.3",
-    "react-scripts": "5.0.1",
     "react-step-progress-bar": "^1.0.3",
     "react-table": "^7.8.0",
-    "react-table-6": "^6.11.0",
     "react-tooltip": "^5.23.0",
     "socket.io-client": "^4.5.3",
     "web-vitals": "^2.1.4"
+  },
+  "overrides": {
+    "nth-check": "2.1.1",
+    "postcss": "^8.2.10"
   }
 }

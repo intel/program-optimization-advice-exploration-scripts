@@ -4,7 +4,7 @@ import axios from "axios";
 import { getAppColor, categorizeIntoBin } from "../../Constants";
 import '../../css/graph.css'
 import PlotlyHistogram from "./PlotlyHistogram";
-import { baseHistogramLayout, getAppName, handleSliderChange } from "../../Constants";
+import { baseHistogramLayout, getAppName, handleSliderChange, REACT_APP_API_BASE_URL } from "../../Constants";
 import HistogramBinSlider from "./HistogramBinSlider";
 
 
@@ -45,7 +45,7 @@ export default function AppgainHistogram() {
         }
     }, [range]);
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_appgain_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_appgain_data`)
             .then((response) => {
 
                 const rawData = response.data

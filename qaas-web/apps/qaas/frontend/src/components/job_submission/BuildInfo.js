@@ -62,9 +62,12 @@ export const BuildInfo = ({ input, setInput, errors, updateFormErrors }) => {
                                 error={!!errors.USER}
                                 helperText={errors.USER || ''}
                                 value={input.application.GIT.USER} />
-                            <TextField label="Git Password" id="outlined-basic" variant="outlined"
+
+                            <TextField label="Git Password" id="outlined-password-input" variant="outlined" type="password"
                                 onChange={(event) => handleChange(['application', 'GIT', 'TOKEN'], event.target.value)}
-                                value={input.application.GIT.TOKEN} />
+                                value={input.application.GIT.TOKEN}
+
+                            />
                         </div>
 
                     </div>

@@ -89,7 +89,11 @@ RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
 WORKDIR /root
 # Copy in ssh tarball (could be empty if ENABLE_DEVELOPMENT != 1)
 COPY ssh.tar.gz /root
-RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then tar xvfz ssh.tar.gz && chown -R root .ssh && chgrp -R root .ssh; fi
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
+        tar xvfz ssh.tar.gz \
+        && chown -R root .ssh \
+        && chgrp -R root .ssh; \
+    fi
 
 #RUN groupadd -g $LOCAL_GID runner
 RUN groupmod -g $LOCAL_GID qaas && \

@@ -15,6 +15,7 @@ import { ThemeProvider } from '@mui/material/styles';
 
 import SettingsSelector from "./SettingSelector";
 import SaveSettingButton from "./SaveSettingButton";
+import { REACT_APP_API_BASE_URL } from '../Constants';
 export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachine, selectedRunMode, setSelectedRunMode }) => {
     const [machines, setMachines] = useState([]);
 
@@ -24,7 +25,7 @@ export const MachineInfo = ({ input, setInput, selectedMachine, setSelectedMachi
 
     const fetchMachines = async () => {
         try {
-            const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_machine_list`);
+            const response = await axios.get(`${REACT_APP_API_BASE_URL}/get_machine_list`);
             setMachines(response.data['machines']);
             //only set if machine has at least one item
             if (response.data['machines'].length > 0) {

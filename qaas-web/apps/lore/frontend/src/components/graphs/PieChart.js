@@ -1,10 +1,10 @@
 import React from 'react';
-import { Pie } from 'react-chartjs-2';
+// import { Pie } from 'react-chartjs-2';
 import '../css/main.css'
 function PieChart({ data }) {
     return (
         <div className='graph-spacing'>
-            <Pie
+            {/* <Pie
                 data={data}
                 options={{
                     plugins: {
@@ -13,7 +13,7 @@ function PieChart({ data }) {
                         },
                     },
                 }}
-            />
+            /> */}
             <div className='ttl3, center-text'>{data.title}</div>
         </div>
     );
