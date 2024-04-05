@@ -29,22 +29,29 @@ RUN apt-get update && \
    dc opt libgmp3-dev \
    libomp-7-dev \
    python3-matplotlib \
-   python3-jinja2 python3-sklearn python3-numpy python3-pulp python3-pydot \
-   libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx python3-pandas
+#   python3-jinja2 \
+   python3-numpy python3-pulp python3-pydot \
+   libgraphviz-dev python3-pygraphviz python3-pydotplus python3-networkx \
+   # Per Trivy image scan request for newer version, installing explictly
+   bsdutils fdisk libblkid1 libfdisk1 libmount1 libsmartcols1 mount util-linux && \
+   python3 -m pip install --no-cache-dir "certifi>=2023.7.22" "joblib>=1.2.0" "requests>=2.31.0" \
+        "urllib3>=2.0.7" "scipy>=1.10.0" "pandas>=1.4.3" && \
+   # install skleran via apt-get after pip installs for SDP version needs
+   apt-get install --no-install-recommends -y python3-sklearn \
+# most recent version of compilers
+# Need to install gcc-4.9 
+      make gcc g++ gfortran 
 
 # Ronn is needed even if we don't built CERE document
-RUN gem install ronn-ng
+RUN gem install nokogiri -v 1.15.5 && \
+	gem install ronn-ng -v 0.9.1 
 
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
+#RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
 
-RUN apt-get install --no-install-recommends -y \
-# most recent version of compilers
-   make gcc g++ gfortran && \
-# Need to install gcc-4.9 
 # See https://askubuntu.com/questions/1235819/ubuntu-20-04-gcc-version-lower-than-gcc-7
-   echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial universe" >> /etc/apt/sources.list && \
+RUN echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial main" >> /etc/apt/sources.list && echo "deb https://mirrors.dotsrc.org/ubuntu/ xenial universe" >> /etc/apt/sources.list && \
    add-apt-repository ppa:rosecompiler/rose-development && \
    apt-get update && apt-get install --no-install-recommends -y \
 # Following steps from ROSE website: https://github.com/rose-compiler/rose/wiki/Install-Using-apt-get
@@ -75,9 +82,9 @@ RUN apt-get install --no-install-recommends -y \
    ninja-build \
 # web servers
    nodejs libapache2-mod-wsgi-py3 \
-   apache2 mariadb-server libmysqlclient-dev \
-   && apt-get clean \
-   && rm -rf /var/lib/apt/lists/*
+   apache2 mariadb-server libmysqlclient-dev 
+#   && apt-get clean \
+#   && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m pip install --no-cache-dir sympy \
    && python3 -m pip install --no-cache-dir csvkit \
@@ -87,19 +94,30 @@ RUN python3 -m pip install --no-cache-dir sympy \
   && python3 -m pip install --no-cache-dir parse \
   && python3 -m pip install --no-cache-dir pytrie \
   && python3 -m pip install --no-cache-dir pandas \
+  && python3 -m pip install --no-cache-dir numpy \
+  && python3 -m pip install --no-cache-dir Jinja2>=3.1.3 \
   && python3 -m pip install --no-cache-dir py-cpuinfo
 
 # Build cmake
-# NOTE: WHY WE NEED A SPECFIC VERSION instead of apt install cmake
+# NOTE: NEED NEW VERSION OF CMAKE to build code (e.g. amg)
+# See: https://apt.kitware.com/
+#wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - |  tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+RUN curl -L https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - |  tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null \
+  && echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' |  tee /etc/apt/sources.list.d/kitware.list >/dev/null \
+  && apt-get update \
+  && apt-get install --no-install-recommends -y cmake=3.29.0-0kitware1ubuntu20.04.1 \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /root
 # replace wget by curl
 #RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
-RUN curl -s https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
-  && tar xvf cmake-3.21.1.tar.gz 
-WORKDIR /root/cmake-3.21.1
-RUN ./bootstrap \
-  && make \
-  && make install
+#RUN curl -L -O https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
+#  && tar xvf cmake-3.21.1.tar.gz 
+#WORKDIR /root/cmake-3.21.1
+#RUN ./bootstrap \
+#  && make \
+#  && make install
 
 ENV ROSE_HOME=/usr/rose
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
@@ -145,7 +163,7 @@ WORKDIR /share/pips
 RUN alias g77=gfortran
 # replace wget by curl
 #RUN wget -q https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
-RUN curl -s https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
+RUN curl -L -O https://scm.cri.ensmp.fr/svn/nlpmake/trunk/makes/setup_pips.sh \
    && chmod +x setup_pips.sh \
    && ./gen_svn_servers.sh \
    && ./setup_pips.sh --dynamic --light --pyconf=python3-config

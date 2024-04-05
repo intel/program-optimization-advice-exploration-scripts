@@ -10,7 +10,7 @@ import { StaticRouter } from 'react-router-dom/server';
 export const extractContentFromComponentList = (componentList) => {
     return componentList.map(({ path, component: Component }) => {
         // Render the component to a string
-        console.log(path)
+        // console.log(path)
         let componentHtml = ReactDOMServer.renderToString(
             <StaticRouter location={path}>
                 <Component />

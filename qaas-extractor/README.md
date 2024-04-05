@@ -5,7 +5,7 @@ Installation
 -------------------------
 1. Follow [topmost installation instruction](../README.md)
    - The topmost setup.sh script will run setup.sh script of Loop Extractor to do the following automatically
-     - Build Loop Extractor
+     - Build Loop Extractor in backplane container
 2. Install Intel Advisor
    - The extractor right now hardcoded the Advisor so that the env loading script is at `/host/opt/intel/oneapi/advisor/2023.0.0/advisor-vars.sh`
 3. Install compilers (Intel, etc)

@@ -21,11 +21,11 @@ from sqlalchemy.dialects.mysql import LONGBLOB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship,registry
 import inspect
-from pickle import dumps, loads
+# from pickle import dumps, loads
 from gzip import zlib
 import os
 import math
-from base_util import *
+
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 Base = declarative_base()
@@ -44,23 +44,23 @@ class QaaSBase(Base):
 
 mapper_registry = registry()
 
-class CompressedPickler(object):
-    @classmethod
-    def dumps(cls, obj, protocol=2):
-        s = dumps(obj, protocol)
-        sz = zlib.compress(s, 9)
-        if len(sz) < len(s):
-            return sz
-        else:
-            return s
+# class CompressedPickler(object):
+#     @classmethod
+#     def dumps(cls, obj, protocol=2):
+#         s = dumps(obj, protocol)
+#         sz = zlib.compress(s, 9)
+#         if len(sz) < len(s):
+#             return sz
+#         else:
+#             return s
 
-    @classmethod
-    def loads(cls, string):
-        try:
-            s = zlib.decompress(string)
-        except:
-            s = string
-        return loads(s)
+#     @classmethod
+#     def loads(cls, string):
+#         try:
+#             s = zlib.decompress(string)
+#         except:
+#             s = string
+#         return loads(s)
 
 
 class Application(QaaSBase):
@@ -69,6 +69,9 @@ class Application(QaaSBase):
     version = Column(Text, nullable=True)
     program = Column(Text, nullable=True)
     commit_id = Column(Text, nullable=True)
+    #TODO
+    mpi_scaling = Column(Text, nullable = True)
+    omp_scaling = Column(Text, nullable = True)
     executions = relationship("Execution", back_populates="application")
     def __init__(self, initializer):
         super().__init__(initializer.session)
@@ -97,8 +100,6 @@ class Application(QaaSBase):
         
 class Execution(QaaSBase):
     __tablename__ = "execution"
-    #TODO generate this one from universal
-    # timestamp = Column(String(50), nullable = True)
     is_src_code = Column(Boolean, nullable = True)
     universal_timestamp = Column(String(50), nullable = True)
     #from expert runs
@@ -106,14 +107,15 @@ class Execution(QaaSBase):
     profiled_time = Column(Float, nullable = True)
     max_nb_threads = Column(Integer, nullable = True)
     #logs
-    log = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
-    lprof_log = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
-    #TODO temp columns
-    # cqa_context = Column(JSON, nullable = True)
-    cqa_context = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
-    config = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
-    # global_metrics = Column(JSON, nullable = True)
-    global_metrics = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
+    #print(LONGBLOB)
+    #print(LargeBinary().with_variant(LONGBLOB,"mysql", "mariadb"))
+    # log = Column(LargeBinary, nullable = True)
+    # lprof_log = Column(LargeBinary, nullable = True)
+    log = Column(LargeBinary, nullable = True)
+    lprof_log = Column(LargeBinary, nullable = True)
+    cqa_context = Column(JSON, nullable = True)
+    config = Column(JSON, nullable = True)
+    global_metrics = Column(JSON, nullable = True)
     #added column by qaas
     qaas_timestamp = Column(String(50))
     is_orig = Column(Boolean)
@@ -123,6 +125,10 @@ class Execution(QaaSBase):
     loop_callchain = Column(JSON, nullable = True)
     fct_callchain = Column(JSON, nullable = True)
     threads_per_core = Column(Integer, nullable = True)
+    #TODO add these 3 columns to the correct place put the three columns in the config in execution
+    # MPI_threads = Column(Integer, nullable = True)
+    # OMP_threads = Column(Integer, nullable = True)
+    # affinity = Column(Text, nullable = True)
 
     fk_hwsystem_id = Column(Integer, ForeignKey('hwsystem.table_id'))
     fk_os_id = Column(Integer, ForeignKey('os.table_id'))
@@ -137,6 +143,8 @@ class Execution(QaaSBase):
     qaass = relationship("QaaS", back_populates="orig_execution")
     qaas_runs = relationship("QaaSRun", back_populates="execution")
     maqaos = relationship("Maqao", back_populates="execution")
+    compiler_reports = relationship("CompilerReport", back_populates="execution")
+
     os = relationship("Os", back_populates="executions")
     hwsystem = relationship("HwSystem", back_populates="executions")
     application = relationship("Application", back_populates="executions")
@@ -170,8 +178,7 @@ class Execution(QaaSBase):
 
 class QaaS(QaaSBase):
     __tablename__ = "qaas"
-    timestamp = Column(String(50), nullable = True)
-    type = Column(String(50), nullable = True)
+    timestamp = Column(Text, nullable = True)
 
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
     orig_execution  = relationship("Execution", back_populates="qaass")
@@ -188,20 +195,22 @@ class QaaS(QaaSBase):
         accessor.visitQaaS(self)
 
     @classmethod
-    def get_or_create_qaas(cls, timestamp, initializer, type=None):
-        result = initializer.session.query(cls).filter_by(timestamp = timestamp, type = type).first()
+    def get_or_create_qaas(cls, timestamp, initializer):
+        result = initializer.session.query(cls).filter_by(timestamp = timestamp).first()
         if result:
             return result
         else:
             new_obj = cls(initializer)
             new_obj.timestamp = timestamp 
-            new_obj.type = type
             return new_obj
 
 class QaaSRun(QaaSBase):
     __tablename__ = "qaas_run"
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
     fk_qaas_id = Column(Integer, ForeignKey('qaas.table_id'))
+    type = Column(Text, nullable = True)
+    is_baseline = Column(Integer, nullable = True)
+
 
     execution  = relationship("Execution", back_populates="qaas_runs")
     qaas  = relationship("QaaS", back_populates="qaas_runs")
@@ -240,9 +249,10 @@ class Os(QaaSBase):
     os_version = Column(Text, nullable = True)
     hostname = Column(String(50), nullable = True)
     scaling_governor = Column(Text, nullable = True)
+    
+
     huge_pages = Column(Text, nullable = True)
     driver_frequency = Column(Text, nullable = True)
-
     fk_environment_id = Column(Integer, ForeignKey('environment.table_id'))
 
     executions  = relationship("Execution", back_populates="os")
@@ -277,8 +287,9 @@ class HwSystem(QaaSBase):
     cpui_model_name = Column(String(50), nullable = True)
     cpui_cpu_cores = Column(Integer, nullable = True)
     cpui_cache_size = Column(String(50), nullable = True)
-    cur_frequency = Column(String(50), nullable = True)
+    cur_frequency = Column(Integer, nullable = True)
     max_frequency = Column(Integer, nullable = True)
+    min_frequency = Column(Integer, nullable = True)
     architecture = Column(String(50), nullable = True)
     uarchitecture = Column(String(50), nullable = True)
     proc_name = Column(String(50), nullable = True)
@@ -291,6 +302,17 @@ class HwSystem(QaaSBase):
     def __init__(self, initializer):
         super().__init__(initializer.session)
         self.accept(initializer)
+
+    @classmethod
+    def get_or_set_hwsystem(cls, cpui_model_name, architecture, uarchitecture, hwsystem, initializer):
+        result = initializer.session.query(cls).filter_by(cpui_model_name = cpui_model_name, architecture = architecture, uarchitecture = uarchitecture).first()
+        if result:
+            return result
+        else:
+            hwsystem.cpui_model_name = cpui_model_name 
+            hwsystem.architecture = architecture 
+            hwsystem.uarchitecture = uarchitecture 
+            return hwsystem
     
     def export(self, exporter):
         self.accept(exporter)
@@ -298,18 +320,6 @@ class HwSystem(QaaSBase):
     def accept(self, accessor):
         accessor.visitHwSystem(self)
 
-    @classmethod
-    def get_or_create_hwsystem_by_hw_info(cls, hw_name, cpui_model_name, memory, initializer):
-        result = initializer.session.query(cls).filter_by(hw_name = hw_name, cpui_model_name = cpui_model_name, memory = memory).first()
-        if result:
-            return result
-        else:
-            new_hw_obj = cls(initializer)
-            new_hw_obj.hw_name = hw_name
-            new_hw_obj.cpui_model_name = cpui_model_name
-            new_hw_obj.memory = memory
-
-            return new_hw_obj
     
    
 class Maqao(QaaSBase):
@@ -411,6 +421,19 @@ class Compiler(QaaSBase):
         result = initializer.session.query(cls).filter_by(vendor = vendor, version = version).first()
         return result
 
+class CompilerReport(QaaSBase):
+    __tablename__ = "compiler_report"
+    # content = Column(LargeBinary, nullable = True)
+    content = Column(LargeBinary, nullable = True)
+
+    hash = Column(String(64), nullable = True)
+    fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
+    execution  = relationship("Execution", back_populates="compiler_reports")
+
+    def __init__(self, initializer):
+        super().__init__(initializer.session)
+
+    
 class CompilerOption(QaaSBase):
     __tablename__ = "compiler_option"
     flag = Column(Text, nullable = True)
@@ -531,9 +554,7 @@ class Function(QaaSBase):
     cats = Column(Text, nullable = True)
     pid = Column(Integer, nullable=True)
     tid = Column(Integer, nullable=True)
-    # hierarchy = Column(JSON, nullable = True)
-    hierarchy = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
-
+    hierarchy = Column(JSON, nullable = True)
     fk_module_id = Column(Integer, ForeignKey('module.table_id'))
     fk_compiler_option_id = Column(Integer, ForeignKey('compiler_option.table_id'))
     fk_src_function_id = Column(Integer, ForeignKey('src_function.table_id'))
@@ -786,9 +807,7 @@ class CqaMeasure(QaaSBase):
 
 class CqaAnalysis(QaaSBase):
     __tablename__ = "cqa_analysis"
-    #TODO use JSON
-    # analysis = Column(JSON, nullable = True)
-    analysis = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
+    analysis = Column(JSON, nullable = True)
 
     cqa_measures = relationship("CqaMeasure", back_populates="cqa_analysis")
 
@@ -812,9 +831,11 @@ class CqaMetric(QaaSBase):
     def __init__(self, session):
         super().__init__(session)
 
+
 class Asm(QaaSBase):
     __tablename__ = "asm"
-    content = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
+    # content = Column(LargeBinary, nullable = True)
+    content = Column(LargeBinary, nullable = True)
     hash = Column(String(64), nullable = True)
     fk_decan_variant_id = Column(Integer, ForeignKey('decan_variant.table_id'))
     fk_loop_id = Column(Integer, ForeignKey('loop.table_id'))
@@ -829,7 +850,9 @@ class Asm(QaaSBase):
 
 class Source(QaaSBase):
     __tablename__ = "source"
-    content = Column(PickleType(pickler=CompressedPickler, impl=LONGBLOB), nullable = True)
+    # content = Column(LargeBinary, nullable = True)
+    content = Column(LargeBinary, nullable = True)
+
     hash = Column(String(64), nullable = True)
 
     src_functions = relationship("SrcFunction", back_populates="source")
@@ -902,7 +925,6 @@ class Group(QaaSBase):
         super().__init__(initializer.session)
 
 class DecanRun(QaaSBase):
-    #TODO will it connect to block run and loop run
     __tablename__ = "decan_run"
     maqao_decan_id = Column(Integer, nullable = True)
     type = Column(String(50), nullable = True)
@@ -1009,26 +1031,22 @@ class VprofBucketMeasure(QaaSBase):
     def __init__(self, initializer):
         super().__init__(initializer.session)
 
-def connect_db(config, db="oneview"):
-    engine = ''
-    if db == 'oneview':
-        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_ONEVIEW"])
-    elif db == 'qaas':
-        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_QAAS"])
-    elif db == 'lore':
-        engine = create_engine(config["web"]["SQLALCHEMY_DATABASE_URI_LORE"])
-
+def connect_db(url):
+    engine = create_engine(url)
+    create_all(engine)
     engine.connect()
     return engine
 
-def create_all_tables(config, db="oneview"):
-    engine = connect_db(config, db)
+def create_all(engine):
     Base.metadata.create_all(engine)
     mapper_registry.configure()
-
-
     print("created all tables")
     return engine
+
+def create_all_tables(url):
+    engine = connect_db(url)
+    return create_all(engine)
+    
 
 def bulk_insert_data(table, data, Session):
     session = Session()
@@ -1078,3 +1096,15 @@ def get_loop_by_maqao_id(current_execution, maqao_id):
                 return l
     return res
 
+
+def compress_file(filename):
+    with open(filename, 'rb') as f:
+        content = f.read()
+    return zlib.compress(content, 9)
+
+def get_file_sha256(filename):
+    with open(filename, 'rb') as f:
+        sha256_hash = hashlib.sha256(f.read()).hexdigest()
+    return sha256_hash
+def decompress_file(compressed_content):
+    return zlib.decompress(compressed_content)

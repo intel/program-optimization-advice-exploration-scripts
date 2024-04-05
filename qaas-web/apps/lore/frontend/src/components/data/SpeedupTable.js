@@ -2,7 +2,7 @@ import Table from './table';
 import React, { useState } from 'react';
 import MutationPage from '../MutationPage';
 import axios from 'axios';
-
+import { REACT_APP_API_BASE_URL } from '../Constants';
 export default function SpeedupTable({ data, current_src_loop_id, source_id }) {
 
 
@@ -11,7 +11,7 @@ export default function SpeedupTable({ data, current_src_loop_id, source_id }) {
     const [mutationPerformanceData, setMutationPerformanceData] = useState([]);
 
     const handleViewDetailsButtonClick = (row) => {
-        axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_lore_mutated_execution_cycels_for_specific_mutation`, {
+        axios.post(`${REACT_APP_API_BASE_URL}/get_lore_mutated_execution_cycels_for_specific_mutation`, {
             current_src_loop_id: current_src_loop_id,
             mutation_number: row['mutation'],
             base_ref: row['base_ref'],

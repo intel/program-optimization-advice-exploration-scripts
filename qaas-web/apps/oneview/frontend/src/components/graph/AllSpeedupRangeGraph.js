@@ -3,7 +3,7 @@ import Histogram from "./Histogram";
 import { Modal } from 'antd';
 import axios from 'axios';
 import { RANGES } from "../Constants";
-import { DEFAULT_COLOR_SCHEME } from "../Constants";
+import { DEFAULT_COLOR_SCHEME, REACT_APP_API_BASE_URL } from "../Constants";
 export default function AllSpeedupRangeGraph({ application_table_data }) {
     const [data, setData] = useState(null);
     const [open, setOpen] = useState(false);
@@ -12,7 +12,7 @@ export default function AllSpeedupRangeGraph({ application_table_data }) {
     const fetchData = () => {
         setLoading(true);
 
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/ov_get_all_speedup_range`)
+        axios.get(`${REACT_APP_API_BASE_URL}/ov_get_all_speedup_range`)
             .then(response => {
                 setData(response.data);
                 setOpen(true);

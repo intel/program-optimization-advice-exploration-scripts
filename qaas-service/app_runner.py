@@ -38,6 +38,7 @@ from statistics import mean
 from statistics import median
 from utils.util import parse_env_map
 from base_runner import BaseRunner
+import shlex
 
 class AppRunner(BaseRunner):
     def __init__(self, run_dir_root, meta_repetitions=1, maqao_dir=None):
@@ -55,9 +56,14 @@ class AppRunner(BaseRunner):
         print(f"run_dir is: {run_dir}")
         print(base_run_cmd)
         for i in range(self.meta_repetitions):
-            subprocess.run(f"echo run:{i} > runs.log", shell=True, cwd=self.run_dir)
+            with open(os.path.join(self.run_dir, 'runs.log'), 'w') as log_file:
+                log_file.write(f"echo run:{i}\n")
+            #subprocess.run(f"echo run:{i} > runs.log", shell=True, cwd=self.run_dir)
             start = time.time_ns()
-            result = subprocess.run(f"{base_run_cmd} >> output.out 2>&1", shell=True, env=run_env, cwd=self.run_dir)
+            with open(os.path.join(self.run_dir, "output.out"), 'a') as out_file:
+                result = subprocess.run(shlex.split(base_run_cmd), stdout=out_file, 
+                                        stderr=subprocess.STDOUT,text=True, env=run_env, cwd=self.run_dir)
+            #result = subprocess.run(f"{base_run_cmd} >> output.out 2>&1", shell=True, env=run_env, cwd=self.run_dir)
             stop = time.time_ns()
             if result.returncode != 0:
                 print(f"Check errors in {self.run_dir}/output.out")

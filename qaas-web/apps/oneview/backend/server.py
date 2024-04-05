@@ -27,16 +27,11 @@
 # HISTORY
 # Created October 2022
 # Contributors: Yue/David
-from glob import glob
-import pandas
-from sqlalchemy import null
 from flask import Flask,Response
 from flask import request,jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask import current_app
 from multiprocessing import Process, Queue
 import pandas as pd
-import subprocess
 import json
 import pandas as pd
 import os
@@ -47,18 +42,21 @@ from datetime import datetime
 import threading
 import queue
 import configparser
-from ovdb import populate_database, export_data
+from ovdb import export_data
 from util import *
 from flask_cors import CORS
-from model import *
-from sqlalchemy import select, join
-import luadata
 import re
 from filters import FilterContext
-from model_accessor import MetricGetter
 from qaas_database import QaaSDatabase
 from constants import EXECUTION_METRIC_TYPES
 from collections import defaultdict
+current_directory = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../common/backend/')))
+ 
+sys.path.insert(0, base_directory)
+from model import *
+from base_util import *
+from oneview_model_accessor import MetricGetter
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(script_dir, "../../config/qaas-web.conf")
@@ -67,7 +65,7 @@ db = SQLAlchemy()
 app = Flask(__name__)
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(config_path)
-app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
+app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
@@ -89,7 +87,7 @@ def create_app(config):
     with app.app_context():
         global conn
         conn = db.engine.connect().connection
-        db_name = os.path.basename(config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW'])
+        db_name = os.path.basename(config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV'])
     #create all tables in the model
     ########################### http request ################################
     @app.route('/get_all_timestamps', methods=['GET','POST'])
@@ -171,7 +169,7 @@ def create_app(config):
     def get_application_table_info_ov():
         request_data = request.get_json()
         filters = filters = request_data.get('filters', []) 
-        print(filters)
+        # print(filters)
         filter_context = FilterContext(filters, db.session)
 
         data = []
@@ -255,66 +253,71 @@ def create_app(config):
         return total_time, execution
 
 
+    @app.route('/get_hw_comp_data', methods=['POST'])
+    def get_hw_comp_data():
+        data = request.get_json()
+        selectedRows = data['selectedRows']
+        baseline = data['baseline']
+
+        hw_comp_data = []
+        speedup_graph_data = {"labels": [], "speedup": []}
+
+        
+        #get baseline total time from baseline
+        baseline_total_time, baselin_execution = get_total_time_from_row(baseline)
+
+
+        #TODO hardcoded way to read compiler name
+        base_compiler_name = baselin_execution.application.version.split('/')[2]
+        base_program_name = baselin_execution.application.program
+        # Baseline has a speedup of 1
+        speedup_graph_data["labels"].append(f' {base_program_name}:{base_compiler_name}')
+        speedup_graph_data["speedup"].append(1)
+
+        base_global_metrics_df = pd.read_json(baselin_execution.global_metrics['global_metrics'], orient="split")
+        base_gflops = base_global_metrics_df.loc[base_global_metrics_df['metric'] == 'GFlops', 'value'].values[0]
+        base_data = {'label': f' {base_program_name}', 'time': baselin_execution.time, 'speedup': 1, 'gflops': base_gflops, 'compiler': base_compiler_name}
+        hw_comp_data.append(base_data)
+
+     
+
+        #get total time from selected rows
+        for row in selectedRows:
+            total_time, execution = get_total_time_from_row(row)
+            speed_up = float(baseline_total_time) / float(total_time) 
+            compiler_name = execution.application.version.split('/')[2]
+            program_name = execution.application.program
+            speedup_graph_data["labels"].append(f' {program_name}:{compiler_name}')
+            speedup_graph_data["speedup"].append(speed_up)
+
+            global_metrics_df = pd.read_json(execution.global_metrics['global_metrics'], orient="split")
+            gflops = global_metrics_df.loc[global_metrics_df['metric'] == 'GFlops', 'value'].values[0]
+            data = {'label': f' {program_name}', 'time': execution.time, 'speedup': speed_up, 'gflops': gflops,'compiler': compiler_name}
+            hw_comp_data.append(data)
+        return hw_comp_data
 
 
     @app.route('/run_comparative_view_for_selected_runs', methods=['POST'])
     def run_comparative_view_for_selected_runs():
         selected_runs = request.get_json()
+        timestamp_list = []
+
         data_folder_list = []
         for index, run in enumerate(selected_runs):
             timestamp = run['timestamp']
             universal_timestamp = datetime_to_universal_timestamp(timestamp)
             qaas_output_run_folder_run = os.path.join(qaas_output_folder, str(index))
             export_data(universal_timestamp, qaas_output_run_folder_run, db.session)
+            timestamp_list.append(universal_timestamp)
             data_folder_list.append(qaas_output_run_folder_run)
-        create_manifest_comparison(manifest_file_path, data_folder_list)
+        create_manifest_comparison(manifest_file_path, data_folder_list, timestamp_list, db.session)
         manifest_out_path = create_out_manifest(frontend_html_path)
 
-        run_otter_command(manifest_file_path, manifest_out_path)
+        run_otter_command(manifest_file_path, manifest_out_path, config)
         return jsonify(isError= False,
                     message= "Success",
                     statusCode= 200,
                     )
-    # @app.route('/create_new_timestamp', methods=['GET','POST'])
-    # def create_new_timestamp():
-    #     #real user input data  unused for now
-    #     qaas_request = request.get_json()
-        
-    #     #call backplane and wait to finish
-    #     json_file = config['web']['INPUT_JSON_FILE']
-    #     # t = QaaSThread(json_file, config['web']['QAAS_DATA_FOLDER'], qaas_message_queue)
-    #     # t.start()
-    #     # t.join()
-        
-    #     # output_ov_dir = t.output_ov_dir
-    #     # output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-50-406"
-    #     output_ov_dir = "/nfs/site/proj/alac/tmp/qaas-fix/tmp/qaas_data/167-80-123"
-
-    #     ov_output_dir = os.path.join(output_ov_dir,'oneview_runs')
-    #     for version in ['opt','orig']:
-    #         ov_version_output_dir = os.path.join(ov_output_dir, version)
-    #         result_folders = os.listdir(ov_version_output_dir)
-    #         # Should have only one folder
-    #         assert len(result_folders) == 1
-    #         result_folder = result_folders[0]
-    #         current_ov_dir = os.path.join(ov_version_output_dir, result_folder)
-    #         qaas_timestamp = os.path.basename(output_ov_dir)
-    #         workload_name = f"workload_name_{version}"
-    #         workload_version_name = f"version_name({version})"
-    #         workload_program_name = f"test_program_name_{version}"
-    #         workload_program_commit_id = f"test###id_{version}"
-    #         populate_database(current_ov_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id)
-    #         update_html(version)
-        
-    #     #if True:
-    #     run_comparison_report()
-
-    #     return jsonify(isError= False,
-    #                 message= "Success",
-    #                 statusCode= 200,
-    #                 timestamp=qaas_timestamp,
-    #                 )
-
 
     @app.route('/get_html_by_timestamp', methods=['GET','POST'])
     def get_html_by_timestamp():
@@ -324,14 +327,11 @@ def create_app(config):
 
         export_data(query_time, qaas_output_folder, db.session)
         
-        create_manifest_monorun(manifest_file_path,qaas_output_folder)
+        create_manifest_monorun(manifest_file_path,qaas_output_folder, query_time, db.session)
         manifest_out_path = create_out_manifest(frontend_html_path)
 
-        run_otter_command(manifest_file_path, manifest_out_path)
-        # print(query_time)
-        # for version in ['opt','orig']:
-        #     update_html(version)
-        # run_comparison_report()
+        run_otter_command(manifest_file_path, manifest_out_path, config)
+
 
         #get table using timestamp
         return jsonify(isError= False,
@@ -381,6 +381,20 @@ def create_app(config):
         response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
         return response
 
+    @app.after_request
+    def apply_no_cache(response):
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Cache-Control"]= "no-cache; no-store; max-age=0; must-revalidate"
+        response.headers["Expires"]= -1
+        return response
+
+
+    @app.after_request
+    def apply_limit_frame(response):
+        response.headers["X-Frame-Options"] = "self"
+        response.headers["Content-Security-Policy"] = "frame-ancestors"
+
+        return response
         
     return app
 
@@ -392,108 +406,11 @@ def delete_created_path(path_list):
             shutil.rmtree(path)
 
 
-def run_otter_command(manifest_file_path, out_manifest_path):
-    run_dir = os.path.dirname(manifest_file_path)
-    cdcommand= f"cd {run_dir};"
-    ottercommand = f"{config['web']['MAQAO_VERSION']} otter --input={manifest_file_path} --output={out_manifest_path}"  
-    #command = cdcommand +  ottercommand
-    #print(ottercommand)
-    # Use this version for SDP because flagging for shell=True
-    ret = subprocess.run([config['web']['MAQAO_VERSION'], "otter", f"--input={manifest_file_path}", f"--output={out_manifest_path}"], cwd=run_dir, capture_output=True)
-    # This is original implementation
-    #ret = subprocess.run(command, capture_output=True, shell=True)
-    print(ret.stdout.decode())
-   
-
-def create_manifest_file_for_run(run_id, run_name, output_data_dir, manifest_path):
-    content =  f"""meta;{run_id};{run_name};run_{run_id};
-virtual;0;executable;./mpi_hello_world;
-file;{run_id};expert_run;{output_data_dir}/shared/run_0/expert_run.csv;
-file;{run_id};config;{output_data_dir}/shared/run_0/config.lua;
-file;{run_id};localvars;{output_data_dir}/shared/run_0/local_vars.csv;
-dir;{run_id};lprof_dir;{output_data_dir}/shared/lprof_npsu_run_0;
-dir;{run_id};cqa_dir;{output_data_dir}/static_data/cqa;
-dir;{run_id};sources_dir;{output_data_dir}/static_data/sources;
-dir;{run_id};asm_dir;{output_data_dir}/static_data/asm;
-dir;{run_id};groups_dir;{output_data_dir}/static_data/groups;
-dir;{run_id};hierarchy_dir;{output_data_dir}/static_data/hierarchy;
-file;{run_id};global_metrics;{output_data_dir}/shared/run_0/global_metrics.csv;
-file;{run_id};categorization;{output_data_dir}/shared/run_0/lprof_categorization.csv;
-dir;{run_id};callchains_dir;{output_data_dir}/shared/lprof_npsu_run_0/callchains;
-file;{run_id};log;{output_data_dir}/logs/log.txt;
-file;{run_id};logs_subdir;{output_data_dir}/logs/run_0;
-dir;{run_id};env_dir;{output_data_dir}/shared/run_0;
-"""
-    if os.path.exists(f'{output_data_dir}/shared/run_0/decan.csv'):
-        higher_level_content = f"""file;{run_id};decan;{output_data_dir}/shared/run_0/decan.csv;
-        file;{run_id};vprof;{output_data_dir}/shared/run_0/vprof.csv;
-        dir;{run_id};asm_mapping_dir;{output_data_dir}/tools/decan/run_{run_id}/others;"""
-        content += higher_level_content
-
-    write_string_to_file(manifest_path, content)
-
-def write_string_to_file(file_path, string):
-    with open(file_path, 'a') as file:
-        file.write(f'{string}\n')
-
-def write_manifest_header(manifest_path, run_type):
-    header=f"""type;run;usage;path;
-meta;;report_type;{run_type};"""
-    write_string_to_file(manifest_path, header)
-
-def create_out_manifest(output_file_path):
-    usage = 'html_dir'
-    output_dir_path = os.path.join(output_file_path, 'output_html')
-    data = {'usage': [usage], 'value': [output_dir_path]}
-    df = pd.DataFrame(data)
-    os.makedirs(output_file_path, exist_ok=True)
-    out_manifest_path = os.path.join(output_file_path, 'out_manifest.csv')
-    df.to_csv(out_manifest_path, index=False)
-    return out_manifest_path
-
-def create_manifest_comparison(manifest_path, output_data_dir_list):
-    if os.path.isfile(manifest_path):
-        os.remove(manifest_path)
-    write_manifest_header(manifest_path, 'multirun')
-    index = 0
-    for output_data_dir in output_data_dir_list:
-        create_manifest_file_for_run(index, f'run_{index}', output_data_dir, manifest_path)
-        index += 1
-def create_manifest_monorun(manifest_path, output_data_dir):
-    if os.path.isfile(manifest_path):
-        os.remove(manifest_path)
-    write_manifest_header(manifest_path, 'monorun')
-    create_manifest_file_for_run(0, 'run_0', output_data_dir, manifest_path)
-
-def run_comparison_report():
-
-    manifest_file_path = os.path.join(frontend_html_path, 'input_manifest.csv')
-    opt_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'], 'opt')
-    orig_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'], 'orig')
-    data_folder_list = [opt_folder, orig_folder]
-    create_manifest_comparison(manifest_file_path, data_folder_list)
-    manifest_out_path = create_out_manifest(frontend_html_path)
-
-    run_otter_command(manifest_file_path, manifest_out_path)
-
-
-  
-def update_html(version):
-
-    manifest_file_path = os.path.join(frontend_html_path, 'input_manifest.csv')
-    output_data_dir = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'], version)
-    #####create manifest.csv 
-    create_manifest_monorun(manifest_file_path,output_data_dir)
-    manifest_out_path = create_out_manifest(frontend_html_path)
-    
-
-    run_otter_command(manifest_file_path, manifest_out_path)
-
-    # delete_created_path(to_delete)
 
 
 
-    
+
+
 
 def main(config):
     
@@ -505,6 +422,5 @@ if __name__ == "__main__":
     # thread = threading.Thread(target=create_all_tables(config))
     # thread.start()
     # thread.join()
-    create_all_tables(config)
-    print("finsihed creating all the tables")
+    # print("finsihed creating all the tables")
     main(config)

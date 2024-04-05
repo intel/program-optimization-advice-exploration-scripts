@@ -17,7 +17,7 @@ const findToggleableColumns = (cols) => {
     return toggleable;
 };
 
-const ApplicationTable = React.memo(({ data, baseline, setBaseline }) => {
+const ApplicationTable = React.memo(({ data }) => {
     const [hiddenChildColumns, setHiddenChildColumns] = useState([]);
     useEffect(() => {
         let defaultHiddenColumns = findToggleableColumns(columns);
@@ -67,7 +67,7 @@ const ApplicationTable = React.memo(({ data, baseline, setBaseline }) => {
 
     const renderSubComponent = (row) => {
         return (
-            <ApplicationSubTable data={row.row.original['run_data']} baseline={baseline} setBaseline={setBaseline} />
+            <ApplicationSubTable data={row.row['run_data']} />
         );
     };
 
