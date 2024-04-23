@@ -99,26 +99,26 @@ def set_node_proxy(http_proxy, https_proxy):
 #        print("Error creating Apache configuration file:", e)
 #        sys.exit(1)
 
-def sync_db(alembic_ini_file):
-    original_dir = os.getcwd()
-    os.chdir(qaas_web_backend_common_dir)
-    #make sure we have a version folder to save version
-    version_dir = os.path.join(qaas_web_backend_common_dir, 'multidb','versions')
-    os.system(f'mkdir -p {version_dir}')
-    command = f'alembic -c {alembic_ini_file} revision --autogenerate -m "sync db"'
-    status = os.system(command)
+# def sync_db(alembic_ini_file):
+#     original_dir = os.getcwd()
+#     os.chdir(qaas_web_backend_common_dir)
+#     #make sure we have a version folder to save version
+#     version_dir = os.path.join(qaas_web_backend_common_dir, 'multidb','versions')
+#     os.system(f'mkdir -p {version_dir}')
+#     command = f'alembic -c {alembic_ini_file} revision --autogenerate -m "sync db"'
+#     status = os.system(command)
 
-    if status == 0:
-        print("New revision file created successfully.")
-    else:
-        print("An error occurred while creating the new revision file.")
+#     if status == 0:
+#         print("New revision file created successfully.")
+#     else:
+#         print("An error occurred while creating the new revision file.")
     
-    status = os.system(f'alembic -c {alembic_ini_file} upgrade head')
-    if status == 0:
-        print("Database updated to the latest revision successfully.")
-    else:
-        print("An error occurred during database synchronization.")
-    os.chdir(original_dir)
+#     status = os.system(f'alembic -c {alembic_ini_file} upgrade head')
+#     if status == 0:
+#         print("Database updated to the latest revision successfully.")
+#     else:
+#         print("An error occurred during database synchronization.")
+#     os.chdir(original_dir)
 
 
 #update dependency+copy to apache
@@ -130,7 +130,7 @@ def update_web(force_install=False):
     qaas_web_dir = os.path.join(script_dir, '..',)
     config_dir =  os.path.join(qaas_web_dir, "apps", "config")
     qaas_config_file =  os.path.join(config_dir, "qaas-web.conf")
-    alembic_ini_file =  os.path.join(config_dir, "alembic.ini")
+    # alembic_ini_file =  os.path.join(config_dir, "alembic.ini")
     apache_qaas_config_dir = os.path.join(apache_dir, 'config')
     apache_qaas_config_file = os.path.join(apache_qaas_config_dir, "qaas-web.conf")
 
@@ -190,7 +190,7 @@ def update_web(force_install=False):
     give_permission(input_jsons_dir, 'www-data')
 
     #sync db last
-    sync_db(alembic_ini_file)
+    # sync_db(alembic_ini_file)
 
 def give_permission(folder, user):
     os.system(f"sudo chown -R {user}:{user} {folder}")

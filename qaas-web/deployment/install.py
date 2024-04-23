@@ -3,6 +3,7 @@ import sys
 import subprocess
 import configparser
 import getpass
+from pathlib import Path
 
 from urllib.parse import urlparse
 
@@ -12,6 +13,10 @@ script_dir=os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.normpath(os.path.join(script_dir, '../apps/common/backend/')))
 from base_util import send_ssh_key_to_backplane 
 from model import create_all_tables
+qaas_web_dir = os.path.join(script_dir, '..',)
+apps_dir = os.path.join(qaas_web_dir, "apps")
+qaas_web_backend_common_dir = os.path.join(apps_dir, 'common','backend')
+sys.path.append(qaas_web_backend_common_dir)
 
 def setup_backplane_machine_connections():
     machine_names = []
@@ -27,31 +32,6 @@ def setup_backplane_machine_connections():
             continue
         machine_names += [machine_name]
 
-# def install_packages():
-#     try:
-#         http_proxy, https_proxy = get_proxy()
-#         set_apt_proxy(http_proxy, https_proxy)
-#         #os.system("sudo apt-get update")
-#         #assume they already have these
-#         #os.system("sudo apt-get install -y apache2")
-#         #os.system("sudo apt-get install -y mariadb-server")
-#         #os.system("sudo apt-get install -y python3-pip")
-#         #os.system("sudo apt-get install -y libmysqlclient-dev")
-#         #os.system("sudo apt-get install -y libmariadbclient-dev")
-#         #os.system("sudo apt-get install -y python3-certbot-apache")
-#         #os.system('sudo apt-get install -y curl')
-#         #os.system("curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -")
-
-#         #os.system("sudo apt-get install -y nodejs")
-#         #os.system("sudo apt-get install -y git libapache2-mod-wsgi-py3")
-#         #os.system("sudo a2enmod proxy")
-#         #os.system("sudo a2enmod proxy_http")
-        
-
-#         print("All packages installed successfully.")
-#     except Exception as e:
-#         print("Error installing packages:", e)
-#         sys.exit(1)
 
 def set_apt_proxy(http_proxy, https_proxy):
     try:
@@ -74,6 +54,50 @@ def install_common_dependencies(apache_common_dir):
     os.system(f"sudo cp -r {script_dir}/../common {apache_parent_dir}/") 
 
 
+def get_current_database_version(alembic_ini_file):
+    """check current db version."""
+    result = subprocess.run(['alembic', '-c', alembic_ini_file, 'current'], capture_output=True, text=True)
+    if 'head' in result.stdout: return 'head'
+    #for case 4 
+    if "FAILED: Can't locate revision identified by" in result.stderr: return None
+    lines = result.stdout.splitlines()
+    # extract the current version from the output, first if multiple
+    if len(lines) > 0: return lines[0]
+    return None
+
+def upgrade_database_if_necessary(alembic_ini_file):
+    #case 1: database has no version-> start with one that has down version = None and upgrade to head
+    #case 2: database has version, but not newest -> start with the one that has current version and upgrade to head
+    #case 3: database has version and it is newest -> return
+    #case 4: database has version that is not in the current version folder -> return
+
+    original_dir = os.getcwd()
+    os.chdir(qaas_web_backend_common_dir)
+    version_dir = os.path.join(qaas_web_backend_common_dir, 'multidb','versions')
+    os.system(f'mkdir -p {version_dir}')
+    
+    #case 3  database has version and it is newest just return
+    current_version = get_current_database_version(alembic_ini_file)
+    if current_version == 'head': 
+        print('Current version is newest version.')
+        return
+
+    # print("current_version",current_version)
+    #case 4  database has version that is not in the current version folder just return
+    available_migrations = [f.stem.split('_')[0] for f in Path(version_dir).glob('*.py')]
+    if current_version and current_version not in available_migrations:
+        print('Database has a version that does not exist in current versions, please get correct versions.')
+        return
+    #update until head
+    try:
+        # upgrade database to the latest version case 1 and case 2
+        subprocess.run(['alembic', '-c', alembic_ini_file, 'upgrade', 'head'], check=True, capture_output=True, text=True)
+        print("Database upgraded to the latest version successfully.")
+    except subprocess.CalledProcessError as e:
+        print("Error occurred during database upgrade:", e.stderr)
+    finally:
+        #go to original directory
+        os.chdir(original_dir)
 
 
 def setup_database(database_url, config):
@@ -86,7 +110,7 @@ def setup_database(database_url, config):
         
         # check if the user alread,y exists
         # Use this version for SDP because flagging for shell=True
-        user_exists = subprocess.check_output(["sudo", "mysql", "-u", "root", "-e", f"SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{username}');"]).decode().strip()
+        user_exists = subprocess.check_output(["mysql", "-u", "root", "-e", f"SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{username}');"]).decode().strip()
         # This is original implementation
         #user_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{username}');\"", shell=True).decode().strip()
         user_exists_lines = user_exists.split('\n')
@@ -97,7 +121,7 @@ def setup_database(database_url, config):
         if user_exist_result == '0':
             #print(f'Creating user "{username}"...')
             print(f'Creating user ...')
-            os.system(f"sudo mysql -u root -e \"CREATE USER '{username}'@'localhost' IDENTIFIED BY '{password}';\"")
+            os.system(f"mysql -u root -e \"CREATE USER '{username}'@'localhost' IDENTIFIED BY '{password}';\"")
         else:
             #print(f'User "{username}" already exists, skipping creation of {username} user.')
             print(f'User already exists, skipping creation of user.')
@@ -107,12 +131,12 @@ def setup_database(database_url, config):
             if login_success != 0:
                 #print(f'Updating password for user "{username}"...')
                 print(f'Updating password for user ...')
-                os.system(f"sudo mysql -u root -e \"ALTER USER '{username}'@'localhost' IDENTIFIED BY '{password}';\"")
+                os.system(f"mysql -u root -e \"ALTER USER '{username}'@'localhost' IDENTIFIED BY '{password}';\"")
 
         # check if the database already exists
         #db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SHOW DATABASES LIKE '{database_name}_';\"", shell=True).decode().strip()
         # Use this version for SDP because flagging for shell=True
-        db_exists = subprocess.check_output([f"sudo", "mysql", "-u", "root", "-e",  f"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='{database_name}';"]).decode().strip()
+        db_exists = subprocess.check_output(["mysql", "-u", "root", "-e",  f"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='{database_name}';"]).decode().strip()
         # This is original implementation
         # db_exists = subprocess.check_output(f"sudo mysql -u root -e \"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='{database_name}';\"", shell=True).decode().strip()
 
@@ -120,9 +144,9 @@ def setup_database(database_url, config):
         if not db_exists:
             #print(f'Creating database "{database_name}"...')
             print(f'Creating database ...')
-            os.system(f"sudo mysql -u root -e \"CREATE DATABASE {database_name};\"")
-            os.system(f"sudo mysql -u root -e \"GRANT ALL PRIVILEGES ON {database_name}.* TO '{username}'@'localhost';\"")
-            os.system("sudo mysql -u root -e \"FLUSH PRIVILEGES;\"")
+            os.system(f"mysql -u root -e \"CREATE DATABASE {database_name};\"")
+            os.system(f"mysql -u root -e \"GRANT ALL PRIVILEGES ON {database_name}.* TO '{username}'@'localhost';\"")
+            os.system("mysql -u root -e \"FLUSH PRIVILEGES;\"")
             create_all_tables(database_url)
 
         else:
@@ -146,6 +170,19 @@ def delete_index_html(apache_dir):
         except Exception as e:
             print("Error deleting index.html:", e)
             sys.exit(1)
+
+def generate_alembic_ini_from_template(db_connection_string, template_path, output_path):
+    """
+    Generates an new alembic.ini file for a specific database from a template.
+    """
+    with open(template_path, 'r') as file:
+        template_content = file.read()
+    
+    ini_content = template_content.replace('$db_url', db_connection_string)
+    
+    # write new ini file
+    with open(output_path, 'w') as file:
+        file.write(ini_content)
 
 
 if __name__ == "__main__":
@@ -188,27 +225,35 @@ if __name__ == "__main__":
     config_path = os.path.join(config_dir, "qaas-web.conf")
     config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     config.read(config_path)
+    alembic_ini_file =  os.path.join(config_dir, "alembic.ini")
+    alembic_ini_file_template =  os.path.join(config_dir, "alembic.ini.template")
 
     db_connection_strings = set()
+    # db_name_connection_strings_pair = {}
     for var, val in config.items("web"):
         if var.upper().startswith("SQLALCHEMY_DATABASE_URI"):
             print(f'Will setup database for: {var.upper()}')
             db_connection_strings.add(val)
-    db_connection_strings = sorted(db_connection_strings)
+
     print("Setting up the database...")
-    os.system("sudo service mysql start")
+    os.system("service mysql start")
+ 
     for db_connection_string in db_connection_strings: 
         # print(f'Setting up database for connection string: {db_connection_string}')
         setup_database(db_connection_string, config)
+        #create a new ini file for each connection string
+        generate_alembic_ini_from_template( db_connection_string, alembic_ini_file_template, alembic_ini_file)
+        #alembic updates if necessary
+        upgrade_database_if_necessary(alembic_ini_file)
 
     #database_url = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
     # update conf file just before update_web()
-    config['web']['BACKPLANE_SERVER_LIST'] = setup_backplane_machine_connections()
-    with open(config_path, 'w') as ff:
-        config.write(ff)
+    # config['web']['BACKPLANE_SERVER_LIST'] = setup_backplane_machine_connections()
+    # with open(config_path, 'w') as ff:
+    #     config.write(ff)
 
-    update_web(force_install=True)
+    # update_web(force_install=True)
 
-
+    
     # # #delete default index html
     #delete_index_html(apache_dir)
