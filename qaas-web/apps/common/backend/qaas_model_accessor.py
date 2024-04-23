@@ -128,7 +128,7 @@ class QaaSModelInitializer(ModelAccessor):
         #metadata info
         #create qaas and exectuion assoicate table
         #both multicompiler report and scabilty belong to same qaas 
-        timestamp = self.current_metadata_config['QAAS'].get('timestamp')        
+        timestamp = self.current_metadata_config['QAAS'].get('timestamp')
         current_qaas = QaaS.get_or_create_qaas(timestamp, self)
         current_qaas_run = QaaSRun(self)
         #associate table
