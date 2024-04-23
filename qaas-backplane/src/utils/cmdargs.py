@@ -45,13 +45,6 @@ def add_exclusive_container_options(excl_parser):
     # Specify whether to run root in container (permissive rootless mode)
     excl_parser.add_argument('-r', "--as-root-in-container", action="store_true", help="Run host users as root in container [permissive rootless mode in podman]. Not allowed for true root users.")
 
-def add_exclusive_compilers_options(excl_parser):
-    """Populate a parser with exclusive compilers options."""
-    # Specify whether to disable QaaS search for best default compiler
-    excl_parser.add_argument('-ncd', "--no-compiler-default", action="store_true", help="Disable search for best default compiler")
-    # Specify whether to disable QaaS search for best compiler flags
-    excl_parser.add_argument('-ncf', "--no-compiler-flags", action="store_true", help="Disable search for best compiler flags")
-
 def parse_cli_args(argv):
     """Process the command line arguments."""
     if len(argv) == 1:
@@ -77,9 +70,10 @@ def parse_cli_args(argv):
     container_excl = global_parser.add_mutually_exclusive_group()
     add_exclusive_container_options(container_excl)
 
-    # Specify whether to overide compilers search parameters
-    compilers_excl = global_parser.add_mutually_exclusive_group()
-    add_exclusive_compilers_options(compilers_excl)
+    # Specify whether to disable QaaS search for best default compiler
+    global_parser.add_argument('-ncd', "--no-compiler-default", action="store_true", help="Disable search for best default compiler")
+    # Specify whether to disable QaaS search for best compiler flags
+    global_parser.add_argument('-ncf', "--no-compiler-flags", action="store_true", help="Disable search for best compiler flags")
 
     # Force usage of parallel run for compiler search
     global_parser.add_argument('-p', '--parallel-compiler-runs', choices=['off', 'mpi', 'openmp', 'hybrid'], default='off',
@@ -93,9 +87,6 @@ def parse_cli_args(argv):
 
     # parse arguments
     args = global_parser.parse_args()
-
-    # Add some implied rule for mutally exclusive group
-    args.no_compiler_flags = True if args.no_compiler_default else args.no_compiler_flags
 
     # configure logging
     if args.debug:
