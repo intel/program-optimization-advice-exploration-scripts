@@ -109,8 +109,8 @@ class Execution(QaaSBase):
     #logs
     #print(LONGBLOB)
     #print(LargeBinary().with_variant(LONGBLOB,"mysql", "mariadb"))
-    log = Column(LargeBinary, nullable = True)
-    lprof_log = Column(LargeBinary, nullable = True)
+    log = Column(Text, nullable = True)
+    lprof_log = Column(Text, nullable = True)
     # log = Column(LONGBLOB, nullable = True)
     # lprof_log = Column(LONGBLOB, nullable = True)
     cqa_context = Column(JSON, nullable = True)
@@ -423,7 +423,7 @@ class Compiler(QaaSBase):
 
 class CompilerReport(QaaSBase):
     __tablename__ = "compiler_report"
-    content = Column(LargeBinary, nullable = True)
+    content = Column(Text, nullable = True)
     # content = Column(LONGBLOB, nullable = True)
 
     hash = Column(String(64), nullable = True)
@@ -834,7 +834,7 @@ class CqaMetric(QaaSBase):
 
 class Asm(QaaSBase):
     __tablename__ = "asm"
-    content = Column(LargeBinary, nullable = True)
+    content = Column(Text, nullable = True)
     # content = Column(LONGBLOB, nullable = True)
     hash = Column(String(64), nullable = True)
     fk_decan_variant_id = Column(Integer, ForeignKey('decan_variant.table_id'))
@@ -847,10 +847,26 @@ class Asm(QaaSBase):
 
     def __init__(self, initializer):
         super().__init__(initializer.session)
+    
+    @classmethod
+    def get_or_create_asm_by_hash(cls, file_path, target_path, initializer):
+        hash = get_file_sha256(file_path)
+        result = initializer.session.query(cls).filter_by(hash = hash).first()
+        if result:
+            return result
+        else:
+            new_obj = cls(initializer)
+            #make sure we have a table id
+            initializer.session.flush()
+            target_path = os.path.join(target_path, str(new_obj.table_id))
+            new_obj.hash = hash 
+            dump_file(file_path, target_path)
+            new_obj.content = target_path
+            return new_obj
 
 class Source(QaaSBase):
     __tablename__ = "source"
-    content = Column(LargeBinary, nullable = True)
+    content = Column(Text, nullable = True)
     # content = Column(LONGBLOB, nullable = True)
 
     hash = Column(String(64), nullable = True)
@@ -874,17 +890,21 @@ class Source(QaaSBase):
 
 
     @classmethod
-    def get_or_create_source_by_hash(cls, file_path, source_metrics, initializer):
+    def get_or_create_source_by_hash(cls, file_path, target_path, source_metrics, initializer):
         hash = get_file_sha256(file_path)
         result = initializer.session.query(cls).filter_by(hash = hash).first()
         if result:
             return result
         else:
             new_obj = cls(initializer)
+            #make sure we have a table id
+            initializer.session.flush()
+            target_path = os.path.join(target_path, str(new_obj.table_id))
             new_obj.hash = hash 
-            content = compress_file(file_path)
-            new_obj.content = content
-            new_obj.add_metrics(initializer.session, source_metrics)
+            dump_file(file_path, target_path)
+            new_obj.content = target_path
+            if source_metrics:
+                new_obj.add_metrics(initializer.session, source_metrics)
             return new_obj
 
 
@@ -1096,6 +1116,21 @@ def get_loop_by_maqao_id(current_execution, maqao_id):
                 return l
     return res
 
+def dump_file(filename, target_path):
+    with open(filename, 'rb') as f:
+        content = f.read()
+    
+    target_dir = os.path.dirname(target_path)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)  
+    with open(target_path, 'wb') as f:
+        f.write(content)
+
+def load_file(filename):
+    print(filename)
+    with open(filename, 'rb') as f:
+        content = f.read()
+    return content
 
 def compress_file(filename):
     with open(filename, 'rb') as f:

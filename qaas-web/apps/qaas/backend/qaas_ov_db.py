@@ -47,7 +47,7 @@ def populate_database_qaas_ov(report_path, config):
 
     
     #######################populate database tables######################
-    initializer = QaaSOneViewModelInitializer(session, report_path)
+    initializer = QaaSOneViewModelInitializer(session, report_path, config['web']['LARGE_FILES_FOLDER'])
     qaas_ov_database = QaaSOneViewDatabase()
     qaas_ov_database.accept(initializer)
     

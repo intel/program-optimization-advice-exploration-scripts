@@ -887,8 +887,14 @@ class QaaSFileAccessMonitor:
         #connect db
         # Ensure output path exists
         os.makedirs(self.full_output_path, exist_ok=True)
-        self.temp_file = tempfile.NamedTemporaryFile(suffix=".db", prefix=f'{self.full_output_path}_', delete=False)
-        db_file_name = self.temp_file.name
+        #self.top_temp_dir = tempfile.TemporaryDirectory(suffix=".tmp", prefix=f'{self.full_output_path}_', delete=False)
+        #switch to mkdtemp since TemporaryDirectory does not have a delete=false parameter
+        self.top_temp_dir = tempfile.mkdtemp(suffix=".tmp", prefix=f'{self.full_output_path}_')
+
+        self.temp_file = os.path.join(self.top_temp_dir, 'sqlite.db')
+        self.large_files_dir = os.path.join(self.top_temp_dir, 'large_files')
+        os.makedirs(self.large_files_dir)
+        db_file_name = self.temp_file
         self.engine = create_engine(f'sqlite:///{db_file_name}')
         #engine = create_engine('mysql://qaas:qaas@localhost/qaas')
         self.engine.connect()
@@ -907,7 +913,7 @@ class QaaSFileAccessMonitor:
         builtins.open = self.my_open
         pd.read_csv = self.my_pd_read_csv
         os.listdir = self.my_os_listdir
-        return self.session
+        return (self.session, self.large_files_dir)
 
     def my_os_listdir(self, *args, **kwargs):
         self.peek_filename('path', args, kwargs)
@@ -962,9 +968,11 @@ class QaaSFileAccessMonitor:
         self.session.commit()
         self.session.close()
         if not self.keep_db:
-            os.unlink(self.temp_file.name)
+            # remove the directory recursively
+            shutil.rmtree(self.top_temp_dir)
+            #os.unlink(self.temp_file)
+      
         return False
-
 def send_ssh_key_to_backplane(machine, password):
     user_and_machine = f"qaas@{machine}"
     home_directory = os.path.expanduser("~")

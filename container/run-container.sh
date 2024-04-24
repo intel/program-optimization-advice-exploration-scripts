@@ -136,6 +136,7 @@ docker volume create mods_enabled_data # initialized by user
 docker volume create htpasswd_data # initialized in qaas-web/setup.sh
 docker volume create www_html_data # initialized in qaas-web/deployment/update_web.py (when vol is empty)
 docker volume create apache2_site_conf # initialized in qaas-web/setup.sh
+docker volume create qaas_file_data  #initialized in qaas-web/deployment/install.py (when vol is empty)
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 # DEPLOY_DIR=/host/$SCRIPT_DIR/../qaas-web/deployment
@@ -192,7 +193,7 @@ exit
 # use entrypoint.sh script to wrap various restart command.  The script will end with "su qaas" to start an interactive shell without quitting as qaas user.
 docker run --user root -p 2222:22 -p 8080:80 -p 443:443 -p 3000:3000 --restart unless-stopped  \
   --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v mysql_data:/var/lib/mysql -v letsencrypt_data:/etc/letsencrypt -v mods_enabled_data:/etc/apache2/mods-enabled \
-  -v htpasswd_data:/etc/apache2/auth -v www_html_data:/var/www/html -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) \
+  -v htpasswd_data:/etc/apache2/auth -v www_html_data:/var/www/html -v qaas_file_data:/qaas/file_data -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) \
   --name ${QAAS_CONTAINER_NAME} \
   --security-opt seccomp=${script_dir}/qaas-docker-seccomp-profile.json ${docker_run_cmd[*]}
 
