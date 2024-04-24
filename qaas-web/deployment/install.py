@@ -246,13 +246,12 @@ if __name__ == "__main__":
         #alembic updates if necessary
         upgrade_database_if_necessary(alembic_ini_file)
 
-    #database_url = config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW']
     # update conf file just before update_web()
-    # config['web']['BACKPLANE_SERVER_LIST'] = setup_backplane_machine_connections()
-    # with open(config_path, 'w') as ff:
-    #     config.write(ff)
+    config['web']['BACKPLANE_SERVER_LIST'] = setup_backplane_machine_connections()
+    with open(config_path, 'w') as ff:
+        config.write(ff)
 
-    # update_web(force_install=True)
+    update_web(force_install=True)
 
     
     # # #delete default index html

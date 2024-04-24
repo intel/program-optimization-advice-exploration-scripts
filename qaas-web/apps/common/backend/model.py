@@ -27,7 +27,7 @@ import os
 import math
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-
+import filecmp
 Base = declarative_base()
 def is_nan(value):
     return isinstance(value, float) and math.isnan(value)
@@ -39,7 +39,6 @@ class QaaSBase(Base):
             session.add(self)
 
     table_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-
 
 
 mapper_registry = registry()
@@ -851,9 +850,9 @@ class Asm(QaaSBase):
     @classmethod
     def get_or_create_asm_by_hash(cls, file_path, target_path, initializer):
         hash = get_file_sha256(file_path)
-        result = initializer.session.query(cls).filter_by(hash = hash).first()
-        if result:
-            return result
+        identical_result = find_identical_by_hash(cls, file_path, hash, initializer.session)
+        if identical_result:
+            return identical_result
         else:
             new_obj = cls(initializer)
             #make sure we have a table id
@@ -892,9 +891,12 @@ class Source(QaaSBase):
     @classmethod
     def get_or_create_source_by_hash(cls, file_path, target_path, source_metrics, initializer):
         hash = get_file_sha256(file_path)
-        result = initializer.session.query(cls).filter_by(hash = hash).first()
-        if result:
-            return result
+        identical_result = find_identical_by_hash(cls, file_path, hash, initializer.session)
+        if identical_result:
+            return identical_result
+            
+        if identical_result:
+            return identical_result
         else:
             new_obj = cls(initializer)
             #make sure we have a table id
@@ -1127,7 +1129,6 @@ def dump_file(filename, target_path):
         f.write(content)
 
 def load_file(filename):
-    print(filename)
     with open(filename, 'rb') as f:
         content = f.read()
     return content
@@ -1143,3 +1144,14 @@ def get_file_sha256(filename):
     return sha256_hash
 def decompress_file(compressed_content):
     return zlib.decompress(compressed_content)
+
+
+def find_identical_by_hash(cls, file_path, file_hash, session):
+    """
+    get results by using hash, then get the idetntical one if there is otherwise return None
+    """
+    results = session.query(cls).filter_by(hash=file_hash).all()
+    for result in results:
+        if filecmp.cmp(result.content, file_path, shallow=False):
+            return result
+    return None
