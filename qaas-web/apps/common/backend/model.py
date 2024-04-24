@@ -195,6 +195,11 @@ class QaaS(QaaSBase):
         accessor.visitQaaS(self)
 
     @classmethod
+    def qaas_exist(cls, timestamp, initializer):
+        result = initializer.session.query(cls).filter_by(timestamp = timestamp).first()
+        return result is not None
+    
+    @classmethod
     def get_or_create_qaas(cls, timestamp, initializer):
         result = initializer.session.query(cls).filter_by(timestamp = timestamp).first()
         if result:
