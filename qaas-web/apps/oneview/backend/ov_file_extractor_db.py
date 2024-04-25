@@ -44,8 +44,7 @@ import argparse
 def extract_ov_file(input_path, output_path, keep_db=False):
     with QaaSFileAccessMonitor(input_path, output_path, keep_db) as (session, large_files_folder):
         ######################populate database tables######################
-        config = get_config()
-        large_files_folder = os.path.join(config['web']['large_files_folder'], get_db_name_from_session(session))
+        large_files_folder = os.path.join(large_files_folder, get_db_name_from_session(session))
 
         initializer = OneViewModelInitializer(session, input_path, "test_timestamp", "test_version", "workload_name", "workload_version_name", "workload_program_name", "workload_program_commit_id", large_files_folder)
         qaas_ov_database = QaaSDatabase()
