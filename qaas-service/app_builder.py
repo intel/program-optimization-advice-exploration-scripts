@@ -198,10 +198,10 @@ def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target
 
     cmake_config_cmds=[f'cmake', f'-DCMAKE_CXX_COMPILER={cmake_cxx_compiler}', f'-DCMAKE_C_COMPILER={cmake_c_compiler}',
         f'-DCMAKE_Fortran_COMPILER={cmake_fortran_compiler}', '-DCMAKE_EXPORT_COMPILE_COMMANDS=1',
-        f'-DCMAKE_C_FLAGS="{cmake_c_flags}"',
-        f'-DCMAKE_CXX_FLAGS="{cmake_cxx_flags}"',
-        f'-DCMAKE_Fortran_FLAGS="{cmake_fortran_flags}"',
-        f'-DCMAKE_EXE_LINKER_FLAGS="{cmake_linker_flags}"',
+        f'-DCMAKE_C_FLAGS={cmake_c_flags}',
+        f'-DCMAKE_CXX_FLAGS={cmake_cxx_flags}',
+        f'-DCMAKE_Fortran_FLAGS={cmake_fortran_flags}',
+        f'-DCMAKE_EXE_LINKER_FLAGS={cmake_linker_flags}',
         f'{extra_cmake_flags}',
         f'-S', f'{src_dir}', '-B', f'{build_dir}', '-G', 'Ninja']
     #cmake_config_cmd=f'cmake -DCMAKE_CXX_COMPILER={cmake_cxx_compiler} -DCMAKE_C_COMPILER={cmake_c_compiler} '\
