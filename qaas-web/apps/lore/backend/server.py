@@ -158,7 +158,7 @@ def create_app(config):
         orig_src_loop = target_src_loop.orig_src_loop
         orig_source_id = target_src_loop.source.table_id if not orig_src_loop else orig_src_loop.source.table_id
         source = db.session.query(Source).filter_by(table_id = orig_source_id).one()
-        source_file = load_file(source.content)
+        source_file = source.decompress_file(source.content)
         return json.dumps({
             'Processed baseline': source_file,
         })
@@ -181,7 +181,7 @@ def create_app(config):
 
             source_id = mutated_src_loop.source.table_id
             source = db.session.query(Source).filter_by(table_id = source_id).one()
-            source_file = load_file(source.content)
+            source_file = source.decompress_file(source.content)
 
             return json.dumps({
                 'mutation': source_file,
