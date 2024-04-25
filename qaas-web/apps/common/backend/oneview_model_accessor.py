@@ -156,9 +156,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         self.workload_version = workload_version_name
         self.program = workload_program_name
         self.commit_id = workload_program_commit_id
-        self.config = get_config()
-        self.large_file_data_dir_prefix = large_file_data_dir
-        self.large_file_data_dir = None
+        self.large_file_data_dir = large_file_data_dir
         self.current_execution = None
 
     def get_current_execution(self):
@@ -302,10 +300,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
         execution.is_src_code = local_vars_dict.get('is_src_code', 'false').lower() == 'true'
         execution.universal_timestamp = local_vars_dict.get('universal_timestamp', None)
 
-        large_file_data_dir_timestamp_prefix = os.path.join(self.large_file_data_dir_prefix, execution.universal_timestamp)
-        os.makedirs(large_file_data_dir_timestamp_prefix, exist_ok=True)
-        self.large_file_data_dir_timestamp_prefix = large_file_data_dir_timestamp_prefix
-
         #add additional cols
         execution.is_orig = 1 if execution.version == 'orig' else 0
 
@@ -329,11 +323,11 @@ class OneViewModelInitializer(OneviewModelAccessor):
         # #get log files
         #make sure we have a table id for execution
         self.session.flush()
-        target_log_path = os.path.join( self.large_file_data_dir_timestamp_prefix, "execution", "log", str(execution.table_id))
-        target_lprof_path = os.path.join( self.large_file_data_dir_timestamp_prefix, "execution", "lprof_log", str(execution.table_id))
+        target_log_path = os.path.join( self.large_file_data_dir, "execution", "log", str(execution.table_id))
+        target_lprof_path = os.path.join( self.large_file_data_dir, "execution", "lprof_log", str(execution.table_id))
         
-        dump_file(self.visit_file(log_path), target_log_path)
-        dump_file(self.visit_file(lprof_log_path), target_lprof_path)
+        execution.dump_file(self.visit_file(log_path), target_log_path)
+        execution.dump_file(self.visit_file(lprof_log_path), target_lprof_path)
         execution.log = target_log_path
         execution.lprof_log = target_lprof_path
 
@@ -795,12 +789,11 @@ class OneViewModelInitializer(OneviewModelAccessor):
     def visitAsmCollection(self, asm_collection):
         asm_dir_path,_ = self.get_asm_path()
         asm_paths = get_files_with_extension(asm_dir_path, ['.csv'])
-        target_asm_dir = os.path.join(self.large_file_data_dir_timestamp_prefix, "asm", "content")
+        target_asm_dir = os.path.join(self.large_file_data_dir, "asm", "content")
 
         for asm_path in asm_paths:
-            target_asm_path = os.path.join(target_asm_dir, os.path.basename(asm_path))
             type, variant, module, identifier = parse_file_name(os.path.basename(asm_path))
-            asm_obj = Asm.get_or_create_asm_by_hash(asm_path, target_asm_path, self)
+            asm_obj = Asm.get_or_create_asm_by_hash(asm_path, target_asm_dir, self)
             asm_obj.decan_variant = DecanVariant.get_or_create_by_name(variant, self)
            
             if type == 0:
@@ -811,7 +804,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 asm_obj.function = function_obj
 
             asm_collection.add_obj(asm_obj)
-            self.session.flush()
 
     def visitGroupCollection(self, group_collection):
         group_dir_path = self.get_group_path()
@@ -848,12 +840,11 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitSourceCollection(self, source_collection):
         source_dir_path = self.get_source_path()
-        target_content_dir = os.path.join(self.large_file_data_dir_timestamp_prefix, "source", "content")
+        target_content_dir = os.path.join(self.large_file_data_dir, "source", "content")
         source_paths = get_files_with_extension(source_dir_path,['txt'])
         for source_path in source_paths:
-            target_content_path = os.path.join(target_content_dir, os.path.basename(source_path))
             type, variant, module, identifier = parse_file_name(os.path.basename(source_path))
-            source_obj = Source.get_or_create_source_by_hash(self.visit_file(source_path), target_content_path, None, self)
+            source_obj = Source.get_or_create_source_by_hash(self.visit_file(source_path), target_content_dir, None, self)
             if type == 0:
                 loop_obj = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
                 src_loop_obj = loop_obj.src_loop
@@ -925,9 +916,9 @@ class OneViewModelExporter(OneviewModelAccessor):
         write_file(expert_run_df, expert_run_path)
         ##log files
         with open(log_path, 'wb') as f:
-            f.write(load_file(execution.log))
+            f.write(execution.load_file(execution.log))
         with open(lprof_log_path, 'wb') as f:
-            f.write(load_file(execution.lprof_log))
+            f.write(execution.load_file(execution.lprof_log))
         # binaries files TODO
 
         #global metrics and compilation options
@@ -1386,7 +1377,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                     asm.decan_variant is not None else '{}_{}.csv'.format(module_name, asm.loop.maqao_loop_id)
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:
-                    f.write(load_file(content))
+                    f.write(asm.load_file(content))
             else:
                 module_name = os.path.basename(asm.function.module.name)
                 content = asm.content
@@ -1394,7 +1385,7 @@ class OneViewModelExporter(OneviewModelAccessor):
 
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:
-                    f.write(load_file(content))
+                    f.write(asm.load_file(content))
 
     def visitSourceCollection(self, source_collection):
        source_dir_path = self.get_source_path()
@@ -1410,7 +1401,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                 file_name = 'src_{}_{}.txt'.format(module_name, loop.maqao_loop_id)
                 path = os.path.join(source_dir_path, file_name)
                 with open(path, 'wb') as f:
-                    f.write(load_file(content))
+                    f.write(source.load_file(content))
             else:
                 functions = get_all_functions_from_src_functions(source.src_functions)
                 function = get_function_by_source_function(source.src_functions[0],functions)
@@ -1420,7 +1411,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                 file_name = 'fct_{}_{}.txt'.format(module_name, function.maqao_function_id)
                 path = os.path.join(source_dir_path, file_name)
                 with open(path, 'wb') as f:
-                    f.write(load_file(content))
+                    f.write(source.load_file(content))
 
 
     def visitGroupCollection(self, group_collection):

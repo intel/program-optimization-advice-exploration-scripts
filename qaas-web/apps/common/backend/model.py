@@ -27,7 +27,7 @@ import os
 import math
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-import filecmp
+import subprocess
 Base = declarative_base()
 def is_nan(value):
     return isinstance(value, float) and math.isnan(value)
@@ -39,6 +39,57 @@ class QaaSBase(Base):
             session.add(self)
 
     table_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+
+class FileBlobBase(QaaSBase):
+    __abstract__ = True
+    def __init__(self, session=None):
+        super().__init__(session)
+    
+    def dump_file(self, filename, target_path):
+        with open(filename, 'rb') as f:
+            content = f.read()
+    
+        target_dir = os.path.dirname(target_path)
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)  
+        with open(target_path, 'wb') as f:
+            f.write(content)
+
+    def load_file(self, filename):
+        with open(filename, 'rb') as f:
+            content = f.read()
+        return content
+        
+
+
+class HashableQaaSBase(FileBlobBase):
+    __abstract__ = True
+    def __init__(self, session=None):
+        super().__init__(session)
+    
+    @classmethod
+    def files_are_identical(cls, file1, file2):
+        """ check if two files have same content """
+        try:
+            result = subprocess.run(['diff', file1, file2], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if result.stdout:
+                return False
+            return True
+        except Exception as e:
+            print(f"An error occurred while comparing files: {e}")
+            return False
+        
+    @classmethod
+    def find_identical_by_hash(cls, file_path, file_hash, session):
+        """
+        get results by using hash, then get the idetntical one if there is otherwise return None
+        """
+        results = session.query(cls).filter_by(hash=file_hash).all()
+        for result in results:
+            if cls.files_are_identical(result.content, file_path):
+                return result
+        return None
+
 
 
 mapper_registry = registry()
@@ -97,7 +148,7 @@ class Application(QaaSBase):
 
             return new_os_obj
         
-class Execution(QaaSBase):
+class Execution(FileBlobBase):
     __tablename__ = "execution"
     is_src_code = Column(Boolean, nullable = True)
     universal_timestamp = Column(String(50), nullable = True)
@@ -831,7 +882,7 @@ class CqaMetric(QaaSBase):
         super().__init__(session)
 
 
-class Asm(QaaSBase):
+class Asm(HashableQaaSBase):
     __tablename__ = "asm"
     content = Column(Text, nullable = True)
     # content = Column(LONGBLOB, nullable = True)
@@ -850,7 +901,7 @@ class Asm(QaaSBase):
     @classmethod
     def get_or_create_asm_by_hash(cls, file_path, target_path, initializer):
         hash = get_file_sha256(file_path)
-        identical_result = find_identical_by_hash(cls, file_path, hash, initializer.session)
+        identical_result = cls.find_identical_by_hash(file_path, hash, initializer.session)
         if identical_result:
             return identical_result
         else:
@@ -859,11 +910,12 @@ class Asm(QaaSBase):
             initializer.session.flush()
             target_path = os.path.join(target_path, str(new_obj.table_id))
             new_obj.hash = hash 
-            dump_file(file_path, target_path)
+            new_obj.dump_file(file_path, target_path)
             new_obj.content = target_path
+
             return new_obj
 
-class Source(QaaSBase):
+class Source(HashableQaaSBase):
     __tablename__ = "source"
     content = Column(Text, nullable = True)
     # content = Column(LONGBLOB, nullable = True)
@@ -891,23 +943,22 @@ class Source(QaaSBase):
     @classmethod
     def get_or_create_source_by_hash(cls, file_path, target_path, source_metrics, initializer):
         hash = get_file_sha256(file_path)
-        identical_result = find_identical_by_hash(cls, file_path, hash, initializer.session)
+        identical_result = cls.find_identical_by_hash(file_path, hash, initializer.session)
+        result = None
         if identical_result:
-            return identical_result
-            
-        if identical_result:
-            return identical_result
+            result =  identical_result
         else:
             new_obj = cls(initializer)
             #make sure we have a table id
             initializer.session.flush()
             target_path = os.path.join(target_path, str(new_obj.table_id))
             new_obj.hash = hash 
-            dump_file(file_path, target_path)
+            new_obj.dump_file(file_path, target_path)
             new_obj.content = target_path
-            if source_metrics:
-                new_obj.add_metrics(initializer.session, source_metrics)
-            return new_obj
+            result = new_obj
+        if source_metrics and len(result.source_metics) == 0:
+            result.add_metrics(initializer.session, source_metrics)
+        return result
 
 
 class SourceMetric(QaaSBase):
@@ -1118,21 +1169,6 @@ def get_loop_by_maqao_id(current_execution, maqao_id):
                 return l
     return res
 
-def dump_file(filename, target_path):
-    with open(filename, 'rb') as f:
-        content = f.read()
-    
-    target_dir = os.path.dirname(target_path)
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir)  
-    with open(target_path, 'wb') as f:
-        f.write(content)
-
-def load_file(filename):
-    with open(filename, 'rb') as f:
-        content = f.read()
-    return content
-
 def compress_file(filename):
     with open(filename, 'rb') as f:
         content = f.read()
@@ -1144,14 +1180,3 @@ def get_file_sha256(filename):
     return sha256_hash
 def decompress_file(compressed_content):
     return zlib.decompress(compressed_content)
-
-
-def find_identical_by_hash(cls, file_path, file_hash, session):
-    """
-    get results by using hash, then get the idetntical one if there is otherwise return None
-    """
-    results = session.query(cls).filter_by(hash=file_hash).all()
-    for result in results:
-        if filecmp.cmp(result.content, file_path, shallow=False):
-            return result
-    return None
