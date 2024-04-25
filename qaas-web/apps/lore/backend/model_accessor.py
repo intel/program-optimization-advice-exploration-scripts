@@ -197,7 +197,7 @@ class LoreMigrator(LoreModelAccessor):
         cleaned_data_loop = delete_data_from_dict(orig_src_loop_dict, self.unneeded_columns_loop)
         target_content_dir = os.path.join(self.large_file_data_dir, "source", "content")
 
-        current_src = Source.get_or_create_source_by_hash(source_code_path, target_content_dir, cleaned_data_loop, self)
+        current_src = Source.get_or_create_source_by_hash(source_code_path, cleaned_data_loop, self.large_file_data_dir, self)
 
 
       
