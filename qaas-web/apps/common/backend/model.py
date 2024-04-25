@@ -45,10 +45,7 @@ class FileBlobBase(QaaSBase):
     def __init__(self, session=None):
         super().__init__(session)
     
-    def dump_file(self, filename, target_path):
-        with open(filename, 'rb') as f:
-            content = f.read()
-    
+    def dump_file(self, content, target_path):
         target_dir = os.path.dirname(target_path)
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)  
@@ -59,7 +56,24 @@ class FileBlobBase(QaaSBase):
         with open(filename, 'rb') as f:
             content = f.read()
         return content
-        
+    
+    def compress_file(self, file_path, target_path):
+        with open(file_path, 'rb') as f:
+            content = f.read()
+        compressed_content = zlib.compress(content, 9)
+        self.dump_file(self, compressed_content, target_path)
+        return 
+
+    def decompress_file(self, filename):
+        compressed_content = self.load_file(self, filename)
+        return zlib.decompress(compressed_content)
+    
+    def get_file_sha256(self, filename):
+        with open(filename, 'rb') as f:
+            sha256_hash = hashlib.sha256(f.read()).hexdigest()
+        return sha256_hash
+   
+            
 
 
 class HashableQaaSBase(FileBlobBase):
@@ -90,6 +104,22 @@ class HashableQaaSBase(FileBlobBase):
                 return result
         return None
 
+    @classmethod
+    def get_or_create_obj_by_hash(cls, file_path, target_path, initializer):
+        hash = cls.get_file_sha256(file_path)
+        identical_result = cls.find_identical_by_hash(file_path, hash, initializer.session)
+        if identical_result:
+            return identical_result
+        else:
+            new_obj = cls(initializer)
+            #make sure we have a table id
+            initializer.session.flush()
+            target_path = os.path.join(target_path, str(new_obj.table_id))
+            new_obj.hash = hash 
+            new_obj.compress_file(file_path, target_path)
+            new_obj.content = target_path
+
+            return new_obj
 
 
 mapper_registry = registry()
@@ -900,20 +930,7 @@ class Asm(HashableQaaSBase):
     
     @classmethod
     def get_or_create_asm_by_hash(cls, file_path, target_path, initializer):
-        hash = get_file_sha256(file_path)
-        identical_result = cls.find_identical_by_hash(file_path, hash, initializer.session)
-        if identical_result:
-            return identical_result
-        else:
-            new_obj = cls(initializer)
-            #make sure we have a table id
-            initializer.session.flush()
-            target_path = os.path.join(target_path, str(new_obj.table_id))
-            new_obj.hash = hash 
-            new_obj.dump_file(file_path, target_path)
-            new_obj.content = target_path
-
-            return new_obj
+        cls.get_or_create_obj_by_hash(cls, file_path, target_path, initializer)
 
 class Source(HashableQaaSBase):
     __tablename__ = "source"
@@ -942,20 +959,7 @@ class Source(HashableQaaSBase):
 
     @classmethod
     def get_or_create_source_by_hash(cls, file_path, target_path, source_metrics, initializer):
-        hash = get_file_sha256(file_path)
-        identical_result = cls.find_identical_by_hash(file_path, hash, initializer.session)
-        result = None
-        if identical_result:
-            result =  identical_result
-        else:
-            new_obj = cls(initializer)
-            #make sure we have a table id
-            initializer.session.flush()
-            target_path = os.path.join(target_path, str(new_obj.table_id))
-            new_obj.hash = hash 
-            new_obj.dump_file(file_path, target_path)
-            new_obj.content = target_path
-            result = new_obj
+        result = cls.get_or_create_obj_by_hash(cls, file_path, target_path, initializer)
         if source_metrics and len(result.source_metics) == 0:
             result.add_metrics(initializer.session, source_metrics)
         return result
@@ -1169,14 +1173,4 @@ def get_loop_by_maqao_id(current_execution, maqao_id):
                 return l
     return res
 
-def compress_file(filename):
-    with open(filename, 'rb') as f:
-        content = f.read()
-    return zlib.compress(content, 9)
 
-def get_file_sha256(filename):
-    with open(filename, 'rb') as f:
-        sha256_hash = hashlib.sha256(f.read()).hexdigest()
-    return sha256_hash
-def decompress_file(compressed_content):
-    return zlib.decompress(compressed_content)
