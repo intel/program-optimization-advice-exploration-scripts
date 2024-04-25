@@ -322,14 +322,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
         # #get log files
         #make sure we have a table id for execution
-        self.session.flush()
-        target_log_path = os.path.join( self.large_file_data_dir, "execution", "log", str(execution.table_id))
-        target_lprof_path = os.path.join( self.large_file_data_dir, "execution", "lprof_log", str(execution.table_id))
-        
-        execution.compress_file(self.visit_file(log_path), target_log_path)
-        execution.compress_file(self.visit_file(lprof_log_path), target_lprof_path)
-        execution.log = target_log_path
-        execution.lprof_log = target_lprof_path
+        execution.log = execution.compress_file(self.visit_file(log_path), self.large_file_data_dir, "execution", "log", execution, self.session)
+        execution.lprof_log = execution.compress_file(self.visit_file(lprof_log_path), self.large_file_data_dir, "execution", "lprof_log", execution, self.session)
 
 
         # #get src location for fct and loop
@@ -789,11 +783,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
     def visitAsmCollection(self, asm_collection):
         asm_dir_path,_ = self.get_asm_path()
         asm_paths = get_files_with_extension(asm_dir_path, ['.csv'])
-        target_asm_dir = os.path.join(self.large_file_data_dir, "asm", "content")
 
         for asm_path in asm_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(asm_path))
-            asm_obj = Asm.get_or_create_asm_by_hash(asm_path, target_asm_dir, self)
+            asm_obj = Asm.get_or_create_asm_by_hash(asm_path, self.large_file_data_dir, self)
             asm_obj.decan_variant = DecanVariant.get_or_create_by_name(variant, self)
            
             if type == 0:
@@ -840,11 +833,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
     def visitSourceCollection(self, source_collection):
         source_dir_path = self.get_source_path()
-        target_content_dir = os.path.join(self.large_file_data_dir, "source", "content")
         source_paths = get_files_with_extension(source_dir_path,['txt'])
         for source_path in source_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(source_path))
-            source_obj = Source.get_or_create_source_by_hash(self.visit_file(source_path), target_content_dir, None, self)
+            source_obj = Source.get_or_create_source_by_hash(self.visit_file(source_path), None, self.large_file_data_dir, self)
             if type == 0:
                 loop_obj = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
                 src_loop_obj = loop_obj.src_loop
