@@ -268,10 +268,11 @@ def compute_cmake_variables(user_mpi_compiler, target_mpi_compiler, user_CC, tar
             cmake_env
 
 def parse_compiler_combo(CC_combo):
-    mpi_wrapper, CC = split_compiler_combo(CC_combo)
+    mpi_wrapper, compiler_suite = split_compiler_combo(CC_combo)
 
-    CXX = compiler_map[CC+":CXX"]
-    FC = compiler_map[CC+":FC"]
+    CC = compiler_map[compiler_suite+":CC"]
+    CXX = compiler_map[compiler_suite+":CXX"]
+    FC = compiler_map[compiler_suite+":FC"]
     return mpi_wrapper, CC,CXX,FC
 
 
