@@ -162,9 +162,9 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     # Add debug compilation flags and rebuild app
     ov_run_dir_orig = os.path.join(ov_run_dir, 'defaults', 'orig')
     orig_binary = os.path.join(ov_run_dir_orig, 'exec')
-    update_c_flags = f"{user_c_flags} -g -fno-omit-frame-pointer -fcf-protection=none -no-pie" if user_c_flags else ""
-    update_cxx_flags = f"{user_cxx_flags} -g -fno-omit-frame-pointer -fcf-protection=none -no-pie" if user_cxx_flags else ""
-    update_fc_flags = f"{user_fc_flags} -g -fno-omit-frame-pointer -fcf-protection=none -no-pie" if user_fc_flags else ""
+    update_c_flags = f"{user_c_flags} -g -fno-omit-frame-pointer -fcf-protection=none -no-pie"
+    update_cxx_flags = f"{user_cxx_flags} -g -fno-omit-frame-pointer -fcf-protection=none -no-pie"
+    update_fc_flags = f"{user_fc_flags} -g -fno-omit-frame-pointer -fcf-protection=none -no-pie"
     app_builder_env = app_builder.exec(src_dir, compiler_dir, orig_binary,
                                    orig_user_CC, target_CC, update_c_flags, update_cxx_flags, update_fc_flags,
                                    user_link_flags, user_target, user_target_location, 'both', extra_cmake_flags)
