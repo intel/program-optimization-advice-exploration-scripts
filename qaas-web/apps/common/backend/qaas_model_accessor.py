@@ -100,6 +100,11 @@ class QaaSModelInitializer(ModelAccessor):
     def visitQaaSDataBase(self, qaas_database):
         #get metadata
         self.current_metadata_config = get_config_from_path(self.qaas_metadata_file_path)
+        #check existing qaas
+        timestamp = self.current_metadata_config['QAAS'].get('timestamp')        
+        if QaaS.qaas_exist(timestamp, self): 
+            print("QaaS data already exists, skip database population")
+            return
         #get data files
         if self.current_metadata_config['REPORTS'].get('multicompiler_report'):
             multicompiler_report_file_name = self.current_metadata_config['REPORTS'].get('multicompiler_report')

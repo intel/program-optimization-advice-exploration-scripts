@@ -17,7 +17,7 @@ import StatusPanel from './StatusPanel';
 import '../css/input.css'
 import { StepperSettingProvider } from '../contexts/StepperSettingContext';
 import { useSSE } from '../contexts/SSEContext';
-
+import { REACT_APP_API_BASE_URL } from '../Constants';
 const steps = ['Build Info', 'Run Info', 'Machine Info'];
 
 function StepContent({ stepIndex, input, setInput, formErrors, updateFormErrors, selectedMachine, setSelectedMachine, selectedRunMode, setSelectedRunMode }) {
@@ -38,7 +38,7 @@ export default function UserInputStepper() {
     const [activeStep, setActiveStep] = React.useState(0);
     //initial check of the form
     const [formErrors, setFormErrors] = useState({});
-    const { setSSEStatus, startSSEConnection, closeSSEConnection } = useSSE();
+    const { setSSEStatus, setStatusMsg, startSSEConnection, closeSSEConnection } = useSSE();
     const [selectedMachine, setSelectedMachine] = useState('');
     const [selectedRunMode, setSelectedRunMode] = useState([]);
 
@@ -56,7 +56,7 @@ export default function UserInputStepper() {
 
     const fetchInitialInput = async () => {
         try {
-            const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_json_from_file`, {});
+            const response = await axios.post(`${REACT_APP_API_BASE_URL}/get_json_from_file`, {});
             if (response.data) {
                 return response.data;
             }
@@ -86,7 +86,8 @@ export default function UserInputStepper() {
 
         //call backend
         setSSEStatus(true)
-        axios.post(`${process.env.REACT_APP_API_BASE_URL}/create_new_run`, { input: input, machine: selectedMachine, mode: selectedRunMode })
+        setStatusMsg('Job Begin')
+        axios.post(`${REACT_APP_API_BASE_URL}/create_new_run`, { input: input, machine: selectedMachine, mode: selectedRunMode })
             .then((response) => {
                 setSSEStatus(false)
                 //jump to results directly after create new run

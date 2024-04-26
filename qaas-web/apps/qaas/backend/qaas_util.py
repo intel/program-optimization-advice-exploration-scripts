@@ -56,8 +56,11 @@ def get_all_jsons(input_json_dir):
 def load_json(file_path):
     
     if not os.path.exists(file_path):
-        return jsonify({"error": f"The file does not exist in {file_path}"}), 404
+        return jsonify({"error": f"The file does not exist"}), 404
     
     with open(file_path, 'r') as f:
         data = json.load(f)
+    # data['application']['GIT']['TOKEN'] = '*' * len(data['application']['GIT']['TOKEN'])
+    # data['application']['GIT']['DATA_TOKEN'] = '*' * len(data['application']['GIT']['TOKEN'])
+
     return jsonify(data)

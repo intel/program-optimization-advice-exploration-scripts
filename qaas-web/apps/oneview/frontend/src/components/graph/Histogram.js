@@ -1,11 +1,11 @@
 import React from 'react';
-import { Bar } from 'react-chartjs-2';
+// import { Bar } from 'react-chartjs-2';
 
 function Histogram({ data }) {
     return (
         <div style={{ height: '40vh' }}>
 
-            <Bar
+            {/* <Bar
                 data={data}
                 options={{
                     responsive: true,
@@ -39,7 +39,7 @@ function Histogram({ data }) {
                         },
                     },
                 }}
-            />
+            /> */}
         </div>
 
     );

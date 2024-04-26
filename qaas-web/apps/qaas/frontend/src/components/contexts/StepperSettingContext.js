@@ -1,7 +1,7 @@
 //this context is used to share settings for differetn steps in stepper
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-
+import { REACT_APP_API_BASE_URL } from '../Constants';
 // initial context state
 const initialContextState = {
     selectedSetting: '',
@@ -20,12 +20,12 @@ export const StepperSettingProvider = ({ children }) => {
         if (settings.length > 0 && !forceUpdate) return; // no fetch if settings are already loaded unless forced
 
         try {
-            const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_all_input_settings`);
+            const response = await axios.get(`${REACT_APP_API_BASE_URL}/get_all_input_settings`);
             if (response.data && response.data.filenames) {
                 setSettings(response.data.filenames);
             }
         } catch (error) {
-            console.error('Error fetching settings:', error);
+            console.error('Error fetching settings:');
         }
     };
 

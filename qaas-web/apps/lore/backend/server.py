@@ -68,7 +68,7 @@ app = Flask(__name__)
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(config_path)
 app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_LORE']
-print(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
+# print(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
@@ -497,7 +497,23 @@ def create_app(config):
         response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
         return response
     
+    @app.after_request
+    def apply_no_cache(response):
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Cache-Control"]= "no-cache; no-store; max-age=0; must-revalidate"
+        response.headers["Expires"]= -1
+        return response
+
+
+    @app.after_request
+    def apply_limit_frame(response):
+        response.headers["X-Frame-Options"] = "self"
+        response.headers["Content-Security-Policy"] = "frame-ancestors"
+
+        return response
     return app
+
+    
 
 
 
