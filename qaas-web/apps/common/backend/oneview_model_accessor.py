@@ -319,8 +319,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
 
         # #get log files
         #make sure we have a table id for execution
-        execution.log = execution.compress_file(self.visit_file(log_path), self.large_file_data_dir, "execution", "log", execution, self.session)
-        execution.lprof_log = execution.compress_file(self.visit_file(lprof_log_path), self.large_file_data_dir, "execution", "lprof_log", execution, self.session)
+        execution.log = execution.compress_file(self.visit_file(log_path), self.large_file_data_dir, "log", self.session)
+        execution.lprof_log = execution.compress_file(self.visit_file(lprof_log_path), self.large_file_data_dir, "lprof_log", self.session)
 
 
         # #get src location for fct and loop
