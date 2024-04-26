@@ -57,10 +57,10 @@ class FileBlobBase(QaaSBase):
             content = f.read()
         return content
     
-    def compress_file(self, file_path, large_file_folder, table_name, column_name, table_obj, session):
+    def compress_file(self, file_path, large_file_folder, column_name, session):
         #flush session to get table id
         session.flush()
-        target_path = os.path.join(large_file_folder, table_name, column_name, str(table_obj.table_id))
+        target_path = os.path.join(large_file_folder, type(self).__name__, column_name, str(self.table_id))
         with open(file_path, 'rb') as f:
             content = f.read()
         compressed_content = zlib.compress(content, 9)
@@ -71,11 +71,6 @@ class FileBlobBase(QaaSBase):
         compressed_content = self.load_file(filename)
         return zlib.decompress(compressed_content)
     
-   
-   
-            
-
-
 class HashableQaaSBase(FileBlobBase):
     __abstract__ = True
     def __init__(self, session=None):
@@ -110,7 +105,7 @@ class HashableQaaSBase(FileBlobBase):
             sha256_hash = hashlib.sha256(f.read()).hexdigest()
         return sha256_hash
     @classmethod
-    def get_or_create_obj_by_hash(cls, file_path, large_file_data_dir, table_name, initializer):
+    def get_or_create_obj_by_hash(cls, file_path, large_file_data_dir, initializer):
         hash = cls.get_file_sha256(file_path)
         identical_result = cls.find_identical_by_hash(file_path, hash, initializer.session)
         if identical_result:
@@ -119,10 +114,9 @@ class HashableQaaSBase(FileBlobBase):
             new_obj = cls(initializer)
             #make sure we have a table id
             new_obj.hash = hash 
-            new_obj.content = new_obj.compress_file(file_path, large_file_data_dir, table_name, "content", new_obj, initializer.session)
+            new_obj.content = new_obj.compress_file(file_path, large_file_data_dir, "content", initializer.session)
 
             return new_obj
-
 
 mapper_registry = registry()
 
@@ -936,7 +930,7 @@ class Asm(HashableQaaSBase):
     
     @classmethod
     def get_or_create_asm_by_hash(cls, file_path, large_file_data_dir, initializer):
-        return cls.get_or_create_obj_by_hash(file_path, large_file_data_dir, "asm", initializer)
+        return cls.get_or_create_obj_by_hash(file_path, large_file_data_dir, initializer)
 
 
 class Source(HashableQaaSBase):
@@ -966,7 +960,7 @@ class Source(HashableQaaSBase):
 
     @classmethod
     def get_or_create_source_by_hash(cls, file_path, source_metrics, large_file_data_dir, initializer):
-        result = cls.get_or_create_obj_by_hash(file_path, large_file_data_dir, "source", initializer)
+        result = cls.get_or_create_obj_by_hash(file_path, large_file_data_dir, initializer)
         if source_metrics and len(result.source_metics) == 0:
             result.add_metrics(initializer.session, source_metrics)
         return result

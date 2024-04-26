@@ -59,7 +59,6 @@ class LoreMigrator(LoreModelAccessor):
         self.lore_csv_dir = lore_csv_dir
         self.large_file_data_dir = large_file_data_dir
 
-
     def find_application_by_id(self, id):
         return self.id_application_obj_dict.get(id, None)
     def find_mutation_by_loop_id_and_mutation_number(self, lookup_key):
@@ -195,8 +194,6 @@ class LoreMigrator(LoreModelAccessor):
             # print(source_code_file_name, "does not exist")
             return
         cleaned_data_loop = delete_data_from_dict(orig_src_loop_dict, self.unneeded_columns_loop)
-        target_content_dir = os.path.join(self.large_file_data_dir, "source", "content")
-
         current_src = Source.get_or_create_source_by_hash(source_code_path, cleaned_data_loop, self.large_file_data_dir, self)
 
 

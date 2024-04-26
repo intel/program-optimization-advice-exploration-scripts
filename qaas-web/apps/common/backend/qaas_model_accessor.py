@@ -93,11 +93,9 @@ class QaaSModelInitializer(ModelAccessor):
         ###os
         current_os = Os(self)
         current_execution.os = current_os
-
         ###hw system
         current_hwsystem = HwSystem(self)
         current_execution.hwsystem = current_hwsystem
-
         
     def visitQaaSDataBase(self, qaas_database):
         #get metadata

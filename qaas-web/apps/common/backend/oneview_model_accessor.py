@@ -180,7 +180,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
         current_lprof_categorization_collection = LprofCategorizationCollection()
         current_lprof_categorization_collection.accept(self)
         current_execution.lprof_categorizations = current_lprof_categorization_collection.get_objs()
-
         qaas_database.add_to_data_list(current_lprof_categorization_collection)
 
         # ####lprofs_module.csv

@@ -45,7 +45,6 @@ class QaaSOneViewModelInitializer(QaaSModelInitializer, OneViewModelInitializer)
         self.ov_runs_dir = os.path.join(report_path, 'oneview_runs')
         OneViewModelInitializer.__init__(self, session, large_file_data_dir=large_file_path)
 
-
     def build_executions_from_file(self, file_path, report_type, qaas_database):
         # read report path
         if os.path.exists(file_path):

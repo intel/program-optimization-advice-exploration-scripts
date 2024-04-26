@@ -24,8 +24,8 @@ def install_backend_dependencies(backend_dir, apache_html_dir):
         create_directory(apache_html_dir)
 
         print(backend_dir, target_cp_path)
-        os.system(f"sudo rm -rf {target_cp_path}")
-        os.system(f"sudo cp -r {backend_dir} {target_cp_path}")
+        os.system(f"rm -rf {target_cp_path}")
+        os.system(f"cp -r {backend_dir} {target_cp_path}")
       
     except Exception as e:
         print("Error installing backend dependencies:", e)
@@ -42,8 +42,8 @@ def install_frontend_dependencies(frontend_dir, apache_html_dir):
         #create_directory(target_cp_path)
         create_directory(apache_html_dir)
 
-        os.system(f"sudo rm -rf {target_cp_path}")
-        os.system(f"sudo cp -r {frontend_dir}/dist {target_cp_path}") 
+        os.system(f"rm -rf {target_cp_path}")
+        os.system(f"cp -r {frontend_dir}/dist {target_cp_path}") 
         
     except Exception as e:
         print("Error installing frontend dependencies:", e)
@@ -52,7 +52,7 @@ def create_directory(directory):
     if not os.path.exists(directory):
         try:
             print(f"Creating directory: {directory}")
-            os.system(f"sudo mkdir -p {directory}")
+            os.system(f"mkdir -p {directory}")
             print("Directory created successfully.")
         except Exception as e:
             print("Error creating directory:", e)
@@ -91,8 +91,8 @@ def set_node_proxy(http_proxy, https_proxy):
 #    try:
 #        with open('000-default.conf', 'r') as file:
 #            config_content = file.read()
-#            os.system(f'echo "{config_content}" | sudo tee /etc/apache2/sites-available/000-default.conf')
-#            os.system("sudo a2ensite 000-default.conf")
+#            os.system(f'echo "{config_content}" | tee /etc/apache2/sites-available/000-default.conf')
+#            os.system("a2ensite 000-default.conf")
 #
 #            print("Apache configuration file created successfully.")
 #    except Exception as e:
@@ -140,8 +140,8 @@ def update_web(force_install=False):
         # fall through proceed to installation since force_install is True
 
     print("force install")
-    os.system(f"sudo mkdir -p {apache_qaas_config_dir}")
-    os.system(f"sudo cp {qaas_config_file} {apache_qaas_config_file}")
+    os.system(f"mkdir -p {apache_qaas_config_dir}")
+    os.system(f"cp {qaas_config_file} {apache_qaas_config_file}")
     # Copy the 000-default.conf to apache folder
     # create_apache_config()
 
@@ -185,20 +185,20 @@ def update_web(force_install=False):
     saved_input_jsons_dir =  os.path.join(apache_dir, 'input_jsons', 'saved')
     input_jsons_dir =  os.path.join(apache_dir, 'input_jsons')
 
-    os.system(f"sudo mkdir -p {saved_input_jsons_dir}")
+    os.system(f"mkdir -p {saved_input_jsons_dir}")
     give_permission(saved_input_jsons_dir, 'www-data')
     give_permission(input_jsons_dir, 'www-data')
     config.read(qaas_config_file)
     file_data_dir = config['web']['LARGE_FILES_FOLDER']
-    os.system(f"sudo mkdir -p {file_data_dir}")
+    os.system(f"mkdir -p {file_data_dir}")
     give_permission(file_data_dir, 'www-data')
     #sync db last
     # sync_db(alembic_ini_file)
 
 def give_permission(folder, user):
-    os.system(f"sudo chown -R {user}:{user} {folder}")
-    os.system(f"sudo chmod -R 755 {folder}")
-    os.system(f"sudo chmod -R g+w {folder}")
+    os.system(f"chown -R {user}:{user} {folder}")
+    os.system(f"chmod -R 755 {folder}")
+    os.system(f"chmod -R g+w {folder}")
 
 
 
