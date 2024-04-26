@@ -72,7 +72,6 @@ class QaaSOneViewModelInitializer(QaaSModelInitializer, OneViewModelInitializer)
                 ########## oneview specific only set this if there is a ov report associate with this run#########
                 if not self.cur_run_has_ov_data:
                     continue
-                
                 self.set_ov_row_metrics(self.current_execution, qaas_database, self.current_execution.os)
 
                 

@@ -180,6 +180,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         current_lprof_categorization_collection = LprofCategorizationCollection()
         current_lprof_categorization_collection.accept(self)
         current_execution.lprof_categorizations = current_lprof_categorization_collection.get_objs()
+
         qaas_database.add_to_data_list(current_lprof_categorization_collection)
 
         # ####lprofs_module.csv
@@ -215,12 +216,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
         lprof_measurement_collection.accept(self)
 
         qaas_database.add_to_data_list(lprof_measurement_collection)
-
         # ####cqa dir csv
         cqa_collection = CqaCollection()
         cqa_collection.accept(self)
         qaas_database.add_to_data_list(cqa_collection)
-
         # #####asm dir csv
         asm_collection = AsmCollection()
         asm_collection.accept(self)
@@ -230,7 +229,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
         group_collection = GroupCollection()
         group_collection.accept(self)
         qaas_database.add_to_data_list(group_collection)
-
 
         ####source compilation_options.csv
         source_collection = SourceCollection()        
@@ -783,7 +781,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
     def visitAsmCollection(self, asm_collection):
         asm_dir_path,_ = self.get_asm_path()
         asm_paths = get_files_with_extension(asm_dir_path, ['.csv'])
-
         for asm_path in asm_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(asm_path))
             asm_obj = Asm.get_or_create_asm_by_hash(asm_path, self.large_file_data_dir, self)

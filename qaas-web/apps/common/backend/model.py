@@ -61,21 +61,17 @@ class FileBlobBase(QaaSBase):
         #flush session to get table id
         session.flush()
         target_path = os.path.join(large_file_folder, table_name, column_name, str(table_obj.table_id))
-        
         with open(file_path, 'rb') as f:
             content = f.read()
         compressed_content = zlib.compress(content, 9)
-        self.dump_file(self, compressed_content, target_path)
+        self.dump_file(compressed_content, target_path)
         return target_path
 
     def decompress_file(self, filename):
-        compressed_content = self.load_file(self, filename)
+        compressed_content = self.load_file(filename)
         return zlib.decompress(compressed_content)
     
-    def get_file_sha256(self, filename):
-        with open(filename, 'rb') as f:
-            sha256_hash = hashlib.sha256(f.read()).hexdigest()
-        return sha256_hash
+   
    
             
 
@@ -108,6 +104,11 @@ class HashableQaaSBase(FileBlobBase):
                 return result
         return None
 
+    @classmethod
+    def get_file_sha256(cls, filename):
+        with open(filename, 'rb') as f:
+            sha256_hash = hashlib.sha256(f.read()).hexdigest()
+        return sha256_hash
     @classmethod
     def get_or_create_obj_by_hash(cls, file_path, large_file_data_dir, table_name, initializer):
         hash = cls.get_file_sha256(file_path)
@@ -793,7 +794,6 @@ class LprofMeasurement(QaaSBase):
     @classmethod
     def get_obj_info(cls, session, obj, obj_col_name):
         try:
-            session.flush()
             res = session.query(LprofMeasurement).filter(getattr(LprofMeasurement, obj_col_name) == obj).one()
             return res
         except sqlalchemy.orm.exc.NoResultFound:
@@ -936,7 +936,8 @@ class Asm(HashableQaaSBase):
     
     @classmethod
     def get_or_create_asm_by_hash(cls, file_path, large_file_data_dir, initializer):
-        cls.get_or_create_obj_by_hash(cls, file_path, large_file_data_dir, "asm", initializer)
+        return cls.get_or_create_obj_by_hash(file_path, large_file_data_dir, "asm", initializer)
+
 
 class Source(HashableQaaSBase):
     __tablename__ = "source"
@@ -965,7 +966,7 @@ class Source(HashableQaaSBase):
 
     @classmethod
     def get_or_create_source_by_hash(cls, file_path, source_metrics, large_file_data_dir, initializer):
-        result = cls.get_or_create_obj_by_hash(cls, file_path, large_file_data_dir, "source", initializer)
+        result = cls.get_or_create_obj_by_hash(file_path, large_file_data_dir, "source", initializer)
         if source_metrics and len(result.source_metics) == 0:
             result.add_metrics(initializer.session, source_metrics)
         return result
@@ -1123,7 +1124,6 @@ def connect_db(url):
 def create_all(engine):
     Base.metadata.create_all(engine)
     mapper_registry.configure()
-    print("created all tables")
     return engine
 
 def create_all_tables(url):

@@ -188,7 +188,10 @@ def update_web(force_install=False):
     os.system(f"sudo mkdir -p {saved_input_jsons_dir}")
     give_permission(saved_input_jsons_dir, 'www-data')
     give_permission(input_jsons_dir, 'www-data')
-
+    config.read(qaas_config_file)
+    file_data_dir = config['web']['LARGE_FILES_FOLDER']
+    os.system(f"sudo mkdir -p {file_data_dir}")
+    give_permission(file_data_dir, 'www-data')
     #sync db last
     # sync_db(alembic_ini_file)
 
