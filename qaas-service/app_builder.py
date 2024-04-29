@@ -36,6 +36,7 @@ import subprocess
 # See: https://pytrie.readthedocs.io/en/latest/ for documentation
 from pytrie import StringTrie
 from utils.util import load_compiler_env, split_compiler_combo
+import shlex
 
 
 # We use CC compiler names as compiler names and here provide lookup for different languages
