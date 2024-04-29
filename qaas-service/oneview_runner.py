@@ -35,6 +35,7 @@ import argparse
 import subprocess
 from utils.util import generate_timestamp_str
 from base_runner import BaseRunner
+import shlex
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
 # TODO: refactor with Profiler.py
@@ -84,36 +85,52 @@ class OneviewRunner(BaseRunner):
 
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         true_run_cmd = run_cmd.replace('<binary>', binary_path)
-        pinning_cmd = "" if mpi_command or self.ov_config != "unused" else f"--pinning-command=\"{self.get_pinning_cmd()}\""
+        pinning_cmds = [] if mpi_command or self.ov_config != "unused" else [f"--pinning-command=\"{self.get_pinning_cmd()}\""]
+        #pinning_cmd = "" if mpi_command or self.ov_config != "unused" else f"--pinning-command=\"{self.get_pinning_cmd()}\""
 
         self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
         os.makedirs(self.ov_result_dir)
 
-        ov_mpi_command = f"--mpi-command=\"{mpi_command}\"" if mpi_command else ""
-        ov_config_option = "" if self.ov_config == "unused" else f"-WC -c={self.ov_config}"
-        ov_filter_option = '--filter="{type=\\\"number\\\", value=1}"' if self.level != 1 else ''
-        ov_extra_libs_option = '--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"' if self.found_so_libs else ""
+        ov_mpi_command = f"--mpi-command={mpi_command}" if mpi_command else ""
+        ov_config_options = [] if self.ov_config == "unused" else [f"-WC", f"-c={self.ov_config}"]
+        #ov_config_option = "" if self.ov_config == "unused" else f"-WC -c={self.ov_config}"
+        ov_filter_options = ['--filter="{type=\\\"number\\\", value=1}"'] if self.level != 1 else []
+        #ov_filter_option = '--filter="{type=\\\"number\\\", value=1}"' if self.level != 1 else ''
+        ov_extra_libs_options = ['--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"'] if self.found_so_libs else []
+        #ov_extra_libs_option = '--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"' if self.found_so_libs else ""
 
         # Try to get run name from path
         run_names_in_path = os.path.relpath(self.ov_result_root, os.path.join(self.ov_result_root, '..', '..')).split("/")
         # Try to use the same name as csv file.  Compiler runs: just the directory name under compilers/ and default run, add _0 as option 0 
         run_name = run_names_in_path[1] if run_names_in_path[0] == "compilers" else f'{run_names_in_path[1]}_0'
 
-        ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} {ov_config_option}'\
-            f' --base-run-name={run_name} ' \
-            f' --with-FLOPS ' \
-            f' {ov_extra_libs_option} '\
-            f'--run-directory="{run_dir}" {pinning_cmd} '\
-            f'--replace xp={self.ov_result_dir} '\
-            f'{ov_filter_option} '\
-            f'-of={self.ov_of} '\
-            f'-- {true_run_cmd}'
+        ov_run_cmds=[f'{self.maqao_bin}', 'oneview', f'-R{self.level}'] + \
+            ([f'{ov_mpi_command}'] if ov_mpi_command else []) + ov_config_options +\
+            [f'--base-run-name={run_name}',
+            f'--with-FLOPS '] + \
+            ov_extra_libs_options + \
+            [ f'--run-directory="{run_dir}"']+ pinning_cmds + \
+            [f'--replace', f'xp={self.ov_result_dir}'] + \
+            ov_filter_options + \
+            [f'-of={self.ov_of}',
+            f'--'] + shlex.split(true_run_cmd)
+        #ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} {ov_config_option}'\
+        #    f' --base-run-name={run_name} ' \
+        #    f' --with-FLOPS ' \
+        #    f' {ov_extra_libs_option} '\
+        #    f'--run-directory="{run_dir}" {pinning_cmd} '\
+        #    f'--replace xp={self.ov_result_dir} '\
+        #    f'{ov_filter_option} '\
+        #    f'-of={self.ov_of} '\
+        #    f'-- {true_run_cmd}'
         print(self.ov_result_dir)
         run_env["LD_LIBRARY_PATH"] = run_env.get("LD_LIBRARY_PATH") + ":" + self.maqao_lib_dir if "LD_LIBRARY_PATH" in run_env.keys() else self.maqao_lib_dir
 
         while self.level != 0:
+            ov_run_cmd = " ".join(ov_run_cmds)
             print(ov_run_cmd)
-            result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            result = subprocess.run(ov_run_cmds, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            #result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if result.returncode == 0:
                 return True
 
@@ -122,7 +139,8 @@ class OneviewRunner(BaseRunner):
             new_level = self.level - 1
             if new_level == 0:
                 return False
-            ov_run_cmd = ov_run_cmd.replace(f"-R{self.level}", f"-R{new_level}")
+            ov_run_cmds = [f"-R{new_level}" if item == f"-R{self.level}" else item for item in ov_run_cmds]
+            #ov_run_cmd = ov_run_cmd.replace(f"-R{self.level}", f"-R{new_level}")
             self.level = new_level
 
 def exec(env, binary_path, data_path, ov_result_root, run_cmd, maqao_path, ov_config, mode,

@@ -105,7 +105,8 @@ export const RunInfo = ({ input, setInput }) => {
                                     value={input.application.GIT.DATA_USER}
 
                                 />
-                                <TextField label="Data Password" id="outlined-basic" variant="outlined"
+
+                                <TextField label="Data Password" id="outlined-password-input" variant="outlined" type="password"
                                     onChange={e => handleChange(['application', 'GIT', 'DATA_TOKEN'], e.target.value)}
 
                                     value={input.application.GIT.DATA_TOKEN}

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Table from "./table";
 import { useSelectionContext } from "../contexts/SelectionContext";
+import { REACT_APP_API_BASE_URL } from "../Constants";
 // const ApplicationSubTable = React.memo(({ data, selectedRows, baseline, setBaseline, handleRowSelection }) => {
 const ApplicationSubTable = React.memo(({ data }) => {
     const { selectedRows, handleRowSelection, baseline, handleBaselineSelection } = useSelectionContext();
@@ -13,7 +14,7 @@ const ApplicationSubTable = React.memo(({ data }) => {
         const newWindow = window.open(`#/generated?loading=true`, "_blank");
 
         try {
-            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_html_by_timestamp`, { 'timestamp': timestamp })
+            const result = await axios.post(`${REACT_APP_API_BASE_URL}/get_html_by_timestamp`, { 'timestamp': timestamp })
             //send user to new page
             newWindow.location.href = `#/generated?loading=false`;
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import CustomReactTable from "./CustomReactTable";
 import '../../css/graph.css'
-import { getAppName } from '../../Constants';
+import { getAppName, REACT_APP_API_BASE_URL } from '../../Constants';
 
 import axios from "axios";
 
@@ -20,7 +20,7 @@ export default function UnicorePerfTable() {
     const [columns, setColumns] = useState([]);
 
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_utab_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_utab_data`)
             .then((response) => {
 
                 const rawData = response.data

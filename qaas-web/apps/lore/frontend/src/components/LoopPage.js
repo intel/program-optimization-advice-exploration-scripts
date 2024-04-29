@@ -13,6 +13,7 @@ import axios from 'axios';
 import SpeedupTable from './data/SpeedupTable';
 import SpeedupGraphsTab from './graphs/SpeedupGraphsTab';
 import { useLocation } from 'react-router-dom';
+import { REACT_APP_API_BASE_URL } from './Constants';
 import DOMPurify from 'dompurify';
 
 function LoopPage() {
@@ -41,7 +42,7 @@ function LoopPage() {
 
     useEffect(() => {
 
-        axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_all_speedup_data_for_specific_loop`, {
+        axios.post(`${REACT_APP_API_BASE_URL}/get_all_speedup_data_for_specific_loop`, {
             file,
             function: function_name,
             line,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Histogram from './Histogram';
 import axios from 'axios';
 import { useSelectionContext } from '../contexts/SelectionContext';
+import { REACT_APP_API_BASE_URL } from '../Constants';
 function TotalTimeSpeedupGraph({ open }) {
     const { selectedRows, baseline } = useSelectionContext();
 
@@ -15,7 +16,7 @@ function TotalTimeSpeedupGraph({ open }) {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/compute_speed_up_data_using_baseline_ov`, {
+            const result = await axios.post(`${REACT_APP_API_BASE_URL}/compute_speed_up_data_using_baseline_ov`, {
                 selectedRows,
                 baseline
             });

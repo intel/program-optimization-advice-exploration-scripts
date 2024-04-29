@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
+import { REACT_APP_API_BASE_URL } from "../Constants";
 import Table from "./table";
 function ApplicationSubTable({ application_id, workload, program, workload_version }) {
 
@@ -14,7 +14,7 @@ function ApplicationSubTable({ application_id, workload, program, workload_versi
 
     const fetchData = async () => {
         try {
-            const result = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_application_subtable_info_lore`, { application_id: application_id });
+            const result = await axios.post(`${REACT_APP_API_BASE_URL}/get_application_subtable_info_lore`, { application_id: application_id });
             setLoopData(result.data.data);
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -28,7 +28,7 @@ function ApplicationSubTable({ application_id, workload, program, workload_versi
 
         // Call your backend API here and fetch data
         const queryString = new URLSearchParams({ ...data, workload, program, workload_version, loading: 'false' }).toString();
-        console.log(queryString)
+        // console.log(queryString)
         navigate(`/loop?${queryString}`);
         // window.open(`/loop?${queryString}`, '_blank');
 

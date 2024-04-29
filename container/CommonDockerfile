@@ -89,7 +89,11 @@ RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
 WORKDIR /root
 # Copy in ssh tarball (could be empty if ENABLE_DEVELOPMENT != 1)
 COPY ssh.tar.gz /root
-RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then tar xvfz ssh.tar.gz && chown -R root .ssh && chgrp -R root .ssh; fi
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
+        tar xvfz ssh.tar.gz \
+        && chown -R root .ssh \
+        && chgrp -R root .ssh; \
+    fi
 
 #RUN groupadd -g $LOCAL_GID runner
 RUN groupmod -g $LOCAL_GID qaas && \
@@ -133,10 +137,14 @@ WORKDIR /home/qaas
 RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
   tar xvfz ssh.tar.gz && \
   chown -R qaas .ssh && \
-  chgrp -R qaas .ssh && \
-  cd .ssh && \
+  chgrp -R qaas .ssh; \
+  fi
+
+WORKDIR /home/qaas/.ssh
+RUN if [[ $ENABLE_DEVELOPMENT == 1 ]]; then \
   cat *.pub >> authorized_keys; \
   fi
+
 
 ENV PYTHONPATH=/usr/local/lib/python3.8/site-packages
 ENV ICE_CMPOPTS_PATH=/share/uiuc-compiler-opts/install

@@ -21,7 +21,7 @@ from sqlalchemy.dialects.mysql import LONGBLOB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship,registry
 import inspect
-from pickle import dumps, loads
+# from pickle import dumps, loads
 from gzip import zlib
 import os
 import math
@@ -44,23 +44,23 @@ class QaaSBase(Base):
 
 mapper_registry = registry()
 
-class CompressedPickler(object):
-    @classmethod
-    def dumps(cls, obj, protocol=2):
-        s = dumps(obj, protocol)
-        sz = zlib.compress(s, 9)
-        if len(sz) < len(s):
-            return sz
-        else:
-            return s
+# class CompressedPickler(object):
+#     @classmethod
+#     def dumps(cls, obj, protocol=2):
+#         s = dumps(obj, protocol)
+#         sz = zlib.compress(s, 9)
+#         if len(sz) < len(s):
+#             return sz
+#         else:
+#             return s
 
-    @classmethod
-    def loads(cls, string):
-        try:
-            s = zlib.decompress(string)
-        except:
-            s = string
-        return loads(s)
+#     @classmethod
+#     def loads(cls, string):
+#         try:
+#             s = zlib.decompress(string)
+#         except:
+#             s = string
+#         return loads(s)
 
 
 class Application(QaaSBase):
@@ -111,8 +111,8 @@ class Execution(QaaSBase):
     #print(LargeBinary().with_variant(LONGBLOB,"mysql", "mariadb"))
     # log = Column(LargeBinary, nullable = True)
     # lprof_log = Column(LargeBinary, nullable = True)
-    log = Column(LONGBLOB, nullable = True)
-    lprof_log = Column(LONGBLOB, nullable = True)
+    log = Column(LargeBinary, nullable = True)
+    lprof_log = Column(LargeBinary, nullable = True)
     cqa_context = Column(JSON, nullable = True)
     config = Column(JSON, nullable = True)
     global_metrics = Column(JSON, nullable = True)
@@ -424,7 +424,7 @@ class Compiler(QaaSBase):
 class CompilerReport(QaaSBase):
     __tablename__ = "compiler_report"
     # content = Column(LargeBinary, nullable = True)
-    content = Column(LONGBLOB, nullable = True)
+    content = Column(LargeBinary, nullable = True)
 
     hash = Column(String(64), nullable = True)
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
@@ -835,7 +835,7 @@ class CqaMetric(QaaSBase):
 class Asm(QaaSBase):
     __tablename__ = "asm"
     # content = Column(LargeBinary, nullable = True)
-    content = Column(LONGBLOB, nullable = True)
+    content = Column(LargeBinary, nullable = True)
     hash = Column(String(64), nullable = True)
     fk_decan_variant_id = Column(Integer, ForeignKey('decan_variant.table_id'))
     fk_loop_id = Column(Integer, ForeignKey('loop.table_id'))
@@ -851,7 +851,7 @@ class Asm(QaaSBase):
 class Source(QaaSBase):
     __tablename__ = "source"
     # content = Column(LargeBinary, nullable = True)
-    content = Column(LONGBLOB, nullable = True)
+    content = Column(LargeBinary, nullable = True)
 
     hash = Column(String(64), nullable = True)
 
