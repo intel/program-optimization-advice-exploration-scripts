@@ -145,7 +145,8 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
             # Add cmake's -DBUILD_SHARED_LIBS=ON if -flto is needed
             flags_set = set((update_c_flags  + " " + update_cxx_flags  + " " + update_fc_flags).split(' '))
             if '-flto' in flags_set:
-                update_extra_cmake_flags += " -DBUILD_SHARED_LIBS=ON"
+                update_extra_cmake_flags += "-DBUILD_SHARED_LIBS=ON"
+                #update_extra_cmake_flags += " -DBUILD_SHARED_LIBS=ON"
 
             # Build originl app using user-provided compilation options
             app_builder_env = app_builder.exec(src_dir, multi_compilers_dirs[compiler], orig_binary,
