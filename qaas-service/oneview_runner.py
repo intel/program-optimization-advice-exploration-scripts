@@ -107,9 +107,9 @@ class OneviewRunner(BaseRunner):
         ov_run_cmds=[f'{self.maqao_bin}', 'oneview', f'-R{self.level}'] + \
             ([f'{ov_mpi_command}'] if ov_mpi_command else []) + ov_config_options +\
             [f'--base-run-name={run_name}',
-            f'--with-FLOPS '] + \
+            f'--with-FLOPS'] + \
             ov_extra_libs_options + \
-            [ f'--run-directory="{run_dir}"']+ pinning_cmds + \
+            [ f'--run-directory={run_dir}']+ pinning_cmds + \
             [f'--replace', f'xp={self.ov_result_dir}'] + \
             ov_filter_options + \
             [f'-of={self.ov_of}',
