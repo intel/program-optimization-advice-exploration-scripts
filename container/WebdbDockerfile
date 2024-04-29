@@ -13,7 +13,8 @@ ARG QAAS_PASSWORD
 
 RUN apt-get update && apt-get install --no-install-recommends -y apache2 mariadb-server \ 
   libmysqlclient-dev \
-  python3-certbot-apache \
+# Commented out package below due to no fix vulnerability of configobj dependency
+#  python3-certbot-apache \
   sshpass
 # Have to break the apt-get command to work (looks like --no-install-recommends is bad for this package)
 RUN apt-get install -y libmariadbclient-dev
@@ -38,7 +39,7 @@ RUN NODE_MAJOR=20 && \
 
 
 
-RUN apt-get install -y nodejs libapache2-mod-wsgi-py3 && \ 
+RUN apt-get install --no-install-recommends -y nodejs libapache2-mod-wsgi-py3 && \ 
 	apt-get clean && rm -rf /var/lib/apt/lists/*  && \
   a2enmod proxy && a2enmod proxy_http && \
 # Give write access to www-data group
@@ -57,8 +58,7 @@ RUN /root/local_install_pip.sh && \
   rm -f /var/www/html/index.html 
 WORKDIR /var/www
 # also set up ssh key for www-data
-RUN	cd /var/www && \
-  tar xvf /root/ssh.tar.gz && \
+RUN	tar xvf /root/ssh.tar.gz && \
   chown -R www-data .ssh && \
   chgrp -R www-data .ssh 
 # Following commented out 000-default.conf now done in update_web.py

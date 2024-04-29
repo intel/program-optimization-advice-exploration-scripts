@@ -325,6 +325,7 @@ def add_speedups_to_runs(p_runs, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_wea
     for c in range(0, len(p_runs)):
         compiler = list(p_runs.keys())[c]
         index = 1 # start at 1 because of CSV header
+        offset = 0 # Fix: SDP found offset uninitialized
         for run in p_runs[compiler]:
             index = index + 1 # line numbering start from 1 not 0
             if run[i_time] != None and run[i_omp] == 1:

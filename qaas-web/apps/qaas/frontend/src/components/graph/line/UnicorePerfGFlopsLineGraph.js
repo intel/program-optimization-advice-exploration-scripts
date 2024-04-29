@@ -3,7 +3,7 @@ import axios from "axios";
 import { Chart, registerables } from "chart.js"
 import { createMinMaxAnnotations } from '../GraphPlugin';
 import PlotlyLineGraph from './PlotlyLineGraph';
-import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout, getAppName, formatValue } from '../../Constants';
+import { getProcessorColor, getProcessorPointStyle, plotStyle, baseLineLayout, getAppName, formatValue, REACT_APP_API_BASE_URL } from '../../Constants';
 Chart.register(...registerables);
 
 
@@ -13,7 +13,7 @@ export default function UnicorePerfGFlopsLineGraph() {
 
     //set raw data first time
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_qaas_unicore_perf_gflops_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_qaas_unicore_perf_gflops_data`)
             .then((response) => {
 
                 const rawData = response.data
@@ -43,7 +43,7 @@ export default function UnicorePerfGFlopsLineGraph() {
             const processorData = processors[processor];
             const symbol = getProcessorPointStyle(processor); // get the point symbol 
             const color = getProcessorColor(processor);
-            console.log("processors", processorData, processor, symbol, color, transformedApps)
+            // console.log("processors", processorData, processor, symbol, color, transformedApps)
             return {
                 type: 'scatter',
                 mode: 'markers+lines',

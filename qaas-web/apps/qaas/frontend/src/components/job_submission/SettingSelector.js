@@ -4,6 +4,7 @@ import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import { JOB_SUB_THEME } from './JobSubUtil';
 import { useStepper } from '../contexts/StepperSettingContext';
+import { REACT_APP_API_BASE_URL } from '../Constants';
 const SettingsSelector = ({ input, setInput }) => {
     const { selectedSetting, settings, updateSetting, fetchSettings } = useStepper();
 
@@ -17,7 +18,7 @@ const SettingsSelector = ({ input, setInput }) => {
 
     const handleSettingSelect = async (filename) => {
         try {
-            const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_json_from_file`, { filename });
+            const response = await axios.post(`${REACT_APP_API_BASE_URL}/get_json_from_file`, { filename });
             setInput(response.data);
         } catch (error) {
             console.error('Error fetching setting:', error);

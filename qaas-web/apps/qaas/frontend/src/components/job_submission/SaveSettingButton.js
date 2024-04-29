@@ -7,6 +7,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import { useStepper } from '../contexts/StepperSettingContext';
+import { REACT_APP_API_BASE_URL } from '../Constants';
 const SaveSettingButton = ({ input }) => {
     const [filename, setFilename] = useState('defaultFilename.json');
     const [isDialogOpen, setDialogOpen] = useState(false);
@@ -14,7 +15,7 @@ const SaveSettingButton = ({ input }) => {
 
     const handleSaveSetting = async () => {
         try {
-            await axios.post(`${process.env.REACT_APP_API_BASE_URL}/save_input_json`, {
+            await axios.post(`${REACT_APP_API_BASE_URL}/save_input_json`, {
                 json: input,
                 filename: filename,
             });

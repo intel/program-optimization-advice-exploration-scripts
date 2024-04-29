@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import CustomReactTable from "./CustomReactTable";
-import { getGeneralColor, formatValue } from "../../Constants";
+import { getGeneralColor, formatValue, REACT_APP_API_BASE_URL } from "../../Constants";
 import axios from "axios";
 
 const columns = [
@@ -54,7 +54,7 @@ export default function MpratioTable() {
 
     const [chartData, setChartData] = useState([]);
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_mpratio_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_mpratio_data`)
             .then((response) => {
 
                 const rawData = response.data

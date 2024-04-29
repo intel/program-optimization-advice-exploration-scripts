@@ -32,7 +32,6 @@ from flask import request,jsonify
 from flask_sqlalchemy import SQLAlchemy
 from multiprocessing import Process, Queue
 import pandas as pd
-import subprocess
 import json
 import pandas as pd
 import os
@@ -170,7 +169,7 @@ def create_app(config):
     def get_application_table_info_ov():
         request_data = request.get_json()
         filters = filters = request_data.get('filters', []) 
-        print(filters)
+        # print(filters)
         filter_context = FilterContext(filters, db.session)
 
         data = []
@@ -382,6 +381,20 @@ def create_app(config):
         response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
         return response
 
+    @app.after_request
+    def apply_no_cache(response):
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Cache-Control"]= "no-cache; no-store; max-age=0; must-revalidate"
+        response.headers["Expires"]= -1
+        return response
+
+
+    @app.after_request
+    def apply_limit_frame(response):
+        response.headers["X-Frame-Options"] = "self"
+        response.headers["Content-Security-Policy"] = "frame-ancestors"
+
+        return response
         
     return app
 
@@ -409,6 +422,5 @@ if __name__ == "__main__":
     # thread = threading.Thread(target=create_all_tables(config))
     # thread.start()
     # thread.join()
-    create_all_tables(config)
-    print("finsihed creating all the tables")
+    # print("finsihed creating all the tables")
     main(config)

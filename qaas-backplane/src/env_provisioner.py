@@ -194,7 +194,7 @@ class QAASEnvProvisioner:
         cmds = "mkdir -p " + self.work_dirs[0]
         for index in range(1, len(self.work_dirs), 1):
             cmds = cmds + " && " + "mkdir -p " + self.work_dirs[index]
-        cmds = "'" + cmds + "'"
+        #cmds = "'" + cmds + "'"
         cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
         if self.remote_job:
             rc, cmdout = cmd_runner.run_remote_cmd(cmds)
@@ -222,14 +222,14 @@ class QAASEnvProvisioner:
         logging.info("Cloning application GIT repo on %s", self.machine)
         target_branch, git_url = self.generate_git_url_branch(self.git_branch, self.git_src_url,
                                                               self.git_user, self.git_token)
-        cmdline = "'cd " + self.get_workdir("build") + \
+        cmdline = "cd " + self.get_workdir("build") + \
                   " && if [[ ! -d " + self.app_name + " ]]; then" + \
                   " git clone -b " + target_branch + \
                   " " + git_url + " " + self.app_name + \
                   " && cd " + self.app_name + \
                   f" && if [[ -f .gitmodules ]]; then git submodule update --init --recursive; fi" + \
                   " && cd .." + \
-                  " && rm -rf " + self.app_name + "/.git; fi'"
+                  " && rm -rf " + self.app_name + "/.git; fi"
         cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
         if self.remote_job:
             rc, cmdout = cmd_runner.run_remote_cmd(cmdline)
@@ -243,7 +243,7 @@ class QAASEnvProvisioner:
             logging.info("Cloning data GIT repo on %s", self.machine)
             target_branch, git_url = self.generate_git_url_branch(self.git_data_branch, self.git_data_url,
                                                                   self.git_data_user, self.git_data_token)
-            cmdline = "'cd " + self.get_workdir("dataset") + \
+            cmdline = "cd " + self.get_workdir("dataset") + \
                f" && echo -n {self.dataset_label} > dataset_label.txt" + \
                 " && if [[ ! -d " + self.app_name + " ]]; then" + \
                 " git clone --no-checkout -b " + target_branch + \
@@ -251,13 +251,13 @@ class QAASEnvProvisioner:
                 " && cd "+self.app_name + \
                f" && git sparse-checkout set {self.git_data_download_path}" + \
                 " && git checkout"+ \
-                " && rm -rf .git; fi'"
+                " && rm -rf .git; fi"
         else:
             logging.info("Making empty data directory on %s", self.machine)
-            cmdline = "'cd " + self.get_workdir("dataset") + \
+            cmdline = "cd " + self.get_workdir("dataset") + \
                f" && echo -n {self.dataset_label} > dataset_label.txt" + \
                 " && if [[ ! -d " + self.app_name + " ]]; then" + \
-               f" mkdir {self.app_name}; fi'"
+               f" mkdir {self.app_name}; fi"
         cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
         if self.remote_job:
             rc, cmdout = cmd_runner.run_remote_cmd(cmdline)
@@ -271,7 +271,7 @@ class QAASEnvProvisioner:
         if self.git_data_copy_from_fs:
             logging.info("Copying extra data from local FS on %s", self.machine)
             data_dir = self.get_workdir("dataset") + "/" + self.app_name
-            cmdline = "'cd " + data_dir
+            cmdline = "cd " + data_dir
             if self.git_data_download_path:
                 cmdline += " && if [[ -f " + self.git_data_download_path + " ]]; then" + \
                            " cp -rfL " + self.git_data_copy_from_fs + "/* $(dirname " + self.git_data_download_path + "\);" \
@@ -302,7 +302,7 @@ class QAASEnvProvisioner:
 
         cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
 
-        tar_cmd = f"'cd {ov_run_dir} && tar --ignore-failed-read -czvf {remote_gz_file} $(find ./ -name \"oneview_results*\") ../qaas_reports'"
+        tar_cmd = f"cd {ov_run_dir} && tar --ignore-failed-read -czvf {remote_gz_file} $(find ./ -name \"oneview_results*\") ../qaas_reports"
         if self.remote_job:
             rc, cmdout = cmd_runner.run_remote_cmd(tar_cmd)
         else:
@@ -319,14 +319,14 @@ class QAASEnvProvisioner:
         if rc != 0:
             return rc
 
-        untar_cmd = f"'cd {local_out_dir} && tar xvfz {gz_file}'"
+        untar_cmd = f"cd {local_out_dir} && tar xvfz {gz_file}"
         rc, cmdout = cmd_runner.run_local_cmd(untar_cmd)
         if rc != 0:
             return rc
 
         self.package_data(in_container)
 
-        rm_gz_cmd = f"'rm -f {remote_gz_file}'"
+        rm_gz_cmd = f"rm -f {remote_gz_file}"
         if self.remote_job:
             rc, cmdout = cmd_runner.run_remote_cmd(rm_gz_cmd)
         else:

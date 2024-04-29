@@ -125,7 +125,7 @@ def create_app(config):
                     yield f'event: ping\ndata: {msg.str()}\n\n'
                     if msg and msg.is_end_qaas():
                         break
-                    print("in stream", msg.str())
+                    # print("in stream", msg.str())
                 except queue.Empty:
                     # NO message  sleep a bit
                     time.sleep(1)
@@ -160,7 +160,7 @@ def create_app(config):
             if app_name not in data:
                 data[app_name] = {"Apps": app_name}
             
-            print("architecture",architecture)
+            # print("architecture",architecture)
             for app_data in data.values():
                 if architecture not in app_data:
                     app_data[architecture] = None
@@ -185,7 +185,7 @@ def create_app(config):
         df = get_unicore_data()
         if df.empty:
             return {}
-        print(df)
+        # print(df)
         data_dict = df.to_dict(orient='list')
         # replace NaN with None (null in JSON)
         for key in data_dict.keys():
@@ -378,7 +378,7 @@ def create_app(config):
         df = pd.merge(multi_df, uni_df, on='Apps', how='inner', suffixes=('_multi_df', '_uni_df'))
 
         df.rename({'Apps':'miniapp', 'ICL.cores':'cores_used', 'Intel ICL':'unicore_gf', 'ICL.Gf':'gflops'}, axis=1, inplace=True)
-        print(df)
+        # print(df)
         df['gf_per_core'] = df['gflops'] / df['cores_used']
         df['ratio_unicore_df_over_df_per_core'] = df['unicore_gf'] / df['gf_per_core']
 
@@ -569,13 +569,13 @@ def create_app(config):
             run_data.append({ 'gflops': gflops, 'time': time, 'compiler': vendor, 'run_timestamp': run_timestamp, 'has_ov': has_ov, 'speedup': speedup, 'is_orig': is_orig, 'is_best': is_best})
 
         sorted_run_data = sorted(run_data, key=lambda x: x['speedup'])
-        print(sorted_run_data)
+        # print(sorted_run_data)
         return jsonify(sorted_run_data)
     @app.route('/get_machine_list', methods=['GET'])
     def get_machine_list():
         #machines = ['fxilab165.an.intel.com', 'intel', 'ancodskx1020.an.intel.com']
         machines = config['web']["BACKPLANE_SERVER_LIST"].split(",")
-        print(machines, type(machines))
+        # print(machines, type(machines))
         return jsonify({'machines': machines})
 
     def get_run_mode_flags(run_mode):
@@ -588,7 +588,7 @@ def create_app(config):
     def perform_long_running_tasks(unique_temp_dir, saved_file_path, machine, run_mode):
         filename = os.path.basename(saved_file_path)
         run_mode_flags = get_run_mode_flags(run_mode)
-        print(run_mode_flags)
+        # print(run_mode_flags)
         qaas_message_queue.put(QaasMessage("Job Begin"))    
         user_and_machine = f"qaas@{machine}"
         subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{saved_file_path}", f"{user_and_machine}:/tmp"], check=True)
@@ -602,7 +602,7 @@ def create_app(config):
         subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{user_and_machine}:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
         subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
         qaas_out_dir = unique_temp_dir
-        print("output dir", qaas_out_dir)
+        # print("output dir", qaas_out_dir)
         timestamped_dirs = os.listdir(qaas_out_dir)
         assert(len(timestamped_dirs) == 1)
         report_path = os.path.join(qaas_out_dir, timestamped_dirs[0])
@@ -640,27 +640,30 @@ def create_app(config):
 
     @app.route('/create_new_run', methods=['POST'])
     def create_new_run():
-        #real user input data  
-        request_json = request.get_json()['input']
-        machine = request.get_json()['machine']
-        run_mode = request.get_json()['mode']
+        try:
+            #real user input data  
+            request_json = request.get_json()['input']
+            machine = request.get_json()['machine']
+            run_mode = request.get_json()['mode']
 
-        print(request_json, machine, run_mode)
-        #save intput json to a folder can read later
-        working_json_path = os.path.join(config['web']['WORKING_JSON_FOLDER'], 'working.json')
-        save_json(request_json, working_json_path)
+            # print(request_json, machine, run_mode)
+            #save intput json to a folder can read later
+            working_json_path = os.path.join(config['web']['WORKING_JSON_FOLDER'], 'working.json')
+            save_json(request_json, working_json_path)
 
-        saved_file_path = working_json_path
+            saved_file_path = working_json_path
 
-        unique_temp_dir = tempfile.mktemp()
-        # unique_temp_dir = '/tmp/test_data_population'
-        os.makedirs(unique_temp_dir, exist_ok=True)
+            unique_temp_dir = tempfile.mkdtemp()
+            # unique_temp_dir = '/tmp/test_data_population'
+            os.makedirs(unique_temp_dir, exist_ok=True)
 
 
-        #go to backplane and just cp qaas out for now
-        t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, saved_file_path, machine, run_mode))
-        t.start()
-        t.join()
+            #go to backplane and just cp qaas out for now
+            t = threading.Thread(target=perform_long_running_tasks, args=(unique_temp_dir, saved_file_path, machine, run_mode))
+            t.start()
+            t.join()
+        except Exception as e:
+            pass
         
         return jsonify({})
     
@@ -669,7 +672,7 @@ def create_app(config):
     def generate_ov_best_compiler_vs_orig():
         #get qaas
         query_time = request.get_json()['timestamp'] 
-        print("query timestamp", query_time)
+        # print("query timestamp", query_time)
         #should only have 1 that match
         qaas = db.session.query(QaaS).filter(QaaS.timestamp == query_time).one()
        
@@ -682,7 +685,7 @@ def create_app(config):
         qaas_output_folder, manifest_file_path = get_base_qaas_output_dir_and_manifest_path()
         data_folder_list = [os.path.join(qaas_output_folder, str(0)), os.path.join(qaas_output_folder, str(1))]
         timestamp_list = [orig_execution.universal_timestamp, qaas_run_with_min_time.execution.universal_timestamp]
-        print(timestamp_list)
+        # print(timestamp_list)
         create_manifest_and_run_otter(qaas_output_folder, manifest_file_path, data_folder_list, timestamp_list)
 
         return jsonify({})
@@ -734,7 +737,7 @@ def create_app(config):
 
 
         query_time = request.get_json()['timestamp'] 
-        print("query timestamp", query_time)
+        # print("query timestamp", query_time)
         create_manifest_monorun(manifest_file_path,qaas_output_folder, query_time, db.session)
         manifest_out_path = create_out_manifest(qaas_output_folder)
         export_data(query_time, qaas_output_folder, db.session)
@@ -765,6 +768,21 @@ def create_app(config):
     @app.after_request
     def apply_hsts(response):
         response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
+        return response
+
+    @app.after_request
+    def apply_no_cache(response):
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Cache-Control"]= "no-cache; no-store; max-age=0; must-revalidate"
+        response.headers["Expires"]= -1
+        return response
+
+
+    @app.after_request
+    def apply_limit_frame(response):
+        response.headers["X-Frame-Options"] = "self"
+        response.headers["Content-Security-Policy"] = "frame-ancestors"
+
         return response
     
     return app

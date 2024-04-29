@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTable } from 'react-table';
 import axios from 'axios';
-
+import { REACT_APP_API_BASE_URL } from '../Constants';
 export default function StaticFeatureList({ current_src_loop_id }) {
 
 
@@ -9,7 +9,7 @@ export default function StaticFeatureList({ current_src_loop_id }) {
     const [data, setData] = useState([]);
 
     useEffect(() => {
-        axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_lore_static_loop_info_for_specific_loop`, {
+        axios.post(`${REACT_APP_API_BASE_URL}/get_lore_static_loop_info_for_specific_loop`, {
             current_src_loop_id: current_src_loop_id
         })
             .then(response => {
