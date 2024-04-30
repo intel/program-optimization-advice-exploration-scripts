@@ -76,18 +76,6 @@ def upgrade_database_if_necessary(alembic_ini_file):
     version_dir = os.path.join(qaas_web_backend_common_dir, 'multidb','versions')
     os.system(f'mkdir -p {version_dir}')
     
-    #case 3  database has version and it is newest just return
-    current_version = get_current_database_version(alembic_ini_file)
-    if current_version == 'head': 
-        print('Current version is newest version.')
-        return
-
-    # print("current_version",current_version)
-    #case 4  database has version that is not in the current version folder just return
-    available_migrations = [f.stem.split('_')[0] for f in Path(version_dir).glob('*.py')]
-    if current_version and current_version not in available_migrations:
-        print('Database has a version that does not exist in current versions, please get correct versions.')
-        return
     #update until head
     try:
         # upgrade database to the latest version case 1 and case 2
@@ -95,6 +83,12 @@ def upgrade_database_if_necessary(alembic_ini_file):
         print("Database upgraded to the latest version successfully.")
     except subprocess.CalledProcessError as e:
         print("Error occurred during database upgrade:", e.stderr)
+        #case 4  database has version that is not in the current version folder just return
+        available_migrations = [f.stem.split('_')[0] for f in Path(version_dir).glob('*.py')]
+        current_version = get_current_database_version(alembic_ini_file)
+        if current_version and current_version not in available_migrations:
+            print('Database has a version that does not exist in current versions, please get correct versions.')
+            return
     finally:
         #go to original directory
         os.chdir(original_dir)
