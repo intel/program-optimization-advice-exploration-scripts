@@ -67,7 +67,7 @@ config.read(config_path)
 #set app
 app = Flask(__name__)
 CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV']
+app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_QAAS']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 db.init_app(app)
@@ -135,14 +135,14 @@ def create_app(config):
     
     def get_unicore_data():
         architecture_mapping = {
-            "SAPPHIRERAPIDS": "Intel SPR",
-            "ICELAKE-SERVER": "Intel ICL"
+            "SAPPHIRE_RAPIDS": "SPR",
+            "ICELAKE_SP": "ICL"
         }
         
 
         #read all unicore runs that have turbo on
         data = {}
-        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(  QaaSRun.type != 'scalability_report').distinct().all()
+        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(  HwSystem.min_frequency > 3000000, QaaSRun.type != 'scalability_report').distinct().all()
         for qaas in qaass:
             #execution obj that has min time across this qaas run
             min_time_execution = (db.session.query(Execution)
@@ -154,25 +154,36 @@ def create_app(config):
             gflops = min_time_execution.global_metrics['Gflops']
             app_name = min_time_execution.application.workload
             #use uarchitecture here for merged data
-            architecture = min_time_execution.hwsystem.uarchitecture
+            architecture = architecture_mapping.get(min_time_execution.hwsystem.uarchitecture)
             if not architecture:
                 continue
+            
+            #timestamp and label which machine
+            qaas_timestamp = int(qaas.timestamp.replace('-', ''))
+            qaas_timestamp_label = f'timestamp_{architecture}'
             if app_name not in data:
                 data[app_name] = {"Apps": app_name}
-            
+     
             # print("architecture",architecture)
             for app_data in data.values():
                 if architecture not in app_data:
                     app_data[architecture] = None
-            data[app_name][architecture] = gflops
+            # check if the same architecture exists and compare timestamps
+            current_timestamp = data[app_name].get(qaas_timestamp_label, -1)
+            if current_timestamp < qaas_timestamp:
+                data[app_name][architecture] = gflops  # update gflops
+                data[app_name][qaas_timestamp_label] = qaas_timestamp  # update the timestamp
 
-        
         
         df = pd.DataFrame(list(data.values()))
         if not data:
             #empty dataset
             return df
 
+        #drop timestamp columns
+        timestamp_cols = [col for col in df.columns if col.startswith('timestamp_')]
+        df.drop(timestamp_cols, axis=1, inplace=True)
+        
         #sort by x axis
         df['Mean'] = df.drop(columns=['Apps']).mean(axis=1)
         df.sort_values('Mean', inplace=True)
@@ -204,8 +215,8 @@ def create_app(config):
 
     def get_multicore_data():
         architecture_mapping = {
-            "SAPPHIRERAPIDS": "SPR",
-            "ICELAKE-SERVER": "ICL"
+            "SAPPHIRE_RAPIDS": "SPR",
+            "ICELAKE_SP": "ICL"
         }
         data = {}
         #get multicore qaas runs        
@@ -263,8 +274,7 @@ def create_app(config):
                 gflops = max_execution.global_metrics['Gflops']
                 cores = max_execution.config['MPI_threads'] * max_execution.config['OMP_threads']
                 app_workload = max_execution.application.workload
-                architecture = max_execution.hwsystem.architecture
-                architecture = architecture_mapping.get(architecture)
+                architecture = architecture_mapping.get(max_execution.hwsystem.uarchitecture)
                 #check if app exist
                 if app_workload not in data:
                     data[app_workload] = {"Apps": app_workload}
@@ -329,7 +339,7 @@ def create_app(config):
         data = []
         # qaass = db.session.query(QaaS).all()
         #get icelake runs that have turbo off
-        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(Os.scaling_min_frequency < 3000000, HwSystem.architecture == "ICELAKE-SERVER").distinct().all()
+        qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(HwSystem.min_frequency < 3000000, HwSystem.uarchitecture == "ICELAKE_SP").distinct().all()
         #iterate each qaas
         for qaas in qaass:
             row_data = {"min_time": None, "app_name": None}
@@ -377,8 +387,7 @@ def create_app(config):
         
         df = pd.merge(multi_df, uni_df, on='Apps', how='inner', suffixes=('_multi_df', '_uni_df'))
 
-        df.rename({'Apps':'miniapp', 'ICL.cores':'cores_used', 'Intel ICL':'unicore_gf', 'ICL.Gf':'gflops'}, axis=1, inplace=True)
-        # print(df)
+        df.rename({'Apps':'miniapp', 'ICL.cores':'cores_used', 'ICL':'unicore_gf', 'ICL.Gf':'gflops'}, axis=1, inplace=True)
         df['gf_per_core'] = df['gflops'] / df['cores_used']
         df['ratio_unicore_df_over_df_per_core'] = df['unicore_gf'] / df['gf_per_core']
 
@@ -532,7 +541,8 @@ def create_app(config):
             min_application = min_execution.application
             best_compiler_vendor = min_execution.compiler_option.compiler.vendor
             best_time = min_execution.time
-            best_speedup =  orig_execution.time / best_time
+            orig_time = orig_execution.time
+            best_speedup = orig_time / best_time if orig_time and best_time and best_time > 0 else None
             # print(best_time, orig_execution.time  )
             app_name = min_application.workload
             arch = min_execution.hwsystem.architecture

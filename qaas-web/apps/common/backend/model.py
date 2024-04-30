@@ -385,15 +385,21 @@ class HwSystem(QaaSBase):
         self.accept(initializer)
 
     @classmethod
-    def get_or_set_hwsystem(cls, cpui_model_name, architecture, uarchitecture, hwsystem, initializer):
-        result = initializer.session.query(cls).filter_by(cpui_model_name = cpui_model_name, architecture = architecture, uarchitecture = uarchitecture).first()
+    def get_or_set_hwsystem(cls, cpui_model_name, architecture, uarchitecture, cur_frequency, max_frequency, min_frequency, initializer):
+        result = initializer.session.query(cls).filter_by(cpui_model_name = cpui_model_name, architecture = architecture, uarchitecture = uarchitecture, cur_frequency = cur_frequency, max_frequency = max_frequency, min_frequency = min_frequency).first()
         if result:
             return result
         else:
-            hwsystem.cpui_model_name = cpui_model_name 
-            hwsystem.architecture = architecture 
-            hwsystem.uarchitecture = uarchitecture 
-            return hwsystem
+            new_os_obj = cls(initializer)
+            new_os_obj.cpui_model_name = cpui_model_name 
+            new_os_obj.architecture = architecture 
+            new_os_obj.uarchitecture = uarchitecture 
+            new_os_obj.cur_frequency = cur_frequency 
+            new_os_obj.max_frequency = max_frequency 
+            new_os_obj.min_frequency = min_frequency 
+
+
+            return new_os_obj
     
     def export(self, exporter):
         self.accept(exporter)

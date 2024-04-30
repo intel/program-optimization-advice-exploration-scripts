@@ -49,7 +49,7 @@ class QaaSOneViewModelInitializer(QaaSModelInitializer, OneViewModelInitializer)
         # read report path
         if os.path.exists(file_path):
             df = read_file(file_path, delimiter=',')
-            scalability_reference_line = self.current_metadata_config['SYSTEM'].get('scalability_reference_line')
+            scalability_reference_line = self.current_metadata_config['REPORTS'].get('scalability_reference_line')
             self.set_is_baseline(df, scalability_reference_line)
 
             self.current_type = report_type
