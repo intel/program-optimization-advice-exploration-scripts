@@ -38,13 +38,15 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
 from model import connect_db, create_all
-from base_util import QaaSFileAccessMonitor
+from base_util import QaaSFileAccessMonitor, get_db_name_from_session, get_config
 
 import argparse
 def extract_ov_file(input_path, output_path, keep_db=False):
-    with QaaSFileAccessMonitor(input_path, output_path, keep_db) as session:
+    with QaaSFileAccessMonitor(input_path, output_path, keep_db) as (session, large_files_folder):
         ######################populate database tables######################
-        initializer = OneViewModelInitializer(session, input_path, "test_timestamp", "test_version", "workload_name", "workload_version_name", "workload_program_name", "workload_program_commit_id")
+        large_files_folder = os.path.join(large_files_folder, get_db_name_from_session(session))
+
+        initializer = OneViewModelInitializer(session, input_path, "test_timestamp", "test_version", "workload_name", "workload_version_name", "workload_program_name", "workload_program_commit_id", large_files_folder)
         qaas_ov_database = QaaSDatabase()
         qaas_ov_database.accept(initializer)
 

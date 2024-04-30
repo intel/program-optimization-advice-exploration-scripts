@@ -39,10 +39,11 @@ from qaas_model_accessor import QaaSModelInitializer
    
 #extends qaas but will intializer a ov intiilzier obj for qaas runs that have ov report
 class QaaSOneViewModelInitializer(QaaSModelInitializer, OneViewModelInitializer):
-    def __init__(self, session, report_path):
+    def __init__(self, session, report_path, large_file_path=None):
         QaaSModelInitializer.__init__(self, session, report_path)
         self.cur_run_has_ov_data = False
         self.ov_runs_dir = os.path.join(report_path, 'oneview_runs')
+        OneViewModelInitializer.__init__(self, session, large_file_data_dir=large_file_path)
 
     def build_executions_from_file(self, file_path, report_type, qaas_database):
         # read report path
@@ -70,7 +71,6 @@ class QaaSOneViewModelInitializer(QaaSModelInitializer, OneViewModelInitializer)
                 ########## oneview specific only set this if there is a ov report associate with this run#########
                 if not self.cur_run_has_ov_data:
                     continue
-                
                 self.set_ov_row_metrics(self.current_execution, qaas_database, self.current_execution.os)
 
                 
