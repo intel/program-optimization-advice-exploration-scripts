@@ -157,22 +157,33 @@ def create_app(config):
             architecture = architecture_mapping.get(min_time_execution.hwsystem.uarchitecture)
             if not architecture:
                 continue
+            
+            #timestamp and label which machine
+            qaas_timestamp = int(qaas.timestamp.replace('-', ''))
+            qaas_timestamp_label = f'timestamp_{architecture}'
             if app_name not in data:
                 data[app_name] = {"Apps": app_name}
-            
+     
             # print("architecture",architecture)
             for app_data in data.values():
                 if architecture not in app_data:
                     app_data[architecture] = None
-            data[app_name][architecture] = gflops
+            # check if the same architecture exists and compare timestamps
+            current_timestamp = data[app_name].get(qaas_timestamp_label, -1)
+            if current_timestamp < qaas_timestamp:
+                data[app_name][architecture] = gflops  # update gflops
+                data[app_name][qaas_timestamp_label] = qaas_timestamp  # update the timestamp
 
-        
         
         df = pd.DataFrame(list(data.values()))
         if not data:
             #empty dataset
             return df
 
+        #drop timestamp columns
+        timestamp_cols = [col for col in df.columns if col.startswith('timestamp_')]
+        df.drop(timestamp_cols, axis=1, inplace=True)
+        
         #sort by x axis
         df['Mean'] = df.drop(columns=['Apps']).mean(axis=1)
         df.sort_values('Mean', inplace=True)
@@ -530,7 +541,8 @@ def create_app(config):
             min_application = min_execution.application
             best_compiler_vendor = min_execution.compiler_option.compiler.vendor
             best_time = min_execution.time
-            best_speedup =  orig_execution.time / best_time
+            orig_time = orig_execution.time
+            best_speedup = orig_time / best_time if orig_time and best_time and best_time > 0 else None
             # print(best_time, orig_execution.time  )
             app_name = min_application.workload
             arch = min_execution.hwsystem.architecture

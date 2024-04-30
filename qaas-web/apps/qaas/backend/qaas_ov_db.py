@@ -41,7 +41,7 @@ from sqlalchemy.orm import sessionmaker
 
 def populate_database_qaas_ov(report_path, config):
     #connect db
-    engine = connect_db(config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV'])
+    engine = connect_db(config['web']['SQLALCHEMY_DATABASE_URI_QAAS'])
     Session = sessionmaker(bind=engine)
     session = Session()
 
