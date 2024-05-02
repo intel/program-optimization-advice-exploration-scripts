@@ -65,7 +65,7 @@ def dump_multicore_csv_file(qaas_reports_dir, file_name, table, best_only=False,
     csv_unicore = open(os.path.join(qaas_reports_dir, file_name), "w", newline='\n')
     writer = csv.writer(csv_unicore)
     # Setup header
-    csv_header= ['app_name', 'compiler', 'option #', '#MPI', '#OMP', 'affinity', 'time(s)', 'GFlops/s']
+    csv_header= ['timestamp', 'app_name', 'compiler', 'option #', '#MPI', '#OMP', 'affinity', 'time(s)', 'GFlops/s']
     for compiler in table:
         csv_header.append(f"Spd w.r.t {compiler}")
     writer.writerow(csv_header)
@@ -108,7 +108,7 @@ def compute_scaling_cores():
 def update_runs_table(fixed_run_params, parallel_run_params):
     '''Add meta information (fixed run params) to parallel runs configurations'''
 
-    return [ fixed_run_params + item for item in parallel_run_params ]
+    return [ [item[0]] + fixed_run_params + item[1:] for item in parallel_run_params ]
 
 def run_scalability_mpi(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, repetitions=1, affinity="scatter"):
     '''Perform a scalability analysis using only MPI'''
@@ -130,7 +130,7 @@ def run_scalability_mpi(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
         basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', repetitions, "mpirun",
                                 mpi_num_processes=cores, omp_num_threads=1, mpi_envs=mpi_env_affinity)
         # Get the median execution time
-        p_runs.append([cores, 1, affinity, basic_run.compute_median_exec_time()])
+        p_runs.append([basic_run.run_dir_timestamp, cores, 1, affinity, basic_run.compute_median_exec_time()])
 
     return p_runs
 
@@ -155,7 +155,7 @@ def run_scalability_omp(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
         basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', repetitions, "mpirun",
                                 mpi_num_processes=1, omp_num_threads=cores, mpi_envs=mpi_env_affinity, omp_envs=omp_env_affinity)
         # Get the median execution time
-        p_runs.append([1, cores, affinity, basic_run.compute_median_exec_time()])
+        p_runs.append([basic_run.run_dir_timestamp, 1, cores, affinity, basic_run.compute_median_exec_time()])
 
     return p_runs
 
@@ -184,7 +184,7 @@ def run_scalability_mpixomp(app_env, binary_path, data_dir, base_run_bin_dir, ru
             basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', repetitions, "mpirun",
                                 mpi_num_processes=mpi_ranks, omp_num_threads=omp_threads, mpi_envs=mpi_env_affinity, omp_envs=omp_env_affinity)
             # Get the median execution time
-            p_runs.append([mpi_ranks, omp_threads, "scatter", basic_run.compute_median_exec_time()])
+            p_runs.append([basic_run.run_dir_timestamp, mpi_ranks, omp_threads, "scatter", basic_run.compute_median_exec_time()])
 
     return p_runs
 
@@ -210,7 +210,7 @@ def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt
 
         # Make a single core run for reference in scalability analysis
         basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 1, "mpirun", mpi_num_processes=1)
-        t_compiler.append([app_name, compiler, option, 1, 1, "ref.", basic_run.compute_median_exec_time()])
+        t_compiler.append([basic_run.run_dir_timestamp, app_name, compiler, option, 1, 1, "ref.", basic_run.compute_median_exec_time()])
 
         # Perform a scalability analysis using a pure MPI mode and varying process affinity policy
         if has_mpi:
@@ -376,10 +376,10 @@ def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_d
                                                        has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app)
 
     # Set index of the median execution time column
-    i_time = 6
+    i_time = 7
     # Set indexs of the number of MPI processes and OpenMP thraeds
-    i_mpi = 3
-    i_omp = 4
+    i_mpi = 4
+    i_omp = 5
     # Update run tables with GFlops/s
     add_gflops_to_runs(qaas_table, flops_per_app, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_weak, omp_weak)
     # Update run tables with Speedups/s
