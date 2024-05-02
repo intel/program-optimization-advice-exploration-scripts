@@ -58,7 +58,7 @@ def dump_compilers_log_file(qaas_reports_dir, file_name, message):
 
 def set_compilers_csv_header(defaults):
     '''Set CSV header for compiler runs'''
-    csv_header = ['app_name', 'compiler', 'option #', 'flags', '#MPI', '#OMP', 'time(s)', 'GFlops/s']
+    csv_header = ['timestamp', 'app_name', 'compiler', 'option #', 'flags', '#MPI', '#OMP', 'time(s)', 'GFlops/s']
     for default in defaults:
         csv_header.append(f"Spd w.r.t {default}")
     return csv_header
@@ -138,7 +138,7 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
             run_log += f"[Compiler Options] (compiler={compiler},option={option}) Median on {DEFAULT_REPETITIONS} runs: {median_value}\n"
             time_values.append(median_value)
             gflops = flops/float(median_value) if median_value != None else 0.0
-            t_compiler.append([app_name, compiler, option, flags,nb_mpi,nb_omp, median_value, gflops])
+            t_compiler.append([basic_run.run_dir_timestamp, app_name, compiler, option, flags,nb_mpi,nb_omp, median_value, gflops])
 
         # Add the local table to dict
         qaas_table[compiler] = t_compiler
@@ -180,7 +180,7 @@ def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir
     dump_compilers_log_file(qaas_reports_dir, 'qaas_compilers.log', log)
 
     # Compute speedups
-    index = 6 # index of the median execution time column
+    index = 7 # index of the median execution time column
     compute_compilers_speedups(qaas_table, defaults, index)
 
     # Dump csv table to file
