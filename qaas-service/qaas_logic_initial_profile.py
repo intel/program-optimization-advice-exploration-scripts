@@ -74,7 +74,7 @@ def compute_repetitions(stability):
         print("GOOD STABILITY: no repetitions")
         return 1
 
-def dump_defaults_csv_file(qaas_reports_dir, file_name, table, app_name, nb_mpi, nb_omp, flops):
+def dump_defaults_csv_file(qaas_reports_dir, file_name, table, timestamps, app_name, nb_mpi, nb_omp, flops):
     '''Dump unicore runs to csv'''
 
     csv_defaults = open(os.path.join(qaas_reports_dir, file_name), "w", newline='\n')
@@ -85,7 +85,7 @@ def dump_defaults_csv_file(qaas_reports_dir, file_name, table, app_name, nb_mpi,
     for compiler in table:
         #row = [app_name, compiler, 0, 'default', nb_mpi, nb_omp, table[compiler], flops/float(table[compiler])]
         # Dump general information
-        row = [app_name, compiler, 0, 'default', nb_mpi, nb_omp]
+        row = [timestamps[compiler], app_name, compiler, 0, 'default', nb_mpi, nb_omp]
         # Dump time and gflops
         if table[compiler] != None:
             row.extend([table[compiler], flops/float(table[compiler])])
@@ -154,6 +154,9 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     # Set dict of median values
     defaults = {}
     defaults['orig'] = median_value
+    # Set dict of timestamps per compiler
+    timestamps = {}
+    timestamps['orig'] = basic_run.run_dir_timestamp
 #    return 0,"",defaults,0,nb_mpi,nb_omp
 
     # Check LProf overhead
@@ -222,6 +225,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             # Setup run directory and launch initial run
             basic_run,_,_ = compiler_run(app_builder_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 3, "app", parallel_runs)
             defaults[compiler] = basic_run.compute_median_exec_time()
+            timestamps[compiler] = basic_run.run_dir_timestamp
 
             # Dump median exec time to file
             with open(os.path.join(basic_run.run_dir, "initial_profile.csv"), "w") as csv_file:
@@ -234,7 +238,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             compiler_run(app_builder_env, binary_path, data_dir, ov_run_bin_dir, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
 
     # Dump defaults values to csv
-    dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, user_target, nb_mpi,nb_omp, flops)
+    dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, timestamps, user_target, nb_mpi,nb_omp, flops)
 
     # Dump meta data file (multi-compilers file and compiler drfault)
     qaas_meta = QAASMetaDATA(qaas_reports_dir)
