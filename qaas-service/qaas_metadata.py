@@ -33,6 +33,7 @@ import sys
 import subprocess
 import configparser
 import utils.system as system
+from app_builder import get_languages_in_project
 
 # constants
 QAAS_SECTION_NAME = "QAAS"
@@ -74,6 +75,9 @@ class QAASMetaDATA:
         return subprocess.check_output([f"cat", f"{dataset_file_path}"]).decode("utf-8")
         #return subprocess.check_output(f"cat {dataset_file_path}", shell=True).decode("utf-8")
 
+    @property
+    def qaas_lang_in_project(self):
+        return get_languages_in_project(os.path.join(os.path.dirname(self.qaas_rundir), "build", "build"))
 
     def add_qaas_metadata(self, run_cmd, dataset_name=""):
         self.config[QAAS_SECTION_NAME]["timestamp"] = self.qaas_timestamp
@@ -81,6 +85,10 @@ class QAASMetaDATA:
         self.config[QAAS_SECTION_NAME]["git_commit"] = ''
         self.config[QAAS_SECTION_NAME]["dataset_name"] = self.qaas_dataset_label
         self.config[QAAS_SECTION_NAME]["run_cmd"] = run_cmd
+        self.write_data(self.config)
+
+    def add_prog_lang_metadata(self):
+        self.config[QAAS_SECTION_NAME]["LANG"] = self.qaas_lang_in_project
         self.write_data(self.config)
 
     def add_multicompiler_metadata(self, default_compiler, report_name):
