@@ -299,7 +299,7 @@ def build_binary(user_target, build_dir, target_location, env, output_dir, outpu
     #cmake_build_cmd=f'/usr/bin/time -p cmake --build {build_dir} --target {cmake_target} >> {build_dir}/qaas_build.log 2>&1'
     cmake_build_cmd = " ".join(cmake_build_cmds)
     print(cmake_build_cmd)
-    log_file_name = os.path.join(os.path.dirname(build_dir), "qaas_build.log")
+    log_file_name = os.path.join(build_dir, "qaas_build.log")
     with open(log_file_name, "a") as log_file:
         subprocess.run(cmake_build_cmds, stdout=log_file, stderr=subprocess.STDOUT, text=True, env=env)
     built_bin = os.path.join(build_dir, target_location)
