@@ -311,7 +311,21 @@ def build_binary(user_target, build_dir, target_location, env, output_dir, outpu
     os.symlink(built_bin, out_bin)
     print(f"Binary executable saved to: {out_bin}")
 
+def get_languages_in_project(build_dir):
+   '''Search for enabled programming languages in project.'''
 
+   # Define QaaS-supported languages
+   supported_languages = ['C', 'CXX', 'Fortran']
+   # Open build log file (ninja)
+   with open(os.path.join(build_dir, "build.ninja")) as f:
+        build_log = f.read()
+   # Detect programming languages
+   languages = []
+   for lang in supported_languages:
+        matched = re.search(f"{lang}_COMPILER", build_log, re.MULTILINE)
+        if matched:
+            languages.append(lang)
+   return '/'.join([str(lang) for lang in languages])
 
 def build_argparser(parser, include_binary_path=True, include_mode=True):
     parser.add_argument('--src-dir', help='Source tree path', required=True)

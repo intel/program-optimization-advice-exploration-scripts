@@ -157,7 +157,6 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     # Set dict of timestamps per compiler
     timestamps = {}
     timestamps['orig'] = basic_run.run_dir_timestamp
-#    return 0,"",defaults,0,nb_mpi,nb_omp
 
     # Check LProf overhead
     lprof_run,_,_ = compiler_run(app_builder_env, orig_binary, data_dir, base_run_dir_orig, run_cmd,
@@ -242,6 +241,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
 
     # Dump meta data file (multi-compilers file and compiler drfault)
     qaas_meta = QAASMetaDATA(qaas_reports_dir)
+    qaas_meta.add_prog_lang_metadata()
     qaas_meta.add_multicompiler_metadata(user_CC, 'qaas_compilers.csv')
 
     return 0,"",defaults,flops,nb_mpi,nb_omp
