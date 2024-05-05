@@ -177,8 +177,8 @@ if __name__ == '__main__':
     parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='demo')
     parser.add_argument('--no-compiler-default', action="store_true", help="Disable search for best default compiler", required=False)
     parser.add_argument('--no-compiler-flags', action="store_true", help="Disable search for best compiler flags", required=False)
-    parser.add_argument('-p', '--parallel-compiler-runs', choices=['off', 'mpi', 'openmp', 'hybrid'], default='off',
-                               help="Force multiprocessing [MPI, OpenMP or hybrid] for compiler search runs")
+    parser.add_argument('-p', '--parallel-compiler-runs', choices=['auto', 'off', 'mpi', 'openmp', 'hybrid'], default='auto',
+                               help="Force multiprocessing [auto, MPI, OpenMP or hybrid] for compiler search runs")
     parser.add_argument('-s', '--enable-scale', action="store_true", help="Turn on multicore scalability runs", required=False)
     parser.add_argument('--mpi-scale-type', help='MPI scaling type', choices=['strong', 'weak', 'no'], default='strong')
     parser.add_argument('--openmp-scale-type', help='OpenMP scaling type', choices=['strong', 'weak', 'no'], default='strong')
@@ -190,6 +190,18 @@ if __name__ == '__main__':
     env_var_map = parse_env_map(args)
     # Prepare parallel runtime scaling modes
     runtime = {'enable_scale':args.enable_scale, 'mpi':args.mpi_scale_type, 'openmp':args.openmp_scale_type}
+    # Set default m-compiler to m-core mode
+    if args.parallel_compiler_runs != 'auto':
+        parallel_compiler_runs = args.parallel_compiler_runs
+    else:
+        if runtime['mpi'] != 'no' and runtime['openmp'] != 'no':
+            parallel_compiler_runs = 'hybrid'
+        elif runtime['mpi'] != 'no':
+            parallel_compiler_runs = 'mpi'
+        elif runtime['openmp'] != 'no':
+            parallel_compiler_runs = 'openmp'
+        else:
+            parallel_compiler_runs = 'off'
     # Put compiler:compiler_dir into a dict
     multi_compilers_dirs = {}
     if not args.multi_compilers_dirs == "":
@@ -209,7 +221,7 @@ if __name__ == '__main__':
             run_multiple_phase(to_backplane, args.src_dir, args.data_dir, args.base_run_dir, args.ov_config, args.ov_run_dir, args.locus_run_dir, args.compiler_dir, args.ov_dir,
                         args.orig_user_CC, args.target_CC, args.user_c_flags, args.user_cxx_flags, args.user_fc_flags,
                         args.user_link_flags, args.user_target, args.user_target_location, args.run_cmd, env_var_map, args.extra_cmake_flags,
-                        args.no_compiler_default, args.no_compiler_flags, args.parallel_compiler_runs, runtime, multi_compilers_dirs)
+                        args.no_compiler_default, args.no_compiler_flags, parallel_compiler_runs, runtime, multi_compilers_dirs)
     except Exception as e:
         to_backplane.send(qm.GeneralStatus(str(e)))
         rc = -1
