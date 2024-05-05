@@ -64,8 +64,8 @@ def compiler_run(app_env, binary, data_dir, run_dir, run_cmd, repetitions, runty
 
     # Get system/topology information
     nb_cores = system.get_number_of_cores()
-    nb_sockets = system.get_number_of_sockets()
-    nb_cores_per_socket = int(nb_cores / nb_sockets)
+    nb_nodes = system.get_number_of_nodes()
+    nb_cores_per_node = int(nb_cores / nb_nodes)
     max_limit = nb_cores-1
 
     if parallel_runs == 'mpi':
@@ -82,8 +82,8 @@ def compiler_run(app_env, binary, data_dir, run_dir, run_cmd, repetitions, runty
         omp_affinity = {"GOMP_CPU_AFFINITY":f"0-{max_limit}"}
     elif parallel_runs == 'hybrid':
         # Multicore MPI x OpenMP runs
-        nb_ranks = nb_sockets
-        nb_threads = nb_cores_per_socket
+        nb_ranks = nb_nodes
+        nb_threads = nb_cores_per_node
         mpi_affinity = {"I_MPI_PIN_DOMAIN":"auto:scatter"}
         omp_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"}
     else:
