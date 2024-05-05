@@ -277,7 +277,7 @@ class QAASEnvProvisioner:
                            " cp -rfL " + self.git_data_copy_from_fs + "/* $(dirname " + self.git_data_download_path + "\);" \
                            " else  cp -rfL " + self.git_data_copy_from_fs + "/*" + self.git_data_download_path + ";fi'"
             else:
-                cmdline += " && cp -rfL " + self.git_data_copy_from_fs + "/* ./'"
+                cmdline += " && cp -rfL " + self.git_data_copy_from_fs + "/* ./"
             cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
             if self.remote_job:
                 rc, cmdout = cmd_runner.run_remote_cmd(cmdline)
