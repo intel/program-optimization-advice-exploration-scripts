@@ -97,6 +97,7 @@ def create_manifest_comparison(manifest_path, output_data_dir_list, timestamp_li
         base_run_name = get_base_run_name(query_time, session)
         create_manifest_file_for_run(index, base_run_name, output_data_dir, manifest_path)
         index += 1
+
 #get db name from uri
 def get_database_name(uri):
     """

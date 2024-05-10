@@ -967,7 +967,7 @@ class Source(HashableQaaSBase):
     @classmethod
     def get_or_create_source_by_hash(cls, file_path, source_metrics, large_file_data_dir, initializer):
         result = cls.get_or_create_obj_by_hash(file_path, large_file_data_dir, initializer)
-        if source_metrics and len(result.source_metics) == 0:
+        if source_metrics and len(result.source_metrics) == 0:
             result.add_metrics(initializer.session, source_metrics)
         return result
 
