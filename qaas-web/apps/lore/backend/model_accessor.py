@@ -54,9 +54,10 @@ class LoreModelAccessor(ModelAccessor):
 
 # For populating OV DB from LORE csv dumps
 class LoreMigrator(LoreModelAccessor):
-    def __init__(self, session, lore_csv_dir):
+    def __init__(self, session, lore_csv_dir, large_file_data_dir=None):
         super().__init__(session)
         self.lore_csv_dir = lore_csv_dir
+        self.large_file_data_dir = large_file_data_dir
 
     def find_application_by_id(self, id):
         return self.id_application_obj_dict.get(id, None)
@@ -193,7 +194,7 @@ class LoreMigrator(LoreModelAccessor):
             # print(source_code_file_name, "does not exist")
             return
         cleaned_data_loop = delete_data_from_dict(orig_src_loop_dict, self.unneeded_columns_loop)
-        current_src = Source.get_or_create_source_by_hash(source_code_path, cleaned_data_loop, self)
+        current_src = Source.get_or_create_source_by_hash(source_code_path, cleaned_data_loop, self.large_file_data_dir, self)
 
 
       

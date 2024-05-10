@@ -60,16 +60,21 @@ version_path_separator = os  # Use os.pathsep. Default configuration used for ne
 # are written from script.py.mako
 # output_encoding = utf-8
 
-databases = SQLALCHEMY_DATABASE_URI_ONEVIEW, SQLALCHEMY_DATABASE_URI_QAAS, SQLALCHEMY_DATABASE_URI_LORE
+#databases = SQLALCHEMY_DATABASE_URI_ONEVIEW, SQLALCHEMY_DATABASE_URI_QAAS, SQLALCHEMY_DATABASE_URI_LORE
 
-[SQLALCHEMY_DATABASE_URI_ONEVIEW]
-sqlalchemy.url = mysql://#DB_USER_NAME#:#DB_USER_PASSWD#@localhost/test
+#[SQLALCHEMY_DATABASE_URI_ONEVIEW]
+#sqlalchemy.url = mysql://#DB_USER_NAME#:#DB_USER_PASSWD#@localhost/test
 
-[SQLALCHEMY_DATABASE_URI_QAAS]
-sqlalchemy.url = mysql://#DB_USER_NAME#:#DB_USER_PASSWD#@localhost/qaas
+#[SQLALCHEMY_DATABASE_URI_QAAS]
+#sqlalchemy.url = mysql://#DB_USER_NAME#:#DB_USER_PASSWD#@localhost/qaas
 
-[SQLALCHEMY_DATABASE_URI_LORE]
-sqlalchemy.url = mysql://#DB_USER_NAME#:#DB_USER_PASSWD#@localhost/lore
+#[SQLALCHEMY_DATABASE_URI_LORE]
+#sqlalchemy.url = mysql://#DB_USER_NAME#:#DB_USER_PASSWD#@localhost/lore
+
+databases = QAAS_DB
+
+[QAAS_DB]
+sqlalchemy.url = $db_url
 
 [post_write_hooks]
 # post_write_hooks defines scripts or Python functions that are run

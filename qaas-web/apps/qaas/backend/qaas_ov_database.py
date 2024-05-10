@@ -12,7 +12,6 @@ class QaaSOneViewDatabase:
     def __init__(self):
         #put as parameter
         self.data_list = []
-        print("database created")
 
     @classmethod
     def find_database(cls, timestamp, session):
