@@ -909,17 +909,23 @@ class QaaSFileAccessMonitor:
         os.listdir = self.my_os_listdir
         return self.session
 
+    def my_saved_handler(self, handler, file_arg_name, *args, **kwargs):
+        try:
+            rst = handler(*args, **kwargs)
+        except e:
+            raise e
+        # only peek if no exceptions
+        self.peek_filename(file_arg_name, args, kwargs)
+        return rst
+
     def my_os_listdir(self, *args, **kwargs):
-        self.peek_filename('path', args, kwargs)
-        return self.saved_os_listdir(*args, **kwargs)
+        return self.my_saved_handler(self.saved_os_listdir, 'path', *args, **kwargs)
 
     def my_pd_read_csv(self, *args, **kwargs):
-        self.peek_filename('filepath_or_buffer', args, kwargs)
-        return self.saved_pd_read_csv(*args, **kwargs)
+        return self.my_saved_handler(self.saved_pd_read_csv, 'filepath_or_buffer', *args, **kwargs)
     
     def my_open(self, *args, **kwargs):
-        self.peek_filename('file', args, kwargs)
-        return self.saved_open(*args, **kwargs)
+        return self.my_saved_handler(self.saved_open, 'file', *args, **kwargs)
 
     def peek_filename(self, file_arg_name, args, kwargs):
         if file_arg_name in kwargs:
@@ -978,4 +984,3 @@ def send_ssh_key_to_backplane(machine, password):
     #result = subprocess.run([ "sshpass", "-e", "ssh-copy-id", "-o", "StrictHostKeyChecking=no", user_and_machine, "-p", "2222" ], 
     #                        env={"SSHPASS":password}, check=True)
     return result
-    

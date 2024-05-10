@@ -241,30 +241,31 @@ class OneViewModelInitializer(OneviewModelAccessor):
         qaas_database.add_to_data_list(current_vprof_collection)
         
     def visitQaaSDataBase(self, qaas_database):
-        current_application = Application(self)
-        current_execution = Execution(self)
-        ### set the execution 
-        self.current_execution = current_execution
-        qaas_database.universal_timestamp = current_execution.universal_timestamp
+        nested = self.session.begin_nested()
+        try:
+            current_application = Application(self)
+            current_execution = Execution(self)
+            ### set the execution 
+            self.current_execution = current_execution
+            qaas_database.universal_timestamp = current_execution.universal_timestamp
 
-        current_execution.application = current_application
-        qaas_database.add_to_data_list(current_execution)
+            current_execution.application = current_application
+            qaas_database.add_to_data_list(current_execution)
         
       
-        # ##hwsystem table
-        current_hw = HwSystem(self)
-        current_execution.hwsystem = current_hw
-        qaas_database.add_to_data_list(current_hw)
+            # ##hwsystem table
+            current_hw = HwSystem(self)
+            current_execution.hwsystem = current_hw
+            qaas_database.add_to_data_list(current_hw)
 
-        # ###os table
-        current_os = Os(self)
-        current_execution.os = current_os
-        qaas_database.add_to_data_list(current_os)
+            # ###os table
+            current_os = Os(self)
+            current_execution.os = current_os
+            qaas_database.add_to_data_list(current_os)
 
-        self.set_ov_row_metrics(current_execution, qaas_database, current_os)
-
-
-       
+            self.set_ov_row_metrics(current_execution, qaas_database, current_os)
+        except:
+            nested.rollback()
         
 
     def visit_file(self, file):
@@ -313,10 +314,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
         execution.cqa_context = convert_lua_to_python(self.visit_file(cqa_context_path))
         
         # #get time, profiled time, and max_nb_threads from expert loops
-        expert_run_data = get_data_from_csv(self.visit_file(expert_run_path))[0]
-        execution.time = expert_run_data.get('time', None)
-        execution.profiled_time = expert_run_data.get('profiled_time', None)
-        execution.max_nb_threads = expert_run_data.get('max_nb_threads', None)
+        # expert_run_data = get_data_from_csv(self.visit_file(expert_run_path))[0]
+        #execution.time = expert_run_data.get('time', None)
+        #execution.profiled_time = expert_run_data.get('profiled_time', None)
+        #execution.max_nb_threads = expert_run_data.get('max_nb_threads', None)
 
         # #get log files
         execution.log = compress_file(self.visit_file(log_path))
@@ -336,6 +337,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
         execution.loop_callchain = callchain_loop_python_obj
         ##global metrics
         global_metrics_df = read_file(self.visit_file(global_metrics_path))
+        execution.time = global_metrics_df.loc[global_metrics_df['metric']=='application_time', 'value'].item()
+        execution.profiled_time = global_metrics_df.loc[global_metrics_df['metric']=='profiled_time', 'value'].item()
+        execution.max_nb_threads = global_metrics_df.loc[global_metrics_df['metric']=='nb_threads', 'value'].item()
+
         compilation_options_df = read_file(self.visit_file(compilation_options_path))
 
         # make sure execution.global_metrics is initialized as a dictionary if it is None
