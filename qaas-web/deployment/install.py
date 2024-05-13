@@ -165,18 +165,16 @@ def delete_index_html(apache_dir):
             print("Error deleting index.html:", e)
             sys.exit(1)
 
-def generate_alembic_ini_from_template(db_connection_string, template_path, output_path):
+def generate_alembic_ini_from_template(template_path, output_path):
     """
     Generates an new alembic.ini file for a specific database from a template.
     """
     with open(template_path, 'r') as file:
         template_content = file.read()
-    
-    ini_content = template_content.replace('$db_url', db_connection_string)
-    
+        
     # write new ini file
     with open(output_path, 'w') as file:
-        file.write(ini_content)
+        file.write(template_content)
 
 
 if __name__ == "__main__":
@@ -232,11 +230,14 @@ if __name__ == "__main__":
     print("Setting up the database...")
     os.system("service mysql start")
  
-    for db_connection_string in db_connection_strings: 
+    for db_connection_string in db_connection_strings:
+        #set db connection string as env variable
+        os.environ['DATABASE_URL'] = db_connection_string
+ 
         # print(f'Setting up database for connection string: {db_connection_string}')
         setup_database(db_connection_string, config)
         #create a new ini file for each connection string
-        generate_alembic_ini_from_template( db_connection_string, alembic_ini_file_template, alembic_ini_file)
+        generate_alembic_ini_from_template(alembic_ini_file_template, alembic_ini_file)
         #alembic updates if necessary
         upgrade_database_if_necessary(alembic_ini_file)
 

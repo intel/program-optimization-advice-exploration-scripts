@@ -2,17 +2,16 @@ import logging
 from logging.config import fileConfig
 import re
 
-from sqlalchemy import engine_from_config
+from sqlalchemy import create_engine
 from sqlalchemy import pool
 
 from alembic import context
-
+import os
 USE_TWOPHASE = False
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -102,9 +101,13 @@ def run_migrations_online() -> None:
     engines = {}
     for name in re.split(r",\s*", db_names):
         engines[name] = rec = {}
-        rec["engine"] = engine_from_config(
-            context.config.get_section(name, {}),
-            prefix="sqlalchemy.",
+        #Added get db url from env
+        database_url = os.environ.get('DATABASE_URL', None)
+        if not database_url:
+            context.get_logger().error(f"DATABASE_URL for {name} not set.")
+            continue
+        rec["engine"] = create_engine(
+            database_url,
             poolclass=pool.NullPool,
         )
 
