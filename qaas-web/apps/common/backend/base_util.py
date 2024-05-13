@@ -97,7 +97,6 @@ def create_manifest_comparison(manifest_path, output_data_dir_list, timestamp_li
         base_run_name = get_base_run_name(query_time, session)
         create_manifest_file_for_run(index, base_run_name, output_data_dir, manifest_path)
         index += 1
-
 #get db name from uri
 def get_database_name(uri):
     """
@@ -789,13 +788,8 @@ def map_and_write_strings_location(f, objects, session):
         obj['module'] = get_string_by_id_and_add_to_set(strings_set,strings,obj['module'], session)
         obj['compilation_options'] = get_string_by_id_and_add_to_set(strings_set,strings,obj['compilation_options'], session)
         obj['source_file'] = get_string_by_id_and_add_to_set(strings_set,strings,obj['source_file'], session)
-        for src_file in obj['source_file_intervals']:
-            src_file['source_file_index'] = get_string_by_id_and_add_to_set(strings_set,strings,src_file['source_file_index'], session)
-        #file version 2
-        for src_file in obj.get('exclusive_regions', []):
-            src_file['source_file_index'] = get_string_by_id_and_add_to_set(strings_set,strings,src_file['source_file_index'], session)
-
-
+        for src_file in obj['source_file_intervals'] + obj.get('exclusive_regions', []):
+            src_file['source_file_index'] = get_string_by_id_and_add_to_set(strings_set, strings, src_file['source_file_index'], session)
 
     return strings, objects
         
