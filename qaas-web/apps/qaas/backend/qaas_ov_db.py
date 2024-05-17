@@ -37,17 +37,19 @@ from oneview_model_accessor import OneViewModelExporter
 from qaas_ov_model_accessor import QaaSOneViewModelInitializer
 from qaas_ov_database import QaaSOneViewDatabase
 from model import connect_db
+from base_util import get_db_name_from_session
 from sqlalchemy.orm import sessionmaker
 
 def populate_database_qaas_ov(report_path, config):
     #connect db
-    engine = connect_db(config['web']['SQLALCHEMY_DATABASE_URI_QAAS_OV'])
+    engine = connect_db(config['web']['SQLALCHEMY_DATABASE_URI_QAAS'])
     Session = sessionmaker(bind=engine)
     session = Session()
 
     
     #######################populate database tables######################
-    initializer = QaaSOneViewModelInitializer(session, report_path)
+    large_files_folder = os.path.join(config['web']['large_files_folder'], get_db_name_from_session(session))
+    initializer = QaaSOneViewModelInitializer(session, report_path, large_files_folder)
     qaas_ov_database = QaaSOneViewDatabase()
     qaas_ov_database.accept(initializer)
     

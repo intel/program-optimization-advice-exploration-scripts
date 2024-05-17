@@ -71,13 +71,20 @@ if [ -z ${QAAS_PASSWORD} ]; then
 fi
 
 # TODO Make script input
-maqao_package_dir=/nfs/site/proj/alac/software/UvsqTools/20231214
-echo -n "Enter MAQAO package location [Default to ${maqao_package_dir}]:"
-read maqao_package_dir_choice
+while true; do
+  maqao_package_dir=/nfs/site/proj/alac/software/UvsqTools/20231214
+  echo -n "Enter MAQAO package location [Default to ${maqao_package_dir}]:"
+  read maqao_package_dir_choice
+  if [[ ${maqao_package_dir_choice} != "" ]]; then
+    maqao_package_dir=${maqao_package_dir_choice}
+  fi
+  if [ -d "${maqao_package_dir}" ]; then
+    break
+  else
+    echo "Invalid MAQAO package location, enter again"
+  fi
+done
 echo "Will use MAQAO package at: ${maqao_package_dir}..."
-if [[ ${maqao_package_dir_choice} != "" ]]; then
-  maqao_package_dir=${maqao_package_dir_choice}
-fi
 tar cvfz ./maqao.tar.gz -C ${maqao_package_dir} .
 #cp ../qaas-web/deployment/000-default.conf .
 #cp ../qaas-web/config/qaas-web.conf .

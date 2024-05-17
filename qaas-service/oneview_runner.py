@@ -34,6 +34,7 @@ from logger import log, QaasComponents
 import argparse
 import subprocess
 from utils.util import generate_timestamp_str
+import utils.system as system
 from base_runner import BaseRunner
 import shlex
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -83,6 +84,11 @@ class OneviewRunner(BaseRunner):
         # Return number of operations (Flops)
         return gflops * time
 
+    def get_flop_flags(self):
+        if system.get_intel_processor_name(self.maqao_dir) in ["HSW", "OTHER"]:
+            # no flop counting for old and unknown proc
+            return []
+        return [f'--with-FLOPS']
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         true_run_cmd = run_cmd.replace('<binary>', binary_path)
         pinning_cmds = [] if mpi_command or self.ov_config != "unused" else [f"--pinning-command=\"{self.get_pinning_cmd()}\""]
@@ -106,10 +112,10 @@ class OneviewRunner(BaseRunner):
 
         ov_run_cmds=[f'{self.maqao_bin}', 'oneview', f'-R{self.level}'] + \
             ([f'{ov_mpi_command}'] if ov_mpi_command else []) + ov_config_options +\
-            [f'--base-run-name={run_name}',
-            f'--with-FLOPS '] + \
+            [f'--base-run-name={run_name}'] + \
+            self.get_flop_flags() + \
             ov_extra_libs_options + \
-            [ f'--run-directory="{run_dir}"']+ pinning_cmds + \
+            [ f'--run-directory={run_dir}']+ pinning_cmds + \
             [f'--replace', f'xp={self.ov_result_dir}'] + \
             ov_filter_options + \
             [f'-of={self.ov_of}',

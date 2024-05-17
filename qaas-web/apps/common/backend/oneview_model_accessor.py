@@ -146,7 +146,7 @@ class OneviewModelAccessor(ModelAccessor):
    
 
 class OneViewModelInitializer(OneviewModelAccessor):
-    def __init__(self, session, qaas_data_dir=None, qaas_timestamp=None, version=None, workload_name=None, workload_version_name=None, workload_program_name=None, workload_program_commit_id=None):
+    def __init__(self, session, qaas_data_dir=None, qaas_timestamp=None, version=None, workload_name=None, workload_version_name=None, workload_program_name=None, workload_program_commit_id=None, large_file_data_dir=None):
         super().__init__(session, qaas_data_dir)
         #execution
         self.qaas_timestamp = qaas_timestamp
@@ -156,6 +156,8 @@ class OneViewModelInitializer(OneviewModelAccessor):
         self.workload_version = workload_version_name
         self.program = workload_program_name
         self.commit_id = workload_program_commit_id
+        self.large_file_data_dir = large_file_data_dir
+        self.current_execution = None
 
     def get_current_execution(self):
         return self.current_execution
@@ -213,12 +215,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
         lprof_measurement_collection.accept(self)
 
         qaas_database.add_to_data_list(lprof_measurement_collection)
-
         # ####cqa dir csv
         cqa_collection = CqaCollection()
         cqa_collection.accept(self)
         qaas_database.add_to_data_list(cqa_collection)
-
         # #####asm dir csv
         asm_collection = AsmCollection()
         asm_collection.accept(self)
@@ -228,7 +228,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
         group_collection = GroupCollection()
         group_collection.accept(self)
         qaas_database.add_to_data_list(group_collection)
-
 
         ####source compilation_options.csv
         source_collection = SourceCollection()        
@@ -241,30 +240,31 @@ class OneViewModelInitializer(OneviewModelAccessor):
         qaas_database.add_to_data_list(current_vprof_collection)
         
     def visitQaaSDataBase(self, qaas_database):
-        current_application = Application(self)
-        current_execution = Execution(self)
-        ### set the execution 
-        self.current_execution = current_execution
-        qaas_database.universal_timestamp = current_execution.universal_timestamp
+        nested = self.session.begin_nested()
+        try:
+            current_application = Application(self)
+            current_execution = Execution(self)
+            ### set the execution 
+            self.current_execution = current_execution
+            qaas_database.universal_timestamp = current_execution.universal_timestamp
 
-        current_execution.application = current_application
-        qaas_database.add_to_data_list(current_execution)
+            current_execution.application = current_application
+            qaas_database.add_to_data_list(current_execution)
         
       
-        # ##hwsystem table
-        current_hw = HwSystem(self)
-        current_execution.hwsystem = current_hw
-        qaas_database.add_to_data_list(current_hw)
+            # ##hwsystem table
+            current_hw = HwSystem(self)
+            current_execution.hwsystem = current_hw
+            qaas_database.add_to_data_list(current_hw)
 
-        # ###os table
-        current_os = Os(self)
-        current_execution.os = current_os
-        qaas_database.add_to_data_list(current_os)
+            # ###os table
+            current_os = Os(self)
+            current_execution.os = current_os
+            qaas_database.add_to_data_list(current_os)
 
-        self.set_ov_row_metrics(current_execution, qaas_database, current_os)
-
-
-       
+            self.set_ov_row_metrics(current_execution, qaas_database, current_os)
+        except:
+            nested.rollback()
         
 
     def visit_file(self, file):
@@ -313,14 +313,16 @@ class OneViewModelInitializer(OneviewModelAccessor):
         execution.cqa_context = convert_lua_to_python(self.visit_file(cqa_context_path))
         
         # #get time, profiled time, and max_nb_threads from expert loops
-        expert_run_data = get_data_from_csv(self.visit_file(expert_run_path))[0]
-        execution.time = expert_run_data.get('time', None)
-        execution.profiled_time = expert_run_data.get('profiled_time', None)
-        execution.max_nb_threads = expert_run_data.get('max_nb_threads', None)
+        # expert_run_data = get_data_from_csv(self.visit_file(expert_run_path))[0]
+        #execution.time = expert_run_data.get('time', None)
+        #execution.profiled_time = expert_run_data.get('profiled_time', None)
+        #execution.max_nb_threads = expert_run_data.get('max_nb_threads', None)
 
         # #get log files
-        execution.log = compress_file(self.visit_file(log_path))
-        execution.lprof_log = compress_file(self.visit_file(lprof_log_path))
+        #make sure we have a table id for execution
+        execution.log = execution.compress_file(self.visit_file(log_path), self.large_file_data_dir, "log", self.session)
+        execution.lprof_log = execution.compress_file(self.visit_file(lprof_log_path), self.large_file_data_dir, "lprof_log", self.session)
+
 
         # #get src location for fct and loop
         # #get the location binary files
@@ -336,6 +338,10 @@ class OneViewModelInitializer(OneviewModelAccessor):
         execution.loop_callchain = callchain_loop_python_obj
         ##global metrics
         global_metrics_df = read_file(self.visit_file(global_metrics_path))
+        execution.time = global_metrics_df.loc[global_metrics_df['metric']=='application_time', 'value'].item()
+        execution.profiled_time = global_metrics_df.loc[global_metrics_df['metric']=='profiled_time', 'value'].item()
+        execution.max_nb_threads = global_metrics_df.loc[global_metrics_df['metric']=='nb_threads', 'value'].item()
+
         compilation_options_df = read_file(self.visit_file(compilation_options_path))
 
         # make sure execution.global_metrics is initialized as a dictionary if it is None
@@ -781,12 +787,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         asm_paths = get_files_with_extension(asm_dir_path, ['.csv'])
         for asm_path in asm_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(asm_path))
-            asm_content = compress_file(self.visit_file(asm_path))
-
-            asm_hash = get_file_sha256(asm_path)
-            asm_obj = Asm(self)
-            asm_obj.content = asm_content
-            asm_obj.hash = asm_hash
+            asm_obj = Asm.get_or_create_asm_by_hash(asm_path, self.large_file_data_dir, self)
             asm_obj.decan_variant = DecanVariant.get_or_create_by_name(variant, self)
            
             if type == 0:
@@ -797,7 +798,6 @@ class OneViewModelInitializer(OneviewModelAccessor):
                 asm_obj.function = function_obj
 
             asm_collection.add_obj(asm_obj)
-            self.session.flush()
 
     def visitGroupCollection(self, group_collection):
         group_dir_path = self.get_group_path()
@@ -837,9 +837,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         source_paths = get_files_with_extension(source_dir_path,['txt'])
         for source_path in source_paths:
             type, variant, module, identifier = parse_file_name(os.path.basename(source_path))
-            source_obj = Source(self)
-            source_obj.content = compress_file(self.visit_file(source_path))
-            source_obj.hash = get_file_sha256(source_path)
+            source_obj = Source.get_or_create_source_by_hash(self.visit_file(source_path), None, self.large_file_data_dir, self)
             if type == 0:
                 loop_obj = get_loop_by_maqao_id_module(self.get_current_execution(), int(identifier), module)
                 src_loop_obj = loop_obj.src_loop
@@ -911,9 +909,9 @@ class OneViewModelExporter(OneviewModelAccessor):
         write_file(expert_run_df, expert_run_path)
         ##log files
         with open(log_path, 'wb') as f:
-            f.write(decompress_file(execution.log))
+            f.write(execution.decompress_file(execution.log))
         with open(lprof_log_path, 'wb') as f:
-            f.write(decompress_file(execution.lprof_log))
+            f.write(execution.decompress_file(execution.lprof_log))
         # binaries files TODO
 
         #global metrics and compilation options
@@ -1372,7 +1370,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                     asm.decan_variant is not None else '{}_{}.csv'.format(module_name, asm.loop.maqao_loop_id)
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:
-                    f.write(decompress_file(content))
+                    f.write(asm.decompress_file(content))
             else:
                 module_name = os.path.basename(asm.function.module.name)
                 content = asm.content
@@ -1380,7 +1378,7 @@ class OneViewModelExporter(OneviewModelAccessor):
 
                 path = os.path.join(asm_dir_path, file_name)
                 with open(path, 'wb') as f:
-                    f.write(decompress_file(content))
+                    f.write(asm.decompress_file(content))
 
     def visitSourceCollection(self, source_collection):
        source_dir_path = self.get_source_path()
@@ -1396,7 +1394,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                 file_name = 'src_{}_{}.txt'.format(module_name, loop.maqao_loop_id)
                 path = os.path.join(source_dir_path, file_name)
                 with open(path, 'wb') as f:
-                    f.write(decompress_file(content))
+                    f.write(source.decompress_file(content))
             else:
                 functions = get_all_functions_from_src_functions(source.src_functions)
                 function = get_function_by_source_function(source.src_functions[0],functions)
@@ -1406,7 +1404,7 @@ class OneViewModelExporter(OneviewModelAccessor):
                 file_name = 'fct_{}_{}.txt'.format(module_name, function.maqao_function_id)
                 path = os.path.join(source_dir_path, file_name)
                 with open(path, 'wb') as f:
-                    f.write(decompress_file(content))
+                    f.write(source.decompress_file(content))
 
 
     def visitGroupCollection(self, group_collection):

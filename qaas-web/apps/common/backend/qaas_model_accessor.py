@@ -70,7 +70,7 @@ class QaaSModelInitializer(ModelAccessor):
             df = read_file(file_path, delimiter=',')
 
             #set is_basleine
-            scalability_reference_line = self.current_metadata_config['SYSTEM'].get('scalability_reference_line')
+            scalability_reference_line = self.current_metadata_config['REPORTS'].get('scalability_reference_line')
             self.set_is_baseline(df, scalability_reference_line)
 
             #set type
@@ -94,12 +94,21 @@ class QaaSModelInitializer(ModelAccessor):
         current_os = Os(self)
         current_execution.os = current_os
         ###hw system
-        current_hwsystem = HwSystem(self)
+        current_hwsystem = HwSystem.get_or_set_hwsystem(self.current_metadata_config['SYSTEM'].get('model_name'), self.current_metadata_config['SYSTEM'].get('ISA'), 
+                                                        self.current_metadata_config['SYSTEM'].get('architecture'), None, 
+                                                        self.current_metadata_config['SYSTEM'].get('scaling_max_frequency'),
+                                                        self.current_metadata_config['SYSTEM'].get('scaling_min_frequency'),
+                                                        self)
         current_execution.hwsystem = current_hwsystem
         
     def visitQaaSDataBase(self, qaas_database):
         #get metadata
         self.current_metadata_config = get_config_from_path(self.qaas_metadata_file_path)
+        #check existing qaas
+        timestamp = self.current_metadata_config['QAAS'].get('timestamp')        
+        if QaaS.qaas_exist(timestamp, self): 
+            print("QaaS data already exists, skip database population")
+            return
         #get data files
         if self.current_metadata_config['REPORTS'].get('multicompiler_report'):
             multicompiler_report_file_name = self.current_metadata_config['REPORTS'].get('multicompiler_report')
@@ -185,13 +194,10 @@ class QaaSModelInitializer(ModelAccessor):
        
     def visitHwSystem(self, hwsystem):
         #need to get or set cannot create in hwsystem
-        hwsystem = HwSystem.get_or_set_hwsystem(self.current_metadata_config['SYSTEM'].get('model_name'), self.current_metadata_config['SYSTEM'].get('ISA'), self.current_metadata_config['SYSTEM'].get('architecture'), hwsystem, self)
         hwsystem.cpui_cpu_cores = self.current_metadata_config['SYSTEM'].get('number_of_cores')
         hwsystem.sockets = self.current_metadata_config['SYSTEM'].get('number_of_sockets')
         hwsystem.cores_per_socket = self.current_metadata_config['SYSTEM'].get('number_of_cores_per_socket')
-        hwsystem.max_frequency = self.current_metadata_config['SYSTEM'].get('scaling_max_frequency')
-        hwsystem.min_frequency = self.current_metadata_config['SYSTEM'].get('scaling_min_frequency')
-      
+     
     def visitMaqao(self, maqao):
         pass
     def visitCompilerCollection(self, compiler_collection):

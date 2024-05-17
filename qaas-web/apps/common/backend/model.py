@@ -27,7 +27,7 @@ import os
 import math
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-
+import subprocess
 Base = declarative_base()
 def is_nan(value):
     return isinstance(value, float) and math.isnan(value)
@@ -40,7 +40,83 @@ class QaaSBase(Base):
 
     table_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
 
+class FileBlobBase(QaaSBase):
+    __abstract__ = True
+    def __init__(self, session=None):
+        super().__init__(session)
+    
+    def dump_file(self, content, target_path):
+        target_dir = os.path.dirname(target_path)
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)  
+        with open(target_path, 'wb') as f:
+            f.write(content)
 
+    def load_file(self, filename):
+        with open(filename, 'rb') as f:
+            content = f.read()
+        return content
+    
+    def compress_file(self, file_path, large_file_folder, column_name, session):
+        #flush session to get table id
+        session.flush()
+        target_path = os.path.join(large_file_folder, type(self).__name__, column_name, str(self.table_id))
+        with open(file_path, 'rb') as f:
+            content = f.read()
+        compressed_content = zlib.compress(content, 9)
+        self.dump_file(compressed_content, target_path)
+        return target_path
+
+    def decompress_file(self, filename):
+        compressed_content = self.load_file(filename)
+        return zlib.decompress(compressed_content)
+    
+class HashableQaaSBase(FileBlobBase):
+    __abstract__ = True
+    def __init__(self, session=None):
+        super().__init__(session)
+    
+    @classmethod
+    def files_are_identical(cls, file1, file2):
+        """ check if two files have same content """
+        try:
+            result = subprocess.run(['diff', file1, file2], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if result.stdout:
+                return False
+            return True
+        except Exception as e:
+            print(f"An error occurred while comparing files: {e}")
+            return False
+        
+    @classmethod
+    def find_identical_by_hash(cls, file_path, file_hash, session):
+        """
+        get results by using hash, then get the idetntical one if there is otherwise return None
+        """
+        results = session.query(cls).filter_by(hash=file_hash).all()
+        for result in results:
+            if cls.files_are_identical(result.content, file_path):
+                return result
+        return None
+
+    @classmethod
+    def get_file_sha256(cls, filename):
+        with open(filename, 'rb') as f:
+            sha256_hash = hashlib.sha256(f.read()).hexdigest()
+        return sha256_hash
+    @classmethod
+    def get_or_create_obj_by_hash(cls, file_path, large_file_data_dir, initializer):
+        hash = cls.get_file_sha256(file_path)
+        identical_result = cls.find_identical_by_hash(file_path, hash, initializer.session)
+        if identical_result:
+            return identical_result
+        else:
+            new_obj = cls(initializer)
+            #make sure we have a table id
+            new_obj.hash = hash 
+            new_obj.content = new_obj.compress_file(file_path, large_file_data_dir, "content", initializer.session)
+
+            return new_obj
 
 mapper_registry = registry()
 
@@ -98,7 +174,7 @@ class Application(QaaSBase):
 
             return new_os_obj
         
-class Execution(QaaSBase):
+class Execution(FileBlobBase):
     __tablename__ = "execution"
     is_src_code = Column(Boolean, nullable = True)
     universal_timestamp = Column(String(50), nullable = True)
@@ -109,10 +185,10 @@ class Execution(QaaSBase):
     #logs
     #print(LONGBLOB)
     #print(LargeBinary().with_variant(LONGBLOB,"mysql", "mariadb"))
-    # log = Column(LargeBinary, nullable = True)
-    # lprof_log = Column(LargeBinary, nullable = True)
-    log = Column(LargeBinary, nullable = True)
-    lprof_log = Column(LargeBinary, nullable = True)
+    log = Column(Text, nullable = True)
+    lprof_log = Column(Text, nullable = True)
+    # log = Column(LONGBLOB, nullable = True)
+    # lprof_log = Column(LONGBLOB, nullable = True)
     cqa_context = Column(JSON, nullable = True)
     config = Column(JSON, nullable = True)
     global_metrics = Column(JSON, nullable = True)
@@ -194,6 +270,11 @@ class QaaS(QaaSBase):
     def accept(self, accessor):
         accessor.visitQaaS(self)
 
+    @classmethod
+    def qaas_exist(cls, timestamp, initializer):
+        result = initializer.session.query(cls).filter_by(timestamp = timestamp).first()
+        return result is not None
+    
     @classmethod
     def get_or_create_qaas(cls, timestamp, initializer):
         result = initializer.session.query(cls).filter_by(timestamp = timestamp).first()
@@ -304,15 +385,21 @@ class HwSystem(QaaSBase):
         self.accept(initializer)
 
     @classmethod
-    def get_or_set_hwsystem(cls, cpui_model_name, architecture, uarchitecture, hwsystem, initializer):
-        result = initializer.session.query(cls).filter_by(cpui_model_name = cpui_model_name, architecture = architecture, uarchitecture = uarchitecture).first()
+    def get_or_set_hwsystem(cls, cpui_model_name, architecture, uarchitecture, cur_frequency, max_frequency, min_frequency, initializer):
+        result = initializer.session.query(cls).filter_by(cpui_model_name = cpui_model_name, architecture = architecture, uarchitecture = uarchitecture, cur_frequency = cur_frequency, max_frequency = max_frequency, min_frequency = min_frequency).first()
         if result:
             return result
         else:
-            hwsystem.cpui_model_name = cpui_model_name 
-            hwsystem.architecture = architecture 
-            hwsystem.uarchitecture = uarchitecture 
-            return hwsystem
+            new_os_obj = cls(initializer)
+            new_os_obj.cpui_model_name = cpui_model_name 
+            new_os_obj.architecture = architecture 
+            new_os_obj.uarchitecture = uarchitecture 
+            new_os_obj.cur_frequency = cur_frequency 
+            new_os_obj.max_frequency = max_frequency 
+            new_os_obj.min_frequency = min_frequency 
+
+
+            return new_os_obj
     
     def export(self, exporter):
         self.accept(exporter)
@@ -423,8 +510,8 @@ class Compiler(QaaSBase):
 
 class CompilerReport(QaaSBase):
     __tablename__ = "compiler_report"
-    # content = Column(LargeBinary, nullable = True)
-    content = Column(LargeBinary, nullable = True)
+    content = Column(Text, nullable = True)
+    # content = Column(LONGBLOB, nullable = True)
 
     hash = Column(String(64), nullable = True)
     fk_execution_id = Column(Integer, ForeignKey('execution.table_id'))
@@ -707,7 +794,6 @@ class LprofMeasurement(QaaSBase):
     @classmethod
     def get_obj_info(cls, session, obj, obj_col_name):
         try:
-            session.flush()
             res = session.query(LprofMeasurement).filter(getattr(LprofMeasurement, obj_col_name) == obj).one()
             return res
         except sqlalchemy.orm.exc.NoResultFound:
@@ -832,10 +918,10 @@ class CqaMetric(QaaSBase):
         super().__init__(session)
 
 
-class Asm(QaaSBase):
+class Asm(HashableQaaSBase):
     __tablename__ = "asm"
-    # content = Column(LargeBinary, nullable = True)
-    content = Column(LargeBinary, nullable = True)
+    content = Column(Text, nullable = True)
+    # content = Column(LONGBLOB, nullable = True)
     hash = Column(String(64), nullable = True)
     fk_decan_variant_id = Column(Integer, ForeignKey('decan_variant.table_id'))
     fk_loop_id = Column(Integer, ForeignKey('loop.table_id'))
@@ -847,11 +933,16 @@ class Asm(QaaSBase):
 
     def __init__(self, initializer):
         super().__init__(initializer.session)
+    
+    @classmethod
+    def get_or_create_asm_by_hash(cls, file_path, large_file_data_dir, initializer):
+        return cls.get_or_create_obj_by_hash(file_path, large_file_data_dir, initializer)
 
-class Source(QaaSBase):
+
+class Source(HashableQaaSBase):
     __tablename__ = "source"
-    # content = Column(LargeBinary, nullable = True)
-    content = Column(LargeBinary, nullable = True)
+    content = Column(Text, nullable = True)
+    # content = Column(LONGBLOB, nullable = True)
 
     hash = Column(String(64), nullable = True)
 
@@ -874,18 +965,11 @@ class Source(QaaSBase):
 
 
     @classmethod
-    def get_or_create_source_by_hash(cls, file_path, source_metrics, initializer):
-        hash = get_file_sha256(file_path)
-        result = initializer.session.query(cls).filter_by(hash = hash).first()
-        if result:
-            return result
-        else:
-            new_obj = cls(initializer)
-            new_obj.hash = hash 
-            content = compress_file(file_path)
-            new_obj.content = content
-            new_obj.add_metrics(initializer.session, source_metrics)
-            return new_obj
+    def get_or_create_source_by_hash(cls, file_path, source_metrics, large_file_data_dir, initializer):
+        result = cls.get_or_create_obj_by_hash(file_path, large_file_data_dir, initializer)
+        if source_metrics and len(result.source_metrics) == 0:
+            result.add_metrics(initializer.session, source_metrics)
+        return result
 
 
 class SourceMetric(QaaSBase):
@@ -1040,7 +1124,6 @@ def connect_db(url):
 def create_all(engine):
     Base.metadata.create_all(engine)
     mapper_registry.configure()
-    print("created all tables")
     return engine
 
 def create_all_tables(url):
@@ -1097,14 +1180,3 @@ def get_loop_by_maqao_id(current_execution, maqao_id):
     return res
 
 
-def compress_file(filename):
-    with open(filename, 'rb') as f:
-        content = f.read()
-    return zlib.compress(content, 9)
-
-def get_file_sha256(filename):
-    with open(filename, 'rb') as f:
-        sha256_hash = hashlib.sha256(f.read()).hexdigest()
-    return sha256_hash
-def decompress_file(compressed_content):
-    return zlib.decompress(compressed_content)
