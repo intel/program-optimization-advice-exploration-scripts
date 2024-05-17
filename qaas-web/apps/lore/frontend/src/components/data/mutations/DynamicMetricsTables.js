@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Table from '../table';
 import axios from 'axios';
-
+import { REACT_APP_API_BASE_URL } from '../../Constants';
 export default function DynamicMetricsTables({ current_src_loop_id, current_mutation_number }) {
 
 
@@ -10,7 +10,7 @@ export default function DynamicMetricsTables({ current_src_loop_id, current_muta
     const [hardwareDynamicMetricsData, setHardwareDynamicMetricsData] = useState([]);
 
     useEffect(() => {
-        axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_lore_dynamic_metrics_for_specific_mutation`, {
+        axios.post(`${REACT_APP_API_BASE_URL}/get_lore_dynamic_metrics_for_specific_mutation`, {
             current_src_loop_id: current_src_loop_id,
             current_mutation_number: current_mutation_number
 

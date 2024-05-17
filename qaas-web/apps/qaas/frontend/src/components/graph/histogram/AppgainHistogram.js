@@ -4,7 +4,7 @@ import axios from "axios";
 import { getAppColor, categorizeIntoBin } from "../../Constants";
 import '../../css/graph.css'
 import PlotlyHistogram from "./PlotlyHistogram";
-import { baseHistogramLayout } from "../../Constants";
+import { baseHistogramLayout, getAppName, handleSliderChange, REACT_APP_API_BASE_URL } from "../../Constants";
 import HistogramBinSlider from "./HistogramBinSlider";
 
 
@@ -35,17 +35,7 @@ export default function AppgainHistogram() {
     const [rawData, setRawData] = useState(null);
     const [range, setRange] = useState(['tie', '1.1-1.2', '1.2-1.5', '1.5-2x', '2x-4x', '>4x']);
 
-    const handleSliderChange = (newValue) => {
-        const secondRangeParts = range[1].split('-');
-        secondRangeParts[0] = newValue;
-        const updatedSecondRange = secondRangeParts.join('-');
-        const updatedRange = [
-            ...range.slice(0, 1), //  before the second item
-            updatedSecondRange,
-            ...range.slice(2) //  after the second item
-        ];
-        setRange(updatedRange);
-    };
+
 
 
     useEffect(() => {
@@ -55,7 +45,7 @@ export default function AppgainHistogram() {
         }
     }, [range]);
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_BASE_URL}/get_appgain_data`)
+        axios.get(`${REACT_APP_API_BASE_URL}/get_appgain_data`)
             .then((response) => {
 
                 const rawData = response.data
@@ -69,20 +59,25 @@ export default function AppgainHistogram() {
 
     }, [])
     const processRawData = (rawData) => {
+        if (!rawData || Object.keys(rawData).length === 0) {
+            return [];
+        }
         const histogramData = rawData.app.map((app, index) => {
             const largestGain = rawData['largest_gain'][index];
             let binKey = categorizeIntoBin(largestGain, range);
+            const transformedAppName = getAppName(app);
+
             //each app
             const appHistogramData = {
                 x: range,
                 y: range.map((val, i) => (range[i] === binKey ? 1 : 0)),
                 type: 'bar',
-                name: app,
+                name: transformedAppName,
                 marker: {
                     //winner processor color
                     color: getAppColor(app),
                 },
-                text: range.map((key) => (key === binKey ? app : '')),
+                text: range.map((key) => (key === binKey ? transformedAppName : '')),
                 hoverinfo: 'text',
                 hovertext: `Largest Gain: ${largestGain.toFixed(2)}`,
 
@@ -100,7 +95,7 @@ export default function AppgainHistogram() {
         <div className='graph-container-short-histogram'>
             <PlotlyHistogram data={data} layout={chartLayout} />
             <HistogramBinSlider
-                onChange={handleSliderChange}
+                onChange={(e, newValue) => handleSliderChange(newValue, range, setRange)}
                 min={1.02}
                 max={1.1}
                 step={0.01}

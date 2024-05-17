@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import ReactTable from "react-table-6";
+// import ReactTable from "react-table-6";
 
-import "react-table-6/react-table.css";
+// import "react-table-6/react-table.css";
 import '../css/table.css'
 function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaultPageSize, onPageChange, onPageSizeChange, numPages }) {
     const [filterInput, setFilterInput] = useState("");
@@ -26,7 +26,7 @@ function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaul
                 placeholder={"Search..."}
                 className="table-search-input"
             />
-            <ReactTable
+            {/* <ReactTable
                 data={filteredData}
                 columns={columns}
                 defaultPageSize={defaultPageSize || 10}
@@ -39,7 +39,7 @@ function Table({ data, columns, SubComponent, expanded, onExpandedChange, defaul
                 pages={numPages}
 
 
-            />
+            /> */}
         </div>
     );
 }

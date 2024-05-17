@@ -29,9 +29,13 @@
 # Contributors: Yue/David
 import os
 from util import *
-from model_accessor import OneViewModelInitializer,OneViewModelExporter
 from qaas_database import QaaSDatabase
 #import pickle
+current_directory = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.normpath(os.path.join(current_directory, '../../common/backend/')))
+
+from base_util import *
+from oneview_model_accessor import OneViewModelInitializer,OneViewModelExporter
 
 
 # populate database given the data in qaas data folder, gui timestamp is the timestamp for both opt and orig
@@ -39,13 +43,14 @@ def populate_database(qaas_data_dir, qaas_timestamp, version,
                       workload_name, workload_version_name, workload_program_name, workload_program_commit_id):
     #connect db
     config = get_config()
-    engine = connect_db(config)
+    engine = connect_db(config['web']['SQLALCHEMY_DATABASE_URI_ONEVIEW'])
     Session = sessionmaker(bind=engine)
     session = Session()
 
     
     #######################populate database tables######################
-    initializer = OneViewModelInitializer(session, qaas_data_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id)
+    large_files_folder = os.path.join(config['web']['large_files_folder'], get_db_name_from_session(session))
+    initializer = OneViewModelInitializer(session, qaas_data_dir, qaas_timestamp, version, workload_name, workload_version_name, workload_program_name, workload_program_commit_id, large_files_folder)
     
     qaas_output_folder = os.path.join(config['web']['QAAS_OUTPUT_FOLDER'])
     os.makedirs(qaas_output_folder, exist_ok=True)

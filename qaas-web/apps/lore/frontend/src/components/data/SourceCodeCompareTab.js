@@ -3,6 +3,7 @@ import axios from 'axios';
 import '../css/loop.css'
 import TabSelector from './TabSelector';
 import CodeContainer from './CodeContainer';
+import { REACT_APP_API_BASE_URL } from '../Constants';
 function SourceCodeCompareTab({ current_src_loop_id }) {
 
     const [activeTab, setActiveTab] = useState('Processed baseline');
@@ -10,7 +11,7 @@ function SourceCodeCompareTab({ current_src_loop_id }) {
 
 
     useEffect(() => {
-        axios.post(`${process.env.REACT_APP_API_BASE_URL}/get_lore_baseline_source_code_for_specific_loop`, {
+        axios.post(`${REACT_APP_API_BASE_URL}/get_lore_baseline_source_code_for_specific_loop`, {
             current_src_loop_id: current_src_loop_id
         })
             .then(response => {

@@ -86,7 +86,7 @@ class QAASJobSubmit:
             return exp.rc
 
     def run_native(self, run_cmd):
-        job_cmd = f"'{run_cmd}'"
+        job_cmd = f"{run_cmd}"
         try:
             rc, _ = self.run_remote_job_cmd(job_cmd)
             return rc
@@ -153,7 +153,7 @@ class QAASJobSubmit:
 
     def run_job(self, container=True, user_ns_root=False):
         """Run job script itself"""
-        script_root = self.provisioner.script_root
+        container_script_root = self.provisioner.get_script_root(container)
         compiler_root = self.provisioner.get_compiler_root()
         intel_compiler_root = self.provisioner.get_intel_compiler_root()
         gnu_compiler_root = self.provisioner.get_gnu_compiler_root()
@@ -173,7 +173,6 @@ class QAASJobSubmit:
         container_app_reports_path = "/app/qaas_reports" if container else qaas_reports_dir
         # The current load script seems to require the same path
         container_compiler_root=compiler_root
-        container_script_root = "/app/QAAS_SCRIPT_ROOT"  if container else script_root
         app_run_info = self.application["RUN"]
         env_var_map=app_run_info["APP_ENV_MAP"]
         env_var_flags = "".join([f' --var {k}={v}' for k,v in env_var_map.items()])

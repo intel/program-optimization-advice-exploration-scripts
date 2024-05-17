@@ -54,6 +54,7 @@ base_directory = os.path.join(current_directory, '../../common/backend/')
 base_directory = os.path.normpath(base_directory)  
 sys.path.insert(0, base_directory)
 from model import *
+from base_util import *
 from sqlalchemy import select, join
 import luadata
 import re
@@ -67,7 +68,7 @@ app = Flask(__name__)
 config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 config.read(config_path)
 app.config['SQLALCHEMY_DATABASE_URI'] = config['web']['SQLALCHEMY_DATABASE_URI_LORE']
-print(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
+# print(config['web']['SQLALCHEMY_DATABASE_URI_LORE'])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
@@ -157,7 +158,7 @@ def create_app(config):
         orig_src_loop = target_src_loop.orig_src_loop
         orig_source_id = target_src_loop.source.table_id if not orig_src_loop else orig_src_loop.source.table_id
         source = db.session.query(Source).filter_by(table_id = orig_source_id).one()
-        source_file = decompress_file(source.content).decode('utf-8')
+        source_file = source.decompress_file(source.content)
         return json.dumps({
             'Processed baseline': source_file,
         })
@@ -180,7 +181,7 @@ def create_app(config):
 
             source_id = mutated_src_loop.source.table_id
             source = db.session.query(Source).filter_by(table_id = source_id).one()
-            source_file = decompress_file(source.content).decode('utf-8')
+            source_file = source.decompress_file(source.content)
 
             return json.dumps({
                 'mutation': source_file,
@@ -496,7 +497,23 @@ def create_app(config):
         response.headers["Strict-Transport-Security"] = "max-age=1024000; includeSubDomains"
         return response
     
+    @app.after_request
+    def apply_no_cache(response):
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Cache-Control"]= "no-cache; no-store; max-age=0; must-revalidate"
+        response.headers["Expires"]= -1
+        return response
+
+
+    @app.after_request
+    def apply_limit_frame(response):
+        response.headers["X-Frame-Options"] = "self"
+        response.headers["Content-Security-Policy"] = "frame-ancestors"
+
+        return response
     return app
+
+    
 
 
 
