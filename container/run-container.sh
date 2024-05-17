@@ -169,7 +169,7 @@ if [[ $QAAS_CONTAINER_RUNNING == 0 ]]; then
   docker container rm ${QAAS_CONTAINER_NAME} 2>/dev/null
   docker run --user ${container_user} ${docker_run_ports[*]} --restart ${restart_policy}  \
     --hostname $(hostname) ${mount_args[*]} ${env_args[*]} -v /:/host -v apache2_site_conf:/etc/apache2/sites-available -v mysql_data:/var/lib/mysql -v letsencrypt_data:/etc/letsencrypt -v mods_enabled_data:/etc/apache2/mods-enabled \
-    -v htpasswd_data:/etc/apache2/auth -v www_html_data:/var/www/html -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) \
+    -v htpasswd_data:/etc/apache2/auth -v www_html_data:/var/www/html -v qaas_file_data:/qaas/file_data -v /lib/modules:/lib/modules -v /tmp/tmp:/tmp/tmp -v /dev:/dev --pid=host --ipc=host -w /host/$(pwd) \
     ${detached_cmd} --name ${QAAS_CONTAINER_NAME} \
     --security-opt seccomp=${script_dir}/qaas-docker-seccomp-profile.json ${docker_run_cmd[*]}
 else
