@@ -717,14 +717,10 @@ def create_app(config):
         timestamp_list = []
         query_time = request.get_json()['timestamp'] 
 
+        #qaas
+        target_qaas = db.session.query(QaaS).filter_by(timestamp = query_time).one()
         #get best for each compiler
-        best_runs_for_each_compiler = (db.session.query(QaaSRun, Compiler.vendor, func.min(Execution.time).label('min_time'))
-                        .join(QaaSRun.execution)  
-                        .join(Execution.compiler_option)
-                        .join(CompilerOption.compiler)  
-                        .filter(QaaSRun.qaas.has(timestamp=query_time))  
-                        .group_by(Compiler.vendor)  #group by compiler vendor
-                        .all())
+        best_runs_for_each_compiler = get_min_time_run_per_compiler(target_qaas)
         #iterate and get the best qaas run for each compiler to use for otter
         for index, (qaas_run, compiler_vendor, min_time) in enumerate(best_runs_for_each_compiler):
             timestamp = qaas_run.execution.universal_timestamp

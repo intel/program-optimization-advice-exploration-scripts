@@ -15,7 +15,7 @@ import builtins
 import shutil
 import configparser
 import shlex
-
+from collections import defaultdict
 ####constants
 level_map = {0: 'Single', 1: 'Innermost', 2: 'InBetween', 3: 'Outermost'}
 reverse_level_map = {v: k for k, v in level_map.items()}
@@ -115,9 +115,26 @@ def get_db_name_from_session(session):
     uri = str(session.get_bind().url)
     return get_database_name(uri)
 
+#get min time for each compiler
+def get_min_time_run_per_compiler(qaas):
+    all_runs = qaas.qaas_runs
+    min_time_runs = defaultdict(lambda: (None, float('inf')))
+
+    # min time for each compiler vendor
+    for run in all_runs:
+        compiler_vendor = run.execution.compiler_option.compiler.vendor
+        execution_time = run.execution.time
+        if execution_time < min_time_runs[compiler_vendor][1]:
+            min_time_runs[compiler_vendor] = (run, execution_time)
+
+    # return a list of tuples (QaaSRun, min_time, compiler_vendor)
+    qaas_runs_with_min_time = [(run, vendor, min_time) for vendor, (run, min_time) in min_time_runs.items()]
+    return qaas_runs_with_min_time
+
 def get_base_run_name(query_time, session):
     current_execution = Execution.get_obj(query_time, session)
     base_run_name = current_execution.config['base_run_name']
+    print(base_run_name, current_execution.time, query_time)
     return base_run_name
 def create_manifest_monorun(manifest_path, output_data_dir, query_time, session):
     if os.path.isfile(manifest_path):

@@ -205,7 +205,6 @@
             "gcc": ["-O3 -march=haswell -flto -funroll-loops -ffast-math",
                     "-O3 -msse4.2",
                     "-O3 -march=haswell -fno-tree-vectorize -fno-openmp-simd -funroll-loops -ffast-math",
-                    "-O3 -xCORE-AVX2 -no-vec -qno-openmp-simd",
                     "-O2 -march=haswell -flto -funroll-loops -ffast-math",
                     "-O2 -msse4.2",
                     "-O2 -march=haswell -fno-tree-vectorize -fno-openmp-simd -funroll-loops -ffast-math"]

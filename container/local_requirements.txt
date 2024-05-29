@@ -35,12 +35,12 @@ zipp==3.8.1
 zope.event>=4.4.0
 zope.interface>=4.7.1
 #luadata==1.0.5
-matplotlib==3.5.1
-seaborn==0.11.2
-jupyter==1.0.0
-notebook>=6.4.12
-ipympl==0.8.2
-seaborn==0.11.2
-pymysql==1.0.2
+# matplotlib==3.5.1
+# seaborn==0.11.2
+# jupyter==1.0.0
+# notebook>=6.4.12
+# ipympl==0.8.2
+# seaborn==0.11.2
+# pymysql==1.0.2
 alembic>=1.13.0
 #slpp>=1.2.3
