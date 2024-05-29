@@ -115,26 +115,26 @@ def get_db_name_from_session(session):
     uri = str(session.get_bind().url)
     return get_database_name(uri)
 
-#get min time for each compiler
-def get_min_time_run_per_compiler(qaas):
-    all_runs = qaas.qaas_runs
-    min_time_runs = defaultdict(lambda: (None, float('inf')))
+#get compiler vendor
+def get_all_compiler_vendors(target_qaas, session):
+    vendors = session.query(Compiler.vendor).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler).filter(QaaSRun.qaas == target_qaas).distinct().all()
+    vendor_list = [vendor[0] for vendor in vendors]
+    return vendor_list
 
-    # min time for each compiler vendor
-    for run in all_runs:
-        compiler_vendor = run.execution.compiler_option.compiler.vendor
-        execution_time = run.execution.time
-        if execution_time < min_time_runs[compiler_vendor][1]:
-            min_time_runs[compiler_vendor] = (run, execution_time)
-
-    # return a list of tuples (QaaSRun, min_time, compiler_vendor)
-    qaas_runs_with_min_time = [(run, vendor, min_time) for vendor, (run, min_time) in min_time_runs.items()]
-    return qaas_runs_with_min_time
+#get min time if given a compiler, get min also filter using that compiler
+def get_min_time_run(target_qaas, session, compiler_vendor = None, qaas_type = None):
+    query = session.query(QaaSRun, Execution.time, Compiler.vendor).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler).filter(QaaSRun.qaas == target_qaas)
+    if compiler_vendor:
+        query = query.filter(Compiler.vendor == compiler_vendor)
+    if qaas_type:
+        query = query.filter(QaaSRun.type == qaas_type)
+    min_time_run = query.order_by(Execution.time).first()
+    assert min_time_run != None
+    return (min_time_run[0], min_time_run[2], min_time_run[1])
 
 def get_base_run_name(query_time, session):
     current_execution = Execution.get_obj(query_time, session)
     base_run_name = current_execution.config['base_run_name']
-    print(base_run_name, current_execution.time, query_time)
     return base_run_name
 def create_manifest_monorun(manifest_path, output_data_dir, query_time, session):
     if os.path.isfile(manifest_path):

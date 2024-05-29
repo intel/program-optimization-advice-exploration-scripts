@@ -145,11 +145,7 @@ def create_app(config):
         qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(  HwSystem.min_frequency > 3000000, QaaSRun.type != 'scalability_report').distinct().all()
         for qaas in qaass:
             #execution obj that has min time across this qaas run
-            min_time_execution = (db.session.query(Execution)
-                    .join(QaaSRun.execution)
-                    .filter(QaaSRun.qaas == qaas)
-                    .order_by(Execution.time.asc())
-                    .first())
+            min_time_execution, _, _ = get_min_time_run(qaas, db.session)
 
             gflops = min_time_execution.global_metrics['Gflops']
             app_name = min_time_execution.application.workload
@@ -227,11 +223,8 @@ def create_app(config):
                 continue
 
             #get multicompiler run and scability run
-            best_qaas_execution = db.session.query(Execution)\
-                .join(QaaSRun.execution)\
-                .filter(QaaSRun.qaas == qaas, QaaSRun.type == "multicompiler_report")\
-                .order_by(Execution.time)\
-                .first()
+            qaas_run_with_min_time, _, _ = get_min_time_run(qaas, db.session, compiler_vendor = None, qaas_type = "multicompiler_report")
+            best_qaas_execution = qaas_run_with_min_time.execution
             best_qaas_compiler = best_qaas_execution.compiler_option.compiler.vendor
             try:
                 ref_qaas_run = db.session.query(QaaSRun).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler)\
@@ -535,7 +528,7 @@ def create_app(config):
         qaass = db.session.query(QaaS).distinct().all()
         for qaas in qaass:
             qaas_timestamp = qaas.timestamp
-            qaas_run_with_min_time = db.session.query(QaaSRun).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).order_by(Execution.time).first()
+            qaas_run_with_min_time, _, _ = get_min_time_run(qaas, db.session)
             orig_execution = qaas.orig_execution
             min_execution = qaas_run_with_min_time.execution
             min_application = min_execution.application
@@ -562,7 +555,7 @@ def create_app(config):
         run_data = []
         orig_execution = qaas.orig_execution
         orig_time = orig_execution.time
-        best_qaas_run = db.session.query(QaaSRun).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).order_by(Execution.time).first()
+        best_qaas_run, _, _ = get_min_time_run(qaas, db.session)
         best_execution = best_qaas_run.execution
 
         for qaas_run in qaas.qaas_runs:
@@ -687,7 +680,7 @@ def create_app(config):
         qaas = db.session.query(QaaS).filter(QaaS.timestamp == query_time).one()
        
         #get best and orig qaas run
-        qaas_run_with_min_time = db.session.query(QaaSRun).join(QaaSRun.execution).filter(QaaSRun.qaas == qaas).order_by(Execution.time).first()
+        qaas_run_with_min_time, _, _ = get_min_time_run(qaas, db.session)
         orig_execution = qaas.orig_execution
         assert orig_execution is not None, "orig_execution should not be None"
         
@@ -719,8 +712,11 @@ def create_app(config):
 
         #qaas
         target_qaas = db.session.query(QaaS).filter_by(timestamp = query_time).one()
-        #get best for each compiler
-        best_runs_for_each_compiler = get_min_time_run_per_compiler(target_qaas)
+        vendor_list = get_all_compiler_vendors(target_qaas, db.session)
+        best_runs_for_each_compiler = []
+        for vendor in vendor_list:
+            min_time = get_min_time_run(target_qaas, db.session, vendor)
+            best_runs_for_each_compiler.append(min_time)
         #iterate and get the best qaas run for each compiler to use for otter
         for index, (qaas_run, compiler_vendor, min_time) in enumerate(best_runs_for_each_compiler):
             timestamp = qaas_run.execution.universal_timestamp
