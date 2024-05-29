@@ -15,7 +15,7 @@ import builtins
 import shutil
 import configparser
 import shlex
-
+from collections import defaultdict
 ####constants
 level_map = {0: 'Single', 1: 'Innermost', 2: 'InBetween', 3: 'Outermost'}
 reverse_level_map = {v: k for k, v in level_map.items()}
@@ -114,6 +114,23 @@ def get_db_name_from_session(session):
     """
     uri = str(session.get_bind().url)
     return get_database_name(uri)
+
+#get compiler vendor
+def get_all_compiler_vendors(target_qaas, session):
+    vendors = session.query(Compiler.vendor).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler).filter(QaaSRun.qaas == target_qaas).distinct().all()
+    vendor_list = [vendor[0] for vendor in vendors]
+    return vendor_list
+
+#get min time if given a compiler, get min also filter using that compiler
+def get_min_time_run(target_qaas, session, compiler_vendor = None, qaas_type = None):
+    query = session.query(QaaSRun, Execution.time, Compiler.vendor).join(QaaSRun.execution).join(Execution.compiler_option).join(CompilerOption.compiler).filter(QaaSRun.qaas == target_qaas)
+    if compiler_vendor:
+        query = query.filter(Compiler.vendor == compiler_vendor)
+    if qaas_type:
+        query = query.filter(QaaSRun.type == qaas_type)
+    min_time_run = query.order_by(Execution.time).first()
+    assert min_time_run != None
+    return (min_time_run[0], min_time_run[2], min_time_run[1])
 
 def get_base_run_name(query_time, session):
     current_execution = Execution.get_obj(query_time, session)

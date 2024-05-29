@@ -338,7 +338,7 @@ class OneViewModelInitializer(OneviewModelAccessor):
         execution.loop_callchain = callchain_loop_python_obj
         ##global metrics
         global_metrics_df = read_file(self.visit_file(global_metrics_path))
-        execution.time = global_metrics_df.loc[global_metrics_df['metric']=='application_time', 'value'].item()
+        # execution.time = global_metrics_df.loc[global_metrics_df['metric']=='application_time', 'value'].item()
         execution.profiled_time = global_metrics_df.loc[global_metrics_df['metric']=='profiled_time', 'value'].item()
         execution.max_nb_threads = global_metrics_df.loc[global_metrics_df['metric']=='nb_threads', 'value'].item()
 
