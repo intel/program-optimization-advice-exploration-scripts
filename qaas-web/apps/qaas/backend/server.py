@@ -145,8 +145,8 @@ def create_app(config):
         qaass = db.session.query(QaaS).join(QaaSRun.qaas).join(QaaSRun.execution).join(Execution.os).join(Execution.hwsystem).filter(  HwSystem.min_frequency > 3000000, QaaSRun.type != 'scalability_report').distinct().all()
         for qaas in qaass:
             #execution obj that has min time across this qaas run
-            min_time_execution, _, _ = get_min_time_run(qaas, db.session)
-
+            qaas_run_with_min_time, _, _ = get_min_time_run(qaas, db.session)
+            min_time_execution = qaas_run_with_min_time.execution
             gflops = min_time_execution.global_metrics['Gflops']
             app_name = min_time_execution.application.workload
             #use uarchitecture here for merged data
