@@ -37,6 +37,7 @@ from utils.util import generate_timestamp_str
 import utils.system as system
 from base_runner import BaseRunner
 import shlex
+import json
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
 # TODO: refactor with Profiler.py
@@ -52,6 +53,7 @@ class OneviewRunner(BaseRunner):
         self.ov_timestamp = int(round(datetime.datetime.now().timestamp()))
         self.run_dir = os.path.join(self.ov_result_root, f'oneview_run_{self.ov_timestamp}')
         self.ov_of = ov_of
+        self.ov_json_config = {}
 
     @property
     def maqao_bin_dir(self):
@@ -67,7 +69,8 @@ class OneviewRunner(BaseRunner):
 
     def format_ov_shared_libs_option(self, so_libs):
         '''Convert shared libs paths to OV format.'''
-        return ','.join(['\\"'+str(item) + '\\"' for item in so_libs])
+        #return ','.join(['\\"'+str(item) + '\\"' for item in so_libs])
+        return [str(item) for item in so_libs]
 
     def extract_flops_count(self):
         '''Get Flops count from OV report'''
@@ -89,47 +92,65 @@ class OneviewRunner(BaseRunner):
             # no flop counting for old and unknown proc
             return []
         return [f'--with-FLOPS']
-    def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
-        true_run_cmd = run_cmd.replace('<binary>', binary_path)
-        pinning_cmds = [] if mpi_command or self.ov_config != "unused" else [f"--pinning-command=\"{self.get_pinning_cmd()}\""]
-        #pinning_cmd = "" if mpi_command or self.ov_config != "unused" else f"--pinning-command=\"{self.get_pinning_cmd()}\""
 
-        self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
-        os.makedirs(self.ov_result_dir)
-
-        ov_mpi_command = f"--mpi-command={mpi_command}" if mpi_command else ""
-        ov_config_options = [] if self.ov_config == "unused" else [f"-WC", f"-c={self.ov_config}"]
-        #ov_config_option = "" if self.ov_config == "unused" else f"-WC -c={self.ov_config}"
-        ov_filter_options = ['--filter="{type=\\\"number\\\", value=1}"'] if self.level != 1 else []
-        #ov_filter_option = '--filter="{type=\\\"number\\\", value=1}"' if self.level != 1 else ''
-        ov_extra_libs_options = ['--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"'] if self.found_so_libs else []
-        #ov_extra_libs_option = '--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"' if self.found_so_libs else ""
+    def build_ov_json_config(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
+        '''Build the OV JSON configuration'''
+        # Initialize the configuration
+        self.ov_json_config["config"] = {}
 
         # Try to get run name from path
         run_names_in_path = os.path.relpath(self.ov_result_root, os.path.join(self.ov_result_root, '..', '..')).split("/")
-        # Try to use the same name as csv file.  Compiler runs: just the directory name under compilers/ and default run, add _0 as option 0 
+        # Try to use the same name as csv file.  Compiler runs: just the directory name under compilers/ and default run, add _0 as option 0
         run_name = run_names_in_path[1] if run_names_in_path[0] == "compilers" else f'{run_names_in_path[1]}_0'
+        # Add "--base-run-name"
+        self.ov_json_config["config"]["base_run_name"] = run_name
 
+        # Add #processes
+        self.ov_json_config["config"]["number_processes"] = int(mpi_command.split("-np")[1]) if mpi_command else 1
+        # Add "--mpi-command={mpi_command}"
+        if mpi_command:
+            self.ov_json_config["config"]["mpi_command"] = "mpirun -n <number_processes>"
+
+        # Add the "run_command"
+        self.ov_json_config["config"]["run_command"] = run_cmd.replace('<binary>', '<executable>')
+        # Add "executable"
+        self.ov_json_config["config"]["executable"] = binary_path
+
+        # Add "--run-directory"
+        self.ov_json_config["config"]["run_directory"] = run_dir
+
+        # Add "--external-libraries"
+        if self.found_so_libs:
+            self.ov_json_config["config"]["external_libraries"] = self.format_ov_shared_libs_option(self.found_so_libs)
+
+        # Add "--filter"
+        self.ov_json_config["config"]["filter"] = {"type":"number", "value":1}
+
+    def dump_ov_json_config(self):
+        self.ov_config = os.path.join(self.run_dir, 'config.json')
+        with open(self.ov_config, 'w') as f:
+            json.dump(self.ov_json_config, f, indent=4)
+
+    def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
+        # setup pinning command
+        pinning_cmds = [] if mpi_command or self.ov_config != "unused" else [f"--pinning-command=\"{self.get_pinning_cmd()}\""]
+        # auto-generate an OV config file if nothing is provided
+        if self.ov_config == "unused":
+            self.build_ov_json_config(binary_path, run_dir, run_cmd, run_env, mpi_command)
+            self.dump_ov_json_config()
+
+        # setup ov results dir
+        self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
+        os.makedirs(self.ov_result_dir)
+
+        # setup ov run params
+        ov_config_options = [] if self.ov_config == "unused" else [f"-WC", f"-c={self.ov_config}"]
         ov_run_cmds=[f'{self.maqao_bin}', 'oneview', f'-R{self.level}'] + \
-            ([f'{ov_mpi_command}'] if ov_mpi_command else []) + ov_config_options +\
-            [f'--base-run-name={run_name}'] + \
+            ov_config_options +\
             self.get_flop_flags() + \
-            ov_extra_libs_options + \
-            [ f'--run-directory={run_dir}']+ pinning_cmds + \
+            pinning_cmds + \
             [f'--replace', f'xp={self.ov_result_dir}'] + \
-            ov_filter_options + \
-            [f'-of={self.ov_of}',
-            f'--'] + shlex.split(true_run_cmd)
-        #ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} {ov_config_option}'\
-        #    f' --base-run-name={run_name} ' \
-        #    f' --with-FLOPS ' \
-        #    f' {ov_extra_libs_option} '\
-        #    f'--run-directory="{run_dir}" {pinning_cmd} '\
-        #    f'--replace xp={self.ov_result_dir} '\
-        #    f'{ov_filter_option} '\
-        #    f'-of={self.ov_of} '\
-        #    f'-- {true_run_cmd}'
-        print(self.ov_result_dir)
+            [f'-of={self.ov_of}']
         run_env["LD_LIBRARY_PATH"] = run_env.get("LD_LIBRARY_PATH") + ":" + self.maqao_lib_dir if "LD_LIBRARY_PATH" in run_env.keys() else self.maqao_lib_dir
 
         while self.level != 0:
