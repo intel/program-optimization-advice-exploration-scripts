@@ -126,6 +126,16 @@ class OneviewRunner(BaseRunner):
         # Add "--filter"
         self.ov_json_config["config"]["filter"] = {"type":"number", "value":1}
 
+    def update_rundir_in_config(self, run_dir):
+        # Load OV's json configuration
+        with open(self.ov_config, 'r') as f:
+            self.ov_json_config = json.load(f)
+        # Update run_dir
+        self.ov_json_config["config"]["run_directory"] = run_dir
+        # Dump configuration
+        with open(self.ov_config, 'w') as f:
+            json.dump(self.ov_json_config, f, indent=4)
+
     def dump_ov_json_config(self):
         self.ov_config = os.path.join(self.run_dir, 'config.json')
         with open(self.ov_config, 'w') as f:
@@ -138,6 +148,8 @@ class OneviewRunner(BaseRunner):
         if self.ov_config == "unused":
             self.build_ov_json_config(binary_path, run_dir, run_cmd, run_env, mpi_command)
             self.dump_ov_json_config()
+        else:
+            self.update_rundir_in_config(run_dir)
 
         # setup ov results dir
         self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')

@@ -154,6 +154,10 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
             # App implements classic strong scaling: FLOPS is invariant
             flops_per_app = flops
 
+        # Add #MPI and #OMP used for compiler exploration to bestcomp options
+        compile_best_opt["MPI"] = nb_mpi
+        compile_best_opt["OMP"] = nb_omp
+
         # Run scalability
         rc,mp_best_opt,msg = run_qaas_MP(user_target, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                      orig_user_CC, run_cmd, compiled_options, compile_best_opt, bestcomp, qaas_reports_dir,

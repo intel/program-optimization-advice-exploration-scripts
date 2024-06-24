@@ -35,6 +35,8 @@ import sys
 import csv
 import math
 import numpy as np
+import json
+import pathlib
 
 import app_builder
 import app_runner
@@ -196,6 +198,9 @@ def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt
     mp_best_opt = dict()
     qaas_table = dict()
     for compiler, best_opt in qaas_best_opt.items():
+        # Ignore #MPI and #OMP keys in per-compiler bestopt
+        if compiler == 'MPI' or compiler == 'OMP':
+            continue
         # keep option directories consistent with build naming convention
         option = best_opt + 1
         # Setup experiment directory on base run directory
@@ -241,35 +246,53 @@ def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt
 
     return (qaas_table, mp_best_opt, run_log)
 
-def generate_ov_config_multiruns(ov_run_dir, has_mpi, has_omp):
+def generate_ov_config_multiruns(ov_run_dir, nb_mpi, nb_omp, has_mpi, has_omp):
     '''Create multi-runs OV configuration'''
 
-    # Init variables
-    config = ""
-    run_prefix = "m" if has_mpi else "o"
-    scale_cores = compute_scaling_cores()[1:]
-    base_cores = scale_cores[0]
-    # Print header/base run
-    config += f'base_run_name = "{run_prefix}{base_cores}"\n'
-    config += f'number_processes = '
-    config += f'{base_cores}\n' if has_mpi else "1\n"
-    config += f'envv_OMP_NUM_THREADS='
-    config += '1\n\n' if has_mpi else f"{base_cores}\n\n"
-    mpi_command_processes = "<number_processes>" if has_mpi else "1"
-    config += f'mpi_command = "mpirun -np {mpi_command_processes}"\n\n'
+    # Find OV config.json of bestcomp
+    bestcomp = os.path.relpath(ov_run_dir, os.path.join(ov_run_dir, '..', '..')).split('/')[1]
+    bestcomp_path = os.path.join(os.path.abspath(os.path.join(ov_run_dir, "..", "..")), "compilers", bestcomp)
+    config_file = list(pathlib.Path(bestcomp_path).glob('oneview_run_*/config.json'))[0]
+    # Init JSON config from bestcomp run
+    config = {}
+    with open(config_file, "r") as read_file:
+        config = json.load(read_file)
+
+    # Update number of processes and openmp threads
+    config["config"]["number_processes"]  = nb_mpi if (has_mpi and nb_mpi < system.get_number_of_cores()) or nb_mpi == 1 else system.get_number_of_nodes()
+    config["config"]["envv_OMP_NUM_THREADS"] = 1 if has_mpi else system.get_number_of_nodes()
+    # Add a comment section to specify compiler
+    config["config"]["comments"] = f"OV scalability run using {bestcomp}"
+    # Update base_run_name
+    config["config"]["base_run_name"] = f'{config["config"]["number_processes"]}x{config["config"]["envv_OMP_NUM_THREADS"]}'
+    # Update run_dir
+    config["config"]["run_directory"] = ""
     # Print multi runs params
-    mp_type = "number_processes" if has_mpi else "envv_OMP_NUM_THREADS"
-    config += 'multiruns_params={\n'
-    for cores in scale_cores[1:]:
-        config += '    {' + f'name = "{run_prefix}{cores}", {mp_type}={cores}' + '},\n'
-    config += '}\n'
+    mpconf = []
+    scale_cores = compute_scaling_cores()
+    for cores in scale_cores:
+        mpi = 1
+        omp = 1
+        if nb_mpi == system.get_number_of_cores():
+            # scale MPI only
+            mpi = cores
+        elif nb_mpi != 1:
+            # scale omp in hybrid mode
+            mpi = config["config"]["number_processes"]
+            omp = int(cores / config["config"]["number_processes"])
+        else:
+            # scale OpenMP only (no MPI)
+            omp = cores
+        if (mpi == 0 or omp == 0) or (config["config"]["number_processes"] * config["config"]["envv_OMP_NUM_THREADS"] >= mpi * omp):
+            continue
+        mpconf.append({"name":f'{mpi}x{omp}', "number_processes":mpi, "envv_OMP_NUM_THREADS":omp})
+    config["config"]["multiruns_params"] = mpconf
 
     # Write configuration to file
     os.makedirs(ov_run_dir)
-    ov_config = os.path.join(ov_run_dir, f"ov_config.lua")
-    f_ov_config = open(ov_config, "w")
-    f_ov_config.write(config)
-    f_ov_config.close()
+    ov_config = os.path.join(ov_run_dir, f"config.json")
+    with open(ov_config, "w") as write_file:
+        json.dump(config, write_file, indent=4)
     return ov_config
 
 def run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd,
@@ -287,7 +310,7 @@ def run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd,
     # Retrieve the execution environment
     app_env = compiled_options[bestcomp][best_opt][1]
     # Create a multi-runs OV configuration
-    ov_config = generate_ov_config_multiruns(ov_run_dir_opt, has_mpi, has_omp)
+    ov_config = generate_ov_config_multiruns(ov_run_dir_opt, qaas_best_opt["MPI"], qaas_best_opt["OMP"], has_mpi, has_omp)
     # Make the oneview run
     mpi_env_affinity = {"I_MPI_PIN_DOMAIN":"auto:scatter"}
     omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"}
@@ -363,7 +386,7 @@ def add_speedups_to_runs(p_runs, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_wea
 def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                 orig_user_CC, run_cmd, compiled_options, qaas_best_opt, qaas_best_comp, qaas_reports_dir,
                 has_mpi=True, has_omp=True, mpi_weak=False, omp_weak=False, flops_per_app=0.0):
-    '''Execute QAAS Running Logic: UNICORE PARAMETER EXPLORATION/TUNING'''
+    '''Execute QAAS Running Logic: MULTICORE PARAMETER EXPLORATION/TUNING'''
 
     # Init status
     rc=0
