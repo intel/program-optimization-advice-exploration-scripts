@@ -246,7 +246,7 @@ def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt
 
     return (qaas_table, mp_best_opt, run_log)
 
-def generate_ov_config_multiruns(ov_run_dir, nb_mpi, nb_omp, has_mpi, has_omp):
+def generate_ov_config_multiruns(ov_run_dir, nb_mpi, nb_omp, has_mpi, has_omp, affinity):
     '''Create multi-runs OV configuration'''
 
     # Find OV config.json of bestcomp
@@ -287,6 +287,9 @@ def generate_ov_config_multiruns(ov_run_dir, nb_mpi, nb_omp, has_mpi, has_omp):
             continue
         mpconf.append({"name":f'{mpi}x{omp}', "number_processes":mpi, "envv_OMP_NUM_THREADS":omp})
     config["config"]["multiruns_params"] = mpconf
+    # Setup environment variables to control affinity
+    for var,value in affinity.items():
+        config["config"][f"envv_{var}"] = value
 
     # Write configuration to file
     os.makedirs(ov_run_dir)
@@ -305,17 +308,17 @@ def run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd,
     option = best_opt + 1
     # Setup experiment directory on oneview run directory
     ov_run_dir_opt = os.path.join(ov_run_dir, "multicore", f"{bestcomp}_{option}")
+    # Setup MPI and OpenMP affinity env vars
+    affinity = {"I_MPI_PIN_DOMAIN":"auto:scatter", "OMP_PLACES":"threads", "OMP_PROC_BIND":"spread"}
     # Extract the binary path of the best option
     binary_path = compiled_options[bestcomp][best_opt][0]
     # Retrieve the execution environment
     app_env = compiled_options[bestcomp][best_opt][1]
     # Create a multi-runs OV configuration
-    ov_config = generate_ov_config_multiruns(ov_run_dir_opt, qaas_best_opt["MPI"], qaas_best_opt["OMP"], has_mpi, has_omp)
+    ov_config = generate_ov_config_multiruns(ov_run_dir_opt, qaas_best_opt["MPI"], qaas_best_opt["OMP"], has_mpi, has_omp, affinity)
     # Make the oneview run
-    mpi_env_affinity = {"I_MPI_PIN_DOMAIN":"auto:scatter"}
-    omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"}
     oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, ov_config, 'both', level=1, mpi_run_command=None,
-                        mpi_num_processes=1, omp_num_threads=1, mpi_envs=mpi_env_affinity, omp_envs=omp_env_affinity)
+                        mpi_num_processes=1, omp_num_threads=1, mpi_envs={}, omp_envs={})
 
 def compute_gflops(flops_per_app, time, nmpi, nomp, has_mpi, has_omp, mpi_weak, omp_weak):
     '''Compute GFlops/s depending on MPI and/or OpenMP scaling modes'''
