@@ -156,7 +156,10 @@ class OneviewRunner(BaseRunner):
         os.makedirs(self.ov_result_dir)
 
         # setup ov run params
-        ov_config_options = [] if self.ov_config == "unused" else [f"-WC", f"-c={self.ov_config}"]
+        ov_config_options = [] if self.ov_config == "unused" else [f"-c={self.ov_config}"]
+        if run_env.get("OV_SCALE"):
+            ov_config_options.insert(0, run_env["OV_SCALE"])
+            del run_env["OV_SCALE"]
         ov_run_cmds=[f'{self.maqao_bin}', 'oneview', f'-R{self.level}'] + \
             ov_config_options +\
             self.get_flop_flags() + \

@@ -300,7 +300,7 @@ def generate_ov_config_multiruns(ov_run_dir, nb_mpi, nb_omp, has_mpi, has_omp, a
 
 def run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd,
                    qaas_best_opt, bestcomp, compiled_options,
-                   has_mpi, has_omp):
+                   has_mpi, has_omp, weak_scale):
     '''Run and generate OneView reports on best options'''
 
     best_opt = qaas_best_opt[bestcomp]
@@ -316,6 +316,8 @@ def run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd,
     app_env = compiled_options[bestcomp][best_opt][1]
     # Create a multi-runs OV configuration
     ov_config = generate_ov_config_multiruns(ov_run_dir_opt, qaas_best_opt["MPI"], qaas_best_opt["OMP"], has_mpi, has_omp, affinity)
+    # Specify what OV scaling mode to enforce
+    app_env["OV_SCALE"] = "-WS" if not weak_scale else "-WS=weak"
     # Make the oneview run
     oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, ov_config, 'both', level=1, mpi_run_command=None,
                         mpi_num_processes=1, omp_num_threads=1, mpi_envs={}, omp_envs={})
@@ -418,7 +420,7 @@ def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_d
     dump_multicore_csv_file(qaas_reports_dir, 'qaas_multicore.csv', qaas_table)
 
     # Run a oneview scalability run on best compiler/option
-    run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd, qaas_best_opt, qaas_best_comp, compiled_options, has_mpi, has_omp)
+    run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd, qaas_best_opt, qaas_best_comp, compiled_options, has_mpi, has_omp, mpi_weak | omp_weak)
 
     # Dump meta data file
     qaas_meta = QAASMetaDATA(qaas_reports_dir)
