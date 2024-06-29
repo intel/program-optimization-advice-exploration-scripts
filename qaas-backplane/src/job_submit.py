@@ -181,7 +181,9 @@ class QAASJobSubmit:
         # Check if need to disable automatic search for best default compiler and/or compiler flags
         disable_best_compiler_default = "--no-compiler-default" if self.no_compiler_default else ""
         disable_best_compiler_flags = "--no-compiler-flags" if self.no_compiler_flags else ""
-        enable_parallel_scale_option = "-s" if self.enable_parallel_scale else ""
+        enable_parallel_scale_option = "-s" if self.enable_parallel_scale != 0 else ""
+        if self.enable_parallel_scale == 'best-compiler':
+            enable_parallel_scale_option += " --enable-scale-on-best-compiler"
         # Setup per-compiler location to isolate environment
         multi_compilers_dirs = ";".join([f"{compiler}:{os.path.join(container_compiler_root, self.provisioner.get_compiler_subdir(compiler, 'latest'))}" for compiler in self.provisioner.get_enabled_compilers()])
         # Below used --network=host so script can communicate back to launcher via ssh forwarding.  Can try to restrict to self.provisioner.comm_port if needed

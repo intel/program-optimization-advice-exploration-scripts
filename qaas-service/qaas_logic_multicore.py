@@ -190,7 +190,7 @@ def run_scalability_mpixomp(app_env, binary_path, data_dir, base_run_bin_dir, ru
 
     return p_runs
 
-def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app):
+def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app, bestcomp=None):
     '''Measure Application-wide execution times'''
 
     # Compare options
@@ -198,6 +198,9 @@ def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt
     mp_best_opt = dict()
     qaas_table = dict()
     for compiler, best_opt in qaas_best_opt.items():
+        # Nothing to do if bestcomp != from compiler
+        if bestcomp != None and bestcomp != compiler:
+            continue
         # Ignore #MPI and #OMP keys in per-compiler bestopt
         if compiler == 'MPI' or compiler == 'OMP':
             continue
@@ -390,7 +393,7 @@ def add_speedups_to_runs(p_runs, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_wea
 
 def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                 orig_user_CC, run_cmd, compiled_options, qaas_best_opt, qaas_best_comp, qaas_reports_dir,
-                has_mpi=True, has_omp=True, mpi_weak=False, omp_weak=False, flops_per_app=0.0):
+                has_mpi=True, has_omp=True, mpi_weak=False, omp_weak=False, flops_per_app=0.0, scale_best_comp=False):
     '''Execute QAAS Running Logic: MULTICORE PARAMETER EXPLORATION/TUNING'''
 
     # Init status
@@ -400,8 +403,9 @@ def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_d
         return rc,None,""
 
     # Compare options
+    bestcomp_only = qaas_best_comp if scale_best_comp else None
     qaas_table, mp_best_opt, log = eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt, compiled_options,
-                                                       has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app)
+                                                       has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app, bestcomp_only)
 
     # Set index of the median execution time column
     i_time = 7

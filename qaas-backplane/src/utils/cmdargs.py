@@ -80,7 +80,7 @@ def parse_cli_args(argv):
                                help="Force multiprocessing [auto, MPI, OpenMP or hybrid] for compiler search runs")
 
     # Turn ON multicore/parallel scalability runs
-    global_parser.add_argument('-s', '--enable-parallel-scale', action="store_true", help="Turn on multicore scalability runs", required=False)
+    global_parser.add_argument('-s', '--enable-parallel-scale', nargs='?', default=0, const='full', choices=['best-compiler','full'], help="Turn on multicore scalability runs (optional). If not set, default is no scalability runs. If set, option is 'full' by default to runs scalability runs for each compiler. If set with 'best-compiler', scalability runs only using best compiler/options ", required=False)
 
     # Specify whether QaaS runs are to be perfomed on the local system (avoid ssh)
     global_parser.add_argument('-l', '--local-job', action="store_true", help="Enable ssh-less job runs on the local machine", required=False)
