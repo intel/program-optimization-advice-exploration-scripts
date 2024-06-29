@@ -161,7 +161,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         # Run scalability
         rc,mp_best_opt,msg = run_qaas_MP(user_target, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                      orig_user_CC, run_cmd, compiled_options, compile_best_opt, bestcomp, qaas_reports_dir,
-                     has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app)
+                     has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app, runtime['scale_bestcomp'])
         if rc != 0:
             to_backplane.send(qm.GeneralStatus(msg))
             return
@@ -184,6 +184,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--parallel-compiler-runs', choices=['auto', 'off', 'mpi', 'openmp', 'hybrid'], default='auto',
                                help="Force multiprocessing [auto, MPI, OpenMP or hybrid] for compiler search runs")
     parser.add_argument('-s', '--enable-scale', action="store_true", help="Turn on multicore scalability runs", required=False)
+    parser.add_argument('--enable-scale-on-best-compiler', dest='scale_bestcomp',  action="store_true", help="Scalability runs only best compiler", required=False)
     parser.add_argument('--mpi-scale-type', help='MPI scaling type', choices=['strong', 'weak', 'no'], default='strong')
     parser.add_argument('--openmp-scale-type', help='OpenMP scaling type', choices=['strong', 'weak', 'no'], default='strong')
     parser.add_argument('--multi-compilers_dirs', nargs='?', required=False, default='')
@@ -193,7 +194,7 @@ if __name__ == '__main__':
     # Prepare env variables
     env_var_map = parse_env_map(args)
     # Prepare parallel runtime scaling modes
-    runtime = {'enable_scale':args.enable_scale, 'mpi':args.mpi_scale_type, 'openmp':args.openmp_scale_type}
+    runtime = {'enable_scale':args.enable_scale, 'scale_bestcomp':args.scale_bestcomp, 'mpi':args.mpi_scale_type, 'openmp':args.openmp_scale_type}
     # Set default m-compiler to m-core mode
     if args.parallel_compiler_runs != 'auto':
         parallel_compiler_runs = args.parallel_compiler_runs
