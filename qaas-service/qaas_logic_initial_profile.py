@@ -74,8 +74,8 @@ def compute_repetitions(stability):
         print("GOOD STABILITY: no repetitions")
         return 1
 
-def dump_defaults_csv_file(qaas_reports_dir, file_name, table, timestamps, app_name, nb_mpi, nb_omp, flops):
-    '''Dump unicore runs to csv'''
+def dump_defaults_csv_file(qaas_reports_dir, file_name, table, timestamps, app_name, nb_mpi, nb_omp, flops, FOM):
+    '''Dump compiler runs to csv'''
 
     csv_defaults = open(os.path.join(qaas_reports_dir, file_name), "w", newline='\n')
     writer = csv.writer(csv_defaults)
@@ -83,14 +83,13 @@ def dump_defaults_csv_file(qaas_reports_dir, file_name, table, timestamps, app_n
 
     # Write execution times to csv format
     for compiler in table:
-        #row = [app_name, compiler, 0, 'default', nb_mpi, nb_omp, table[compiler], flops/float(table[compiler])]
         # Dump general information
         row = [timestamps[compiler], app_name, compiler, 0, 'default', nb_mpi, nb_omp]
         # Dump time and gflops
         if table[compiler] != None:
-            row.extend([table[compiler], flops/float(table[compiler])])
+            row.extend([table[compiler], flops/float(table[compiler]), FOM[compiler]])
         else:
-            row.extend([0.0, 0.0])
+            row.extend([0.0, 0.0, 0.0])
         # Dump speedups
         for compiler_compare in table:
             if table[compiler] != None and table[compiler_compare] != None:
@@ -122,9 +121,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     app_builder_env.update(env_var_map)
     # Create sym links to orig build run folders
     subprocess.run([f"ln", "-s", "build", f"{user_CC}"], cwd=os.path.dirname(src_dir))
-    #subprocess.run(f"ln -s build {user_CC}", shell=True, cwd=os.path.dirname(src_dir))
     subprocess.run([f"ln", "-s", "orig", f"{user_CC}"], cwd=os.path.dirname(base_run_dir_orig))
-    #subprocess.run(f"ln -s orig {user_CC}", shell=True, cwd=os.path.dirname(base_run_dir_orig))
 
     # Setup run directory and launch initial run
     basic_run,nb_mpi,nb_omp = compiler_run(app_builder_env, orig_binary, data_dir, base_run_dir_orig, run_cmd,
@@ -149,14 +146,17 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     # Dump median exec time to file
     with open(os.path.join(basic_run.run_dir, "initial_profile.csv"), "w") as csv_file:
         csv_file.write(f"base_median_time;{user_CC};" + str(median_value)+"\n")
-    #cmd = f"echo 'base_median_time;{user_CC};" + str(median_value) + "' > initial_profile.csv"
-    #subprocess.run(cmd, shell=True, cwd=basic_run.run_dir)
     # Set dict of median values
     defaults = {}
     defaults['orig'] = median_value
     # Set dict of timestamps per compiler
     timestamps = {}
     timestamps['orig'] = basic_run.run_dir_timestamp
+    # Set dict of per-compiler figure of merit
+    figure_of_merit = {}
+    if env_var_map.get("FOM_REGEX"):
+        basic_run.match_figure_of_merit(env_var_map["FOM_REGEX"])
+    figure_of_merit['orig'] = basic_run.compute_median_figure_of_merit()
 
     # Check LProf overhead
     lprof_run,_,_ = compiler_run(app_builder_env, orig_binary, data_dir, base_run_dir_orig, run_cmd,
@@ -225,19 +225,21 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             basic_run,_,_ = compiler_run(app_builder_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 3, "app", parallel_runs)
             defaults[compiler] = basic_run.compute_median_exec_time()
             timestamps[compiler] = basic_run.run_dir_timestamp
+            # Extract Figure-of-Merit if any
+            if env_var_map.get("FOM_REGEX"):
+                basic_run.match_figure_of_merit(env_var_map["FOM_REGEX"])
+            figure_of_merit[compiler] = basic_run.compute_median_figure_of_merit()
 
             # Dump median exec time to file
             with open(os.path.join(basic_run.run_dir, "initial_profile.csv"), "w") as csv_file:
                 csv_file.write(f"base_median_time;{compiler};" + str(defaults[compiler])+"\n")
-            #cmd = f"echo 'base_median_time;{compiler};" + str(defaults[compiler]) + "' > initial_profile.csv"
-            #subprocess.run(cmd, shell=True, cwd=basic_run.run_dir)
 
             # Make an OV run
             ov_run_bin_dir = os.path.join(ov_run_dir, 'defaults', compiler)
             compiler_run(app_builder_env, binary_path, data_dir, ov_run_bin_dir, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
 
     # Dump defaults values to csv
-    dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, timestamps, user_target, nb_mpi,nb_omp, flops)
+    dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, timestamps, user_target, nb_mpi,nb_omp, flops, figure_of_merit)
 
     # Dump meta data file (multi-compilers file and compiler drfault)
     qaas_meta = QAASMetaDATA(qaas_reports_dir)

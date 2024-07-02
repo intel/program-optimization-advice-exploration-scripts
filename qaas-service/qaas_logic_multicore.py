@@ -67,7 +67,7 @@ def dump_multicore_csv_file(qaas_reports_dir, file_name, table, best_only=False,
     csv_unicore = open(os.path.join(qaas_reports_dir, file_name), "w", newline='\n')
     writer = csv.writer(csv_unicore)
     # Setup header
-    csv_header= ['timestamp', 'app_name', 'compiler', 'option #', '#MPI', '#OMP', 'affinity', 'time(s)', 'GFlops/s']
+    csv_header= ['timestamp', 'app_name', 'compiler', 'option #', '#MPI', '#OMP', 'affinity', 'time(s)', 'GFlops/s', 'FOM']
     for compiler in table:
         csv_header.append(f"Spd w.r.t {compiler}")
     writer.writerow(csv_header)
@@ -131,8 +131,12 @@ def run_scalability_mpi(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
         # Make the runs
         basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', repetitions, "mpirun",
                                 mpi_num_processes=cores, omp_num_threads=1, mpi_envs=mpi_env_affinity)
+        # Extract Figure-of-Merit if any
+        if app_env.get("FOM_REGEX"):
+            basic_run.match_figure_of_merit(app_env["FOM_REGEX"])
+        FOM = basic_run.compute_median_figure_of_merit()
         # Get the median execution time
-        p_runs.append([basic_run.run_dir_timestamp, cores, 1, affinity, basic_run.compute_median_exec_time()])
+        p_runs.append([basic_run.run_dir_timestamp, cores, 1, affinity, basic_run.compute_median_exec_time(), FOM])
 
     return p_runs
 
@@ -149,6 +153,8 @@ def run_scalability_omp(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
     omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"} if affinity == "scatter" else {"GOMP_CPU_AFFINITY":f"{min_limit}-{max_limit}"}
     # Compute array of possible scaling configurations
     scale_cores = compute_scaling_cores()
+    # Check any pattern to extract for FOM
+    pattern = app_env["FOM_REGEX"] if app_env.get("FOM_REGEX") else ""
 
     p_runs = []
     # Sweep through all core configurations
@@ -156,8 +162,12 @@ def run_scalability_omp(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
         # Make the runs
         basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', repetitions, "mpirun",
                                 mpi_num_processes=1, omp_num_threads=cores, mpi_envs=mpi_env_affinity, omp_envs=omp_env_affinity)
+        # Extract Figure-of-Merit if any
+        if app_env.get("FOM_REGEX"):
+            basic_run.match_figure_of_merit(app_env["FOM_REGEX"])
+        FOM = basic_run.compute_median_figure_of_merit()
         # Get the median execution time
-        p_runs.append([basic_run.run_dir_timestamp, 1, cores, affinity, basic_run.compute_median_exec_time()])
+        p_runs.append([basic_run.run_dir_timestamp, 1, cores, affinity, basic_run.compute_median_exec_time(), FOM])
 
     return p_runs
 
@@ -185,8 +195,12 @@ def run_scalability_mpixomp(app_env, binary_path, data_dir, base_run_bin_dir, ru
             # Make the runs
             basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', repetitions, "mpirun",
                                 mpi_num_processes=mpi_ranks, omp_num_threads=omp_threads, mpi_envs=mpi_env_affinity, omp_envs=omp_env_affinity)
+            # Extract Figure-of-Merit if any
+            if app_env.get("FOM_REGEX"):
+                basic_run.match_figure_of_merit(app_env["FOM_REGEX"])
+            FOM = basic_run.compute_median_figure_of_merit()
             # Get the median execution time
-            p_runs.append([basic_run.run_dir_timestamp, mpi_ranks, omp_threads, "scatter", basic_run.compute_median_exec_time()])
+            p_runs.append([basic_run.run_dir_timestamp, mpi_ranks, omp_threads, "scatter", basic_run.compute_median_exec_time(), FOM])
 
     return p_runs
 
@@ -218,7 +232,11 @@ def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt
 
         # Make a single core run for reference in scalability analysis
         basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 1, "mpirun", mpi_num_processes=1)
-        t_compiler.append([basic_run.run_dir_timestamp, app_name, compiler, option, 1, 1, "ref.", basic_run.compute_median_exec_time()])
+        # Extract Figure-of-Merit if any
+        if app_env.get("FOM_REGEX"):
+            basic_run.match_figure_of_merit(app_env["FOM_REGEX"])
+        FOM = basic_run.compute_median_figure_of_merit()
+        t_compiler.append([basic_run.run_dir_timestamp, app_name, compiler, option, 1, 1, "ref.", basic_run.compute_median_exec_time(), FOM])
 
         # Perform a scalability analysis using a pure MPI mode and varying process affinity policy
         if has_mpi:
@@ -343,9 +361,11 @@ def add_gflops_to_runs(p_runs, flops_per_app, i_time, i_mpi, i_omp, has_mpi, has
     for compiler in p_runs:
         for run in p_runs[compiler]:
             if run[i_time] != None:
-                run.append(compute_gflops(flops_per_app, run[i_time], run[i_mpi], run[i_omp], has_mpi, has_omp, mpi_weak, omp_weak))
+                #run.append(compute_gflops(flops_per_app, run[i_time], run[i_mpi], run[i_omp], has_mpi, has_omp, mpi_weak, omp_weak))
+                run.insert(i_time + 1, compute_gflops(flops_per_app, run[i_time], run[i_mpi], run[i_omp], has_mpi, has_omp, mpi_weak, omp_weak))
             else:
-                run.append(0.0)
+                #run.append(0.0)
+                run.insert(i_time + 1, 0.0)
 
 def add_speedups_to_runs(p_runs, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_weak, omp_weak):
     '''Compute Speedups w/r to smallest cores count per compiler'''

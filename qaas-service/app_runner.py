@@ -39,6 +39,7 @@ from statistics import median
 from utils.util import parse_env_map
 from base_runner import BaseRunner
 import shlex
+import re 
 
 class AppRunner(BaseRunner):
     def __init__(self, run_dir_root, meta_repetitions=1, maqao_dir=None):
@@ -48,6 +49,7 @@ class AppRunner(BaseRunner):
         self.run_dir = os.path.join(self.run_dir_root, f'run_{self.run_dir_timestamp}')
         self.meta_repetitions = meta_repetitions
         self.exec_times = []
+        self.fom = []
 
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         true_run_cmd = run_cmd.replace('<binary>', binary_path)
@@ -97,6 +99,20 @@ class AppRunner(BaseRunner):
             med_value = self.compute_median_exec_time()
             stability = (med_value - min_value)/min_value*100
         return stability
+
+    def match_figure_of_merit(self, pattern):
+        with open(os.path.join(self.run_dir, "output.out"), 'r') as f:
+            run_log = f.read()
+        try:
+            self.fom = [float(item.strip()) for item in re.findall(pattern, run_log, re.MULTILINE)]
+        except:
+            pass
+
+    def compute_median_figure_of_merit(self):
+        value = 0.0
+        if len(self.fom) == self.meta_repetitions:
+            value = median(self.fom)
+        return value
 
 # copy executable binary to current directory,
 # copy data file to current directory,
