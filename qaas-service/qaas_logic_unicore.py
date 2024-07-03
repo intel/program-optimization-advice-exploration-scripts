@@ -58,7 +58,7 @@ def dump_compilers_log_file(qaas_reports_dir, file_name, message):
 
 def set_compilers_csv_header(defaults):
     '''Set CSV header for compiler runs'''
-    csv_header = ['timestamp', 'app_name', 'compiler', 'option #', 'flags', '#MPI', '#OMP', 'time(s)', 'GFlops/s']
+    csv_header = ['timestamp', 'app_name', 'compiler', 'option #', 'flags', '#MPI', '#OMP', 'time(s)', 'GFlops/s', 'FOM']
     for default in defaults:
         csv_header.append(f"Spd w.r.t {default}")
     return csv_header
@@ -138,7 +138,10 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
             run_log += f"[Compiler Options] (compiler={compiler},option={option}) Median on {DEFAULT_REPETITIONS} runs: {median_value}\n"
             time_values.append(median_value)
             gflops = flops/float(median_value) if median_value != None else 0.0
-            t_compiler.append([basic_run.run_dir_timestamp, app_name, compiler, option, flags,nb_mpi,nb_omp, median_value, gflops])
+            if app_env.get("FOM_REGEX"):
+                basic_run.match_figure_of_merit(app_env["FOM_REGEX"])
+            FOM = basic_run.compute_median_figure_of_merit()
+            t_compiler.append([basic_run.run_dir_timestamp, app_name, compiler, option, flags,nb_mpi,nb_omp, median_value, gflops, FOM])
 
         # Add the local table to dict
         qaas_table[compiler] = t_compiler
@@ -187,12 +190,6 @@ def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir
     dump_compilers_csv_file(qaas_reports_dir, 'qaas_compilers.csv', qaas_table, defaults)
     # Dump best options csv file
     dump_compilers_csv_file(qaas_reports_dir, 'qaas_compilers_best.csv', qaas_table, defaults, True, qaas_best_opt)
-
-    # Dump meta data file
-    #meta_config = configparser.ConfigParser()
-    #meta_config['qaas'] = { "run_cmd": f'"{run_cmd}"' }
-    #with open(os.path.join(qaas_reports_dir, 'input.txt'), 'w') as meta_config_file:
-    #    meta_config.write(meta_config_file)
 
     # Run oneview on best options
     run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, parallel_runs)
