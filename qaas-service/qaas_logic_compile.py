@@ -40,7 +40,7 @@ import shlex
 
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
-debug_options="-g -fno-omit-frame-pointer -fcf-protection=none -no-pie"
+debug_options="-g -fno-omit-frame-pointer -fcf-protection=none -no-pie -grecord-gcc-switches"
 
 def read_compiler_flags(vendor, target):
     '''Read the list of compiler flags for a CPU vendor and a target processor.'''
