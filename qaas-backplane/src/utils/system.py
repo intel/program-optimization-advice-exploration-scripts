@@ -161,6 +161,8 @@ def get_compiler_version(compiler, compiler_dir):
        cmd_version = "icc  -diag-disable=10441  --version | head -n 1 | cut -d' ' -f3-4 | tr ' ' '.'"
     elif compiler == "gcc":
        cmd_version = "gcc --version | head -n 1 | cut -d' ' -f4"
+    elif compiler == "aocc":
+       cmd_version = "clang --version | head -n 1 | grep -Po '(?<=AOCC_).*(?=-Build)'"
     try:
         env = load_compiler_env(compiler_dir)
         return subprocess.check_output(cmd_version, shell=True, env=env).decode("utf-8").split('\n')[0]
