@@ -47,6 +47,8 @@ def get_vendor_name():
     vendor = cpuinfo.get_cpu_info()['vendor_id_raw']
     if vendor == 'GenuineIntel':
         return 'intel'
+    elif vendor == 'AuthenticAMD':
+        return 'amd'
     else:
         return 'unknown'
 
@@ -67,30 +69,17 @@ def get_intel_processor_name(maqao_dir):
     # Map from Micro-architure code from MAQAO detect-proc to short name used in intel.json
     # Default to OTHER if nothing is found.
     processor_name_dict = {
-        "SAPPHIRE_RAPIDS":"SPR", "ICELAKE_SP":"ICL", "KABY_LAKE":"SKL",
-        "SKYLAKE":"SKX", "HASWELL_E":"HSW", "HASWELL":"HSW" }
+        "SAPPHIRE_RAPIDS":"SPR", # family == 6, model == 143
+        "ICELAKE_SP":"ICL", # family == 6, model == 106
+        "SKYLAKE":"SKX", # family == 6, model == 85
+        "KABY_LAKE":"SKL", # family == 6, model == 158
+        "HASWELL_E":"HSW",
+        "HASWELL":"HSW", # family == 6, model == 63 or model == 79,
+        "ZEN_V3":"ZEN3",
+        "ZEN_V4":"ZEN4" #family == 25, model ==17
+    }
     proc_arch_name = get_processor_architecture(maqao_dir)
     return processor_name_dict.get(proc_arch_name, "OTHER")
-    # family = get_family ()
-    # # Get the CPU model ID
-    # model = get_model()
-
-    # if family == 6:
-    #     if model == 143:
-    #         CPU = 'SPR'
-    #     elif model == 106:
-    #         CPU = 'ICL'
-    #     elif model == 85:
-    #         CPU = 'SKL'
-    #     # Should be Coffee Lake or Kaby Lake, but consider them SKL (needed for UVSQ "intel" machine)
-    #     elif model == 158:
-    #         CPU = 'SKL'
-    #     elif model == 63 or model == 79:
-    #         CPU = 'HSW'
-    #     else:
-    #         CPU = 'OTHER'
-
-    # return CPU
 
 def get_processor_architecture(maqao_dir):
     '''Get the processor architecture'''
@@ -172,6 +161,8 @@ def get_compiler_version(compiler, compiler_dir):
        cmd_version = "icc  -diag-disable=10441  --version | head -n 1 | cut -d' ' -f3-4 | tr ' ' '.'"
     elif compiler == "gcc":
        cmd_version = "gcc --version | head -n 1 | cut -d' ' -f4"
+    elif compiler == "aocc":
+       cmd_version = "clang --version | head -n 1 | grep -Po '(?<=AOCC_).*(?=-Build)'"
     try:
         env = load_compiler_env(compiler_dir)
         return subprocess.check_output(cmd_version, shell=True, env=env).decode("utf-8").split('\n')[0]

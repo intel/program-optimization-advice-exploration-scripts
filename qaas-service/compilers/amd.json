@@ -1,0 +1,61 @@
+{
+    "ZEN4": {
+        "compilers": ["aocc", "icx", "gcc"],
+        "flags": {
+            "aocc": ["-O3 -march=znver4",
+                    "-O3 -march=znver4 -mprefer-vector-width=512",
+                    "-O3 -mavx2",
+                    "-O3 -mavx2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd",
+                    "-O2 -march=znver4",
+                    "-O2 -march=znver4 -mprefer-vector-width=512",
+                    "-O2 -mavx2",
+                    "-O2 -mavx2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd",
+                    "-O3 -march=znver4 -flto",
+                    "-O3 -march=znver4 -mprefer-vector-width=512 -flto",
+                    "-O3 -mavx2 -flto",
+                    "-O3 -mavx2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd -flto",
+                    "-O2 -march=znver4 -flto",
+                    "-O2 -march=znver4 -mprefer-vector-width=512 -flto",
+                    "-O2 -mavx2 -flto",
+                    "-O2 -mavx2 -fno-vectorize -fno-slp-vectorize -fno-openmp-simd -flto"],
+            "icx": ["-O3 -axCORE-AVX512",
+                    "-O3 -axCORE-AVX512 -mprefer-vector-width=512",
+                    "-O3 -axCORE-AVX2",
+                    "-O3 -axCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-iopenmp-simd",
+                    "-O2 -axCORE-AVX512",
+                    "-O2 -axCORE-AVX512 -mprefer-vector-width=512",
+                    "-O2 -axCORE-AVX2",
+                    "-O2 -axCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-iopenmp-simd",
+                    "-O3 -axCORE-AVX512 -flto",
+                    "-O3 -axCORE-AVX512 -mprefer-vector-width=512 -flto",
+                    "-O3 -axCORE-AVX2 -flto",
+                    "-O3 -axCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-iopenmp-simd -flto",
+                    "-O2 -axCORE-AVX512 -flto",
+                    "-O2 -axCORE-AVX512 -mprefer-vector-width=512 -flto",
+                    "-O2 -axCORE-AVX2 -flto",
+                    "-O2 -axCORE-AVX2 -fno-vectorize -fno-slp-vectorize -fno-iopenmp-simd -flto"],
+            "gcc": ["-O3 -march=znver4 -funroll-loops -ffast-math",
+                    "-O3 -march=znver4 -mprefer-vector-width=512 -funroll-loops -ffast-math",
+                    "-O3 -march=haswell -funroll-loops -ffast-math",
+                    "-O3 -march=haswell -fno-tree-vectorize -fno-openmp-simd -funroll-loops -ffast-math",
+                    "-O2 -march=znver4 -funroll-loops -ffast-math",
+                    "-O2 -march=znver4 -mprefer-vector-width=512 -funroll-loops -ffast-math",
+                    "-O2 -march=haswell -funroll-loops -ffast-math",
+                    "-O2 -march=haswell -fno-tree-vectorize -fno-openmp-simd -funroll-loops -ffast-math",
+                    "-O3 -march=znver4 -flto -funroll-loops -ffast-math",
+                    "-O3 -march=znver4 -mprefer-vector-width=512 -flto -funroll-loops -ffast-math",
+                    "-O3 -march=haswell -flto -funroll-loops -ffast-math",
+                    "-O3 -march=haswell -fno-tree-vectorize -fno-openmp-simd -flto -funroll-loops -ffast-math",
+                    "-O2 -march=znver4 -flto -funroll-loops -ffast-math",
+                    "-O2 -march=znver4 -mprefer-vector-width=512 -flto -funroll-loops -ffast-math",
+                    "-O2 -march=haswell -flto -funroll-loops -ffast-math",
+                    "-O2 -march=haswell -fno-tree-vectorize -fno-openmp-simd -flto -funroll-loops -ffast-math"]
+        }
+    },
+    "OTHER": {
+        "compilers": ["gcc"],
+        "flags": {
+            "icx": ["-O3 -msse4.2", "-O2 -msse4.2"]
+        }
+    }
+}
