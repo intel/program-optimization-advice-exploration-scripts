@@ -73,7 +73,9 @@ class QAASEnvProvisioner:
     def __init__(self, service_dir, script_root,
                  account, app_name, git_params,
                  access_params, container,
-                 compilers, compiler_mappings, analyzers, comm_port,
+                 compilers, compiler_mappings,
+                 initial_profile_params,
+                 analyzers, comm_port,
                  remote_job,
                  service_msg_recv_handler,
                  launch_output_dir):
@@ -126,6 +128,7 @@ class QAASEnvProvisioner:
         self.compiler_mappings = compiler_mappings
         self._launch_output_dir = launch_output_dir
         self.analyzers = analyzers
+        self.initial_profile_params = initial_profile_params
 
     def get_script_root(self, container):
         script_root = self.script_root
