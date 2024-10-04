@@ -135,6 +135,7 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
             update_c_flags = f"{filtered_c_flags} {options[option]} {debug_options}"
             update_cxx_flags = f"{filtered_cxx_flags} {options[option]} {debug_options}"
             update_fc_flags = f"{filtered_fc_flags} {options[option]} {debug_options}"
+            update_fc_flags = update_fc_flags.replace('-grecord-gcc-switches', '') # Unknown for FC compilers
             # Update extra CMAKE flags
             update_extra_cmake_flags = extra_cmake_flags if extra_cmake_flags else ""
 
