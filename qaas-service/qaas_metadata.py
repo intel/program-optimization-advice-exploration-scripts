@@ -106,8 +106,9 @@ class QAASMetaDATA:
         self.config[REPORTS_SECTION_NAME]["scalability_reference_line"] = f'{scalability_reference_line}'
         self.write_data(self.config)
 
-    def add_figure_of_merit_metadata(self, metric_type="NA"):
+    def add_figure_of_merit_metadata(self, metric_type="NA", metric_unit="NA"):
         self.config[REPORTS_SECTION_NAME]["figure_of_merit_type"] = metric_type
+        self.config[REPORTS_SECTION_NAME]["figure_of_merit_unit"] = metric_unit
         self.write_data(self.config)
 
     def add_system_metadata(self, maqao_dir):

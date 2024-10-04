@@ -181,6 +181,8 @@ class QAASJobSubmit:
             env_var_flags += f' --var FOM_REGEX={app_run_info["FOM_REGEX"]}'
             fom_type = app_run_info["FOM_TYPE"] if app_run_info.get("FOM_TYPE") else "RATE"
             env_var_flags += f' --var FOM_TYPE={fom_type}'
+            fom_unit = app_run_info["FOM_UNIT"] if app_run_info.get("FOM_UNIT") else "NA"
+            env_var_flags += f' --var FOM_UNIT="{fom_unit}"'
         # Check if we need USER_EXTRA_CMAKE_FLAGS
         user_extra_cmake_flags = self.compiler["USER_EXTRA_CMAKE_FLAGS"] if "USER_EXTRA_CMAKE_FLAGS" in self.compiler.keys() else ""
         # Check if need to disable automatic search for best default compiler and/or compiler flags
