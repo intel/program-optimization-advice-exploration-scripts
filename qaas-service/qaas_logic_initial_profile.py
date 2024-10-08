@@ -244,7 +244,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     # Dump meta data file (multi-compilers file and compiler drfault)
     qaas_meta = QAASMetaDATA(qaas_reports_dir)
     qaas_meta.add_prog_lang_metadata()
-    qaas_meta.add_figure_of_merit_metadata("NA" if not env_var_map.get("FOM_REGEX") else env_var_map["FOM_TYPE"])
+    qaas_meta.add_figure_of_merit_metadata("NA" if not env_var_map.get("FOM_REGEX") else env_var_map["FOM_TYPE"], "NA" if not env_var_map.get("FOM_REGEX") else env_var_map["FOM_UNIT"])
     qaas_meta.add_multicompiler_metadata(user_CC, 'qaas_compilers.csv')
 
     return 0,"",defaults,flops,nb_mpi,nb_omp
