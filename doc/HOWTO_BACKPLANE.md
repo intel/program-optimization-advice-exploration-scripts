@@ -95,8 +95,11 @@ Users must modify the following parameters:
 - `QAAS_COMPILERS_ROOT_DIRECTORY` : path to QaaS scripts to source compilers and Intel runtime.
 - `QAAS_INTEL_COMPILERS_DIRECTORY` : path to Intel compilers and runtimes installation directory. By default, it points to `/opt/intel/oneapi`.
 - `QAAS_ENABLED_COMPILERS`: List of compilers to be enabled with QaaS. They must be provisioned/installed.
-- `QAAS_USER` : target user name on the compute node for ssh access (password-less must configured
-- `QAAS_MACHINES_POOL`: machine name of target node where to perform QaaS runs (localhost by default)
+- `QAAS_USER` : target user name on the compute node for ssh access (password-less must configured.
+- `QAAS_MACHINES_POOL`: machine name of target node where to perform QaaS runs (localhost by default).
+- `QAAS_DEFAULT_REPETITIONS`: controls the number of runs of the initial profiling run to asses performance stability and quality (default to 11 runs).
+- `QAAS_MAX_ALLOWED_EXEC_TIME`: = controls the time limit in seconds of the initial profiling run. Set to 3 minutes by default.
+
 
 # Running QaaS
 
