@@ -184,6 +184,8 @@ class QAASJobSubmit:
             env_var_flags += f' --var FOM_REGEX={app_run_info["FOM_REGEX"]}'
             fom_type = app_run_info["FOM_TYPE"] if app_run_info.get("FOM_TYPE") else "RATE"
             env_var_flags += f' --var FOM_TYPE={fom_type}'
+        # Enable search when LTO flags are available
+        env_var_flags += f' --var QAAS_ENABLE_LTO=1' if "QAAS_ENABLE_LTO" in os.environ else ""
         # Check if we need USER_EXTRA_CMAKE_FLAGS
         user_extra_cmake_flags = self.compiler["USER_EXTRA_CMAKE_FLAGS"] if "USER_EXTRA_CMAKE_FLAGS" in self.compiler.keys() else ""
         # Check if need to disable automatic search for best default compiler and/or compiler flags
