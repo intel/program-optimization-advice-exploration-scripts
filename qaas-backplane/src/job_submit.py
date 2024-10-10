@@ -184,6 +184,8 @@ class QAASJobSubmit:
             env_var_flags += f' --var FOM_REGEX={app_run_info["FOM_REGEX"]}'
             fom_type = app_run_info["FOM_TYPE"] if app_run_info.get("FOM_TYPE") else "RATE"
             env_var_flags += f' --var FOM_TYPE={fom_type}'
+            fom_unit = app_run_info["FOM_UNIT"] if app_run_info.get("FOM_UNIT") else "NA"
+            env_var_flags += f' --var FOM_UNIT="{fom_unit}"'
         # Enable search when LTO flags are available
         env_var_flags += f' --var QAAS_ENABLE_LTO=1' if "QAAS_ENABLE_LTO" in os.environ else ""
         # Check if we need USER_EXTRA_CMAKE_FLAGS

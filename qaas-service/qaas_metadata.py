@@ -39,6 +39,7 @@ from app_builder import get_languages_in_project
 QAAS_SECTION_NAME = "QAAS"
 SYSTEM_SECTION_NAME = "SYSTEM"
 REPORTS_SECTION_NAME = "REPORTS"
+TIME_SECTION_NAME = "TIME"
 
 class QAASMetaDATA:
     def __init__(self, qaas_reports_dir, file_name="input.txt"):
@@ -50,6 +51,7 @@ class QAASMetaDATA:
             self.config[QAAS_SECTION_NAME] = {}
             self.config[REPORTS_SECTION_NAME] = {}
             self.config[SYSTEM_SECTION_NAME] = {}
+            self.config[TIME_SECTION_NAME] = {}
             self.write_data(self.config)
         self.config.read(self.metadata_pathname)
 
@@ -106,8 +108,9 @@ class QAASMetaDATA:
         self.config[REPORTS_SECTION_NAME]["scalability_reference_line"] = f'{scalability_reference_line}'
         self.write_data(self.config)
 
-    def add_figure_of_merit_metadata(self, metric_type="NA"):
+    def add_figure_of_merit_metadata(self, metric_type="NA", metric_unit="NA"):
         self.config[REPORTS_SECTION_NAME]["figure_of_merit_type"] = metric_type
+        self.config[REPORTS_SECTION_NAME]["figure_of_merit_unit"] = metric_unit
         self.write_data(self.config)
 
     def add_system_metadata(self, maqao_dir):
@@ -139,4 +142,11 @@ class QAASMetaDATA:
 
     def add_compiler_version(self, compiler, compiler_dir):
         self.config[SYSTEM_SECTION_NAME][f"{compiler}_version"] = system.get_compiler_version(compiler, compiler_dir)
+        self.write_data(self.config)
+
+    def add_qaas_logic_timings(self, phase, time):
+        hours = int(time / 3600)
+        minutes = int((time % 3600) / 60)
+        seconds = (time % 3600) % 60
+        self.config[TIME_SECTION_NAME][phase] = "{nH:02d}H{nM:02d}M{nS:02d}S".format(nH=hours,nM=minutes,nS=seconds)
         self.write_data(self.config)

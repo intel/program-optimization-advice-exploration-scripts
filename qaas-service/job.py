@@ -33,6 +33,7 @@ import subprocess
 import os
 import sys
 import resource
+import time
 
 import app_builder
 import app_runner
@@ -98,12 +99,15 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         qaas_meta.add_compiler_version(compiler, multi_compilers_dirs[compiler])
 
     # Phase 2: Intial profiling and cleaning
+    start = time.time()
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Initail Profiling and Cleaning"))
     rc,msg,defaults,flops,nb_mpi,nb_omp = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location,
                      run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir,
                      disable_compiler_default, parallel_compiler_runs, multi_compilers_dirs)
+    stop = time.time()
+    QAASMetaDATA(qaas_reports_dir).add_qaas_logic_timings("initial_profile", int(stop - start))
     if rc != 0:
         to_backplane.send(qm.GeneralStatus(msg))
         return
@@ -113,15 +117,21 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     if not disable_compiler_flags:
         # First build all options
         binaries_dir = os.path.join(os.path.dirname(base_run_dir), 'binaries')
+        start = time.time()
         compiled_options = compile_all(src_dir, binaries_dir, compiler_dir,
                     orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                     user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map, multi_compilers_dirs, maqao_dir)
+        stop = time.time()
+        QAASMetaDATA(qaas_reports_dir).add_qaas_logic_timings("build_binaries", int(stop - start))
         to_backplane.send(qm.GeneralStatus("Done compile all binaries!"))
 
         # Start unicore runs
         to_backplane.send(qm.GeneralStatus("QAAS running logic: Compilers Parameters Exploration/Tuning"))
+        start = time.time()
         rc,compile_best_opt,bestcomp,msg = run_qaas_UP(user_target, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                          orig_user_CC, run_cmd, compiled_options, qaas_reports_dir, defaults, flops, parallel_compiler_runs)
+        stop = time.time()
+        QAASMetaDATA(qaas_reports_dir).add_qaas_logic_timings("multicompiler", int(stop - start))
         if rc != 0:
             to_backplane.send(qm.GeneralStatus(msg))
             return
@@ -159,9 +169,12 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         compile_best_opt["OMP"] = nb_omp
 
         # Run scalability
+        start = time.time()
         rc,mp_best_opt,msg = run_qaas_MP(user_target, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
                      orig_user_CC, run_cmd, compiled_options, compile_best_opt, bestcomp, qaas_reports_dir,
                      has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app, runtime['scale_bestcomp'])
+        stop = time.time()
+        QAASMetaDATA(qaas_reports_dir).add_qaas_logic_timings("scalability", int(stop - start))
         if rc != 0:
             to_backplane.send(qm.GeneralStatus(msg))
             return
