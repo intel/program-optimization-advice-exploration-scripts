@@ -176,6 +176,9 @@ class QAASJobSubmit:
         app_run_info = self.application["RUN"]
         env_var_map=app_run_info["APP_ENV_MAP"]
         env_var_flags = "".join([f' --var {k}={v}' for k,v in env_var_map.items()])
+        # Pass initial profiling parameters as environment variables
+        env_var_flags += f' --var QAAS_DEFAULT_REPETITIONS={self.provisioner.initial_profile_params["QAAS_DEFAULT_REPETITIONS"]}'
+        env_var_flags += f' --var QAAS_MAX_ALLOWED_EXEC_TIME={self.provisioner.initial_profile_params["QAAS_MAX_ALLOWED_EXEC_TIME"]}'
         # Pass FOM regex as environment variable if any
         if app_run_info.get("FOM_REGEX"):
             env_var_flags += f' --var FOM_REGEX={app_run_info["FOM_REGEX"]}'
@@ -183,6 +186,8 @@ class QAASJobSubmit:
             env_var_flags += f' --var FOM_TYPE={fom_type}'
             fom_unit = app_run_info["FOM_UNIT"] if app_run_info.get("FOM_UNIT") else "NA"
             env_var_flags += f' --var FOM_UNIT="{fom_unit}"'
+        # Enable search when LTO flags are available
+        env_var_flags += f' --var QAAS_ENABLE_LTO=1' if "QAAS_ENABLE_LTO" in os.environ else ""
         # Check if we need USER_EXTRA_CMAKE_FLAGS
         user_extra_cmake_flags = self.compiler["USER_EXTRA_CMAKE_FLAGS"] if "USER_EXTRA_CMAKE_FLAGS" in self.compiler.keys() else ""
         # Check if need to disable automatic search for best default compiler and/or compiler flags

@@ -128,8 +128,12 @@ class QAASMetaDATA:
         # CPUFreq settings
         self.config[SYSTEM_SECTION_NAME]["frequency_driver"] = system.get_frequency_driver()
         self.config[SYSTEM_SECTION_NAME]["frequency_governor"] = system.get_frequency_governor()
-        self.config[SYSTEM_SECTION_NAME]["scaling_max_frequency"] = system.get_scaling_max_frequency()
-        self.config[SYSTEM_SECTION_NAME]["scaling_min_frequency"] = system.get_scaling_min_frequency()
+        if self.config[SYSTEM_SECTION_NAME]["frequency_driver"] == "acpi-cpufreq" and self.config[SYSTEM_SECTION_NAME]["frequency_governor"] == "userspace":
+            self.config[SYSTEM_SECTION_NAME]["scaling_max_frequency"] = system.get_scaling_cur_frequency()
+            self.config[SYSTEM_SECTION_NAME]["scaling_min_frequency"] = self.config[SYSTEM_SECTION_NAME]["scaling_max_frequency"]
+        else:
+            self.config[SYSTEM_SECTION_NAME]["scaling_max_frequency"] = system.get_scaling_max_frequency()
+            self.config[SYSTEM_SECTION_NAME]["scaling_min_frequency"] = system.get_scaling_min_frequency()
         self.config[SYSTEM_SECTION_NAME]["advertized_frequency"] = system.get_advertized_frequency()
         self.config[SYSTEM_SECTION_NAME]["maximal_frequency"] = system.get_maximal_frequency()
         # MEM settings

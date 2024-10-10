@@ -59,8 +59,8 @@ script_dir=os.path.dirname(os.path.realpath(__file__))
 #script_name=os.path.basename(os.path.realpath(__file__))
 LPROF_WALLTIME_LUA_FILE=os.path.join(script_dir, 'lua_scripts', 'lprof_walltime.lua')
 
-DEFAULT_REPETITIONS = 11
-MAX_ALLOWED_EXEC_TIME = 180
+DEFAULT_REPETITIONS = 1
+MAX_ALLOWED_EXEC_TIME = 3600
 
 def compute_repetitions(stability):
     print(stability)
@@ -119,6 +119,8 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
                                    user_link_flags, user_target, user_target_location, 'both', extra_cmake_flags)
     # Add any user-provided environment variables
     app_builder_env.update(env_var_map)
+    DEFAULT_REPETITIONS = int(env_var_map["QAAS_DEFAULT_REPETITIONS"])
+    MAX_ALLOWED_EXEC_TIME = int(env_var_map["QAAS_MAX_ALLOWED_EXEC_TIME"])
     # Create sym links to orig build run folders
     subprocess.run([f"ln", "-s", "build", f"{user_CC}"], cwd=os.path.dirname(src_dir))
     subprocess.run([f"ln", "-s", "orig", f"{user_CC}"], cwd=os.path.dirname(base_run_dir_orig))

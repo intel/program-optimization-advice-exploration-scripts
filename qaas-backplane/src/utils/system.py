@@ -75,6 +75,7 @@ def get_intel_processor_name(maqao_dir):
         "KABY_LAKE":"SKL", # family == 6, model == 158
         "HASWELL_E":"HSW",
         "HASWELL":"HSW", # family == 6, model == 63 or model == 79,
+        "BROADWELL":"HSW",
         "ZEN_V3":"ZEN3",
         "ZEN_V4":"ZEN4" #family == 25, model ==17
     }
@@ -144,6 +145,10 @@ def get_scaling_max_frequency():
 def get_scaling_min_frequency():
     '''Retrieve the scaling min frequency on the system'''
     return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", shell=True).decode("utf-8").split('\n')[0]
+
+def get_scaling_cur_frequency():
+    '''Retrieve the scaling current frequency on the system. Valid only for userspace governor provided by acpi-cpufreq driver'''
+    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed", shell=True).decode("utf-8").split('\n')[0]
 
 def get_advertized_frequency():
     '''Retrieve the advertized frequency on the system'''
