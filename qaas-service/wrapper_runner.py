@@ -79,7 +79,7 @@ def compiler_run(app_env, binary, data_dir, run_dir, run_cmd, repetitions, runty
         nb_ranks = 1
         nb_threads = nb_cores
         mpi_affinity = {"I_MPI_PIN_DOMAIN":"auto:scatter"}
-        omp_affinity = {"GOMP_CPU_AFFINITY":f"0-{max_limit}"}
+        omp_affinity = {"OMP_PLACES":','.join(['{'+str(i)+'}' for i in range(0,max_limit+1,1)]),"OMP_PROC_BIND":"close"}
     elif parallel_runs == 'hybrid':
         # Multicore MPI x OpenMP runs
         nb_ranks = nb_nodes
@@ -92,6 +92,9 @@ def compiler_run(app_env, binary, data_dir, run_dir, run_cmd, repetitions, runty
         nb_threads = 1
         mpi_affinity = {"I_MPI_PIN_PROCESSOR_LIST":f"0-{max_limit}"}
         omp_affinity = {}
+
+    # Add debug OMP info
+    omp_affinity["OMP_DISPLAY_ENV"] = "TRUE"
 
     # Invoque runner  per runtype
     compiler_run = run_app(app_env, binary, data_dir, run_dir, run_cmd, repetitions, runtype,

@@ -150,7 +150,8 @@ def run_scalability_omp(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
     max_limit = nb_cores-1
     # Set process affinity policy environment variables
     mpi_env_affinity = {"I_MPI_PIN_DOMAIN":"auto:scatter"}
-    omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"} if affinity == "scatter" else {"GOMP_CPU_AFFINITY":f"{min_limit}-{max_limit}"}
+    omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"} if affinity == "scatter" else {"OMP_PLACES":','.join(['{'+str(i)+'}' for i in range(min_limit,max_limit+1,1)]),"OMP_PROC_BIND":"close"}
+    omp_env_affinity["OMP_DISPLAY_ENV"] = "TRUE"
     # Compute array of possible scaling configurations
     scale_cores = compute_scaling_cores()
     # Check any pattern to extract for FOM
@@ -179,6 +180,7 @@ def run_scalability_mpixomp(app_env, binary_path, data_dir, base_run_bin_dir, ru
     # Set process affinity policy environment variables
     mpi_env_affinity = {"I_MPI_PIN_DOMAIN":"auto:scatter"}
     omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"}
+    omp_env_affinity["OMP_DISPLAY_ENV"] = "TRUE"
     # Compute array of possible scaling configurations
     scale_cores = [int(c/2) for c in compute_scaling_cores()]
     del scale_cores[0]
