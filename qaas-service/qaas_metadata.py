@@ -144,6 +144,12 @@ class QAASMetaDATA:
         self.config[SYSTEM_SECTION_NAME][f"{compiler}_version"] = system.get_compiler_version(compiler, compiler_dir)
         self.write_data(self.config)
 
+    def add_mpi_version(self, mpi_dir):
+        MPI_Info = system.get_mpi_version(mpi_dir)
+        self.config[SYSTEM_SECTION_NAME]["mpi_provider"] = MPI_Info[0]
+        self.config[SYSTEM_SECTION_NAME]["mpi_version"] = MPI_Info[1]
+        self.write_data(self.config)
+
     def add_qaas_logic_timings(self, phase, time):
         hours = int(time / 3600)
         minutes = int((time % 3600) / 60)

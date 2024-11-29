@@ -173,3 +173,20 @@ def get_compiler_version(compiler, compiler_dir):
         return subprocess.check_output(cmd_version, shell=True, env=env).decode("utf-8").split('\n')[0]
     except ImportError:
         return ""
+
+def get_mpi_version(mpi_dir):
+    '''Get MPI version'''
+    cmdline = "mpirun --version | head -n 1"
+    try:
+        # Right now, still putting compilers and runtimes altogether.
+        env = load_compiler_env(mpi_dir)
+        output = subprocess.check_output(cmdline, shell=True, env=env).decode("utf-8").split('\n')[0]
+    except ImportError:
+        return ""
+    # Check if MPI distribution is OpenMPI
+    if output.find('Open MPI') != -1:
+        return ('OpenMPI',f"{output.split(' ')[3]}")
+    # Check if MPI distribution is IntelMPI
+    elif output.find('') != -1:
+        return ('IntelMPI',f"{output.split(' ')[7]}")
+    return ('Unknown','NA')

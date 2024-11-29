@@ -97,6 +97,9 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     qaas_meta.add_system_metadata(maqao_dir)
     for compiler in multi_compilers_dirs:
         qaas_meta.add_compiler_version(compiler, multi_compilers_dirs[compiler])
+    qaas_meta.add_mpi_version(compiler_dir)
+    # Dispatch MPI provider inforation to all runs
+    env_var_map['MPI_PROVIDER'] = qaas_meta.config['SYSTEM']["mpi_provider"]
 
     # Phase 2: Intial profiling and cleaning
     start = time.time()
