@@ -54,7 +54,7 @@ class AppRunner(BaseRunner):
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         true_run_cmd = run_cmd.replace('<binary>', binary_path)
         pinning_cmd = "" if mpi_command else f"{self.get_pinning_cmd()}"
-        base_run_cmd=f'{mpi_command} {run_env.get("QAAS_NUMA_BIND", "")} {true_run_cmd}' if mpi_command else f'{pinning_cmd} {true_run_cmd}'
+        base_run_cmd=f'{mpi_command} {true_run_cmd}' if mpi_command else f'{pinning_cmd} {true_run_cmd}'
         print(f"run_dir is: {run_dir}")
         print(base_run_cmd)
         for i in range(self.meta_repetitions):

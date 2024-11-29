@@ -72,7 +72,7 @@ class BaseRunner(ABC):
         run_env.update(mpi_envs)
         run_env.update(omp_envs)
         run_env["OMP_NUM_THREADS"] = str(omp_num_threads)
-        mpi_command = f"{mpi_run_command} -np {mpi_num_processes}" if mpi_run_command else ""
+        mpi_command = f"{mpi_run_command} -n {mpi_num_processes} {run_env.get('QAAS_OPENMPI_BIND_CMD', '')} {run_env.get('QAAS_NUMA_BIND', '')}" if mpi_run_command else ""
         # Setup LD_LIBRARY_PATH with any found shared libraries built by cmake
         self.found_so_libs = self.search_shared_libs(run_env['QAAS_BUILD_DIR'])
         ld_lib_path_prefix = run_env.get("LD_LIBRARY_PATH") + ":" if run_env.get("LD_LIBRARY_PATH") else ""

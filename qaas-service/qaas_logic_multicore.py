@@ -123,7 +123,7 @@ def run_scalability_mpi(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
     # Set process affinity policy environment variables
     mpi_provider = app_env['MPI_PROVIDER']
     if mpi_provider == "OpenMPI":
-        mpi_env_affinity = {'QAAS_OPENMPI_BIND_CMD':'--bind-to core --map-by package:PE=1 --rank-by span --report-bindings'} if affinity == "scatter" else {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by pe-list={",".join([str(i) for i in range(0,max_limit+1,1)])}:ordered  --report-bindings'}
+        mpi_env_affinity = {'QAAS_OPENMPI_BIND_CMD':'--bind-to core --map-by numa --rank-by span --report-bindings'} if affinity == "scatter" else {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by pe-list={",".join([str(i) for i in range(0,max_limit+1,1)])}:ordered  --report-bindings'}
     else:
         mpi_env_affinity = {"I_MPI_PIN_PROCESSOR_LIST":"all:map=scatter", "I_MPI_DEBUG":"4"} if affinity == "scatter" else {"I_MPI_PIN_PROCESSOR_LIST":f"{min_limit}-{max_limit}", "I_MPI_DEBUG":"4"}
 
