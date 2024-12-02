@@ -342,12 +342,16 @@ def run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd,
     option = best_opt + 1
     # Setup experiment directory on oneview run directory
     ov_run_dir_opt = os.path.join(ov_run_dir, "multicore", f"{bestcomp}_{option}")
-    # Setup MPI and OpenMP affinity env vars
-    affinity = {"I_MPI_PIN_DOMAIN":"auto:scatter", "OMP_PLACES":"threads", "OMP_PROC_BIND":"spread"}
     # Extract the binary path of the best option
     binary_path = compiled_options[bestcomp][best_opt][0]
     # Retrieve the execution environment
     app_env = compiled_options[bestcomp][best_opt][1]
+    mpi_provider = app_env['MPI_PROVIDER']
+    # Setup MPI and OpenMP affinity env vars
+    affinity = {"OMP_PLACES":"threads", "OMP_PROC_BIND":"spread"}
+    affinity.update({"OMP_DISPLAY_ENV":"TRUE","OMP_DISPLAY_AFFINITY":"TRUE","OMP_AFFINITY_FORMAT":"'OMP: pid %P tid %i thread %n bound to OS proc set {%A}'"})
+    if mpi_provider == "IntelMPI":
+        affinity.update({"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"bunch", "I_MPI_DEBUG":"4"})
     # Create a multi-runs OV configuration
     ov_config = generate_ov_config_multiruns(ov_run_dir_opt, qaas_best_opt["MPI"], qaas_best_opt["OMP"], has_mpi, has_omp, affinity)
     # Specify what OV scaling mode to enforce
