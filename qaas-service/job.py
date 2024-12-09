@@ -97,6 +97,13 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     qaas_meta.add_system_metadata(maqao_dir)
     for compiler in multi_compilers_dirs:
         qaas_meta.add_compiler_version(compiler, multi_compilers_dirs[compiler])
+    qaas_meta.add_mpi_version(compiler_dir)
+    # Dispatch MPI provider inforation to all runs
+    env_var_map['MPI_PROVIDER'] = qaas_meta.config['SYSTEM']["mpi_provider"]
+
+    # Overide MPI wrapper depending on loaded environment
+    orig_user_CC = orig_user_CC.replace('MPI-', 'mpiicc-') if env_var_map['MPI_PROVIDER'] == 'IntelMPI' else orig_user_CC.replace('MPI-', 'mpicc-')
+    target_CC = target_CC.replace('MPI-', 'mpiicc-') if env_var_map['MPI_PROVIDER'] == 'IntelMPI' else target_CC.replace('MPI-', 'mpicc-')
 
     # Phase 2: Intial profiling and cleaning
     start = time.time()

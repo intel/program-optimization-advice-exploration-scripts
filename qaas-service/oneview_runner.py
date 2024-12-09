@@ -106,10 +106,10 @@ class OneviewRunner(BaseRunner):
         self.ov_json_config["config"]["base_run_name"] = run_name
 
         # Add #processes
-        self.ov_json_config["config"]["number_processes"] = int(mpi_command.split("-np")[1]) if mpi_command else 1
+        self.ov_json_config["config"]["number_processes"] = int(mpi_command.split(" ")[2]) if mpi_command else 1
         # Add "--mpi-command={mpi_command}"
         if mpi_command:
-            self.ov_json_config["config"]["mpi_command"] = f"mpirun -n <number_processes> {run_env.get('QAAS_NUMA_BIND', '')}"
+            self.ov_json_config["config"]["mpi_command"] = mpi_command.replace(f'-n {self.ov_json_config["config"]["number_processes"]}', '-n <number_processes>')
 
         # Add the "run_command"
         self.ov_json_config["config"]["run_command"] = run_cmd.replace('<binary>', '<executable>')

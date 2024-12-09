@@ -67,31 +67,35 @@ def compiler_run(app_env, binary, data_dir, run_dir, run_cmd, repetitions, runty
     nb_nodes = system.get_number_of_nodes()
     nb_cores_per_node = int(nb_cores / nb_nodes)
     max_limit = nb_cores-1
+    mpi_provider = app_env['MPI_PROVIDER']
 
     if parallel_runs == 'mpi':
         # Multicore MPI runs
         nb_ranks = nb_cores
         nb_threads = 1
-        mpi_affinity = {"I_MPI_PIN_PROCESSOR_LIST":f"0-{max_limit}"}
-        omp_affinity = {}
+        mpi_affinity = {'QAAS_OPENMPI_BIND_CMD':'--bind-to core --map-by package:PE=1 --rank-by fill --report-bindings'} if mpi_provider == "OpenMPI" else {"I_MPI_PIN_PROCESSOR_LIST":f"0-{max_limit}", "I_MPI_DEBUG":"4"}
+        omp_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"}
     elif parallel_runs == 'openmp':
         # Multicore OpenMP runs
         nb_ranks = 1
         nb_threads = nb_cores
-        mpi_affinity = {"I_MPI_PIN_DOMAIN":"auto:scatter"}
-        omp_affinity = {"GOMP_CPU_AFFINITY":f"0-{max_limit}"}
+        mpi_affinity = {'QAAS_OPENMPI_BIND_CMD':'--bind-to none --report-bindings'} if mpi_provider == "OpenMPI" else {"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"scatter", "I_MPI_DEBUG":"4"}
+        omp_affinity = {"OMP_PLACES":','.join(['{'+str(i)+'}' for i in range(0,max_limit+1,1)]),"OMP_PROC_BIND":"close"}
     elif parallel_runs == 'hybrid':
         # Multicore MPI x OpenMP runs
         nb_ranks = nb_nodes
         nb_threads = nb_cores_per_node
-        mpi_affinity = {"I_MPI_PIN_DOMAIN":"auto:scatter"}
+        mpi_affinity = {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by package:PE={nb_threads} --rank-by fill --report-bindings'} if mpi_provider == "OpenMPI" else {"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"bunch", "I_MPI_DEBUG":"4"}
         omp_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"}
     else:
         # Unicore runs
         nb_ranks = 1
         nb_threads = 1
-        mpi_affinity = {"I_MPI_PIN_PROCESSOR_LIST":f"0-{max_limit}"}
+        mpi_affinity = {'QAAS_OPENMPI_BIND_CMD':f'--bind-to hwthread --map-by hwthread --report-bindings'} if mpi_provider == "OpenMPI" else {"I_MPI_PIN_PROCESSOR_LIST":f"0-{max_limit}", "I_MPI_DEBUG":"4"}
         omp_affinity = {}
+
+    # Add debug OMP info
+    omp_affinity.update({"OMP_DISPLAY_ENV":"TRUE","OMP_DISPLAY_AFFINITY":"TRUE","OMP_AFFINITY_FORMAT":"OMP: pid %P tid %i thread %n bound to OS proc set {%A}"})
 
     # Invoque runner  per runtype
     compiler_run = run_app(app_env, binary, data_dir, run_dir, run_cmd, repetitions, runtype,
