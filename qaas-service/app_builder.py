@@ -46,6 +46,7 @@ compiler_map={
     "icx:CC":"icx", "icx:CXX":"icpx", "icx:FC":"ifx",
     "gcc:CC":"gcc", "gcc:CXX":"g++", "gcc:FC":"gfortran",
     "aocc:CC":"clang", "aocc:CXX":"clang++", "aocc:FC":"flang",
+    "armclang:CC":"armclang", "armclang:CXX":"armclang++", "armclang:FC":"armflang",
     "mpiicc:CC":"mpiicc", "mpiicc:CXX":"mpiicpc", "mpiicc:FC":"mpiifort",
     "mpicc:CC":"mpicc", "mpicc:CXX":"mpic++", "mpicc:FC":"mpifort"
 }
@@ -75,29 +76,31 @@ def simple_replace(compiler_flag_map, compiler, flag, new_compiler):
 
 lookup_functions = {
    "all": [
-            ({'icc': 'std=gnu89', 'gcc': 'std=gnu90', 'icx': 'std=gnu90', 'aocc': 'std=gnu90'}, simple_replace),
-            ({'icc': 'D', 'gcc': 'D', 'icx': 'D', 'aocc': 'D'}, simple_replace),
-            ({'icc': 'O1', 'gcc': 'O1', 'icx': 'O1', 'aocc': 'O1'}, simple_replace),
-            ({'icc': 'O2', 'gcc': 'O2', 'icx': 'O2', 'aocc': 'O2'}, simple_replace),
-            ({'icc': 'O3', 'gcc': 'O3', 'icx': 'O3', 'aocc': 'O3'}, simple_replace),
-            ({'icc': 'g', 'gcc': 'g', 'icx': 'g', 'aocc': 'g'}, simple_replace),
-            ({'icc': 'grecord-gcc-switches', 'gcc': '', 'icx': 'grecord-gcc-switches', 'aocc': 'grecord-gcc-switches'}, simple_replace),
-            ({'icc': 'no-pie', 'gcc': 'no-pie', 'icx': 'no-pie', 'aocc': 'no-pie'}, simple_replace),
-            ({'icc': 'fcf-protection=none', 'gcc': 'fcf-protection=none', 'icx': 'fcf-protection=none', 'aocc': 'fcf-protection=none'}, simple_replace),
-            ({'icc': 'fno-omit-frame-pointer', 'gcc': 'fno-omit-frame-pointer', 'icx': 'fno-omit-frame-pointer', 'aocc': 'fno-omit-frame-pointer'}, simple_replace),
-            ({'icc': 'fpic', 'gcc': 'fpic', 'icx': 'fpic', 'aocc': 'fpic'}, simple_replace),
+            ({'icc': 'std=gnu89', 'gcc': 'std=gnu90', 'icx': 'std=gnu90', 'aocc': 'std=gnu90', 'armclang': 'std=gnu90'}, simple_replace),
+            ({'icc': 'D', 'gcc': 'D', 'icx': 'D', 'aocc': 'D', 'armclang': 'D'}, simple_replace),
+            ({'icc': 'O1', 'gcc': 'O1', 'icx': 'O1', 'aocc': 'O1', 'armclang': 'O1'}, simple_replace),
+            ({'icc': 'O2', 'gcc': 'O2', 'icx': 'O2', 'aocc': 'O2', 'armclang': 'O2'}, simple_replace),
+            ({'icc': 'O3', 'gcc': 'O3', 'icx': 'O3', 'aocc': 'O3', 'armclang': 'O3'}, simple_replace),
+            ({'icc': 'Ofast', 'gcc': 'Ofast', 'icx': 'Ofast', 'aocc': 'Ofast', 'armclang': 'Ofast'}, simple_replace),
+            ({'icc': 'g', 'gcc': 'g', 'icx': 'g', 'aocc': 'g', 'armclang': 'g'}, simple_replace),
+            ({'icc': 'grecord-gcc-switches', 'gcc': 'grecord-gcc-switches', 'icx': 'grecord-gcc-switches', 'aocc': 'grecord-gcc-switches', 'armclang': 'grecord-gcc-switches'}, simple_replace),
+            ({'icc': 'no-pie', 'gcc': 'no-pie', 'icx': 'no-pie', 'aocc': 'no-pie', 'armclang': 'no-pie'}, simple_replace),
+            ({'icc': 'fcf-protection=none', 'gcc': 'fcf-protection=none', 'icx': 'fcf-protection=none', 'aocc': 'fcf-protection=none', 'armclang': 'fcf-protection=none'}, simple_replace),
+            ({'icc': 'fno-omit-frame-pointer', 'gcc': 'fno-omit-frame-pointer', 'icx': 'fno-omit-frame-pointer', 'aocc': 'fno-omit-frame-pointer', 'armclang': 'fno-omit-frame-pointer'}, simple_replace),
+            ({'icc': '', 'gcc': 'Wno-implicit-function-declaration', 'icx': 'Wno-error=implicit-function-declaration', 'aocc': 'Wno-error=implicit-function-declaration', 'armclang': 'Wno-error=implicit-function-declaration'}, simple_replace),
+            ({'icc': 'fpic', 'gcc': 'fpic', 'icx': 'fpic', 'aocc': 'fpic', 'armclang': 'fpic'}, simple_replace),
             ({'icc': 'qoverride-limits', 'gcc': '', 'icx': 'qoverride-limits', 'aocc': ''}, simple_replace),
             ({'icc': 'fno-alias', 'gcc': '', 'icx': 'fno-alias', 'aocc': ''}, simple_replace),
             ({'icc': 'ansi-alias', 'gcc': 'fstrict-aliasing', 'icx': 'ansi-alias', 'aocc': 'ansi-alias'}, simple_replace),
-            ({'icc': 'flto', 'gcc': 'flto', 'icx': 'flto', 'aocc': 'flto'}, simple_replace),
-            ({'icc': 'funroll-loops', 'gcc': 'funroll-loops', 'icx': 'funroll-loops', 'aocc': 'funroll-loops'}, simple_replace),
+            ({'icc': 'flto', 'gcc': 'flto', 'icx': 'flto', 'aocc': 'flto', 'armclang': 'flto'}, simple_replace),
+            ({'icc': 'funroll-loops', 'gcc': 'funroll-loops', 'icx': 'funroll-loops', 'aocc': 'funroll-loops', 'armclang': 'funroll-loops'}, simple_replace),
             # See http://wwwpub.zih.tu-dresden.de/~mlieber/practical_performance/05_gcc_intel_flags.pdf
-            ({'icc': 'fp-model fast=2', 'gcc': 'ffast-math', 'icx': 'fp-model fast', 'aocc': 'ffast-math'}, simple_replace),
+            ({'icc': 'fp-model fast=2', 'gcc': 'ffast-math', 'icx': 'fp-model=fast', 'aocc': 'ffast-math', 'armclang': 'ffast-math'}, simple_replace),
             ({'icc': 'mfpmath=sse', 'gcc': 'mfpmath=sse', 'icx': 'mfpmath=sse', 'aocc': 'mfpmath=sse'}, simple_replace),
-            ({'icc': 'no-vec', 'gcc': 'fno-tree-vectorize', 'icx': 'fno-vectorize', 'aocc': 'fno-vectorize'}, simple_replace),
-            ({'icc': '', 'gcc': '', 'icx': 'fno-slp-vectorize', 'aocc': 'fno-slp-vectorize'}, simple_replace),
+            ({'icc': 'no-vec', 'gcc': 'fno-tree-vectorize', 'icx': 'fno-vectorize', 'aocc': 'fno-vectorize', 'armclang': 'fno-vectorize'}, simple_replace),
+            ({'icc': '', 'gcc': '', 'icx': 'fno-slp-vectorize', 'aocc': 'fno-slp-vectorize', 'armclang': 'fno-slp-vectorize'}, simple_replace),
             ({'icc': 'no-simd', 'gcc': '', 'icx': '', 'aocc': ''}, simple_replace),
-            ({'icc': 'qno-openmp-simd', 'gcc': 'fno-openmp-simd', 'icx': 'fno-openmp-simd', 'aocc': 'fno-openmp-simd'}, simple_replace),
+            ({'icc': 'qno-openmp-simd', 'gcc': 'fno-openmp-simd', 'icx': 'fno-openmp-simd', 'aocc': 'fno-openmp-simd', 'armclang': 'fno-openmp-simd'}, simple_replace),
             ({'icc': 'qopt-zmm-usage=high', 'gcc': 'mprefer-vector-width=512', 'icx': 'mprefer-vector-width=512', 'aocc': 'mprefer-vector-width=512'}, simple_replace)
           ],
    "intel": [
@@ -116,6 +119,13 @@ lookup_functions = {
             ({'aocc': 'mavx2', 'gcc': 'march=haswell', 'icx': 'xCORE-AVX2'}, simple_replace),
             ({'aocc': 'march=znver3', 'gcc': 'march=znver3', 'icx': 'xCORE-AVX2'}, simple_replace),
             ({'aocc': 'march=znver4', 'gcc': 'march=znver4', 'icx': 'axCORE-AVX512'}, simple_replace)
+          ],
+   "arm": [
+            ({'armclang': 'mcpu=native', 'gcc': 'mcpu=native'}, simple_replace),
+            ({'armclang': 'mcpu=native+nosimd', 'gcc': 'mcpu=native'}, simple_replace),
+            ({'armclang': 'msve-vector-bits=128', 'gcc': 'msve-vector-bits=128'}, simple_replace),
+            ({'armclang': 'armpl', 'gcc': 'larmpl'}, simple_replace),
+            ({'armclang': 'ffp-contract=fast', 'gcc': 'ffp-contract=fast'}, simple_replace)
           ]
    }
 def encode_compiler_flag(compiler, flag):
