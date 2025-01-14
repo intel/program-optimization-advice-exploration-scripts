@@ -199,7 +199,7 @@ class QAASJobSubmit:
         # Setup per-compiler location to isolate environment
         multi_compilers_dirs = ";".join([f"{compiler}:{os.path.join(container_compiler_root, self.provisioner.get_compiler_subdir(compiler, 'latest'))}" for compiler in self.provisioner.get_enabled_compilers()])
         # Below used --network=host so script can communicate back to launcher via ssh forwarding.  Can try to restrict to self.provisioner.comm_port if needed
-        app_cmd = f"/usr/bin/python3 {container_script_root}/qaas-service/job.py "+ \
+        app_cmd = f"/usr/bin/env python3 {container_script_root}/qaas-service/job.py "+ \
                     f' --src-dir {os.path.join(container_app_builder_path, self.provisioner.app_name)}'+ \
                     f' --data_dir {os.path.join(container_app_dataset_path, self.provisioner.git_data_download_path)} --ov_config unused --ov_run_dir {container_app_oneview_path}'+ \
                     f' --base_run_dir {container_app_base_path} --locus_run_dir {container_app_locus_path}' + \

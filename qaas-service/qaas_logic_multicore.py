@@ -122,10 +122,7 @@ def run_scalability_mpi(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
     max_limit = nb_cores-1
     # Set process affinity policy environment variables
     mpi_provider = app_env['MPI_PROVIDER']
-    if mpi_provider == "OpenMPI":
-        mpi_env_affinity = {'QAAS_OPENMPI_BIND_CMD':'--bind-to core --map-by numa --rank-by span --report-bindings'} if affinity == "scatter" else {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by pe-list={",".join([str(i) for i in range(0,max_limit+1,1)])}:ordered  --report-bindings'}
-    else:
-        mpi_env_affinity = {"I_MPI_PIN_PROCESSOR_LIST":"all:map=scatter", "I_MPI_DEBUG":"4"} if affinity == "scatter" else {"I_MPI_PIN_PROCESSOR_LIST":f"{min_limit}-{max_limit}", "I_MPI_DEBUG":"4"}
+    mpi_env_affinity = {"I_MPI_PIN_PROCESSOR_LIST":"all:map=scatter", "I_MPI_DEBUG":"4"} if affinity == "scatter" else {"I_MPI_PIN_PROCESSOR_LIST":f"{min_limit}-{max_limit}", "I_MPI_DEBUG":"4"}
 
     omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"} if mpi_provider == "OpenMPI" else {}
     omp_env_affinity.update({"OMP_DISPLAY_ENV":"TRUE","OMP_DISPLAY_AFFINITY":"TRUE","OMP_AFFINITY_FORMAT":"OMP: pid %P tid %i thread %n bound to OS proc set {%A}"})
@@ -135,6 +132,8 @@ def run_scalability_mpi(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
     p_runs = []
     # Sweep through all core configurations
     for cores in scale_cores:
+        if mpi_provider == "OpenMPI":
+            mpi_env_affinity = {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by package:PE={int(nb_cores/cores)} --rank-by fill --report-bindings'} if affinity == "scatter" else {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by pe-list={",".join([str(i) for i in range(0,max_limit+1,1)])}:ordered  --report-bindings'}
         # Make the runs
         basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', repetitions, "mpirun",
                                 mpi_num_processes=cores, omp_num_threads=1, mpi_envs=mpi_env_affinity, omp_envs=omp_env_affinity)
