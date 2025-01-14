@@ -103,7 +103,7 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
         printf("Unknown / unsupported vendor")
         return None
     # Get the processor architecture
-    processor = system.get_intel_processor_name(maqao_dir)
+    processor = system.get_processor_name(maqao_dir, vendor)
 
     # Get the list of flags for the CPU vendor (x86, ...) and processor.
     compiler_flags = read_compiler_flags(vendor, processor)
