@@ -160,23 +160,38 @@ def get_THP_policy():
 
 def get_frequency_driver():
     '''Retrieve the frequency driver on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown frequency driver"
 
 def get_frequency_governor():
     '''Retrieve the frequency governor on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown frequency governor"
 
 def get_scaling_max_frequency():
     '''Retrieve the scaling max frequency on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown scaling max frequency"
 
 def get_scaling_min_frequency():
     '''Retrieve the scaling min frequency on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown scaling min frequency"
 
 def get_scaling_cur_frequency():
     '''Retrieve the scaling current frequency on the system. Valid only for userspace governor provided by acpi-cpufreq driver'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown current frequency"
 
 def get_advertized_frequency():
     '''Retrieve the advertized frequency on the system'''
@@ -184,7 +199,10 @@ def get_advertized_frequency():
 
 def get_maximal_frequency():
     '''Retrieve the maximal (Turbo) frequency on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown maximal frequency"
 
 def get_compiler_version(compiler, compiler_dir):
     '''Get compiler version'''
