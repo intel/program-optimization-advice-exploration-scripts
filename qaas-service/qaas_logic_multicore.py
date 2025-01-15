@@ -124,7 +124,7 @@ def run_scalability_mpi(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
     mpi_provider = app_env['MPI_PROVIDER']
     mpi_env_affinity = {"I_MPI_PIN_PROCESSOR_LIST":"all:map=scatter", "I_MPI_DEBUG":"4"} if affinity == "scatter" else {"I_MPI_PIN_PROCESSOR_LIST":f"{min_limit}-{max_limit}", "I_MPI_DEBUG":"4"}
 
-    omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"} if mpi_provider == "OpenMPI" else {}
+    omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"}
     omp_env_affinity.update({"OMP_DISPLAY_ENV":"TRUE","OMP_DISPLAY_AFFINITY":"TRUE","OMP_AFFINITY_FORMAT":"OMP: pid %P tid %i thread %n bound to OS proc set {%A}"})
     # Compute array of possible scaling configurations
     scale_cores = compute_scaling_cores()
