@@ -85,6 +85,7 @@ def get_intel_processor_name(maqao_dir):
     # Map from Micro-architure code from MAQAO detect-proc to short name used in intel.json
     # Default to OTHER if nothing is found.
     processor_name_dict = {
+        "EMERALD_RAPIDS":"EMR", # family == 6, model == 207
         "SAPPHIRE_RAPIDS":"SPR", # family == 6, model == 143
         "ICELAKE_SP":"ICL", # family == 6, model == 106
         "SKYLAKE":"SKX", # family == 6, model == 85
