@@ -194,7 +194,7 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             print("Unknown / unsupported vendor")
             return None
         # Get the processor architecture
-        processor = system.get_intel_processor_name(maqao_dir)
+        processor = system.get_processor_name(maqao_dir, vendor)
 
         # Get the list of flags for the CPU vendor (x86, ...) and processor.
         compiler_params = read_compiler_flags(vendor, processor)

@@ -49,6 +49,8 @@ def get_vendor_name():
         return 'intel'
     elif vendor == 'AuthenticAMD':
         return 'amd'
+    elif vendor == 'ARM':
+        return 'arm'
     else:
         return 'unknown'
 
@@ -62,10 +64,24 @@ def get_model():
 
 def get_model_name():
     '''Get the CPU model name'''
-    return cpuinfo.get_cpu_info()['brand_raw']
+    try:
+        return cpuinfo.get_cpu_info()['brand_raw']
+    except:
+        return "Unknown CPU model name"
+
+def get_processor_name(maqao_dir, vendor):
+    '''Get the Intel processor name'''
+    if vendor == 'intel':
+        return get_intel_processor_name(maqao_dir)
+    elif vendor == 'amd':
+        return get_amd_processor_name(maqao_dir)
+    elif vendor == 'arm':
+        return get_arm_processor_name(maqao_dir)
+    else:
+        return 'unknown'
 
 def get_intel_processor_name(maqao_dir):
-    '''Get the processor name'''
+    '''Get the Intel processor name'''
     # Map from Micro-architure code from MAQAO detect-proc to short name used in intel.json
     # Default to OTHER if nothing is found.
     processor_name_dict = {
@@ -75,9 +91,31 @@ def get_intel_processor_name(maqao_dir):
         "KABY_LAKE":"SKL", # family == 6, model == 158
         "HASWELL_E":"HSW",
         "HASWELL":"HSW", # family == 6, model == 63 or model == 79,
-        "BROADWELL":"HSW",
+        "BROADWELL":"HSW"
+    }
+    proc_arch_name = get_processor_architecture(maqao_dir)
+    return processor_name_dict.get(proc_arch_name, "OTHER")
+
+def get_amd_processor_name(maqao_dir):
+    '''Get the AMD processor name'''
+    # Map from Micro-architure code from MAQAO detect-proc to short name used in intel.json
+    # Default to OTHER if nothing is found.
+    processor_name_dict = {
         "ZEN_V3":"ZEN3",
         "ZEN_V4":"ZEN4" #family == 25, model ==17
+    }
+    proc_arch_name = get_processor_architecture(maqao_dir)
+    return processor_name_dict.get(proc_arch_name, "OTHER")
+
+def get_arm_processor_name(maqao_dir):
+    '''Get the ARM processor name'''
+    # Map from Micro-architure code from MAQAO detect-proc to short name used in arm.json
+    # Default to OTHER if nothing is found.
+    processor_name_dict = {
+        "ARM_NEOVERSE_V2":"NEOVERSE_V2",
+        "ARM_NEOVERSE_V1":"NEOVERSE_V1",
+        "ARM_NEOVERSE_N2":"NEOVERSE_N2",
+        "ARM_NEOVERSE_N1":"NEOVERSE_N1"
     }
     proc_arch_name = get_processor_architecture(maqao_dir)
     return processor_name_dict.get(proc_arch_name, "OTHER")
@@ -89,22 +127,12 @@ def get_processor_architecture(maqao_dir):
     return parsed_output['Micro-architecture code']
 
 def get_mach_info_using_maqao(maqao_dir):
-    output = subprocess.check_output([os.path.join(maqao_dir, 'bin', 'maqao'), "--detect-proc"], universal_newlines=True)
-    parsed_output = { line.split(':', 1)[0].strip(): line.split(':',1)[1].strip() for line in output.split("\n") if line.strip()}
+    try:
+        output = subprocess.check_output([os.path.join(maqao_dir, 'bin', 'maqao'), "--detect-proc"], universal_newlines=True)
+        parsed_output = { line.split(':', 1)[0].strip(): line.split(':',1)[1].strip() for line in output.split("\n") if line.strip()}
+    except:
+        parsed_output = {'Micro-architecture code': 'UNKNOWN_PROC'}
     return parsed_output
-    # CPU =  get_intel_processor_name()
-
-    # # Translate CPU name into architecture code
-    # if CPU == 'SPR':
-    #     architecture = 'SAPPHIRE_RAPIDS'
-    # elif CPU == 'ICL':
-    #     architecture = 'ICELAKE_SP'
-    # elif CPU == 'SKL':
-    #     architecture = 'SKYLAKE'
-    # else:
-    #     architecture = ''
-
-    # return architecture
 
 def get_number_of_cpus():
     '''Retrieve the number of logical CPUs from lscpu command'''
@@ -132,23 +160,38 @@ def get_THP_policy():
 
 def get_frequency_driver():
     '''Retrieve the frequency driver on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown frequency driver"
 
 def get_frequency_governor():
     '''Retrieve the frequency governor on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown frequency governor"
 
 def get_scaling_max_frequency():
     '''Retrieve the scaling max frequency on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown scaling max frequency"
 
 def get_scaling_min_frequency():
     '''Retrieve the scaling min frequency on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown scaling min frequency"
 
 def get_scaling_cur_frequency():
     '''Retrieve the scaling current frequency on the system. Valid only for userspace governor provided by acpi-cpufreq driver'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown current frequency"
 
 def get_advertized_frequency():
     '''Retrieve the advertized frequency on the system'''
@@ -156,7 +199,10 @@ def get_advertized_frequency():
 
 def get_maximal_frequency():
     '''Retrieve the maximal (Turbo) frequency on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown maximal frequency"
 
 def get_compiler_version(compiler, compiler_dir):
     '''Get compiler version'''
@@ -165,9 +211,13 @@ def get_compiler_version(compiler, compiler_dir):
     elif compiler == "icc":
        cmd_version = "icc  -diag-disable=10441  --version | head -n 1 | cut -d' ' -f3-4 | tr ' ' '.'"
     elif compiler == "gcc":
-       cmd_version = "gcc --version | head -n 1 | cut -d' ' -f4"
+       cmd_version = "gcc --version | head -n 1 | cut -d')' -f2 | cut -d' ' -f2"
     elif compiler == "aocc":
        cmd_version = "clang --version | head -n 1 | grep -Po '(?<=AOCC_).*(?=-Build)'"
+    elif compiler == "armclang":
+       cmd_version = "armclang --version | head -n 1 | cut -d' ' -f5"
+    else:
+       cmd_version = ""
     try:
         env = load_compiler_env(compiler_dir)
         return subprocess.check_output(cmd_version, shell=True, env=env).decode("utf-8").split('\n')[0]
