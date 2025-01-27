@@ -28,11 +28,13 @@
 # Created October 2022
 # Contributors: David/Hafid
 
+import re
 import os
 import shutil
 import pathlib
 from abc import ABC, abstractmethod
 from utils.runcmd import QAASRunCMD
+import utils.system as system
 
 class BaseRunner(ABC):
     def __init__(self, maqao_dir):
@@ -72,7 +74,8 @@ class BaseRunner(ABC):
         run_env.update(mpi_envs)
         run_env.update(omp_envs)
         run_env["OMP_NUM_THREADS"] = str(omp_num_threads)
-        mpi_command = f"{mpi_run_command} -n {mpi_num_processes} {run_env.get('QAAS_OPENMPI_BIND_CMD', '')} {run_env.get('QAAS_NUMA_BIND', '')}" if mpi_run_command else ""
+        extra_hbm_cmd = '/usr/bin/numactl --preferred-many 8-15' if re.search('Xeon.*CPU Max', system.get_model_name()) and not 'QAAS_NO_SPRHBM_MEM' in run_env else ''
+        mpi_command = f"{mpi_run_command} -n {mpi_num_processes} {run_env.get('QAAS_OPENMPI_BIND_CMD', '')} {extra_hbm_cmd}" if mpi_run_command else ""
         # Setup LD_LIBRARY_PATH with any found shared libraries built by cmake
         self.found_so_libs = self.search_shared_libs(run_env['QAAS_BUILD_DIR'])
         ld_lib_path_prefix = run_env.get("LD_LIBRARY_PATH") + ":" if run_env.get("LD_LIBRARY_PATH") else ""
