@@ -191,10 +191,12 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
         # Identify host machine vendor
         vendor = system.get_vendor_name()
         if vendor == 'unknown':
-            print("Unknown / unsupported vendor")
-            return None
+            print("ERROR: Unknown / unsupported vendor")
+            return -1,"",{},0.0,0,0
         # Get the processor architecture
         processor = system.get_processor_name(maqao_dir, vendor)
+        if processor == 'OTHER':
+            print('WARNING: Micro Architecture not available')
 
         # Get the list of flags for the CPU vendor (x86, ...) and processor.
         compiler_params = read_compiler_flags(vendor, processor)

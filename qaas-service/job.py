@@ -129,6 +129,9 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
                     orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                     user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map, multi_compilers_dirs, maqao_dir)
         stop = time.time()
+        if compiled_options == None:
+            to_backplane.send(qm.GeneralStatus('Unknown CPU Vendor or Micro Architecture'))
+            return
         QAASMetaDATA(qaas_reports_dir).add_qaas_logic_timings("build_binaries", int(stop - start))
         to_backplane.send(qm.GeneralStatus("Done compile all binaries!"))
 

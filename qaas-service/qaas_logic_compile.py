@@ -100,10 +100,13 @@ def compile_binaries(src_dir, binaries_dir, compiler_dir, orig_user_CC,
     # Get the vendor name of target processor
     vendor = system.get_vendor_name()
     if vendor == 'unknown':
-        printf("Unknown / unsupported vendor")
+        print("ERROR: Unknown / unsupported vendor")
         return None
     # Get the processor architecture
     processor = system.get_processor_name(maqao_dir, vendor)
+    if processor == 'OTHER':
+        print('ERROR: Micro Architecture not available. Can not do multi-compilers exploration')
+        return None
 
     # Get the list of flags for the CPU vendor (x86, ...) and processor.
     compiler_flags = read_compiler_flags(vendor, processor)
