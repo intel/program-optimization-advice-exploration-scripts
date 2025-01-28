@@ -327,7 +327,10 @@ class QAASEnvProvisioner:
         if rc != 0:
             return rc
 
-        self.package_data(in_container)
+        try:
+            self.package_data(in_container)
+        except:
+            pass
 
         rm_gz_cmd = f"rm -f {remote_gz_file}"
         if self.remote_job:

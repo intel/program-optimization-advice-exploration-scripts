@@ -136,15 +136,17 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     new_repetitions = compute_repetitions(stability)
     if new_repetitions < 1:
         rc=-1
-        error_msg='Stop profiling: execution times instable!'
-        return rc,error_msg,0
+        error_msg='ERROR: Stop profiling: execution times instable!'
+        print(error_msg)
+        return rc,error_msg,{},0.0,nb_mpi,nb_omp
 
     # Check execution in defined range
     median_value = basic_run.compute_median_exec_time()
     if median_value > MAX_ALLOWED_EXEC_TIME:
         rc=-1
         error_msg=f"ABORT: median execution time {median_value} greater than allowed {MAX_ALLOWED_EXEC_TIME}"
-        return rc,error_msg,0
+        print(error_msg)
+        return rc,error_msg,{},0.0,nb_mpi,nb_omp
     # Dump median exec time to file
     with open(os.path.join(basic_run.run_dir, "initial_profile.csv"), "w") as csv_file:
         csv_file.write(f"base_median_time;{user_CC};" + str(median_value)+"\n")
