@@ -153,7 +153,7 @@ class OneviewRunner(BaseRunner):
 
         # setup ov results dir
         self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
-        os.makedirs(self.ov_result_dir)
+        #os.makedirs(self.ov_result_dir)
 
         # setup ov run params
         ov_config_options = [] if self.ov_config == "unused" else [f"-c={self.ov_config}"]
@@ -171,13 +171,15 @@ class OneviewRunner(BaseRunner):
         while self.level != 0:
             ov_run_cmd = " ".join(ov_run_cmds)
             print(ov_run_cmd)
-            result = subprocess.run(ov_run_cmds, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            #result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if result.returncode == 0:
-                return True
-
+            try:
+                result = subprocess.run(ov_run_cmds, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                #result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if result.returncode == 0:
+                    return True
+                print(result.stderr.decode('utf-8'))
+            except:
+                pass
             print(f"OneView Level {self.level} failed! Fallback to lower level")
-            print(result.stderr.decode('utf-8'))
             new_level = self.level - 1
             if new_level == 0:
                 return False
