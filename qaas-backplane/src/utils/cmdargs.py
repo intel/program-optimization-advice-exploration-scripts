@@ -85,6 +85,9 @@ def parse_cli_args(argv):
     # Specify whether QaaS runs are to be perfomed on the local system (avoid ssh)
     global_parser.add_argument('-l', '--local-job', action="store_true", help="Enable ssh-less job runs on the local machine", required=False)
 
+    # Specify location where to put QaaS reports after run termination
+    global_parser.add_argument('-o', '--output-dir', type=str, dest='output_dir', metavar='<reports-dir>', default='./qaas_out', help='base directory where to put generated QaaS reports. Default is $PWD/qaas_out/')
+
     # parse arguments
     args = global_parser.parse_args()
 

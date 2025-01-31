@@ -598,7 +598,7 @@ def create_app(config):
                         "python3 /home/qaas/QAAS_SCRIPT_ROOT/qaas-backplane/src/qaas.py -ap " +
                         f"/tmp/{filename} " +
                         f"{run_mode_flags} " +
-                        "--logic strategizer --no-container -D --local-job"])
+                        "--logic strategizer --no-container -D --local-job -p auto --enable-parallel-scale best-compiler -o /tmp/qaas_out"])
         subprocess.run(["scp", "-o", "StrictHostKeyChecking=no", "-P", "2222", f"{user_and_machine}:/tmp/qaas_out.tar.gz", "/tmp"], check=True)
         subprocess.run(["tar", "xfz", "/tmp/qaas_out.tar.gz", "-C", unique_temp_dir], check=True)
         qaas_out_dir = unique_temp_dir

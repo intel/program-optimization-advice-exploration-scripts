@@ -64,7 +64,7 @@ def main():
                         container, user_ns_root,
                         args.no_compiler_default, args.no_compiler_flags,
                         args.parallel_compiler_runs, args.enable_parallel_scale,
-                        lambda msg: print(msg.str()))
+                        lambda msg: print(msg.str()), args.output_dir)
 
     exitcode = 1
     if rc == 0:
@@ -80,7 +80,7 @@ def launch_qaas(app_params, logic, remote_job,
                 container, user_ns_root,
                 no_compiler_default, no_compiler_flags,
                 parallel_compiler_runs, enable_parallel_scale,
-                service_msg_recv_handler, launch_output_dir='/tmp/qaas_out'):
+                service_msg_recv_handler, launch_output_dir):
     # Better api to send back message
     service_msg_recv_handler(qm.BeginQaas())
     # setup QaaS configuration
