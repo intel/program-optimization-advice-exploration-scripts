@@ -64,28 +64,26 @@ tree /opt/compilers/
 /opt/compilers/
 ├── gcc
 │   ├── gcc-11.4
-│   │   └── Linux
-│   │       ├── install
-│   │       │   ├── g++ -> /usr/bin/g++-11
-│   │       │   ├── gcc -> /usr/bin/gcc-11
-│   │       │   └── gfortran -> /usr/bin/gfortran-11
-│   │       └── intel64
-│   │           └── load.sh
+│   │   ├── install
+│   │   │   ├── g++ -> /usr/bin/g++-11
+│   │   │   ├── gcc -> /usr/bin/gcc-11
+│   │   │   └── gfortran -> /usr/bin/gfortran-11
+│   │   └── env 
+│   │       └── load.sh
 │   └── latest -> gcc-11.4
 └── intel
     ├── 2023
-    │   └── Linux
-    │       └── intel64
-    │           └── load.sh
+    │   └── env
+    │       └── load.sh
     └── latest -> 2023
 ```
-The structure above indicates each compiler has the structure `compiler/<year/version>/Linux/intel64/load.sh` where `load.sh` contains any configuration that will be used (sourced) to load the target software environment. Each `compiler` directory must expose a symbolic link called `latest` pointing to the most recent year/version of that compiler. The `latest` version is used the multi-compiler search procedure. For example, in the sample structure provided above, `latest` points to 2023 and gcc-11.4 for Intel and GNU compilers respectively.
+The structure above indicates each compiler has the structure `compiler/<year/version>/env/load.sh` where `load.sh` contains any configuration that will be used (sourced) to load the target software environment. Each `compiler` directory must expose a symbolic link called `latest` pointing to the most recent year/version of that compiler. The `latest` version is used the multi-compiler search procedure. For example, in the sample structure provided above, `latest` points to 2023 and gcc-11.4 for Intel and GNU compilers respectively.
     
 **NOTE:** 
 Linux Environment Modules can be used/added into `load.sh` files to load compilers and/or parallel runtimes.
 
 **NOTE:**
-Current implementation does not support separate loading of the compiler and the MPI runtime. Consequently, `compiler/<year/version>/Linux/intel64/load.sh` must include instructions to the compiler, MPI runtime and eventually any other required library like math libraries. 
+Current implementation does not support separate loading of the compiler and the MPI runtime. Consequently, `compiler/<year/version>/env/load.sh` must include instructions to the compiler, MPI runtime and eventually any other required library like math libraries. 
 
 ## Update qaas.conf configuration
 QaaS relies on a global configuration file `qaas/qaas-backplane/config/qaas.conf` to control QaaS runs.

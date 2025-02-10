@@ -134,8 +134,29 @@ def get_mach_info_using_maqao(maqao_dir):
         output = subprocess.check_output([os.path.join(maqao_dir, 'bin', 'maqao'), "--detect-proc"], universal_newlines=True)
         parsed_output = { line.split(':', 1)[0].strip(): line.split(':',1)[1].strip() for line in output.split("\n") if line.strip()}
     except:
-        parsed_output = {'Micro-architecture code': 'UNKNOWN_PROC'}
+        #parsed_output = {'Micro-architecture code': 'UNKNOWN_PROC'}
+        parsed_output = get_march_info_using_cpuinfo()
     return parsed_output
+
+def get_march_info_using_cpuinfo():
+    '''Fallback mode to get the Intel UARCH using CPU family and model'''
+    # Get the CPU family ID
+    family = get_family()
+    # Stop if it not an Intel family 6
+    if family != 6:
+        return {'Micro-architecture code': 'UNKNOWN_PROC'}
+    # Get the CPU mdel ID
+    model = get_model()
+    # Map from model ID to micro-architecture
+    intel_march_dict = {
+        173:"GRANITE_RAPIDS",
+        175:"SIERRA_FOREST",
+        207:"EMERALD_RAPIDS",
+        143:"SAPPHIRE_RAPIDS",
+        106:"ICELAKE_SP",
+        85:"SKYLAKE"
+    }
+    return {'Micro-architecture code': intel_march_dict.get(model, 'UNKNOWN_PROC')}
 
 def get_number_of_cpus():
     '''Retrieve the number of logical CPUs from lscpu command'''

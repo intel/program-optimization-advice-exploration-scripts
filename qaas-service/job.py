@@ -53,6 +53,7 @@ from qaas_logic_compile import compile_binaries as compile_all
 from qaas_logic_unicore import run_qaas_UP
 from qaas_logic_multicore import run_qaas_MP
 from qaas_metadata import QAASMetaDATA
+import traceback
 
 def run_demo_phase(to_backplane, src_dir, data_dir, ov_config, ov_run_dir, locus_run_root, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
@@ -108,7 +109,7 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
     # Phase 2: Intial profiling and cleaning
     start = time.time()
     to_backplane.send(qm.GeneralStatus("QAAS running logic: Initail Profiling and Cleaning"))
-    rc,msg,defaults,flops,nb_mpi,nb_omp = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
+    rc,msg,defaults,flops,nb_mpi,nb_omp,defaults_envs = run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, compiler_dir, maqao_dir,
                      orig_user_CC, target_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                      user_link_flags, user_target, user_target_location,
                      run_cmd, env_var_map, extra_cmake_flags, qaas_reports_dir,
@@ -129,6 +130,9 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
                     orig_user_CC, user_c_flags, user_cxx_flags, user_fc_flags,
                     user_link_flags, user_target, user_target_location, extra_cmake_flags, env_var_map, multi_compilers_dirs, maqao_dir)
         stop = time.time()
+        if compiled_options == None:
+            to_backplane.send(qm.GeneralStatus('Unknown CPU Vendor or Micro Architecture'))
+            return
         QAASMetaDATA(qaas_reports_dir).add_qaas_logic_timings("build_binaries", int(stop - start))
         to_backplane.send(qm.GeneralStatus("Done compile all binaries!"))
 
@@ -143,9 +147,17 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
             to_backplane.send(qm.GeneralStatus(msg))
             return
         to_backplane.send(qm.GeneralStatus("Done Compilers Parameters Exploration/Tuning!"))
+    else:
+        compiled_options = {}
+        compile_best_opt = {}
+        bestcomp = ''
+
+    # Generate m-compiler OV compare report
+    ov_run = oneview_runner.OneviewRunner(maqao_dir, 1, ov_run_dir, None, None)
+    ov_run.generate_mcompiler_html_compare_report(qaas_reports_dir)
 
     # Start multicore runs
-    if runtime["enable_scale"] and not disable_compiler_flags:
+    if runtime["enable_scale"]:
         to_backplane.send(qm.GeneralStatus("QAAS running logic: Multicore Parameters Exploration/Tuning"))
         # Get scaling mode
         has_mpi = True if runtime['mpi'] != 'no' else False
@@ -172,13 +184,42 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
             flops_per_app = flops
 
         # Add #MPI and #OMP used for compiler exploration to bestcomp options
-        compile_best_opt["MPI"] = nb_mpi
-        compile_best_opt["OMP"] = nb_omp
+        #compile_best_opt["MPI"] = nb_mpi
+        #compile_best_opt["OMP"] = nb_omp
+
+        # Reconstruct what to run
+        defaults[defaults_envs['orig']] = defaults['orig']
+        consolidated_options = {}
+        new_best_opt = {}
+        min_time = 0.0
+        for compiler in defaults.keys():
+            if compiler  == 'orig' or defaults[compiler] == None or defaults[compiler] == 0.0:
+                continue
+            new_best_opt[compiler] = {'index':-1, 'time':defaults[compiler],'build':compiler}
+            consolidated_options[compiler] = defaults_envs[compiler]
+            if min_time == 0.0 or defaults[compiler] < min_time:
+                min_time = defaults[compiler]
+                bestcomp = compiler
+        for compiler in compile_best_opt.keys():
+            if compile_best_opt[compiler]['time'] == None or compile_best_opt[compiler]['time'] == 0.0:
+                continue
+            if compiler in new_best_opt and compile_best_opt[compiler]['time'] >= defaults[compiler]:
+                continue
+            else:
+                new_best_opt[compiler] = compile_best_opt[compiler]
+                consolidated_options[compiler] = compiled_options[compiler]
+            if min_time == 0.0 or compile_best_opt[compiler]['time'] < min_time:
+                min_time = compile_best_opt[compiler]['time']
+                bestcomp = compiler
+
+        # Add #MPI and #OMP used for compiler exploration to bestcomp options
+        new_best_opt["MPI"] = nb_mpi
+        new_best_opt["OMP"] = nb_omp
 
         # Run scalability
         start = time.time()
         rc,mp_best_opt,msg = run_qaas_MP(user_target, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_dir,
-                     orig_user_CC, run_cmd, compiled_options, compile_best_opt, bestcomp, qaas_reports_dir,
+                     orig_user_CC, run_cmd, consolidated_options, new_best_opt, bestcomp, qaas_reports_dir,
                      has_mpi, has_omp, mpi_weak, omp_weak, flops_per_app, runtime['scale_bestcomp'])
         stop = time.time()
         QAASMetaDATA(qaas_reports_dir).add_qaas_logic_timings("scalability", int(stop - start))
@@ -198,7 +239,7 @@ if __name__ == '__main__':
     parser.add_argument('--run-cmd', help='Command to run of the form ... <binary> ... where <binary> represent the executable', required=True)
     parser.add_argument('--var', help='Env variable to add', required=False, action='append')
     parser.add_argument('--comm-port', nargs='?', type=int, default=None)
-    parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='demo')
+    parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='strategizer')
     parser.add_argument('--no-compiler-default', action="store_true", help="Disable search for best default compiler", required=False)
     parser.add_argument('--no-compiler-flags', action="store_true", help="Disable search for best compiler flags", required=False)
     parser.add_argument('-p', '--parallel-compiler-runs', choices=['auto', 'off', 'mpi', 'openmp', 'hybrid'], default='auto',
@@ -249,6 +290,8 @@ if __name__ == '__main__':
                         args.no_compiler_default, args.no_compiler_flags, parallel_compiler_runs, runtime, multi_compilers_dirs)
     except Exception as e:
         to_backplane.send(qm.GeneralStatus(str(e)))
+        #traceback.print_tb(e.__traceback__)
+        traceback.print_exc()
         rc = -1
     to_backplane.send(qm.EndJob())
     to_backplane.close()

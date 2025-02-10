@@ -38,13 +38,6 @@ def add_exclusive_trace_options(excl_parser):
     excl_parser.add_argument("-D", "--debug", action="store_true", help="debug mode")
     excl_parser.add_argument("-q", "--quiet", action="store_true", help="quiet mode")
 
-def add_exclusive_container_options(excl_parser):
-    """Populate a parser with exclusive container options."""
-    # Specify whether to disable container mode
-    excl_parser.add_argument('-nc', "--no-container", action="store_true", help="Disable container mode")
-    # Specify whether to run root in container (permissive rootless mode)
-    excl_parser.add_argument('-r', "--as-root-in-container", action="store_true", help="Run host users as root in container [permissive rootless mode in podman]. Not allowed for true root users.")
-
 def parse_cli_args(argv):
     """Process the command line arguments."""
     if len(argv) == 1:
@@ -59,16 +52,14 @@ def parse_cli_args(argv):
     global_parser.add_argument('-ap', '--app-params', type=str, dest='app_params', metavar='<input-file>',
                             help='name the input file (including suffix)', required=True)
 
-    # Specify the type of QaaS logic to run: demo (legacy) vs Stratigizer (multi-phase)
-    global_parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='demo')
-
     # setup mutually exclusive arguments
     global_excl = global_parser.add_mutually_exclusive_group()
     add_exclusive_trace_options(global_excl)
 
-    # setup mutually exclusive container arguments
-    container_excl = global_parser.add_mutually_exclusive_group()
-    add_exclusive_container_options(container_excl)
+    # Specify whether to enable container mode
+    global_parser.add_argument('-wc', "--with-container", action="store_true", help="Enable container mode (Experimental).")
+    # Specify whether to run root in container (permissive rootless mode)
+    global_parser.add_argument('-rc', "--as-root-in-container", action="store_true", help="Run host users as root in container [permissive rootless mode in podman] (Experimental). Not allowed for true root users.")
 
     # Specify whether to disable QaaS search for best default compiler
     global_parser.add_argument('-ncd', "--no-compiler-default", action="store_true", help="Disable search for best default compiler")
@@ -82,8 +73,11 @@ def parse_cli_args(argv):
     # Turn ON multicore/parallel scalability runs
     global_parser.add_argument('-s', '--enable-parallel-scale', nargs='?', default=0, const='full', choices=['best-compiler','full'], help="Turn on multicore scalability runs (optional). If not set, default is no scalability runs. If set, option is 'full' by default to runs scalability runs for each compiler. If set with 'best-compiler', scalability runs only using best compiler/options ", required=False)
 
-    # Specify whether QaaS runs are to be perfomed on the local system (avoid ssh)
-    global_parser.add_argument('-l', '--local-job', action="store_true", help="Enable ssh-less job runs on the local machine", required=False)
+    # Specify whether QaaS runs are to be perfomed on the remote system through ssh
+    global_parser.add_argument('-r', '--remote-job', action="store_true", help="Enable qaas job runs on a remote machine (QAAS_MACHINES_POOL variable in qaas.conf) through ssh", required=False)
+
+    # Specify location where to put QaaS reports after run termination
+    global_parser.add_argument('-o', '--output-dir', type=str, dest='output_dir', metavar='<reports-dir>', default='./qaas_out', help='base directory where to put generated QaaS reports. Default is <launch_dir>/qaas_out/')
 
     # parse arguments
     args = global_parser.parse_args()

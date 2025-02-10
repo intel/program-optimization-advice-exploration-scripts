@@ -231,11 +231,11 @@ def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt
         if compiler == 'MPI' or compiler == 'OMP':
             continue
         # keep option directories consistent with build naming convention
-        option = best_opt + 1
+        option = best_opt['index'] + 1
         # Setup experiment directory on base run directory
-        base_run_bin_dir = os.path.join(base_run_dir, 'multicore', f"{compiler}_{option}")
+        base_run_bin_dir = os.path.join(base_run_dir, 'multicore', best_opt['build'])
         # Setup run parameters for a specific compiler
-        binary_path, app_env, flags = set_run_params(best_opt, compiled_options[compiler])
+        binary_path, app_env, flags = set_run_params(best_opt['index'], compiled_options[compiler])
 
         # Init arrays
         t_compiler = []
@@ -284,7 +284,8 @@ def generate_ov_config_multiruns(ov_run_dir, nb_mpi, nb_omp, has_mpi, has_omp, a
 
     # Find OV config.json of bestcomp
     bestcomp = os.path.relpath(ov_run_dir, os.path.join(ov_run_dir, '..', '..')).split('/')[1]
-    bestcomp_path = os.path.join(os.path.abspath(os.path.join(ov_run_dir, "..", "..")), "compilers", bestcomp)
+    mc_base = 'compilers' if len(bestcomp.split('_')) == 2 else 'defaults'
+    bestcomp_path = os.path.join(os.path.abspath(os.path.join(ov_run_dir, "..", "..")), mc_base, bestcomp)
     config_file = list(pathlib.Path(bestcomp_path).glob('oneview_run_*/config.json'))[0]
     # Init JSON config from bestcomp run
     config = {}
@@ -333,18 +334,18 @@ def generate_ov_config_multiruns(ov_run_dir, nb_mpi, nb_omp, has_mpi, has_omp, a
 
 def run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd,
                    qaas_best_opt, bestcomp, compiled_options,
-                   has_mpi, has_omp, weak_scale):
+                   has_mpi, has_omp, weak_scale, qaas_reports_dir):
     '''Run and generate OneView reports on best options'''
 
     best_opt = qaas_best_opt[bestcomp]
     # keep option directories consistent with build naming convention
-    option = best_opt + 1
+    option = best_opt['index'] + 1
     # Setup experiment directory on oneview run directory
-    ov_run_dir_opt = os.path.join(ov_run_dir, "multicore", f"{bestcomp}_{option}")
+    ov_run_dir_opt = os.path.join(ov_run_dir, "multicore", best_opt['build'])
     # Extract the binary path of the best option
-    binary_path = compiled_options[bestcomp][best_opt][0]
+    binary_path = compiled_options[bestcomp][best_opt['index']][0]
     # Retrieve the execution environment
-    app_env = compiled_options[bestcomp][best_opt][1]
+    app_env = compiled_options[bestcomp][best_opt['index']][1]
     mpi_provider = app_env['MPI_PROVIDER']
     # Setup MPI and OpenMP affinity env vars
     affinity = {"OMP_PLACES":"threads", "OMP_PROC_BIND":"spread"}
@@ -356,16 +357,19 @@ def run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd,
     # Specify what OV scaling mode to enforce
     app_env["OV_SCALE"] = "-WS" if not weak_scale else "-WS=weak"
     # Make the oneview run
-    oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, ov_config, 'both', level=1, mpi_run_command=None,
+    ov_run = oneview_runner.exec(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, maqao_dir, ov_config, 'both', level=1, mpi_run_command=None,
                         mpi_num_processes=1, omp_num_threads=1, mpi_envs={}, omp_envs={})
+    if ov_run != None:
+        ov_run.move_multicore_html_report(qaas_reports_dir)
+
 
 def compute_gflops(flops_per_app, time, nmpi, nomp, has_mpi, has_omp, mpi_weak, omp_weak):
     '''Compute GFlops/s depending on MPI and/or OpenMP scaling modes'''
     if mpi_weak and omp_weak:
         gflops = flops_per_app * nmpi * nomp / time
-    elif mpi_weak and not has_omp:
+    elif mpi_weak and (not has_omp or not omp_weak):
         gflops = flops_per_app * nmpi / time
-    elif omp_weak and not has_mpi:
+    elif omp_weak and (not has_mpi or not mpi_weak):
         gflops = flops_per_app * nomp / time
     else:
         gflops = flops_per_app / time
@@ -460,7 +464,7 @@ def run_qaas_MP(app_name, data_dir, base_run_dir, ov_config, ov_run_dir, maqao_d
     dump_multicore_csv_file(qaas_reports_dir, 'qaas_multicore.csv', qaas_table)
 
     # Run a oneview scalability run on best compiler/option
-    run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd, qaas_best_opt, qaas_best_comp, compiled_options, has_mpi, has_omp, mpi_weak | omp_weak)
+    run_ov_on_best(ov_run_dir, maqao_dir, data_dir, run_cmd, qaas_best_opt, qaas_best_comp, compiled_options, has_mpi, has_omp, mpi_weak | omp_weak, qaas_reports_dir)
 
     # Dump meta data file
     qaas_meta = QAASMetaDATA(qaas_reports_dir)

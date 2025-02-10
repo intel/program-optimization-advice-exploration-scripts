@@ -42,7 +42,7 @@ class QAASJobException(Exception):
 
 class QAASJobSubmit:
     """."""
-    def __init__(self, system_compilers, user_compiler, user_application, user_runtime, provisioner, logic,
+    def __init__(self, system_compilers, user_compiler, user_application, user_runtime, provisioner,
                  no_compiler_default, no_compiler_flags,
                  parallel_compiler_runs, enable_parallel_scale):
         self.compilers = system_compilers
@@ -50,7 +50,6 @@ class QAASJobSubmit:
         self.application = user_application
         self.runtime = user_runtime
         self.provisioner = provisioner
-        self.logic = logic
         self.no_compiler_default = no_compiler_default
         self.no_compiler_flags = no_compiler_flags
         self.parallel_compiler_runs = parallel_compiler_runs
@@ -211,7 +210,6 @@ class QAASJobSubmit:
                     f' --user-target {self.compiler["USER_TARGET"]} --user-target-location {self.compiler["USER_TARGET_LOCATION"]}'+ \
                     f'{env_var_flags}'+ \
                     f' --run-cmd "{app_run_info["APP_RUN_CMD"]}"' + \
-                    f' --logic {self.logic}' + \
                     f' {disable_best_compiler_default}' + \
                     f' {disable_best_compiler_flags}' + \
                     f' --parallel-compiler-runs {self.parallel_compiler_runs}' + \

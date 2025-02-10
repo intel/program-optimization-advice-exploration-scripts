@@ -136,15 +136,17 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     new_repetitions = compute_repetitions(stability)
     if new_repetitions < 1:
         rc=-1
-        error_msg='Stop profiling: execution times instable!'
-        return rc,error_msg,0
+        error_msg='ERROR: Stop profiling: execution times instable!'
+        print(error_msg)
+        return rc,error_msg,{},0.0,nb_mpi,nb_omp,None
 
     # Check execution in defined range
     median_value = basic_run.compute_median_exec_time()
     if median_value > MAX_ALLOWED_EXEC_TIME:
         rc=-1
         error_msg=f"ABORT: median execution time {median_value} greater than allowed {MAX_ALLOWED_EXEC_TIME}"
-        return rc,error_msg,0
+        print(error_msg)
+        return rc,error_msg,{},0.0,nb_mpi,nb_omp,None
     # Dump median exec time to file
     with open(os.path.join(basic_run.run_dir, "initial_profile.csv"), "w") as csv_file:
         csv_file.write(f"base_median_time;{user_CC};" + str(median_value)+"\n")
@@ -186,15 +188,22 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     ov_run,_,_ = compiler_run(app_builder_env, orig_binary, data_dir, ov_run_dir_orig, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
     flops = 0 if ov_run == None else ov_run.extract_flops_count()
 
+    # setup defaults envs
+    defaults_envs = {}
+    defaults_envs['orig'] = user_CC
+    defaults_envs[user_CC] = [(orig_binary, app_builder_env, "default")]
+
     # Run using other compilers with default flags
     if not disable_compiler_default:
         # Identify host machine vendor
         vendor = system.get_vendor_name()
         if vendor == 'unknown':
-            print("Unknown / unsupported vendor")
-            return None
+            print("ERROR: Unknown / unsupported vendor")
+            return -1,"",{},0.0,0,0,None
         # Get the processor architecture
         processor = system.get_processor_name(maqao_dir, vendor)
+        if processor == 'OTHER':
+            print('WARNING: Micro Architecture not available')
 
         # Get the list of flags for the CPU vendor (x86, ...) and processor.
         compiler_params = read_compiler_flags(vendor, processor)
@@ -240,6 +249,9 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
             ov_run_bin_dir = os.path.join(ov_run_dir, 'defaults', compiler)
             compiler_run(app_builder_env, binary_path, data_dir, ov_run_bin_dir, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
 
+            # Save compilation info
+            defaults_envs[compiler] = [(binary_path, app_builder_env, "default")]
+
     # Dump defaults values to csv
     dump_defaults_csv_file(qaas_reports_dir, 'qaas_compilers.csv', defaults, timestamps, user_target, nb_mpi,nb_omp, flops, figure_of_merit)
 
@@ -249,4 +261,4 @@ def run_initial_profile(src_dir, data_dir, base_run_dir, ov_config, ov_run_dir, 
     qaas_meta.add_figure_of_merit_metadata("NA" if not env_var_map.get("FOM_REGEX") else env_var_map["FOM_TYPE"], "NA" if not env_var_map.get("FOM_REGEX") else env_var_map["FOM_UNIT"])
     qaas_meta.add_multicompiler_metadata(user_CC, 'qaas_compilers.csv')
 
-    return 0,"",defaults,flops,nb_mpi,nb_omp
+    return 0,"",defaults,flops,nb_mpi,nb_omp,defaults_envs
