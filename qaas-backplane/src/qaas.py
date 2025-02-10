@@ -54,7 +54,7 @@ def main():
     args = utils.cmdargs.parse_cli_args(sys.argv)
 
     # Check whether to disable container mode
-    container = True if not args.no_container else False
+    container = True if args.with_container else False
 
     # Check whether to map root user in container to host user user (preserves name space)
     user_ns_root = False if not args.as_root_in_container else True

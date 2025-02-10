@@ -38,13 +38,6 @@ def add_exclusive_trace_options(excl_parser):
     excl_parser.add_argument("-D", "--debug", action="store_true", help="debug mode")
     excl_parser.add_argument("-q", "--quiet", action="store_true", help="quiet mode")
 
-def add_exclusive_container_options(excl_parser):
-    """Populate a parser with exclusive container options."""
-    # Specify whether to disable container mode
-    excl_parser.add_argument('-nc', "--no-container", action="store_true", help="Disable container mode")
-    # Specify whether to run root in container (permissive rootless mode)
-    excl_parser.add_argument('-r', "--as-root-in-container", action="store_true", help="Run host users as root in container [permissive rootless mode in podman]. Not allowed for true root users.")
-
 def parse_cli_args(argv):
     """Process the command line arguments."""
     if len(argv) == 1:
@@ -63,9 +56,10 @@ def parse_cli_args(argv):
     global_excl = global_parser.add_mutually_exclusive_group()
     add_exclusive_trace_options(global_excl)
 
-    # setup mutually exclusive container arguments
-    container_excl = global_parser.add_mutually_exclusive_group()
-    add_exclusive_container_options(container_excl)
+    # Specify whether to enable container mode
+    global_parser.add_argument('-wc', "--with-container", action="store_true", help="Enable container mode (Experimental).")
+    # Specify whether to run root in container (permissive rootless mode)
+    global_parser.add_argument('-rc', "--as-root-in-container", action="store_true", help="Run host users as root in container [permissive rootless mode in podman] (Experimental). Not allowed for true root users.")
 
     # Specify whether to disable QaaS search for best default compiler
     global_parser.add_argument('-ncd', "--no-compiler-default", action="store_true", help="Disable search for best default compiler")
