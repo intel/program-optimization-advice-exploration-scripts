@@ -60,7 +60,7 @@ def main():
     user_ns_root = False if not args.as_root_in_container else True
 
     # Command line just print the message for service message, GUI will act on message differently.
-    rc, _ = launch_qaas(args.app_params, not args.local_job,
+    rc, _ = launch_qaas(args.app_params, args.remote_job,
                         container, user_ns_root,
                         args.no_compiler_default, args.no_compiler_flags,
                         args.parallel_compiler_runs, args.enable_parallel_scale,
