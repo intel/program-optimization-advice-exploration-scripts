@@ -38,6 +38,8 @@ import utils.system as system
 from base_runner import BaseRunner
 import shlex
 import json
+import pathlib
+import shutil
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
 # TODO: refactor with Profiler.py
@@ -140,6 +142,59 @@ class OneviewRunner(BaseRunner):
         self.ov_config = os.path.join(self.run_dir, 'config.json')
         with open(self.ov_config, 'w') as f:
             json.dump(self.ov_json_config, f, indent=4)
+
+    def generate_mcompiler_html_compare_report(self, qaas_reports_path):
+        # Check in onview_runs_html exists
+        qaas_reports_oneview = os.path.join(qaas_reports_path, 'oneview_runs_html')
+        os.makedirs(qaas_reports_oneview, exist_ok=True)
+
+        # search all reports in onevioew_runs/defaults and onvview_runs/compilers
+        ov_reports = [os.path.realpath(item) for item in pathlib.Path(os.path.join(self.ov_result_root, 'defaults')).glob('**/oneview_results_*')]
+        ov_reports += ([os.path.realpath(item) for item in pathlib.Path(os.path.join(self.ov_result_root, 'compilers')).glob('**/oneview_results_*')])
+        # sort found reports by creation date
+        ov_reports.sort(key=os.path.getctime)
+
+        # Build the OV compare report inputs
+        if len(ov_reports) == 0:
+            return
+        ov_inputs = []
+        for xp in ov_reports:
+            parent = os.path.basename(os.path.dirname(xp))
+            name = f"{parent}_default" if len(parent.split('_')) == 1 else parent
+            ov_inputs.append('{' + f'xp=\\\"{xp}\\\",index=0,name=\\\"{name}\\\"' + '}')
+
+        # Run the OV compare command
+        self.ov_result_dir = os.path.join(qaas_reports_oneview, "compilers")
+        ov_run_cmds = [f'{self.maqao_bin}', 'oneview', '--compare-reports', '--inputs="{'+ ','.join(ov_inputs) +'}"'] + \
+                      ['--with-topology=off', '--include-detailed'] + \
+                      ['--replace', f'xp={self.ov_result_dir}']
+        print(" ".join(ov_run_cmds))
+        try:
+            # Run the OV compare command
+            subprocess.run(shlex.split(' '.join(ov_run_cmds)), cwd=self.ov_result_root)
+            # Re-organize the output dir
+            source = os.path.join(self.ov_result_dir, 'RESULTS', 'compilers')
+            target = self.ov_result_dir
+            for file in os.listdir(source):
+                shutil.move(os.path.join(source, file), target)
+            shutil.rmtree(os.path.join(self.ov_result_dir, 'RESULTS'))
+        except:
+            pass
+
+    def move_multicore_html_report(self, qaas_reports_path):
+        # Check in onview_runs_html exists
+        oneview_reports = os.path.join(qaas_reports_path, 'oneview_runs_html')
+        os.makedirs(oneview_reports, exist_ok=True)
+        # Move html report
+        source = os.path.join(self.ov_result_dir, 'RESULTS', 'exec_one_html')
+        target = os.path.join(oneview_reports, 'multicore')
+        os.makedirs(target, exist_ok=True)
+        # Recursively move content of source
+        try:
+            for file in os.listdir(source):
+                shutil.move(os.path.join(source, file), target)
+        except:
+            pass
 
     def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
         # setup pinning command

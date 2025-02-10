@@ -152,6 +152,10 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
         compile_best_opt = {}
         bestcomp = ''
 
+    # Generate m-compiler OV compare report
+    ov_run = oneview_runner.OneviewRunner(maqao_dir, 1, ov_run_dir, None, None)
+    ov_run.generate_mcompiler_html_compare_report(qaas_reports_dir)
+
     # Start multicore runs
     if runtime["enable_scale"]:
         to_backplane.send(qm.GeneralStatus("QAAS running logic: Multicore Parameters Exploration/Tuning"))

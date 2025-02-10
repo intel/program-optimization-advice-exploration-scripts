@@ -353,9 +353,7 @@ class QAASEnvProvisioner:
         ov_folder_for_best_compilers=os.path.join(real_qaas_data_root, "compilers")
         ov_folder_for_default=os.path.join(real_qaas_data_root, "defaults")
 
-        os.makedirs(reorg_local_out_dir, exist_ok=True)
-        for compiler_folder in os.listdir(qaas_reports_folder):
-            shutil.copy(os.path.join(qaas_reports_folder, compiler_folder), reorg_local_out_dir)
+        shutil.copytree(qaas_reports_folder, reorg_local_out_dir)
         out_oneview_folders=os.path.join(reorg_local_out_dir, "oneview_runs")
 
         compilers=[]
