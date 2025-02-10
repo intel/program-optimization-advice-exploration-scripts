@@ -239,7 +239,7 @@ if __name__ == '__main__':
     parser.add_argument('--run-cmd', help='Command to run of the form ... <binary> ... where <binary> represent the executable', required=True)
     parser.add_argument('--var', help='Env variable to add', required=False, action='append')
     parser.add_argument('--comm-port', nargs='?', type=int, default=None)
-    parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='demo')
+    parser.add_argument('--logic', help='Select the QaaS run strategy', choices=['demo', 'strategizer'], default='strategizer')
     parser.add_argument('--no-compiler-default', action="store_true", help="Disable search for best default compiler", required=False)
     parser.add_argument('--no-compiler-flags', action="store_true", help="Disable search for best compiler flags", required=False)
     parser.add_argument('-p', '--parallel-compiler-runs', choices=['auto', 'off', 'mpi', 'openmp', 'hybrid'], default='auto',

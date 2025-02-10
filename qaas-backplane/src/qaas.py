@@ -60,7 +60,7 @@ def main():
     user_ns_root = False if not args.as_root_in_container else True
 
     # Command line just print the message for service message, GUI will act on message differently.
-    rc, _ = launch_qaas(args.app_params, args.logic, not args.local_job,
+    rc, _ = launch_qaas(args.app_params, not args.local_job,
                         container, user_ns_root,
                         args.no_compiler_default, args.no_compiler_flags,
                         args.parallel_compiler_runs, args.enable_parallel_scale,
@@ -76,7 +76,7 @@ def launch_qaas_web(qaas_message_queue, app_params, launch_output_dir='/tmp/qaas
    launch_qaas(app_params, "demo", True, True, False, False, False, "off", False, lambda msg: qaas_message_queue.put(msg), launch_output_dir)
 
 # Webfront will call this to launch qaas for a submission
-def launch_qaas(app_params, logic, remote_job,
+def launch_qaas(app_params, remote_job,
                 container, user_ns_root,
                 no_compiler_default, no_compiler_flags,
                 parallel_compiler_runs, enable_parallel_scale,
@@ -137,7 +137,6 @@ def launch_qaas(app_params, logic, remote_job,
                         params.user["application"],
                         params.user["runtime"],
                         prov,
-                        logic,
                         no_compiler_default,
                         no_compiler_flags,
                         parallel_compiler_runs,
