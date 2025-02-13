@@ -278,3 +278,29 @@ def increase_run_resources_limits():
     except:
         pass
 
+def exclude_cores_from_gnr128(nb_ranks, nb_threads):
+    '''Special processing on, GNR 6980P to exclude cores (42,85,170,213,298,341,426,469) because of asymetric topology.'''
+    gnr128_nodes = [(0,42), (43,85), (86,127), (128,170), (171,213), (214,255)]
+    # Extend set with hyper-threads
+    gnr128_nodes_extended = gnr128_nodes + [(start+256,stop+256) for start,stop in gnr128_nodes]
+    # Get totam number of cores and NUMA nodes
+    nb_cores = get_number_of_cores()
+    nb_nodes = get_number_of_nodes()
+    cores_per_node = int(nb_cores/nb_nodes)
+    # Compute a per-NUMA node limit
+    if nb_ranks > 1:
+        # Compute the maximum number of cores per node
+        nb_ranks_per_node = int(nb_ranks / nb_nodes)
+        #limit = int(cores_per_node/nb_ranks_per_node) * nb_ranks_per_node
+        max_cores_per_node = nb_ranks_per_node * nb_threads
+        limit = int(cores_per_node/max_cores_per_node) * max_cores_per_node
+    else:
+        # compute the maximum number of cores per node
+        nb_threads_per_node = int(nb_threads / nb_nodes)
+        limit = int(cores_per_node/nb_threads_per_node) * nb_threads_per_node
+    # Exclude mask for Hybrid MPIxOMP runs
+    exclude_cores = []
+    for start,stop in gnr128_nodes_extended:
+        if start + limit <= stop:
+            exclude_cores.append(str(start+limit)+'-'+str(stop) if start + limit != stop else str(stop))
+    return ",".join(exclude_cores)

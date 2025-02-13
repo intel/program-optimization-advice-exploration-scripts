@@ -74,7 +74,14 @@ class BaseRunner(ABC):
         run_env.update(mpi_envs)
         run_env.update(omp_envs)
         run_env["OMP_NUM_THREADS"] = str(omp_num_threads)
+        # Automatic HBM pinning in SPR/HBM
         extra_hbm_cmd = '/usr/bin/numactl --preferred-many 8-15' if re.search('Xeon.*CPU Max', system.get_model_name()) and not 'QAAS_NO_SPRHBM_MEM' in run_env else ''
+        # Take care of pinning in GNR with 128 cores (asymetric topology)
+        if not 'QAAS_OPENMPI_BIND_CMD' in run_env and re.search('Xeon.*6980P', system.get_model_name()):
+            #if mpi_num_processes * omp_num_threads <= 252 and (not 'I_MPI_PIN_PROCESSOR_LIST' in run_env or run_env.get('OMP_PLACES', '') == 'threads'):
+            if (mpi_num_processes <= 252 and mpi_num_processes > 1 and not 'I_MPI_PIN_PROCESSOR_LIST' in run_env) or (mpi_num_processes == 1 and omp_num_threads <= 256 and run_env.get('OMP_PLACES', '') == 'threads'):
+                run_env["I_MPI_PIN_PROCESSOR_EXCLUDE_LIST"] = system.exclude_cores_from_gnr128(mpi_num_processes, omp_num_threads)
+                #print(run_env.get("I_MPI_PIN_PROCESSOR_EXCLUDE_LIST"))
         mpi_command = f"{mpi_run_command} -n {mpi_num_processes} {run_env.get('QAAS_OPENMPI_BIND_CMD', '')} {extra_hbm_cmd}" if mpi_run_command else ""
         # Setup LD_LIBRARY_PATH with any found shared libraries built by cmake
         self.found_so_libs = self.search_shared_libs(run_env['QAAS_BUILD_DIR'])

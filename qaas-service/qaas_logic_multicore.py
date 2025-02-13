@@ -97,13 +97,16 @@ def compute_scaling_cores():
 
     # Get maximum number of physical cores available in the system
     max_cores = system.get_number_of_cores()
+    # Get maximum number of physical cores available in the system
+    max_nodes = system.get_number_of_nodes()
     # Compute the logarithl base 2 of the maximum number of cores (get power of 2 index)
     max_power_of_2 = int(math.log2(max_cores))
     # build the array of the number of cores to scale
-    cores = [2**c for c in range(1,max_power_of_2+1)]
-    # Append max physical cores to array if missing
-    if max_cores > 2**max_power_of_2:
-        cores.append(max_cores)
+    SF = max_nodes*4 if max_nodes > 4 else max_nodes*8
+    half_cores = int(int(max_cores/max_nodes)*max_nodes/2)
+    cores = [max_nodes*2**c for c in range(0,max_power_of_2+1)] + [half_cores, 2**max_power_of_2, max_cores] + [c for c in range(SF,max_cores,SF)]
+    # Get rid from duplicates, remove any number greater than max_cores and sort new list
+    cores = [core for core in sorted(list(set(cores))) if core <= max_cores]
 
     return cores
 
@@ -122,7 +125,7 @@ def run_scalability_mpi(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
     max_limit = nb_cores-1
     # Set process affinity policy environment variables
     mpi_provider = app_env['MPI_PROVIDER']
-    mpi_env_affinity = {"I_MPI_PIN_PROCESSOR_LIST":"all:map=scatter", "I_MPI_DEBUG":"4"} if affinity == "scatter" else {"I_MPI_PIN_PROCESSOR_LIST":f"{min_limit}-{max_limit}", "I_MPI_DEBUG":"4"}
+    mpi_env_affinity = {"I_MPI_PIN_DOMAIN":"auto", "I_MPI_PIN_ORDER":"spread", "I_MPI_DEBUG":"4"} if affinity == "scatter" else {"I_MPI_PIN_PROCESSOR_LIST":f"{min_limit}-{max_limit}", "I_MPI_DEBUG":"4"}
 
     omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"}
     omp_env_affinity.update({"OMP_DISPLAY_ENV":"TRUE","OMP_DISPLAY_AFFINITY":"TRUE","OMP_AFFINITY_FORMAT":"OMP: pid %P tid %i thread %n bound to OS proc set {%A}"})
@@ -156,7 +159,7 @@ def run_scalability_omp(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
     max_limit = nb_cores-1
     # Set process affinity policy environment variables
     mpi_provider = app_env['MPI_PROVIDER']
-    mpi_env_affinity = {'QAAS_OPENMPI_BIND_CMD':'--bind-to none --report-bindings'} if mpi_provider == "OpenMPI" else {"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"scatter", "I_MPI_DEBUG":"4"}
+    mpi_env_affinity = {'QAAS_OPENMPI_BIND_CMD':'--bind-to none --report-bindings'} if mpi_provider == "OpenMPI" else {"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"spread", "I_MPI_DEBUG":"4"}
     omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"} if affinity == "scatter" else {"OMP_PLACES":','.join(['{'+str(i)+'}' for i in range(min_limit,max_limit+1,1)]),"OMP_PROC_BIND":"close"}
     omp_env_affinity.update({"OMP_DISPLAY_ENV":"TRUE","OMP_DISPLAY_AFFINITY":"TRUE","OMP_AFFINITY_FORMAT":"OMP: pid %P tid %i thread %n bound to OS proc set {%A}"})
     # Compute array of possible scaling configurations
@@ -184,22 +187,24 @@ def run_scalability_mpixomp(app_env, binary_path, data_dir, base_run_bin_dir, ru
 
     # Get system/topology information
     nb_cores = system.get_number_of_cores()
+    nb_nodes = system.get_number_of_nodes()
     # Set process affinity policy environment variables
     mpi_provider = app_env['MPI_PROVIDER']
-    mpi_env_affinity = {"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"bunch", "I_MPI_DEBUG":"4"}
+    mpi_env_affinity = {"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"spread", "I_MPI_DEBUG":"4"}
     omp_env_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"}
     omp_env_affinity.update({"OMP_DISPLAY_ENV":"TRUE","OMP_DISPLAY_AFFINITY":"TRUE","OMP_AFFINITY_FORMAT":"OMP: pid %P tid %i thread %n bound to OS proc set {%A}"})
     # Compute array of possible scaling configurations
-    scale_cores = [int(c/2) for c in compute_scaling_cores()]
-    del scale_cores[0]
+    scale_cores = compute_scaling_cores()
 
     p_runs = []
     # Sweep through all core configurations
-    for mpi_ranks in scale_cores:
+    for mpi_ranks in sorted(list(set(scale_cores+[int(c/2) for c in scale_cores][1:]))):
+        if mpi_ranks % nb_nodes != 0:
+            continue
         if mpi_provider == "OpenMPI":
             mpi_env_affinity = {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by package:PE={int(nb_cores/mpi_ranks)} --rank-by fill --report-bindings'} 
         # Cut in half the number of omp threads available as the number of MPI ranks increases
-        nb_threads_list = [int(th/(mpi_ranks/2)) for th in scale_cores]
+        nb_threads_list = sorted(list(set([int(th/(mpi_ranks)) for th in scale_cores])))
         for omp_threads in nb_threads_list:
             # Continue of the computed number of threads is less or equal to 1
             if omp_threads <= 1:

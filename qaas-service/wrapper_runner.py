@@ -79,13 +79,13 @@ def compiler_run(app_env, binary, data_dir, run_dir, run_cmd, repetitions, runty
         # Multicore OpenMP runs
         nb_ranks = 1
         nb_threads = nb_cores
-        mpi_affinity = {'QAAS_OPENMPI_BIND_CMD':'--bind-to none --report-bindings'} if mpi_provider == "OpenMPI" else {"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"scatter", "I_MPI_DEBUG":"4"}
+        mpi_affinity = {'QAAS_OPENMPI_BIND_CMD':'--bind-to none --report-bindings'} if mpi_provider == "OpenMPI" else {"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"spread", "I_MPI_DEBUG":"4"}
         omp_affinity = {"OMP_PLACES":','.join(['{'+str(i)+'}' for i in range(0,max_limit+1,1)]),"OMP_PROC_BIND":"close"}
     elif parallel_runs == 'hybrid':
         # Multicore MPI x OpenMP runs
         nb_ranks = nb_nodes
         nb_threads = nb_cores_per_node
-        mpi_affinity = {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by package:PE={nb_threads} --rank-by fill --report-bindings'} if mpi_provider == "OpenMPI" else {"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"bunch", "I_MPI_DEBUG":"4"}
+        mpi_affinity = {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by package:PE={nb_threads} --rank-by fill --report-bindings'} if mpi_provider == "OpenMPI" else {"I_MPI_PIN_DOMAIN":"auto","I_MPI_PIN_ORDER":"spread", "I_MPI_DEBUG":"4"}
         omp_affinity = {"OMP_PLACES":"threads","OMP_PROC_BIND":"spread"}
     else:
         # Unicore runs
