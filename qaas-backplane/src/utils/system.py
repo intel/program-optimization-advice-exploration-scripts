@@ -264,3 +264,17 @@ def get_mpi_version(mpi_dir):
     elif output.find('') != -1:
         return ('IntelMPI',f"{output.split(' ')[7]}")
     return ('Unknown','NA')
+
+def increase_run_resources_limits():
+    '''Increase stack size and number of files limits.'''
+    # Increase stack size soft limit for the current process and children
+    try:
+        resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY,-1))
+    except:
+        pass
+    # Increase no of open files soft limit for the current process and children
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (4096, resource.getrlimit(resource.RLIMIT_NOFILE)[1]))
+    except:
+        pass
+

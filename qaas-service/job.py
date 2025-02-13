@@ -48,6 +48,7 @@ from app_builder import build_argparser as app_builder_builder_argparser
 from utils.util import parse_env_map
 from utils import qaas_message as qm
 from utils.comm import ServiceMessageSender
+from utils.system import increase_run_resources_limits
 from qaas_logic_initial_profile import run_initial_profile
 from qaas_logic_compile import compile_binaries as compile_all
 from qaas_logic_unicore import run_qaas_UP
@@ -85,10 +86,8 @@ def run_multiple_phase(to_backplane, src_dir, data_dir, base_run_dir, ov_config,
                      disable_compiler_default, disable_compiler_flags, parallel_compiler_runs, runtime, multi_compilers_dirs):
     '''QAAS Ruuning Logic/Strategizer Entry Point.'''
 
-    # Increase stack size soft limit for the current process and children
-    resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY,-1))
-    # Increase no of open files soft limit for the current process and children
-    resource.setrlimit(resource.RLIMIT_NOFILE, (4096, resource.getrlimit(resource.RLIMIT_NOFILE)[1]))
+    # Increase run resources limits
+    increase_run_resources_limits()
     # Setup QaaS reports dir
     qaas_reports_dir = os.path.join(os.path.dirname(base_run_dir), 'qaas_reports')
 
