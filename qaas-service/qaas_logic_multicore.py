@@ -52,6 +52,8 @@ script_dir=os.path.dirname(os.path.realpath(__file__))
 
 DEFAULT_REPETITIONS = 1
 CORES = [1, 2, 4, 8, 16, 32, 64, 128]
+CORES_MIN_THRESHOLD = 30.0
+SMALL_SYSTEM_CORES  = 128
 
 def dump_multicore_log_file(qaas_reports_dir, file_name, message):
     '''Dump multicore runs log'''
@@ -120,6 +122,7 @@ def run_scalability_mpi(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
 
     # Get system/topology information
     nb_cores = system.get_number_of_cores()
+    nb_nodes = system.get_number_of_nodes()
     # Set compact range limits
     min_limit = 0
     max_limit = nb_cores-1
@@ -135,6 +138,12 @@ def run_scalability_mpi(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
     p_runs = []
     # Sweep through all core configurations
     for cores in scale_cores:
+        # Skip low core count runs on large systems
+        if nb_cores >= SMALL_SYSTEM_CORES  and cores != nb_nodes and cores/nb_cores*100 < CORES_MIN_THRESHOLD:
+            continue
+        # Skip compact affinity runs when #cores is more than the size of a socket
+        if affinity == "compact" and cores > nb_cores/2:
+            continue
         if mpi_provider == "OpenMPI":
             mpi_env_affinity = {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by package:PE={int(nb_cores/cores)} --rank-by fill --report-bindings'} if affinity == "scatter" else {'QAAS_OPENMPI_BIND_CMD':f'--bind-to core --map-by pe-list={",".join([str(i) for i in range(0,max_limit+1,1)])}:ordered  --report-bindings'}
         # Make the runs
@@ -154,6 +163,7 @@ def run_scalability_omp(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
 
     # Get system/topology information
     nb_cores = system.get_number_of_cores()
+    nb_nodes = system.get_number_of_nodes()
     # Set compact range limits
     min_limit = 0
     max_limit = nb_cores-1
@@ -170,6 +180,12 @@ def run_scalability_omp(app_env, binary_path, data_dir, base_run_bin_dir, run_cm
     p_runs = []
     # Sweep through all core configurations
     for cores in scale_cores:
+        # Skip low core count runs on large systems
+        if nb_cores >= SMALL_SYSTEM_CORES and cores != nb_nodes and cores/nb_cores*100 < CORES_MIN_THRESHOLD:
+            continue
+        # Skip compact affinity runs when #cores is more than the size of a socket
+        if affinity == "compact" and cores > nb_cores/2:
+            continue
         # Make the runs
         basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', repetitions, "mpirun",
                                 mpi_num_processes=1, omp_num_threads=cores, mpi_envs=mpi_env_affinity, omp_envs=omp_env_affinity)
@@ -208,6 +224,9 @@ def run_scalability_mpixomp(app_env, binary_path, data_dir, base_run_bin_dir, ru
         for omp_threads in nb_threads_list:
             # Continue of the computed number of threads is less or equal to 1
             if omp_threads <= 1:
+                continue
+            # Skip low core count runs on large systems
+            if nb_cores >= SMALL_SYSTEM_CORES and (mpi_ranks*omp_threads)/nb_cores*100 < CORES_MIN_THRESHOLD:
                 continue
             # Make the runs
             basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', repetitions, "mpirun",
@@ -248,12 +267,13 @@ def eval_parallel_scale(app_name, base_run_dir, data_dir, run_cmd, qaas_best_opt
         repetitions = DEFAULT_REPETITIONS
 
         # Make a single core run for reference in scalability analysis
-        basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 1, "mpirun", mpi_num_processes=1)
-        # Extract Figure-of-Merit if any
-        if app_env.get("FOM_REGEX"):
-            basic_run.match_figure_of_merit(app_env["FOM_REGEX"])
-        FOM = basic_run.compute_median_figure_of_merit()
-        t_compiler.append([basic_run.run_dir_timestamp, app_name, compiler, option, 1, 1, "ref.", basic_run.compute_median_exec_time(), FOM])
+        if system.get_number_of_cores() < SMALL_SYSTEM_CORES or mpi_weak:
+            basic_run = app_runner.exec(app_env, binary_path, data_dir, base_run_bin_dir, run_cmd, 'both', 1, "mpirun", mpi_num_processes=1)
+            # Extract Figure-of-Merit if any
+            if app_env.get("FOM_REGEX"):
+                basic_run.match_figure_of_merit(app_env["FOM_REGEX"])
+            FOM = basic_run.compute_median_figure_of_merit()
+            t_compiler.append([basic_run.run_dir_timestamp, app_name, compiler, option, 1, 1, "ref.", basic_run.compute_median_exec_time(), FOM])
 
         # Perform a scalability analysis using a pure MPI mode and varying process affinity policy
         if has_mpi:
@@ -308,11 +328,12 @@ def generate_ov_config_multiruns(ov_run_dir, nb_mpi, nb_omp, has_mpi, has_omp, a
     config["config"]["run_directory"] = ""
     # Print multi runs params
     mpconf = []
+    nb_cores = system.get_number_of_cores()
     scale_cores = compute_scaling_cores()
     for cores in scale_cores:
         mpi = 1
         omp = 1
-        if nb_mpi == system.get_number_of_cores():
+        if nb_mpi == nb_cores:
             # scale MPI only
             mpi = cores
         elif nb_mpi != 1:
@@ -323,6 +344,9 @@ def generate_ov_config_multiruns(ov_run_dir, nb_mpi, nb_omp, has_mpi, has_omp, a
             # scale OpenMP only (no MPI)
             omp = cores
         if (mpi == 0 or omp == 0) or (config["config"]["number_processes"] * config["config"]["envv_OMP_NUM_THREADS"] >= mpi * omp):
+            continue
+        # Skip low core count runs on large systems
+        if nb_cores >= SMALL_SYSTEM_CORES and mpi*omp/nb_cores*100 < CORES_MIN_THRESHOLD:
             continue
         mpconf.append({"name":f'{mpi}x{omp}', "number_processes":mpi, "envv_OMP_NUM_THREADS":omp})
     config["config"]["multiruns_params"] = mpconf
@@ -404,7 +428,8 @@ def add_speedups_to_runs(p_runs, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_wea
         index = 1 # start at 1 because of CSV header
         for run in p_runs[compiler]:
             index = index + 1 # line numbering start from 1 not 0
-            if run[i_time] != None and run[i_omp] == 1:
+            # Find per-compiler baseline: #MPIx1 if MPI or hybrid or First OpenMP configuration
+            if run[i_time] != None and (run[i_omp] == 1 or (not has_mpi and run[i_omp] >= 1)):
                 # find the first valid run (!= None)
                 mp_ref_runs[compiler] = [run[i_time], run[i_mpi], run[i_omp]]
                 break
@@ -428,7 +453,7 @@ def add_speedups_to_runs(p_runs, i_time, i_mpi, i_omp, has_mpi, has_omp, mpi_wea
                     elif omp_weak:
                         replication = run[i_omp]
                     else:
-                        replication = 1
+                        replication = 1 * mp_ref_runs[item][1] *  mp_ref_runs[item][2]
                     # Compare to user provided compiler and flags
                     run.append(mp_ref_runs[item][0] * replication / float(run[i_time]))
                 else:
