@@ -105,7 +105,8 @@ def get_amd_processor_name(maqao_dir):
     # Default to OTHER if nothing is found.
     processor_name_dict = {
         "ZEN_V3":"ZEN3",
-        "ZEN_V4":"ZEN4" #family == 25, model ==17
+        "ZEN_V4":"ZEN4", #family == 25, model ==17
+        "ZEN_V5":"ZEN5"
     }
     proc_arch_name = get_processor_architecture(maqao_dir)
     return processor_name_dict.get(proc_arch_name, "OTHER")
