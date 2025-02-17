@@ -3,17 +3,29 @@ Scripts for Program Optimization Advice Exploration infrastructure
 
 ## Installation
 1. Clone this repository
-2. Run setup.sh script.  The script will automatically do the following things:
-   1. Build local container image
-   2. Run setup.sh scripts under different components of QaaS scripts.
+2. QaaS container-less installation (prefered mode)
+   - Provides QaaS Command-Line Interface (CLI) running mode
+   - Follow [QaaS CLI run mode](doc/HOWTO_BACKPLANE.md) for instructions
+3. QaaS container installation (experimental)
+   - Provides the following components
+     - QaaS Web Front (GUI+DB)
+     - Extractor Scripts
+   - To install, run `setup.sh` script. The script will automatically do the following things:
+     1. Build local container image
+     2. Run setup.sh scripts under different components of QaaS scripts.
   
 ## Run QaaS Scripts
-- Start container
-  - `cd container`
-  - `./run-container.sh`
-- Run Demo script
-  - `cd ../scripts`
-  - `python demo.py`
+- Container-less run mode
+  - `cd qaas-backplane/src`
+  - `./qaas.py <run options>`
+  - Follow [QaaS CLI run mode](doc/HOWTO_BACKPLANE.md) to get more details
+- Container run mode
+  - Start container
+    - `cd container`
+    - `./run-container.sh`
+  - Run Demo script
+    - `cd ../scripts`
+    - `python demo.py`
 
 ## Run QaaS Web Front
 Follow [Run QaaS Web Front section](qaas-web/README.md#run-qaas-web-front) of QaaS Web document.
