@@ -23,10 +23,11 @@ options:
                         Disable search for best default compiler
   -ncf, --no-compiler-flags
                         Disable search for best compiler flags
-  -p {off,mpi,openmp,hybrid}, --parallel-compiler-runs {off,mpi,openmp,hybrid}
-                        Force multiprocessing [MPI, OpenMP or hybrid] for compiler search runs
-  -s, --enable-parallel-scale
-                        Turn on multicore scalability runs
+  -p {auto,off,mpi,openmp,hybrid}, --parallel-compiler-runs {auto,off,mpi,openmp,hybrid}
+                        Force multiprocessing [auto, MPI, OpenMP or hybrid] for compiler search runs
+  -s [{best-compiler,full}], --enable-parallel-scale [{best-compiler,full}]
+                        Turn on multicore scalability runs (optional). If not set, default is no scalability runs. If set, option is 'full' by default to runs scalability runs for each
+                        compiler. If set with 'best-compiler', scalability runs only using best compiler/options
   -l, --local-job       Enable ssh-less job runs on the local machine
 ```
 
@@ -39,7 +40,7 @@ sudo apt-get install -y git git-lfs python3-pip numactl cmake ninja-build
 
 ## Install python dependencies
 ```
-pip3 install pytrie numpy py-cpuinfo
+pip3 install pytrie numpy py-cpuinfo pandas slpp sqlalchemy luadata
 ```
 
 **NOTE:** These dependencies are only need for the non-container running mode.
@@ -63,28 +64,26 @@ tree /opt/compilers/
 /opt/compilers/
 ├── gcc
 │   ├── gcc-11.4
-│   │   └── Linux
-│   │       ├── install
-│   │       │   ├── g++ -> /usr/bin/g++-11
-│   │       │   ├── gcc -> /usr/bin/gcc-11
-│   │       │   └── gfortran -> /usr/bin/gfortran-11
-│   │       └── intel64
-│   │           └── load.sh
+│   │   ├── install
+│   │   │   ├── g++ -> /usr/bin/g++-11
+│   │   │   ├── gcc -> /usr/bin/gcc-11
+│   │   │   └── gfortran -> /usr/bin/gfortran-11
+│   │   └── env 
+│   │       └── load.sh
 │   └── latest -> gcc-11.4
 └── intel
     ├── 2023
-    │   └── Linux
-    │       └── intel64
-    │           └── load.sh
+    │   └── env
+    │       └── load.sh
     └── latest -> 2023
 ```
-The structure above indicates each compiler has the structure `compiler/<year/version>/Linux/intel64/load.sh` where `load.sh` contains any configuration that will be used (sourced) to load the target software environment. Each `compiler` directory must expose a symbolic link called `latest` pointing to the most recent year/version of that compiler. The `latest` version is used the multi-compiler search procedure. For example, in the sample structure provided above, `latest` points to 2023 and gcc-11.4 for Intel and GNU compilers respectively.
+The structure above indicates each compiler has the structure `compiler/<year/version>/env/load.sh` where `load.sh` contains any configuration that will be used (sourced) to load the target software environment. Each `compiler` directory must expose a symbolic link called `latest` pointing to the most recent year/version of that compiler. The `latest` version is used the multi-compiler search procedure. For example, in the sample structure provided above, `latest` points to 2023 and gcc-11.4 for Intel and GNU compilers respectively.
     
 **NOTE:** 
 Linux Environment Modules can be used/added into `load.sh` files to load compilers and/or parallel runtimes.
 
 **NOTE:**
-Current implementation does not support separate loading of the compiler and the MPI runtime. Consequently, `compiler/<year/version>/Linux/intel64/load.sh` must include instructions to the compiler, MPI runtime and eventually any other required library like math libraries. 
+Current implementation does not support separate loading of the compiler and the MPI runtime. Consequently, `compiler/<year/version>/env/load.sh` must include instructions to the compiler, MPI runtime and eventually any other required library like math libraries. 
 
 ## Update qaas.conf configuration
 QaaS relies on a global configuration file `qaas/qaas-backplane/config/qaas.conf` to control QaaS runs.
@@ -94,8 +93,11 @@ Users must modify the following parameters:
 - `QAAS_COMPILERS_ROOT_DIRECTORY` : path to QaaS scripts to source compilers and Intel runtime.
 - `QAAS_INTEL_COMPILERS_DIRECTORY` : path to Intel compilers and runtimes installation directory. By default, it points to `/opt/intel/oneapi`.
 - `QAAS_ENABLED_COMPILERS`: List of compilers to be enabled with QaaS. They must be provisioned/installed.
-- `QAAS_USER` : target user name on the compute node for ssh access (password-less must configured
-- `QAAS_MACHINES_POOL`: machine name of target node where to perform QaaS runs (localhost by default)
+- `QAAS_USER` : target user name on the compute node for ssh access (password-less must configured.
+- `QAAS_MACHINES_POOL`: machine name of target node where to perform QaaS runs (localhost by default).
+- `QAAS_DEFAULT_REPETITIONS`: controls the number of runs of the initial profiling run to asses performance stability and quality (default to 11 runs).
+- `QAAS_MAX_ALLOWED_EXEC_TIME`: = controls the time limit in seconds of the initial profiling run. Set to 3 minutes by default.
+
 
 # Running QaaS
 
@@ -117,13 +119,17 @@ is similar to
 ```
 ./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer -p mpi --no-container -D
 ```
-- Use a hybrid `MPI`/`OpenMP` running mode for  multi-compiler search runs. A run is started by setting `MPI` ranks equals to the number of sockets and `OpenMP` threads equals to the number of physical cores per socket.
+- Use a hybrid `MPI`/`OpenMP` running mode for  multi-compiler search runs. A run is started by setting `MPI` ranks equals to the number of sockets and `OpenMP` threads equals to the number of physical cores per socket. Note that that if `-p` the option is not specified, then the QaaS default mode for compiler exploration is `auto`, which is an alias for the hybrid mode if the `MPI` and `OpenMP` mode scaling modes are provided.
 ```
 ./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer -p hybrid --no-container -D
 ```
-- Enable scalability runs in QaaS logic after the multi-compiler search procedure. 
+- Enable scalability runs in QaaS logic after the multi-compiler search procedure. This option enables scalability runs for each per-compiler best option.
 ```
 ./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer -p mpi --enable-parallel-scale --no-container -D
+```
+- Enable scalability runs in QaaS logic after the multi-compiler search procedure only for the best compiler.
+```
+./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer -p mpi --enable-parallel-scale best-compiler  --no-container -D
 ```
 - To avoid `ssh` and submit jobs on the local machine.
 ```

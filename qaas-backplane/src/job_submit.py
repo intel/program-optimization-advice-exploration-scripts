@@ -42,7 +42,7 @@ class QAASJobException(Exception):
 
 class QAASJobSubmit:
     """."""
-    def __init__(self, system_compilers, user_compiler, user_application, user_runtime, provisioner, logic,
+    def __init__(self, system_compilers, user_compiler, user_application, user_runtime, provisioner,
                  no_compiler_default, no_compiler_flags,
                  parallel_compiler_runs, enable_parallel_scale):
         self.compilers = system_compilers
@@ -50,7 +50,6 @@ class QAASJobSubmit:
         self.application = user_application
         self.runtime = user_runtime
         self.provisioner = provisioner
-        self.logic = logic
         self.no_compiler_default = no_compiler_default
         self.no_compiler_flags = no_compiler_flags
         self.parallel_compiler_runs = parallel_compiler_runs
@@ -176,16 +175,30 @@ class QAASJobSubmit:
         app_run_info = self.application["RUN"]
         env_var_map=app_run_info["APP_ENV_MAP"]
         env_var_flags = "".join([f' --var {k}={v}' for k,v in env_var_map.items()])
+        # Pass initial profiling parameters as environment variables
+        env_var_flags += f' --var QAAS_DEFAULT_REPETITIONS={self.provisioner.initial_profile_params["QAAS_DEFAULT_REPETITIONS"]}'
+        env_var_flags += f' --var QAAS_MAX_ALLOWED_EXEC_TIME={self.provisioner.initial_profile_params["QAAS_MAX_ALLOWED_EXEC_TIME"]}'
+        # Pass FOM regex as environment variable if any
+        if app_run_info.get("FOM_REGEX"):
+            env_var_flags += f' --var FOM_REGEX={app_run_info["FOM_REGEX"]}'
+            fom_type = app_run_info["FOM_TYPE"] if app_run_info.get("FOM_TYPE") else "RATE"
+            env_var_flags += f' --var FOM_TYPE={fom_type}'
+            fom_unit = app_run_info["FOM_UNIT"] if app_run_info.get("FOM_UNIT") else "NA"
+            env_var_flags += f' --var FOM_UNIT="{fom_unit}"'
+        # Enable search when LTO flags are available
+        env_var_flags += f' --var QAAS_ENABLE_LTO=1' if "QAAS_ENABLE_LTO" in os.environ else ""
         # Check if we need USER_EXTRA_CMAKE_FLAGS
         user_extra_cmake_flags = self.compiler["USER_EXTRA_CMAKE_FLAGS"] if "USER_EXTRA_CMAKE_FLAGS" in self.compiler.keys() else ""
         # Check if need to disable automatic search for best default compiler and/or compiler flags
         disable_best_compiler_default = "--no-compiler-default" if self.no_compiler_default else ""
         disable_best_compiler_flags = "--no-compiler-flags" if self.no_compiler_flags else ""
-        enable_parallel_scale_option = "-s" if self.enable_parallel_scale else ""
+        enable_parallel_scale_option = "-s" if self.enable_parallel_scale != 0 else ""
+        if self.enable_parallel_scale == 'best-compiler':
+            enable_parallel_scale_option += " --enable-scale-on-best-compiler"
         # Setup per-compiler location to isolate environment
         multi_compilers_dirs = ";".join([f"{compiler}:{os.path.join(container_compiler_root, self.provisioner.get_compiler_subdir(compiler, 'latest'))}" for compiler in self.provisioner.get_enabled_compilers()])
         # Below used --network=host so script can communicate back to launcher via ssh forwarding.  Can try to restrict to self.provisioner.comm_port if needed
-        app_cmd = f"/usr/bin/python3 {container_script_root}/qaas-service/job.py "+ \
+        app_cmd = f"/usr/bin/env python3 {container_script_root}/qaas-service/job.py "+ \
                     f' --src-dir {os.path.join(container_app_builder_path, self.provisioner.app_name)}'+ \
                     f' --data_dir {os.path.join(container_app_dataset_path, self.provisioner.git_data_download_path)} --ov_config unused --ov_run_dir {container_app_oneview_path}'+ \
                     f' --base_run_dir {container_app_base_path} --locus_run_dir {container_app_locus_path}' + \
@@ -197,7 +210,6 @@ class QAASJobSubmit:
                     f' --user-target {self.compiler["USER_TARGET"]} --user-target-location {self.compiler["USER_TARGET_LOCATION"]}'+ \
                     f'{env_var_flags}'+ \
                     f' --run-cmd "{app_run_info["APP_RUN_CMD"]}"' + \
-                    f' --logic {self.logic}' + \
                     f' {disable_best_compiler_default}' + \
                     f' {disable_best_compiler_flags}' + \
                     f' --parallel-compiler-runs {self.parallel_compiler_runs}' + \

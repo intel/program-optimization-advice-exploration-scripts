@@ -33,11 +33,13 @@ import sys
 import subprocess
 import configparser
 import utils.system as system
+from app_builder import get_languages_in_project
 
 # constants
 QAAS_SECTION_NAME = "QAAS"
 SYSTEM_SECTION_NAME = "SYSTEM"
 REPORTS_SECTION_NAME = "REPORTS"
+TIME_SECTION_NAME = "TIME"
 
 class QAASMetaDATA:
     def __init__(self, qaas_reports_dir, file_name="input.txt"):
@@ -49,6 +51,7 @@ class QAASMetaDATA:
             self.config[QAAS_SECTION_NAME] = {}
             self.config[REPORTS_SECTION_NAME] = {}
             self.config[SYSTEM_SECTION_NAME] = {}
+            self.config[TIME_SECTION_NAME] = {}
             self.write_data(self.config)
         self.config.read(self.metadata_pathname)
 
@@ -74,6 +77,9 @@ class QAASMetaDATA:
         return subprocess.check_output([f"cat", f"{dataset_file_path}"]).decode("utf-8")
         #return subprocess.check_output(f"cat {dataset_file_path}", shell=True).decode("utf-8")
 
+    @property
+    def qaas_lang_in_project(self):
+        return get_languages_in_project(os.path.join(os.path.dirname(self.qaas_rundir), "build", "build"))
 
     def add_qaas_metadata(self, run_cmd, dataset_name=""):
         self.config[QAAS_SECTION_NAME]["timestamp"] = self.qaas_timestamp
@@ -81,6 +87,10 @@ class QAASMetaDATA:
         self.config[QAAS_SECTION_NAME]["git_commit"] = ''
         self.config[QAAS_SECTION_NAME]["dataset_name"] = self.qaas_dataset_label
         self.config[QAAS_SECTION_NAME]["run_cmd"] = run_cmd
+        self.write_data(self.config)
+
+    def add_prog_lang_metadata(self):
+        self.config[QAAS_SECTION_NAME]["LANG"] = self.qaas_lang_in_project
         self.write_data(self.config)
 
     def add_multicompiler_metadata(self, default_compiler, report_name):
@@ -98,6 +108,11 @@ class QAASMetaDATA:
         self.config[REPORTS_SECTION_NAME]["scalability_reference_line"] = f'{scalability_reference_line}'
         self.write_data(self.config)
 
+    def add_figure_of_merit_metadata(self, metric_type="NA", metric_unit="NA"):
+        self.config[REPORTS_SECTION_NAME]["figure_of_merit_type"] = metric_type
+        self.config[REPORTS_SECTION_NAME]["figure_of_merit_unit"] = metric_unit
+        self.write_data(self.config)
+
     def add_system_metadata(self, maqao_dir):
         # System info
         self.config[SYSTEM_SECTION_NAME]["machine"] = system.get_hostname()
@@ -113,8 +128,12 @@ class QAASMetaDATA:
         # CPUFreq settings
         self.config[SYSTEM_SECTION_NAME]["frequency_driver"] = system.get_frequency_driver()
         self.config[SYSTEM_SECTION_NAME]["frequency_governor"] = system.get_frequency_governor()
-        self.config[SYSTEM_SECTION_NAME]["scaling_max_frequency"] = system.get_scaling_max_frequency()
-        self.config[SYSTEM_SECTION_NAME]["scaling_min_frequency"] = system.get_scaling_min_frequency()
+        if (self.config[SYSTEM_SECTION_NAME]["frequency_driver"] == "acpi-cpufreq" or self.config[SYSTEM_SECTION_NAME]["frequency_driver"] == "cppc_cpufreq") and self.config[SYSTEM_SECTION_NAME]["frequency_governor"] == "userspace":
+            self.config[SYSTEM_SECTION_NAME]["scaling_max_frequency"] = system.get_scaling_cur_frequency()
+            self.config[SYSTEM_SECTION_NAME]["scaling_min_frequency"] = self.config[SYSTEM_SECTION_NAME]["scaling_max_frequency"]
+        else:
+            self.config[SYSTEM_SECTION_NAME]["scaling_max_frequency"] = system.get_scaling_max_frequency()
+            self.config[SYSTEM_SECTION_NAME]["scaling_min_frequency"] = system.get_scaling_min_frequency()
         self.config[SYSTEM_SECTION_NAME]["advertized_frequency"] = system.get_advertized_frequency()
         self.config[SYSTEM_SECTION_NAME]["maximal_frequency"] = system.get_maximal_frequency()
         # MEM settings
@@ -123,4 +142,17 @@ class QAASMetaDATA:
 
     def add_compiler_version(self, compiler, compiler_dir):
         self.config[SYSTEM_SECTION_NAME][f"{compiler}_version"] = system.get_compiler_version(compiler, compiler_dir)
+        self.write_data(self.config)
+
+    def add_mpi_version(self, mpi_dir):
+        MPI_Info = system.get_mpi_version(mpi_dir)
+        self.config[SYSTEM_SECTION_NAME]["mpi_provider"] = MPI_Info[0]
+        self.config[SYSTEM_SECTION_NAME]["mpi_version"] = MPI_Info[1]
+        self.write_data(self.config)
+
+    def add_qaas_logic_timings(self, phase, time):
+        hours = int(time / 3600)
+        minutes = int((time % 3600) / 60)
+        seconds = (time % 3600) % 60
+        self.config[TIME_SECTION_NAME][phase] = "{nH:02d}H{nM:02d}M{nS:02d}S".format(nH=hours,nM=minutes,nS=seconds)
         self.write_data(self.config)

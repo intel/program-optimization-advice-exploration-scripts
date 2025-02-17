@@ -37,6 +37,9 @@ from utils.util import generate_timestamp_str
 import utils.system as system
 from base_runner import BaseRunner
 import shlex
+import json
+import pathlib
+import shutil
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
 # TODO: refactor with Profiler.py
@@ -52,6 +55,7 @@ class OneviewRunner(BaseRunner):
         self.ov_timestamp = int(round(datetime.datetime.now().timestamp()))
         self.run_dir = os.path.join(self.ov_result_root, f'oneview_run_{self.ov_timestamp}')
         self.ov_of = ov_of
+        self.ov_json_config = {}
 
     @property
     def maqao_bin_dir(self):
@@ -67,7 +71,8 @@ class OneviewRunner(BaseRunner):
 
     def format_ov_shared_libs_option(self, so_libs):
         '''Convert shared libs paths to OV format.'''
-        return ','.join(['\\"'+str(item) + '\\"' for item in so_libs])
+        #return ','.join(['\\"'+str(item) + '\\"' for item in so_libs])
+        return [str(item) for item in so_libs]
 
     def extract_flops_count(self):
         '''Get Flops count from OV report'''
@@ -89,59 +94,147 @@ class OneviewRunner(BaseRunner):
             # no flop counting for old and unknown proc
             return []
         return [f'--with-FLOPS']
-    def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
-        true_run_cmd = run_cmd.replace('<binary>', binary_path)
-        pinning_cmds = [] if mpi_command or self.ov_config != "unused" else [f"--pinning-command=\"{self.get_pinning_cmd()}\""]
-        #pinning_cmd = "" if mpi_command or self.ov_config != "unused" else f"--pinning-command=\"{self.get_pinning_cmd()}\""
 
-        self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
-        os.makedirs(self.ov_result_dir)
-
-        ov_mpi_command = f"--mpi-command={mpi_command}" if mpi_command else ""
-        ov_config_options = [] if self.ov_config == "unused" else [f"-WC", f"-c={self.ov_config}"]
-        #ov_config_option = "" if self.ov_config == "unused" else f"-WC -c={self.ov_config}"
-        ov_filter_options = ['--filter="{type=\\\"number\\\", value=1}"'] if self.level != 1 else []
-        #ov_filter_option = '--filter="{type=\\\"number\\\", value=1}"' if self.level != 1 else ''
-        ov_extra_libs_options = ['--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"'] if self.found_so_libs else []
-        #ov_extra_libs_option = '--external-libraries="{' + self.format_ov_shared_libs_option(self.found_so_libs) + '}"' if self.found_so_libs else ""
+    def build_ov_json_config(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
+        '''Build the OV JSON configuration'''
+        # Initialize the configuration
+        self.ov_json_config["config"] = {}
 
         # Try to get run name from path
         run_names_in_path = os.path.relpath(self.ov_result_root, os.path.join(self.ov_result_root, '..', '..')).split("/")
-        # Try to use the same name as csv file.  Compiler runs: just the directory name under compilers/ and default run, add _0 as option 0 
+        # Try to use the same name as csv file.  Compiler runs: just the directory name under compilers/ and default run, add _0 as option 0
         run_name = run_names_in_path[1] if run_names_in_path[0] == "compilers" else f'{run_names_in_path[1]}_0'
+        # Add "--base-run-name"
+        self.ov_json_config["config"]["base_run_name"] = run_name
 
+        # Add #processes
+        self.ov_json_config["config"]["number_processes"] = int(mpi_command.split(" ")[2]) if mpi_command else 1
+        # Add "--mpi-command={mpi_command}"
+        if mpi_command:
+            self.ov_json_config["config"]["mpi_command"] = mpi_command.replace(f'-n {self.ov_json_config["config"]["number_processes"]}', '-n <number_processes>')
+
+        # Add the "run_command"
+        self.ov_json_config["config"]["run_command"] = run_cmd.replace('<binary>', '<executable>')
+        # Add "executable"
+        self.ov_json_config["config"]["executable"] = binary_path
+
+        # Add "--run-directory"
+        self.ov_json_config["config"]["run_directory"] = run_dir
+
+        # Add "--external-libraries"
+        if self.found_so_libs:
+            self.ov_json_config["config"]["external_libraries"] = self.format_ov_shared_libs_option(self.found_so_libs)
+
+        # Add "--filter"
+        self.ov_json_config["config"]["filter"] = {"type":"number", "value":1}
+
+    def update_rundir_in_config(self, run_dir):
+        # Load OV's json configuration
+        with open(self.ov_config, 'r') as f:
+            self.ov_json_config = json.load(f)
+        # Update run_dir
+        self.ov_json_config["config"]["run_directory"] = run_dir
+        # Dump configuration
+        with open(self.ov_config, 'w') as f:
+            json.dump(self.ov_json_config, f, indent=4)
+
+    def dump_ov_json_config(self):
+        self.ov_config = os.path.join(self.run_dir, 'config.json')
+        with open(self.ov_config, 'w') as f:
+            json.dump(self.ov_json_config, f, indent=4)
+
+    def generate_mcompiler_html_compare_report(self, qaas_reports_path):
+        # Check in onview_runs_html exists
+        qaas_reports_oneview = os.path.join(qaas_reports_path, 'oneview_runs_html')
+        os.makedirs(qaas_reports_oneview, exist_ok=True)
+
+        # search all reports in onevioew_runs/defaults and onvview_runs/compilers
+        ov_reports = [os.path.realpath(item) for item in pathlib.Path(os.path.join(self.ov_result_root, 'defaults')).glob('**/oneview_results_*')]
+        ov_reports += ([os.path.realpath(item) for item in pathlib.Path(os.path.join(self.ov_result_root, 'compilers')).glob('**/oneview_results_*')])
+        # sort found reports by creation date
+        ov_reports.sort(key=os.path.getctime)
+
+        # Build the OV compare report inputs
+        if len(ov_reports) == 0:
+            return
+        ov_inputs = []
+        for xp in ov_reports:
+            parent = os.path.basename(os.path.dirname(xp))
+            name = f"{parent}_default" if len(parent.split('_')) == 1 else parent
+            ov_inputs.append('{' + f'xp=\\\"{xp}\\\",index=0,name=\\\"{name}\\\"' + '}')
+
+        # Run the OV compare command
+        self.ov_result_dir = os.path.join(qaas_reports_oneview, "compilers")
+        ov_run_cmds = [f'{self.maqao_bin}', 'oneview', '--compare-reports', '--inputs="{'+ ','.join(ov_inputs) +'}"'] + \
+                      ['--with-topology=off', '--include-detailed'] + \
+                      ['--replace', f'xp={self.ov_result_dir}']
+        print(" ".join(ov_run_cmds))
+        try:
+            # Run the OV compare command
+            subprocess.run(shlex.split(' '.join(ov_run_cmds)), cwd=self.ov_result_root)
+            # Re-organize the output dir
+            source = os.path.join(self.ov_result_dir, 'RESULTS', 'compilers')
+            target = self.ov_result_dir
+            for file in os.listdir(source):
+                shutil.move(os.path.join(source, file), target)
+            shutil.rmtree(os.path.join(self.ov_result_dir, 'RESULTS'))
+        except:
+            pass
+
+    def move_multicore_html_report(self, qaas_reports_path):
+        # Check in onview_runs_html exists
+        oneview_reports = os.path.join(qaas_reports_path, 'oneview_runs_html')
+        os.makedirs(oneview_reports, exist_ok=True)
+        # Move html report
+        source = os.path.join(self.ov_result_dir, 'RESULTS', 'exec_one_html')
+        target = os.path.join(oneview_reports, 'multicore')
+        os.makedirs(target, exist_ok=True)
+        # Recursively move content of source
+        try:
+            for file in os.listdir(source):
+                shutil.move(os.path.join(source, file), target)
+        except:
+            pass
+
+    def true_run(self, binary_path, run_dir, run_cmd, run_env, mpi_command):
+        # setup pinning command
+        pinning_cmds = [] if mpi_command or self.ov_config != "unused" else [f"--pinning-command=\"{self.get_pinning_cmd()}\""]
+        # auto-generate an OV config file if nothing is provided
+        if self.ov_config == "unused":
+            self.build_ov_json_config(binary_path, run_dir, run_cmd, run_env, mpi_command)
+            self.dump_ov_json_config()
+        else:
+            self.update_rundir_in_config(run_dir)
+
+        # setup ov results dir
+        self.ov_result_dir = os.path.join(self.ov_result_root, f'oneview_results_{self.ov_timestamp}')
+        #os.makedirs(self.ov_result_dir)
+
+        # setup ov run params
+        ov_config_options = [] if self.ov_config == "unused" else [f"-c={self.ov_config}"]
+        if run_env.get("OV_SCALE"):
+            ov_config_options.insert(0, run_env["OV_SCALE"])
+            del run_env["OV_SCALE"]
         ov_run_cmds=[f'{self.maqao_bin}', 'oneview', f'-R{self.level}'] + \
-            ([f'{ov_mpi_command}'] if ov_mpi_command else []) + ov_config_options +\
-            [f'--base-run-name={run_name}'] + \
+            ov_config_options +\
             self.get_flop_flags() + \
-            ov_extra_libs_options + \
-            [ f'--run-directory={run_dir}']+ pinning_cmds + \
+            pinning_cmds + \
             [f'--replace', f'xp={self.ov_result_dir}'] + \
-            ov_filter_options + \
-            [f'-of={self.ov_of}',
-            f'--'] + shlex.split(true_run_cmd)
-        #ov_run_cmd=f'{self.maqao_bin} oneview -R{self.level} {ov_mpi_command} {ov_config_option}'\
-        #    f' --base-run-name={run_name} ' \
-        #    f' --with-FLOPS ' \
-        #    f' {ov_extra_libs_option} '\
-        #    f'--run-directory="{run_dir}" {pinning_cmd} '\
-        #    f'--replace xp={self.ov_result_dir} '\
-        #    f'{ov_filter_option} '\
-        #    f'-of={self.ov_of} '\
-        #    f'-- {true_run_cmd}'
-        print(self.ov_result_dir)
-        run_env["LD_LIBRARY_PATH"] = run_env.get("LD_LIBRARY_PATH") + ":" + self.maqao_lib_dir
+            [f'-of={self.ov_of}']
+        run_env["LD_LIBRARY_PATH"] = run_env.get("LD_LIBRARY_PATH") + ":" + self.maqao_lib_dir if "LD_LIBRARY_PATH" in run_env.keys() else self.maqao_lib_dir
 
         while self.level != 0:
             ov_run_cmd = " ".join(ov_run_cmds)
             print(ov_run_cmd)
-            result = subprocess.run(ov_run_cmds, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            #result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if result.returncode == 0:
-                return True
-
+            try:
+                result = subprocess.run(ov_run_cmds, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                #result = subprocess.run(ov_run_cmd, shell=True, env=run_env, cwd=self.run_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if result.returncode == 0:
+                    return True
+                print(result.stderr.decode('utf-8'))
+            except:
+                pass
             print(f"OneView Level {self.level} failed! Fallback to lower level")
-            print(result.stderr.decode('utf-8'))
             new_level = self.level - 1
             if new_level == 0:
                 return False

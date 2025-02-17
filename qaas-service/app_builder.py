@@ -37,6 +37,7 @@ import subprocess
 from pytrie import StringTrie
 from utils.util import load_compiler_env, split_compiler_combo
 import shlex
+import utils.system as system
 
 
 # We use CC compiler names as compiler names and here provide lookup for different languages
@@ -44,6 +45,8 @@ compiler_map={
     "icc:CC":"icc", "icc:CXX":"icpc", "icc:FC":"ifort",
     "icx:CC":"icx", "icx:CXX":"icpx", "icx:FC":"ifx",
     "gcc:CC":"gcc", "gcc:CXX":"g++", "gcc:FC":"gfortran",
+    "aocc:CC":"clang", "aocc:CXX":"clang++", "aocc:FC":"flang",
+    "armclang:CC":"armclang", "armclang:CXX":"armclang++", "armclang:FC":"armflang",
     "mpiicc:CC":"mpiicc", "mpiicc:CXX":"mpiicpc", "mpiicc:FC":"mpiifort",
     "mpicc:CC":"mpicc", "mpicc:CXX":"mpic++", "mpicc:FC":"mpifort"
 }
@@ -71,26 +74,37 @@ def simple_replace(compiler_flag_map, compiler, flag, new_compiler):
     new_prefix=compiler_flag_map[new_compiler]
     return re.sub(r'^'+old_prefix, new_prefix, flag)
 
-lookup_functions = [
-            ({'icc': 'D', 'gcc': 'D', 'icx': 'D'}, simple_replace),
-            ({'icc': 'std=gnu89', 'gcc': 'std=gnu90', 'icx': 'std=gnu90'}, simple_replace),
-            ({'icc': 'O1', 'gcc': 'O1', 'icx': 'O1'}, simple_replace),
-            ({'icc': 'O2', 'gcc': 'O2', 'icx': 'O2'}, simple_replace),
-            ({'icc': 'O3', 'gcc': 'O3', 'icx': 'O3'}, simple_replace),
-            ({'icc': 'funroll-loops', 'gcc': 'funroll-loops', 'icx': 'funroll-loops'}, simple_replace),
-            ({'icc': 'fpic', 'gcc': 'fpic', 'icx': 'fpic'}, simple_replace),
-            ({'icc': 'flto', 'gcc': 'flto', 'icx': 'flto'}, simple_replace),
-            ({'icc': 'qno-offload', 'gcc': 'foffload=disable', 'icx': '-offload=-'}, simple_replace),
-            ({'icc': 'fno-alias', 'gcc': '', 'icx': 'fno-alias'}, simple_replace),
+lookup_functions = {
+   "all": [
+            ({'icc': 'std=gnu89', 'gcc': 'std=gnu90', 'icx': 'std=gnu90', 'aocc': 'std=gnu90', 'armclang': 'std=gnu90'}, simple_replace),
+            ({'icc': 'D', 'gcc': 'D', 'icx': 'D', 'aocc': 'D', 'armclang': 'D'}, simple_replace),
+            ({'icc': 'O1', 'gcc': 'O1', 'icx': 'O1', 'aocc': 'O1', 'armclang': 'O1'}, simple_replace),
+            ({'icc': 'O2', 'gcc': 'O2', 'icx': 'O2', 'aocc': 'O2', 'armclang': 'O2'}, simple_replace),
+            ({'icc': 'O3', 'gcc': 'O3', 'icx': 'O3', 'aocc': 'O3', 'armclang': 'O3'}, simple_replace),
+            ({'icc': 'Ofast', 'gcc': 'Ofast', 'icx': 'Ofast', 'aocc': 'Ofast', 'armclang': 'Ofast'}, simple_replace),
+            ({'icc': 'g', 'gcc': 'g', 'icx': 'g', 'aocc': 'g', 'armclang': 'g'}, simple_replace),
+            ({'icc': 'grecord-gcc-switches', 'gcc': 'grecord-gcc-switches', 'icx': 'grecord-gcc-switches', 'aocc': 'grecord-gcc-switches', 'armclang': 'grecord-gcc-switches'}, simple_replace),
+            ({'icc': 'no-pie', 'gcc': 'no-pie', 'icx': 'no-pie', 'aocc': 'no-pie', 'armclang': 'no-pie'}, simple_replace),
+            ({'icc': 'fcf-protection=none', 'gcc': 'fcf-protection=none', 'icx': 'fcf-protection=none', 'aocc': 'fcf-protection=none', 'armclang': 'fcf-protection=none'}, simple_replace),
+            ({'icc': 'fno-omit-frame-pointer', 'gcc': 'fno-omit-frame-pointer', 'icx': 'fno-omit-frame-pointer', 'aocc': 'fno-omit-frame-pointer', 'armclang': 'fno-omit-frame-pointer'}, simple_replace),
+            ({'icc': '', 'gcc': 'Wno-implicit-function-declaration', 'icx': 'Wno-error=implicit-function-declaration', 'aocc': 'Wno-error=implicit-function-declaration', 'armclang': 'Wno-error=implicit-function-declaration'}, simple_replace),
+            ({'icc': 'fpic', 'gcc': 'fpic', 'icx': 'fpic', 'aocc': 'fpic', 'armclang': 'fpic'}, simple_replace),
+            ({'icc': 'qoverride-limits', 'gcc': '', 'icx': 'qoverride-limits', 'aocc': ''}, simple_replace),
+            ({'icc': 'fno-alias', 'gcc': '', 'icx': 'fno-alias', 'aocc': ''}, simple_replace),
+            ({'icc': 'ansi-alias', 'gcc': 'fstrict-aliasing', 'icx': 'ansi-alias', 'aocc': 'ansi-alias'}, simple_replace),
+            ({'icc': 'flto', 'gcc': 'flto', 'icx': 'flto', 'aocc': 'flto', 'armclang': 'flto'}, simple_replace),
+            ({'icc': 'funroll-loops', 'gcc': 'funroll-loops', 'icx': 'funroll-loops', 'aocc': 'funroll-loops', 'armclang': 'funroll-loops'}, simple_replace),
             # See http://wwwpub.zih.tu-dresden.de/~mlieber/practical_performance/05_gcc_intel_flags.pdf
-            ({'icc': 'ansi-alias', 'gcc': 'fstrict-aliasing', 'icx': 'ansi-alias'}, simple_replace),
-            ({'icc': 'fp-model fast=2', 'gcc': 'ffast-math', 'icx': 'fp-model fast'}, simple_replace),
-            ({'icc': 'mfpmath=sse', 'gcc': 'mfpmath=sse', 'icx': 'mfpmath=sse'}, simple_replace),
-            ({'icc': 'qoverride-limits', 'gcc': '', 'icx': 'qoverride-limits'}, simple_replace),
-            ({'icc': 'no-vec', 'gcc': 'fno-tree-vectorize', 'icx': 'fno-vectorize'}, simple_replace),
-            ({'icc': '', 'gcc': '', 'icx': 'fno-slp-vectorize'}, simple_replace),
-            ({'icc': 'no-simd', 'gcc': '', 'icx': 'no-simd'}, simple_replace),
-            ({'icc': 'qno-openmp-simd', 'gcc': '', 'icx': 'fno-openmp-simd'}, simple_replace),
+            ({'icc': 'fp-model fast=2', 'gcc': 'ffast-math', 'icx': 'fp-model=fast', 'aocc': 'ffast-math', 'armclang': 'ffast-math'}, simple_replace),
+            ({'icc': 'mfpmath=sse', 'gcc': 'mfpmath=sse', 'icx': 'mfpmath=sse', 'aocc': 'mfpmath=sse'}, simple_replace),
+            ({'icc': 'no-vec', 'gcc': 'fno-tree-vectorize', 'icx': 'fno-vectorize', 'aocc': 'fno-vectorize', 'armclang': 'fno-vectorize'}, simple_replace),
+            ({'icc': '', 'gcc': '', 'icx': 'fno-slp-vectorize', 'aocc': 'fno-slp-vectorize', 'armclang': 'fno-slp-vectorize'}, simple_replace),
+            ({'icc': 'no-simd', 'gcc': '', 'icx': '', 'aocc': ''}, simple_replace),
+            ({'icc': 'qno-openmp-simd', 'gcc': 'fno-openmp-simd', 'icx': 'fno-openmp-simd', 'aocc': 'fno-openmp-simd', 'armclang': 'fno-openmp-simd'}, simple_replace),
+            ({'icc': 'qopt-zmm-usage=high', 'gcc': 'mprefer-vector-width=512', 'icx': 'mprefer-vector-width=512', 'aocc': 'mprefer-vector-width=512'}, simple_replace)
+          ],
+   "intel": [
+            ({'icc': 'qopt-report=5', 'gcc': 'fsave-optimization-record', 'icx': 'qopt-report=3'}, simple_replace),
             ({'icc': 'march=native', 'gcc': 'march=native', 'icx': 'march=native'}, simple_replace),
             ({'icc': 'xSSE4.2', 'gcc': 'march=core2', 'icx': 'xSSE4.2'}, simple_replace),
             ({'icc': 'xCORE-AVX2', 'gcc': 'march=haswell', 'icx': 'xCORE-AVX2'}, simple_replace),
@@ -98,21 +112,28 @@ lookup_functions = [
             ({'icc': 'xSKYLAKE-AVX512', 'gcc': 'march=skylake-avx512', 'icx': 'xSKYLAKE-AVX512'}, simple_replace),
             ({'icc': 'xICELAKE-SERVER', 'gcc': 'march=icelake-server', 'icx': 'xICELAKE-SERVER'}, simple_replace),
             ({'icc': 'xSAPPHIRERAPIDS', 'gcc': 'march=sapphirerapids', 'icx': 'xSAPPHIRERAPIDS'}, simple_replace),
-            ({'icc': 'qopt-zmm-usage=high', 'gcc': 'mprefer-vector-width=512', 'icx': 'mprefer-vector-width=512'}, simple_replace),
-            ({'icc': 'qopt-mem-layout-trans=4', 'gcc': '', 'icx': 'qopt-mem-layout-trans=4'}, simple_replace),
-            ({'icc': 'qopt-report=5', 'gcc': 'fsave-optimization-record', 'icx': 'qopt-report=3'}, simple_replace),
-            ({'icc': 'g', 'gcc': 'g', 'icx': 'g'}, simple_replace),
-            ({'icc': 'no-pie', 'gcc': 'no-pie', 'icx': 'no-pie'}, simple_replace),
-            ({'icc': 'fcf-protection=none', 'gcc': 'fcf-protection=none', 'icx': 'fcf-protection=none'}, simple_replace),
-            ({'icc': 'grecord-gcc-switches', 'gcc': '', 'icx': 'grecord-gcc-switches'}, simple_replace),
-            ({'icc': 'fno-omit-frame-pointer', 'gcc': 'fno-omit-frame-pointer', 'icx': 'fno-omit-frame-pointer'}, simple_replace)
-            ]
+            ({'icc': 'qopt-mem-layout-trans=4', 'gcc': '', 'icx': 'qopt-mem-layout-trans=4'}, simple_replace)
+          ],
+   "amd": [
+            ({'aocc': 'march=native', 'gcc': 'march=native', 'icx': 'march=native'}, simple_replace),
+            ({'aocc': 'mavx2', 'gcc': 'march=haswell', 'icx': 'xCORE-AVX2'}, simple_replace),
+            ({'aocc': 'march=znver3', 'gcc': 'march=znver3', 'icx': 'xCORE-AVX2'}, simple_replace),
+            ({'aocc': 'march=znver4', 'gcc': 'march=znver4', 'icx': 'axCORE-AVX512'}, simple_replace)
+          ],
+   "arm": [
+            ({'armclang': 'mcpu=native', 'gcc': 'mcpu=native'}, simple_replace),
+            ({'armclang': 'mcpu=native+nosimd', 'gcc': 'mcpu=native'}, simple_replace),
+            ({'armclang': 'msve-vector-bits=128', 'gcc': 'msve-vector-bits=128'}, simple_replace),
+            ({'armclang': 'armpl', 'gcc': 'larmpl'}, simple_replace),
+            ({'armclang': 'ffp-contract=fast', 'gcc': 'ffp-contract=fast'}, simple_replace)
+          ]
+   }
 def encode_compiler_flag(compiler, flag):
     return compiler+':'+flag
 
 # This trie can be used to lookup given C1 and F1
 function_trie = StringTrie()
-for flag_map,fn in lookup_functions:
+for flag_map,fn in lookup_functions["all"] + lookup_functions[system.get_vendor_name()]:
     for compiler, flag in flag_map.items():
         # Only add if the flag is not empty
         if flag:
@@ -282,10 +303,11 @@ def compute_cmake_variables(user_mpi_compiler, target_mpi_compiler, user_CC, tar
             cmake_env
 
 def parse_compiler_combo(CC_combo):
-    mpi_wrapper, CC = split_compiler_combo(CC_combo)
+    mpi_wrapper, compiler_suite = split_compiler_combo(CC_combo)
 
-    CXX = compiler_map[CC+":CXX"]
-    FC = compiler_map[CC+":FC"]
+    CC = compiler_map[compiler_suite+":CC"]
+    CXX = compiler_map[compiler_suite+":CXX"]
+    FC = compiler_map[compiler_suite+":FC"]
     return mpi_wrapper, CC,CXX,FC
 
 
@@ -298,7 +320,7 @@ def build_binary(user_target, build_dir, target_location, env, output_dir, outpu
     #cmake_build_cmd=f'/usr/bin/time -p cmake --build {build_dir} --target {cmake_target} >> {build_dir}/qaas_build.log 2>&1'
     cmake_build_cmd = " ".join(cmake_build_cmds)
     print(cmake_build_cmd)
-    log_file_name = os.path.join(os.path.dirname(build_dir), "qaas_build.log")
+    log_file_name = os.path.join(build_dir, "qaas_build.log")
     with open(log_file_name, "a") as log_file:
         subprocess.run(cmake_build_cmds, stdout=log_file, stderr=subprocess.STDOUT, text=True, env=env)
     built_bin = os.path.join(build_dir, target_location)
@@ -310,7 +332,21 @@ def build_binary(user_target, build_dir, target_location, env, output_dir, outpu
     os.symlink(built_bin, out_bin)
     print(f"Binary executable saved to: {out_bin}")
 
+def get_languages_in_project(build_dir):
+   '''Search for enabled programming languages in project.'''
 
+   # Define QaaS-supported languages
+   supported_languages = ['C', 'CXX', 'Fortran']
+   # Open build log file (ninja)
+   with open(os.path.join(build_dir, "build.ninja")) as f:
+        build_log = f.read()
+   # Detect programming languages
+   languages = []
+   for lang in supported_languages:
+        matched = re.search(f"{lang}_COMPILER", build_log, re.MULTILINE)
+        if matched:
+            languages.append(lang)
+   return '/'.join([str(lang) for lang in languages])
 
 def build_argparser(parser, include_binary_path=True, include_mode=True):
     parser.add_argument('--src-dir', help='Source tree path', required=True)

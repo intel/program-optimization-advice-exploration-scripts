@@ -60,7 +60,7 @@ def split_compiler_combo(CC_combo):
     return mpi_wrapper,CC
 
 def load_compiler_env(compiler_dir):
-    script = os.path.join(compiler_dir, 'Linux/intel64/load.sh')
+    script = os.path.join(compiler_dir, 'env/load.sh')
     #script = '/nfs/site/proj/openmp/compilers/intel/19.0/Linux/intel64/load.sh'
     pipe = subprocess.Popen(["/bin/bash", "-c", f"source {shlex.quote(script)} --force && env"], stdout=subprocess.PIPE)
     #pipe = subprocess.Popen(f"/bin/bash -c 'source {script} --force && env'", stdout=subprocess.PIPE, shell=True)
