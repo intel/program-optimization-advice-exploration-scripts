@@ -58,7 +58,10 @@ class LProfRunner(BaseRunner):
         lprof_run_cmd = " ".join(lprof_run_cmds)
         print(lprof_run_cmd)
         with open(os.path.join(self.run_dir, 'output.txt'), 'w') as outfile:
-            subprocess.run(lprof_run_cmds, stdout=outfile, stderr=subprocess.STDOUT, env=run_env, cwd=self.run_dir)
+            try:
+                subprocess.run(lprof_run_cmds, stdout=outfile, stderr=subprocess.STDOUT, env=run_env, cwd=self.run_dir)
+            except:
+                pass
         #subprocess.run(lprof_run_cmd, shell=True, env=run_env, cwd=self.run_dir)
         return True
 
@@ -67,18 +70,26 @@ class LProfRunner(BaseRunner):
         #run_cmd = f'{self.maqao_dir}/bin/maqao {lprof_walltime_script_path} {self.lprof_result_dir}'
         run_cmd = " ".join(run_cmds)
         print(run_cmd)
-        result = subprocess.run(run_cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        #result = subprocess.run(run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode != 0:
-            print(result.stderr.decode("utf-8"))
-            return
-        cmdout = result.stdout.decode("utf-8")
-        self.lprof_time = float(cmdout[:-1].split('\n')[-1])
+        try:
+            result = subprocess.run(run_cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            #result = subprocess.run(run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if result.returncode != 0:
+                print(result.stderr.decode("utf-8"))
+                return
+            cmdout = result.stdout.decode("utf-8")
+            self.lprof_time = float(cmdout[:-1].split('\n')[-1])
+        except:
+            self.lprof_time = 0.0 
         print(self.lprof_time)
 
     def compute_lprof_overhead(self, reference_time):
         overhead = self.lprof_time / reference_time
-        if overhead > LPROF_MAX_OVERHEAD:
+        if overhead == 0:
+            to_print = f'Cannot estimate Lprof overhead\n' + \
+                       f'Lprof sampling rate will be kept to default'
+            print(to_print)
+            return ''
+        elif overhead > LPROF_MAX_OVERHEAD:
             to_print = f'Lprof overhead: {overhead} is greater than {LPROF_MAX_OVERHEAD}\n' + \
                        f'Lprof sampling rate will be lowered'
             print(to_print)

@@ -58,7 +58,7 @@ def dump_compilers_log_file(qaas_reports_dir, file_name, message):
 
 def set_compilers_csv_header(defaults):
     '''Set CSV header for compiler runs'''
-    csv_header = ['app_name', 'compiler', 'option #', 'flags', '#MPI', '#OMP', 'time(s)', 'GFlops/s']
+    csv_header = ['timestamp', 'app_name', 'compiler', 'option #', 'flags', '#MPI', '#OMP', 'time(s)', 'GFlops/s', 'FOM']
     for default in defaults:
         csv_header.append(f"Spd w.r.t {default}")
     return csv_header
@@ -80,7 +80,7 @@ def dump_compilers_csv_file(qaas_reports_dir, file_name, table, defaults, best_o
         if not best_only:
             writer.writerows(table[compiler])
         else:
-            writer.writerow(table[compiler][best_options[compiler]])
+            writer.writerow(table[compiler][best_options[compiler]['index']])
     csv_compiler.close()
 
 def find_best_compiler(table, best_opt, i_time):
@@ -89,7 +89,7 @@ def find_best_compiler(table, best_opt, i_time):
     bestcomp = None
     min_time = 0.0
     for compiler,best_opt in best_opt.items():
-        time = table[compiler][best_opt][i_time]
+        time = table[compiler][best_opt['index']][i_time]
         if time == None:
             continue
         if min_time == 0.0 or time < min_time:
@@ -138,15 +138,19 @@ def measure_exec_times(app_name, base_run_dir, data_dir, run_cmd, compiled_optio
             run_log += f"[Compiler Options] (compiler={compiler},option={option}) Median on {DEFAULT_REPETITIONS} runs: {median_value}\n"
             time_values.append(median_value)
             gflops = flops/float(median_value) if median_value != None else 0.0
-            t_compiler.append([app_name, compiler, option, flags,nb_mpi,nb_omp, median_value, gflops])
+            if app_env.get("FOM_REGEX"):
+                basic_run.match_figure_of_merit(app_env["FOM_REGEX"])
+            FOM = basic_run.compute_median_figure_of_merit()
+            t_compiler.append([basic_run.run_dir_timestamp, app_name, compiler, option, flags,nb_mpi,nb_omp, median_value, gflops, FOM])
 
         # Add the local table to dict
         qaas_table[compiler] = t_compiler
         # Find best option for current compiler
         time_values = np.array([x if x != None else 10000  for x in time_values])
         qaas_min_val = time_values.min()
-        qaas_best_opt[compiler] = time_values.argmin()
-        qaas_min_opt =  qaas_best_opt[compiler] + 1  # option indexing starts at 1.
+        qaas_min_ind = time_values.argmin()
+        qaas_min_opt = qaas_min_ind + 1  # option indexing starts at 1.
+        qaas_best_opt[compiler] = {'index':qaas_min_ind, 'time':qaas_min_val, 'build':f"{compiler}_{qaas_min_opt}"}
         run_log += f"[Compiler Options] Fastest compilation {compiler} variant is {qaas_min_opt} with {qaas_min_val} seconds\n"
 
 
@@ -156,14 +160,12 @@ def run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_bes
     '''Run and generate OneView reports on best options'''
 
     for compiler, best_opt in qaas_best_opt.items():
-        # keep option directories consistent with build naming convention
-        option = best_opt + 1
         # Setup experiment directory on oneview run directory
-        ov_run_dir_opt = os.path.join(ov_run_dir, "compilers", f"{compiler}_{option}")
+        ov_run_dir_opt = os.path.join(ov_run_dir, "compilers", best_opt['build'])
         # Extract the binary path of the best option
-        binary_path = compiled_options[compiler][best_opt][0]
+        binary_path = compiled_options[compiler][best_opt['index']][0]
         # Retrieve the execution environment
-        app_env = compiled_options[compiler][best_opt][1]
+        app_env = compiled_options[compiler][best_opt['index']][1]
         # Make the oneview run
         compiler_run(app_env, binary_path, data_dir, ov_run_dir_opt, run_cmd, DEFAULT_REPETITIONS, "oneview", parallel_runs, maqao_dir, ov_config)
 
@@ -180,19 +182,13 @@ def run_qaas_UP(app_name, src_dir, data_dir, base_run_dir, ov_config, ov_run_dir
     dump_compilers_log_file(qaas_reports_dir, 'qaas_compilers.log', log)
 
     # Compute speedups
-    index = 6 # index of the median execution time column
+    index = 7 # index of the median execution time column
     compute_compilers_speedups(qaas_table, defaults, index)
 
     # Dump csv table to file
     dump_compilers_csv_file(qaas_reports_dir, 'qaas_compilers.csv', qaas_table, defaults)
     # Dump best options csv file
     dump_compilers_csv_file(qaas_reports_dir, 'qaas_compilers_best.csv', qaas_table, defaults, True, qaas_best_opt)
-
-    # Dump meta data file
-    #meta_config = configparser.ConfigParser()
-    #meta_config['qaas'] = { "run_cmd": f'"{run_cmd}"' }
-    #with open(os.path.join(qaas_reports_dir, 'input.txt'), 'w') as meta_config_file:
-    #    meta_config.write(meta_config_file)
 
     # Run oneview on best options
     run_ov_on_best(ov_run_dir, ov_config, maqao_dir, data_dir, run_cmd, qaas_best_opt, compiled_options, parallel_runs)

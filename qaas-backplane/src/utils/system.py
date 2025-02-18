@@ -47,6 +47,10 @@ def get_vendor_name():
     vendor = cpuinfo.get_cpu_info()['vendor_id_raw']
     if vendor == 'GenuineIntel':
         return 'intel'
+    elif vendor == 'AuthenticAMD':
+        return 'amd'
+    elif vendor == 'ARM':
+        return 'arm'
     else:
         return 'unknown'
 
@@ -60,37 +64,65 @@ def get_model():
 
 def get_model_name():
     '''Get the CPU model name'''
-    return cpuinfo.get_cpu_info()['brand_raw']
+    try:
+        return cpuinfo.get_cpu_info()['brand_raw']
+    except:
+        return "Unknown CPU model name"
+
+def get_processor_name(maqao_dir, vendor):
+    '''Get the Intel processor name'''
+    if vendor == 'intel':
+        return get_intel_processor_name(maqao_dir)
+    elif vendor == 'amd':
+        return get_amd_processor_name(maqao_dir)
+    elif vendor == 'arm':
+        return get_arm_processor_name(maqao_dir)
+    else:
+        return 'unknown'
 
 def get_intel_processor_name(maqao_dir):
-    '''Get the processor name'''
+    '''Get the Intel processor name'''
     # Map from Micro-architure code from MAQAO detect-proc to short name used in intel.json
     # Default to OTHER if nothing is found.
     processor_name_dict = {
-        "SAPPHIRE_RAPIDS":"SPR", "ICELAKE_SP":"ICL", "KABY_LAKE":"SKL",
-        "SKYLAKE":"SKX", "HASWELL_E":"HSW", "HASWELL":"HSW" }
+        "GRANITE_RAPIDS":"GNR", # family == 6, model == 173
+        "SIERRA_FOREST":"SRF", # family == 6, model == 175
+        "EMERALD_RAPIDS":"EMR", # family == 6, model == 207
+        "SAPPHIRE_RAPIDS":"SPR", # family == 6, model == 143
+        "ICELAKE_SP":"ICL", # family == 6, model == 106
+        "SKYLAKE":"SKX", # family == 6, model == 85
+        "KABY_LAKE":"SKL", # family == 6, model == 158
+        "HASWELL_E":"HSW",
+        "HASWELL":"HSW", # family == 6, model == 63 or model == 79,
+        "BROADWELL":"HSW"
+    }
     proc_arch_name = get_processor_architecture(maqao_dir)
     return processor_name_dict.get(proc_arch_name, "OTHER")
-    # family = get_family ()
-    # # Get the CPU model ID
-    # model = get_model()
 
-    # if family == 6:
-    #     if model == 143:
-    #         CPU = 'SPR'
-    #     elif model == 106:
-    #         CPU = 'ICL'
-    #     elif model == 85:
-    #         CPU = 'SKL'
-    #     # Should be Coffee Lake or Kaby Lake, but consider them SKL (needed for UVSQ "intel" machine)
-    #     elif model == 158:
-    #         CPU = 'SKL'
-    #     elif model == 63 or model == 79:
-    #         CPU = 'HSW'
-    #     else:
-    #         CPU = 'OTHER'
+def get_amd_processor_name(maqao_dir):
+    '''Get the AMD processor name'''
+    # Map from Micro-architure code from MAQAO detect-proc to short name used in intel.json
+    # Default to OTHER if nothing is found.
+    processor_name_dict = {
+        "ZEN_V3":"ZEN3",
+        "ZEN_V4":"ZEN4", #family == 25, model ==17
+        "ZEN_V5":"ZEN5"
+    }
+    proc_arch_name = get_processor_architecture(maqao_dir)
+    return processor_name_dict.get(proc_arch_name, "OTHER")
 
-    # return CPU
+def get_arm_processor_name(maqao_dir):
+    '''Get the ARM processor name'''
+    # Map from Micro-architure code from MAQAO detect-proc to short name used in arm.json
+    # Default to OTHER if nothing is found.
+    processor_name_dict = {
+        "ARM_NEOVERSE_V2":"NEOVERSE_V2",
+        "ARM_NEOVERSE_V1":"NEOVERSE_V1",
+        "ARM_NEOVERSE_N2":"NEOVERSE_N2",
+        "ARM_NEOVERSE_N1":"NEOVERSE_N1"
+    }
+    proc_arch_name = get_processor_architecture(maqao_dir)
+    return processor_name_dict.get(proc_arch_name, "OTHER")
 
 def get_processor_architecture(maqao_dir):
     '''Get the processor architecture'''
@@ -99,22 +131,33 @@ def get_processor_architecture(maqao_dir):
     return parsed_output['Micro-architecture code']
 
 def get_mach_info_using_maqao(maqao_dir):
-    output = subprocess.check_output([os.path.join(maqao_dir, 'bin', 'maqao'), "--detect-proc"], universal_newlines=True)
-    parsed_output = { line.split(':', 1)[0].strip(): line.split(':',1)[1].strip() for line in output.split("\n") if line.strip()}
+    try:
+        output = subprocess.check_output([os.path.join(maqao_dir, 'bin', 'maqao'), "--detect-proc"], universal_newlines=True)
+        parsed_output = { line.split(':', 1)[0].strip(): line.split(':',1)[1].strip() for line in output.split("\n") if line.strip()}
+    except:
+        #parsed_output = {'Micro-architecture code': 'UNKNOWN_PROC'}
+        parsed_output = get_march_info_using_cpuinfo()
     return parsed_output
-    # CPU =  get_intel_processor_name()
 
-    # # Translate CPU name into architecture code
-    # if CPU == 'SPR':
-    #     architecture = 'SAPPHIRE_RAPIDS'
-    # elif CPU == 'ICL':
-    #     architecture = 'ICELAKE_SP'
-    # elif CPU == 'SKL':
-    #     architecture = 'SKYLAKE'
-    # else:
-    #     architecture = ''
-
-    # return architecture
+def get_march_info_using_cpuinfo():
+    '''Fallback mode to get the Intel UARCH using CPU family and model'''
+    # Get the CPU family ID
+    family = get_family()
+    # Stop if it not an Intel family 6
+    if family != 6:
+        return {'Micro-architecture code': 'UNKNOWN_PROC'}
+    # Get the CPU mdel ID
+    model = get_model()
+    # Map from model ID to micro-architecture
+    intel_march_dict = {
+        173:"GRANITE_RAPIDS",
+        175:"SIERRA_FOREST",
+        207:"EMERALD_RAPIDS",
+        143:"SAPPHIRE_RAPIDS",
+        106:"ICELAKE_SP",
+        85:"SKYLAKE"
+    }
+    return {'Micro-architecture code': intel_march_dict.get(model, 'UNKNOWN_PROC')}
 
 def get_number_of_cpus():
     '''Retrieve the number of logical CPUs from lscpu command'''
@@ -142,19 +185,38 @@ def get_THP_policy():
 
 def get_frequency_driver():
     '''Retrieve the frequency driver on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown frequency driver"
 
 def get_frequency_governor():
     '''Retrieve the frequency governor on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown frequency governor"
 
 def get_scaling_max_frequency():
     '''Retrieve the scaling max frequency on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown scaling max frequency"
 
 def get_scaling_min_frequency():
     '''Retrieve the scaling min frequency on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown scaling min frequency"
+
+def get_scaling_cur_frequency():
+    '''Retrieve the scaling current frequency on the system. Valid only for userspace governor provided by acpi-cpufreq driver'''
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown current frequency"
 
 def get_advertized_frequency():
     '''Retrieve the advertized frequency on the system'''
@@ -162,7 +224,10 @@ def get_advertized_frequency():
 
 def get_maximal_frequency():
     '''Retrieve the maximal (Turbo) frequency on the system'''
-    return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    try:
+        return subprocess.check_output("cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", shell=True).decode("utf-8").split('\n')[0]
+    except:
+        return "Unknown maximal frequency"
 
 def get_compiler_version(compiler, compiler_dir):
     '''Get compiler version'''
@@ -171,9 +236,72 @@ def get_compiler_version(compiler, compiler_dir):
     elif compiler == "icc":
        cmd_version = "icc  -diag-disable=10441  --version | head -n 1 | cut -d' ' -f3-4 | tr ' ' '.'"
     elif compiler == "gcc":
-       cmd_version = "gcc --version | head -n 1 | cut -d' ' -f4"
+       cmd_version = "gcc --version | head -n 1 | cut -d')' -f2 | cut -d' ' -f2"
+    elif compiler == "aocc":
+       cmd_version = "clang --version | head -n 1 | grep -Po '(?<=AOCC_).*(?=-Build)'"
+    elif compiler == "armclang":
+       cmd_version = "armclang --version | head -n 1 | cut -d' ' -f5"
+    else:
+       cmd_version = ""
     try:
         env = load_compiler_env(compiler_dir)
         return subprocess.check_output(cmd_version, shell=True, env=env).decode("utf-8").split('\n')[0]
     except ImportError:
         return ""
+
+def get_mpi_version(mpi_dir):
+    '''Get MPI version'''
+    cmdline = "mpirun --version | head -n 1"
+    try:
+        # Right now, still putting compilers and runtimes altogether.
+        env = load_compiler_env(mpi_dir)
+        output = subprocess.check_output(cmdline, shell=True, env=env).decode("utf-8").split('\n')[0]
+    except ImportError:
+        return ""
+    # Check if MPI distribution is OpenMPI
+    if output.find('Open MPI') != -1:
+        return ('OpenMPI',f"{output.split(' ')[3]}")
+    # Check if MPI distribution is IntelMPI
+    elif output.find('') != -1:
+        return ('IntelMPI',f"{output.split(' ')[7]}")
+    return ('Unknown','NA')
+
+def increase_run_resources_limits():
+    '''Increase stack size and number of files limits.'''
+    # Increase stack size soft limit for the current process and children
+    try:
+        resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY,-1))
+    except:
+        pass
+    # Increase no of open files soft limit for the current process and children
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (4096, resource.getrlimit(resource.RLIMIT_NOFILE)[1]))
+    except:
+        pass
+
+def exclude_cores_from_gnr128(nb_ranks, nb_threads):
+    '''Special processing on, GNR 6980P to exclude cores (42,85,170,213,298,341,426,469) because of asymetric topology.'''
+    gnr128_nodes = [(0,42), (43,85), (86,127), (128,170), (171,213), (214,255)]
+    # Extend set with hyper-threads
+    gnr128_nodes_extended = gnr128_nodes + [(start+256,stop+256) for start,stop in gnr128_nodes]
+    # Get totam number of cores and NUMA nodes
+    nb_cores = get_number_of_cores()
+    nb_nodes = get_number_of_nodes()
+    cores_per_node = int(nb_cores/nb_nodes)
+    # Compute a per-NUMA node limit
+    if nb_ranks > 1:
+        # Compute the maximum number of cores per node
+        nb_ranks_per_node = int(nb_ranks / nb_nodes)
+        #limit = int(cores_per_node/nb_ranks_per_node) * nb_ranks_per_node
+        max_cores_per_node = nb_ranks_per_node * nb_threads
+        limit = int(cores_per_node/max_cores_per_node) * max_cores_per_node
+    else:
+        # compute the maximum number of cores per node
+        nb_threads_per_node = int(nb_threads / nb_nodes)
+        limit = int(cores_per_node/nb_threads_per_node) * nb_threads_per_node
+    # Exclude mask for Hybrid MPIxOMP runs
+    exclude_cores = []
+    for start,stop in gnr128_nodes_extended:
+        if start + limit <= stop:
+            exclude_cores.append(str(start+limit)+'-'+str(stop) if start + limit != stop else str(stop))
+    return ",".join(exclude_cores)

@@ -29,13 +29,13 @@ for version in 2023 2024; do
 	apt-get install -y ${c_cxx_compiler_package}=${compiler_version} intel-oneapi-compiler-fortran=${compiler_version}
 	apt-get install -y intel-oneapi-mkl=${mkl_version} intel-oneapi-mkl-devel=${mkl_version}
 	apt-get install -y intel-oneapi-mpi=${mpi_version} intel-oneapi-mpi-devel=${mpi_version}
-	mkdir -p ${PREFIX}/intel/${version}/Linux/intel64/
+	mkdir -p ${PREFIX}/intel/${version}/env/
   compiler_folder=${compiler_folder_map[$version]}
   mkl_folder=${mkl_folder_map[$version]}
   mpi_folder=${mpi_folder_map[$version]}
-	echo "source /opt/intel/oneapi/compiler/${compiler_folder}/env/vars.sh" >  ${PREFIX}/intel/${version}/Linux/intel64/load.sh
-	echo "source /opt/intel/oneapi/mkl/${mkl_folder}/env/vars.sh"      >> ${PREFIX}/intel/${version}/Linux/intel64/load.sh
-	echo "source /opt/intel/oneapi/mpi/${mpi_folder}/env/vars.sh"       >> ${PREFIX}/intel/${version}/Linux/intel64/load.sh
+	echo "source /opt/intel/oneapi/compiler/${compiler_folder}/env/vars.sh" >  ${PREFIX}/intel/${version}/env/load.sh
+	echo "source /opt/intel/oneapi/mkl/${mkl_folder}/env/vars.sh"      >> ${PREFIX}/intel/${version}/env/load.sh
+	echo "source /opt/intel/oneapi/mpi/${mpi_folder}/env/vars.sh"       >> ${PREFIX}/intel/${version}/env/load.sh
 done
 ln -frs ${PREFIX}/intel/${version} ${PREFIX}/intel/latest
 
@@ -47,15 +47,15 @@ apt-get -y install gcc-11 g++-11 gfortran-11
 
 cd $PREFIX
 gccversion="11.4"
-mkdir -p gcc/gcc-${gccversion}/Linux/intel64/
+mkdir -p gcc/gcc-${gccversion}/env/
 # Simulate install with system provided gcc
-mkdir -p gcc/gcc-${gccversion}/Linux/install/
-ln -s /usr/bin/gcc-11      gcc/gcc-${gccversion}/Linux/install/gcc
-ln -s /usr/bin/g++-11      gcc/gcc-${gccversion}/Linux/install/g++
-ln -s /usr/bin/gfortran-11 gcc/gcc-${gccversion}/Linux/install/gfortran
-echo "export PATH=${PREFIX}/gcc/gcc-${gccversion}/Linux/install:\$PATH" >  gcc/gcc-${gccversion}/Linux/intel64/load.sh
+mkdir -p gcc/gcc-${gccversion}/install/
+ln -s /usr/bin/gcc-11      gcc/gcc-${gccversion}/install/gcc
+ln -s /usr/bin/g++-11      gcc/gcc-${gccversion}/install/g++
+ln -s /usr/bin/gfortran-11 gcc/gcc-${gccversion}/install/gfortran
+echo "export PATH=${PREFIX}/gcc/gcc-${gccversion}/install:\$PATH" >  gcc/gcc-${gccversion}/env/load.sh
 # Use the "latest" MKL and MPI folders
-echo "source /opt/intel/oneapi/mkl/${mkl_folder}/env/vars.sh"              >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
-echo "source /opt/intel/oneapi/mpi/${mpi_folder}/env/vars.sh"               >> gcc/gcc-${gccversion}/Linux/intel64/load.sh
-#echo "source ${PREFIX}/gcc/gcc-${gccversion}/Linux/intel64/load.sh"     >> intel/${YEAR}/Linux/intel64/load.sh
+echo "source /opt/intel/oneapi/mkl/${mkl_folder}/env/vars.sh"              >> gcc/gcc-${gccversion}/env/load.sh
+echo "source /opt/intel/oneapi/mpi/${mpi_folder}/env/vars.sh"               >> gcc/gcc-${gccversion}/env/load.sh
+#echo "source ${PREFIX}/gcc/gcc-${gccversion}/env/load.sh"     >> intel/${YEAR}/env/load.sh
 ln -frs gcc/gcc-${gccversion} gcc/latest

@@ -13,10 +13,14 @@
             "DATA_TOKEN":  "",
             "DATA_URL": "",
             "DATA_BRANCH": "",
-            "DATA_DOWNLOAD_PATH": ""
+            "DATA_DOWNLOAD_PATH": "",
+            "DATASET_LABEL": "groups 32"
         },
         "RUN": {
             "APP_RUN_CMD": "<binary> --groups 32",
+            "FOM_REGEX": "'(?<=Throughput:).*(?=.unknowns/.second/iteration..)'",
+            "FOM_TYPE": "RATE",
+            "FOM_UNIT": "unknowns/second/iteration",
             "APP_ENV_MAP": { }
         }
     },
