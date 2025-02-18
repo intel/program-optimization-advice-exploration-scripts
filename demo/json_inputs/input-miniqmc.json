@@ -13,18 +13,22 @@
             "DATA_TOKEN":  "",
             "DATA_URL": "",
             "DATA_BRANCH": "",
-            "DATA_DOWNLOAD_PATH": ""
+            "DATA_DOWNLOAD_PATH": "",
+            "DATASET_LABEL": "2 2 1"
         },
         "RUN": {
             "APP_RUN_CMD": "<binary> -g \\\"2 2 1\\\" -b",
+            "FOM_REGEX": "'(?<=Total throughput \\( N_walkers \\* N_elec\\^3 / Total time \\) \\=).*'",
+            "FOM_TYPE": "RATE",
+            "FOM_UNIT": "N_elec/s",
             "APP_ENV_MAP": { }
         }
     },
     "compiler": {
-        "USER_CC": "mpiicc-icx",
-        "USER_CC_VERSION": "2023",
+        "USER_CC": "MPI-icx",
+        "USER_CC_VERSION": "latest",
         "USER_C_FLAGS": "",
-        "USER_CXX_FLAGS": "-cxx=icpx -O3 -march=native",
+        "USER_CXX_FLAGS": "-O3 -march=native",
         "USER_FC_FLAGS": "",
         "USER_LINK_FLAGS": "",
         "USER_EXTRA_CMAKE_FLAGS": "-DENABLE_OFFLOAD=0 -DQMC_MPI=1",

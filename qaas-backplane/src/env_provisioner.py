@@ -73,7 +73,9 @@ class QAASEnvProvisioner:
     def __init__(self, service_dir, script_root,
                  account, app_name, git_params,
                  access_params, container,
-                 compilers, compiler_mappings, analyzers, comm_port,
+                 compilers, compiler_mappings,
+                 initial_profile_params,
+                 analyzers, comm_port,
                  remote_job,
                  service_msg_recv_handler,
                  launch_output_dir):
@@ -126,6 +128,7 @@ class QAASEnvProvisioner:
         self.compiler_mappings = compiler_mappings
         self._launch_output_dir = launch_output_dir
         self.analyzers = analyzers
+        self.initial_profile_params = initial_profile_params
 
     def get_script_root(self, container):
         script_root = self.script_root
@@ -274,10 +277,10 @@ class QAASEnvProvisioner:
             cmdline = "cd " + data_dir
             if self.git_data_download_path:
                 cmdline += " && if [[ -f " + self.git_data_download_path + " ]]; then" + \
-                           " cp -rf " + self.git_data_copy_from_fs + "/* $(dirname " + self.git_data_download_path + "\);" \
-                           " else  cp -rf " + self.git_data_copy_from_fs + "/*" + self.git_data_download_path + ";fi"
+                           " cp -rfL " + self.git_data_copy_from_fs + "/* $(dirname " + self.git_data_download_path + "\);" \
+                           " else  cp -rfL " + self.git_data_copy_from_fs + "/*" + self.git_data_download_path + ";fi'"
             else:
-                cmdline += " && cp -rf " + self.git_data_copy_from_fs + "/* ./"
+                cmdline += " && cp -rfL " + self.git_data_copy_from_fs + "/* ./"
             cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
             if self.remote_job:
                 rc, cmdout = cmd_runner.run_remote_cmd(cmdline)
@@ -298,7 +301,7 @@ class QAASEnvProvisioner:
         ov_name = "oneview_runs"
         gz_file = f"{ov_name}.tar.gz"
         remote_gz_file = f"/tmp/{gz_file}"
-        local_out_dir = os.path.join(self.launch_output_dir, ov_name)
+        local_out_dir = os.path.join(self.launch_output_dir, ov_name+"_tmp")
 
         cmd_runner = QAASRunCMD(self.comm_port, self.machine, self.ssh_port, self.user)
 
@@ -324,7 +327,10 @@ class QAASEnvProvisioner:
         if rc != 0:
             return rc
 
-        self.package_data(in_container)
+        try:
+            self.package_data(in_container)
+        except:
+            pass
 
         rm_gz_cmd = f"rm -f {remote_gz_file}"
         if self.remote_job:
@@ -341,15 +347,13 @@ class QAASEnvProvisioner:
 
     def package_data(self, in_container):
         local_out_dir = self.launch_output_dir
-        reorg_local_out_dir=os.path.join(local_out_dir, 'reorg', os.path.basename(local_out_dir))
-        real_qaas_data_root=os.path.join(local_out_dir, "oneview_runs")
+        reorg_local_out_dir=local_out_dir
+        real_qaas_data_root=os.path.join(local_out_dir, "oneview_runs_tmp")
         qaas_reports_folder=os.path.join(real_qaas_data_root, "qaas_reports")
         ov_folder_for_best_compilers=os.path.join(real_qaas_data_root, "compilers")
         ov_folder_for_default=os.path.join(real_qaas_data_root, "defaults")
 
-        os.makedirs(reorg_local_out_dir, exist_ok=True)
-        for compiler_folder in os.listdir(qaas_reports_folder):
-            shutil.copy(os.path.join(qaas_reports_folder, compiler_folder), reorg_local_out_dir)
+        shutil.copytree(qaas_reports_folder, reorg_local_out_dir, dirs_exist_ok=True)
         out_oneview_folders=os.path.join(reorg_local_out_dir, "oneview_runs")
 
         compilers=[]
@@ -360,21 +364,23 @@ class QAASEnvProvisioner:
         self.process_oneview_data(ov_folder_for_default, out_oneview_folders, compilers, compiler_options, folders, lambda folder: [folder, 0, f'{folder}_default'], in_container)
 
         ov_folders_info_df = pd.DataFrame({"compiler":compilers, "option #":compiler_options, "ov_folder":folders})
-        #print(ov_folders_info_df)
 
-    # Now add the ov_folder column to data
-    # This is for multi-compiler data
+        # Now add the ov_folder column to data
+        # This is for multi-compiler data
         multi_compiler_data_fn = os.path.join(reorg_local_out_dir, 'qaas_compilers.csv')
         multi_compiler_data_df = pd.read_csv(multi_compiler_data_fn)
         result = pd.merge(multi_compiler_data_df, ov_folders_info_df, on=['compiler', 'option #'], how='left')
-        #print(result)
         result.to_csv(multi_compiler_data_fn, index=False)
-        #print(reorg_local_out_dir)
+
+        # Delete the tmp oneview runs dir
+        shutil.rmtree(real_qaas_data_root)
+        # Create the final tarball to be used by GUI
         reorg_local_dir_name = os.path.basename(reorg_local_out_dir)
+        exclude_dirs = [reorg_local_dir_name+'/'+item for item in ['oneview_runs_html']]
         with tarfile.open(os.path.join('/tmp/qaas_out.tar.gz'), 'w:gz') as tar:
-            tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name)
+            tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name, filter=lambda x: None if x.name in exclude_dirs else x)
         with tarfile.open(os.path.join('/tmp/qaas_out-debug.tar.gz'), 'w:gz') as tar:
-            tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name)
+            tar.add(reorg_local_out_dir, arcname=reorg_local_dir_name, filter=lambda x: None if x.name in exclude_dirs else x)
         with open("/tmp/debug-tar.txt", "w") as f: f.write(f'{reorg_local_out_dir}, {reorg_local_dir_name}')
 
     def process_oneview_data(self, ov_folder_to_extract, out_oneview_folders, compilers, compiler_options, folders, 
