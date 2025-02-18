@@ -129,7 +129,7 @@ Users must modify the following parameters:
 
 # Running QaaS
 
-## Application's JSON specification
+## The application's JSON specification
 In order to perform QaaS runs on a target application, a json specification must be available.
 `<path to qaas root>/demo/json_inputs/` contains multiple examples of apps to run. The JSON file consists of 4 main sections:
 - Account: specifies the organization/owner of the code. Account information is provided through the `QAAS_ACCOUNT` variable
@@ -269,7 +269,7 @@ is similar to
 ./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json -D
 ```
 
-# Running QaaS in a container
+## Running QaaS in a container
 
 To run QaaS in a container (not well tested mode), users must follow the steps below:
 - Install `podman` (rootless mode).
@@ -277,6 +277,36 @@ To run QaaS in a container (not well tested mode), users must follow the steps b
 - Pull container image: `podman pull <registery>/qaas:production`
 - Setup compiler scripts structure similar to what the `setup_compilers.sh` is doing (see above)
 - Run QaaS: `./qaas.py -ap ../../demo/json_inputs/input-miniqmc.json --logic strategizer --as-root-in-container -D`
+
+# QaaS running logic and expected output
+
+QaaS analysis performs three main operations, each can be more or less enabled or disabled using the CLI.
+1. Initial profiling and cleaning. The goal of this stage is to make a run stability analysis. The execution of the binary generated using default compiler and flags is repeated multiple times. The repetition factor is controller by the `QAAS_DEFAULT_REPETITIONS` parameter in `qaas.conf`. If variability is less than 10%, then QaaS can proceed to next stage.
+2. Multi-compilers phase. QaaS will perform multi-compilers and compiler flags exploration according to the list of supported compilers and flags on each particular vendor.
+   1. Explored compilers: icx/icc/gcc on Intel, aocc/icx/gcc on AMD and armclang/gcc on ARM
+   2. Explored compilation flags cover general optimization flags (O2/O3), vector length, instruction set, link time optimization
+   3. At the end, a CSV file that summarizes the compiler exploration is generated. The report includes the compilation flags, execution time, #MPI, #OpenMP, GFlops and Figure-of-Merit if available.
+3. Scalability phase. QaaS scales number of cores by varying both the number of MPI processes and OpenMP threads. QaaS also tests two processes and threads affinity strategies: compact and scatter.
+
+At the end of a QaaS run and unless the `--output-dir <output_dir>` option is specified, the qaas report is put in `./qaas_out/<timestamp of the run>`. The final report has the following structure:
+```
+tree -L 1 qaas_out/173-921-1807
+qaas_out/173-921-1807
+├── input.txt                 # Metadata file that summarizes context of the run
+├── oneview_runs              # Compacted format for Oneview report to be put in DB (experimental)
+│   ├── gcc_1
+│   ├── gcc_default
+│   ├── icx_2
+│   └── orig_default
+├── oneview_runs_html         # Oneview compare reports in html
+│   ├── compilers             # Multi-compilers compare report
+│   └── multicore             # Scalability compare report
+├── qaas_compilers_best.csv
+├── qaas_compilers.csv        # Multi-compilers CSV report
+├── qaas_compilers.log
+├── qaas_multicore.csv        # Scalability run reports
+└── qaas_multicore.log
+```
 
 # QaaS backplane limitations
 - Application build engine relies on CMAKE
