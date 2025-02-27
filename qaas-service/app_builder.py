@@ -118,7 +118,8 @@ lookup_functions = {
             ({'aocc': 'march=native', 'gcc': 'march=native', 'icx': 'march=native'}, simple_replace),
             ({'aocc': 'mavx2', 'gcc': 'march=haswell', 'icx': 'xCORE-AVX2'}, simple_replace),
             ({'aocc': 'march=znver3', 'gcc': 'march=znver3', 'icx': 'xCORE-AVX2'}, simple_replace),
-            ({'aocc': 'march=znver4', 'gcc': 'march=znver4', 'icx': 'axCORE-AVX512'}, simple_replace)
+            ({'aocc': 'march=znver4', 'gcc': 'march=znver4', 'icx': 'axCORE-AVX512'}, simple_replace),
+            ({'aocc': 'march=znver5', 'gcc': 'march=znver5', 'icx': 'axCORE-AVX512'}, simple_replace)
           ],
    "arm": [
             ({'armclang': 'mcpu=native', 'gcc': 'mcpu=native'}, simple_replace),
@@ -201,13 +202,10 @@ def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target
     build_dir=get_build_dir(src_dir, relative_build_dir)
     output_dir=os.path.dirname(output_binary_path)
     output_name=os.path.basename(output_binary_path)
-    user_mpi_compiler, user_CC, user_CXX, user_FC = parse_compiler_combo(user_CC_combo)
-    target_mpi_compiler, target_CC, target_CXX, target_FC = parse_compiler_combo(target_CC_combo)
 
     cmake_c_compiler, cmake_cxx_compiler, cmake_fortran_compiler, \
         cmake_c_flags, cmake_cxx_flags, cmake_fortran_flags, cmake_linker_flags, cmake_env \
-            = compute_cmake_variables(user_mpi_compiler, target_mpi_compiler, user_CC, target_CC, target_CXX, target_FC, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags)
-
+            = compute_cmake_variables(user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags)
 
     shutil.rmtree(build_dir, ignore_errors=True)
     my_env = os.environ.copy()
@@ -248,7 +246,9 @@ def setup_build(src_dir, compiler_dir, output_binary_path, user_CC_combo, target
     env['QAAS_BUILD_DIR']=build_dir
     return build_dir, output_dir, output_name, env
 
-def compute_cmake_variables(user_mpi_compiler, target_mpi_compiler, user_CC, target_CC, target_CXX, target_FC, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags):
+def compute_cmake_variables(user_CC_combo, target_CC_combo, user_c_flags, user_cxx_flags, user_fc_flags, user_link_flags):
+    user_mpi_compiler, user_suite, user_CC, user_CXX, user_FC = parse_compiler_combo(user_CC_combo)
+    target_mpi_compiler, target_suite, target_CC, target_CXX, target_FC = parse_compiler_combo(target_CC_combo)
     # TODO: some checks can be done about mpi compiler choices (e.g. if we want to ensure both are the same)
     # Right now just use the target_mpi_compiler choice
     if user_mpi_compiler:
@@ -286,10 +286,10 @@ def compute_cmake_variables(user_mpi_compiler, target_mpi_compiler, user_CC, tar
         cmake_cxx_compiler = target_CXX
         cmake_fortran_compiler = target_FC
 
-    cmake_c_flags = map_compiler_flags(user_CC, target_CC, user_c_flags)
-    cmake_cxx_flags = map_compiler_flags(user_CC, target_CC, user_cxx_flags)
-    cmake_fortran_flags = map_compiler_flags(user_CC, target_CC, user_fc_flags)
-    cmake_linker_flags = map_compiler_flags(user_CC, target_CC, user_link_flags)
+    cmake_c_flags = map_compiler_flags(user_suite, target_suite, user_c_flags)
+    cmake_cxx_flags = map_compiler_flags(user_suite, target_suite, user_cxx_flags)
+    cmake_fortran_flags = map_compiler_flags(user_suite, target_suite, user_fc_flags)
+    cmake_linker_flags = map_compiler_flags(user_suite, target_suite, user_link_flags)
 
     if target_mpi_compiler == 'mpiicc':
         cmake_c_flags = add_underlying_flag (cmake_c_flags, "cc", target_CC)
@@ -308,7 +308,7 @@ def parse_compiler_combo(CC_combo):
     CC = compiler_map[compiler_suite+":CC"]
     CXX = compiler_map[compiler_suite+":CXX"]
     FC = compiler_map[compiler_suite+":FC"]
-    return mpi_wrapper, CC,CXX,FC
+    return mpi_wrapper, compiler_suite, CC,CXX,FC
 
 
 def get_build_dir(src_dir, relative_build_dir):
